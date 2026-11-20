@@ -62,6 +62,7 @@ import '../support/noop_sync_transport.dart';
 import '../support/fail_once_interceptor.dart';
 import '../support/test_repositories.dart';
 import '../support/l10n_harness.dart';
+import 'package:compendium_app/src/screens/theme_editor_screen.dart';
 import 'package:compendium_app/src/theme/app_breakpoints.dart';
 
 // ---------------------------------------------------------------------------
@@ -336,6 +337,12 @@ _pumpSettings(
     sortIgnoreArticlesNotifier: sortIgnoreArticlesNotifier,
     trackHistoryForAllCallersNotifier: trackHistoryForAllCallersNotifier,
   );
+}
+
+/// Opens Settings ▸ Appearance ▸ Theme from an open Appearance section.
+Future<void> _openThemeScreen(WidgetTester tester) async {
+  await tester.tap(find.byKey(const ValueKey('appearance-theme')));
+  await tester.pumpAndSettle();
 }
 
 // ---------------------------------------------------------------------------
@@ -1152,6 +1159,7 @@ void main() {
       tester,
     ) async {
       await _pumpSettings(tester, section: 'appearance');
+      await _openThemeScreen(tester);
 
       for (final option in AppThemeSelection.values) {
         final card = find.byKey(ValueKey('theme-${option.name}'));
@@ -1175,6 +1183,7 @@ void main() {
       await _pumpSettings(tester, surfaceSize: const Size(390, 9000));
       await tester.tap(find.byKey(const ValueKey('settings-nav-appearance')));
       await tester.pumpAndSettle();
+      await _openThemeScreen(tester);
 
       Rect rect(AppThemeSelection o) =>
           tester.getRect(find.byKey(ValueKey('theme-${o.name}')));
@@ -1198,6 +1207,7 @@ void main() {
       await _pumpSettings(tester, surfaceSize: const Size(360, 9000));
       await tester.tap(find.byKey(const ValueKey('settings-nav-appearance')));
       await tester.pumpAndSettle();
+      await _openThemeScreen(tester);
 
       final light = tester.getRect(
         find.byKey(ValueKey('theme-${AppThemeSelection.light.name}')),
@@ -1217,6 +1227,7 @@ void main() {
       await _pumpSettings(tester, surfaceSize: const Size(390, 20000));
       await tester.tap(find.byKey(const ValueKey('settings-nav-appearance')));
       await tester.pumpAndSettle();
+      await _openThemeScreen(tester);
 
       final light = tester.getRect(
         find.byKey(ValueKey('theme-${AppThemeSelection.light.name}')),
@@ -1231,6 +1242,7 @@ void main() {
 
     testWidgets('wide pane keeps the 220 pt cards', (tester) async {
       await _pumpSettings(tester, section: 'appearance');
+      await _openThemeScreen(tester);
 
       final light = tester.getRect(
         find.byKey(ValueKey('theme-${AppThemeSelection.light.name}')),
@@ -1246,6 +1258,7 @@ void main() {
         section: 'appearance',
         initialTheme: AppThemeSelection.dark,
       );
+      await _openThemeScreen(tester);
 
       // Selection must not rely on color alone: the active card also renders a
       // check icon and a "Selected" label.
@@ -1283,6 +1296,7 @@ void main() {
         section: 'appearance',
         initialTheme: AppThemeSelection.system,
       );
+      await _openThemeScreen(tester);
 
       final card = find.byKey(
         ValueKey('theme-${AppThemeSelection.highContrast.name}'),
@@ -1302,6 +1316,7 @@ void main() {
         section: 'appearance',
         initialTheme: AppThemeSelection.system,
       );
+      await _openThemeScreen(tester);
 
       final card = find.byKey(ValueKey('theme-${AppThemeSelection.dark.name}'));
       await tester.ensureVisible(card);
@@ -1396,6 +1411,7 @@ void main() {
         section: 'appearance',
         initialTheme: AppThemeSelection.system,
       );
+      await _openThemeScreen(tester);
 
       final card = find.byKey(
         ValueKey('theme-${AppThemeSelection.monokai.name}'),
@@ -1411,6 +1427,7 @@ void main() {
 
     testWidgets('gallery renders labeled group headings', (tester) async {
       await _pumpSettings(tester, section: 'appearance');
+      await _openThemeScreen(tester);
       for (final group in AppThemeGroup.values) {
         expect(
           find.text(group.label),
@@ -1436,20 +1453,50 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    testWidgets('shows an empty-state hint and a New custom theme button', (
-      tester,
-    ) async {
+    testWidgets('with none saved: no Custom themes heading, and the floating '
+        'Custom theme button', (tester) async {
       await _pumpSettings(tester, section: 'appearance');
-      await revealInAppearance(
-        tester,
-        find.byKey(const ValueKey('new-custom-theme')),
+      await _openThemeScreen(tester);
+      final button = find.byKey(const ValueKey('new-custom-theme'));
+      expect(button, findsOneWidget);
+      expect(
+        find.descendant(of: button, matching: find.text('Custom theme')),
+        findsOneWidget,
       );
-      expect(find.byKey(const ValueKey('new-custom-theme')), findsOneWidget);
-      expect(find.textContaining('sync to your other devices'), findsOneWidget);
+      expect(find.byKey(const ValueKey('theme-group-custom')), findsNothing);
+    });
+
+    testWidgets('Custom theme opens the editor seeded from the theme in use, '
+        'and saving makes the new theme active', (tester) async {
+      final ctx = await _pumpSettings(
+        tester,
+        section: 'appearance',
+        initialTheme: AppThemeSelection.dracula,
+      );
+      await _openThemeScreen(tester);
+      await tester.tap(find.byKey(const ValueKey('new-custom-theme')));
+      await tester.pumpAndSettle();
+      expect(find.byType(ThemeEditorScreen), findsOneWidget);
+      final editor = tester.widget<ThemeEditorScreen>(
+        find.byType(ThemeEditorScreen),
+      );
+      expect(
+        editor.initial.roles,
+        CustomTheme.rolesFromScheme(AppThemeSelection.dracula.scheme!),
+      );
+      Navigator.of(
+        tester.element(find.byType(ThemeEditorScreen)),
+      ).pop(editor.initial);
+      await tester.pumpAndSettle();
+
+      expect(ctx.customThemes.themes, hasLength(1));
+      expect(ctx.customThemes.activeId, ctx.customThemes.themes.single.id);
+      expect(find.byKey(const ValueKey('theme-group-custom')), findsOneWidget);
     });
 
     testWidgets('renders a card for each saved custom theme', (tester) async {
       final ctx = await _pumpSettings(tester, section: 'appearance');
+      await _openThemeScreen(tester);
       final created = await ctx.customThemes.duplicate(
         name: 'Test Theme',
         brightness: Brightness.dark,
@@ -1473,6 +1520,7 @@ void main() {
         section: 'appearance',
         initialTheme: AppThemeSelection.monokai,
       );
+      await _openThemeScreen(tester);
       final created = await ctx.customThemes.duplicate(
         name: 'Test Theme',
         brightness: Brightness.light,
@@ -1496,6 +1544,7 @@ void main() {
       tester,
     ) async {
       final ctx = await _pumpSettings(tester, section: 'appearance');
+      await _openThemeScreen(tester);
       final created = await ctx.customThemes.duplicate(
         name: 'Test Theme',
         brightness: Brightness.dark,
@@ -1528,6 +1577,7 @@ void main() {
     testWidgets('deleting a custom theme removes it, says so by name, and '
         'Undo brings it back', (tester) async {
       final ctx = await _pumpSettings(tester, section: 'appearance');
+      await _openThemeScreen(tester);
       final created = await ctx.customThemes.duplicate(
         name: 'Doomed Theme',
         brightness: Brightness.dark,
@@ -1553,6 +1603,7 @@ void main() {
       tester,
     ) async {
       final ctx = await _pumpSettings(tester, section: 'appearance');
+      await _openThemeScreen(tester);
       final created = await ctx.customThemes.duplicate(
         name: 'Doomed Theme',
         brightness: Brightness.dark,
@@ -1586,6 +1637,7 @@ void main() {
       tester,
     ) async {
       final ctx = await _pumpSettings(tester, section: 'appearance');
+      await _openThemeScreen(tester);
       final created = await ctx.customThemes.duplicate(
         name: 'Doomed Theme',
         brightness: Brightness.dark,
@@ -1609,6 +1661,7 @@ void main() {
         section: 'appearance',
         confirmBeforeDelete: true,
       );
+      await _openThemeScreen(tester);
       final created = await ctx.customThemes.duplicate(
         name: 'Keeper Theme',
         brightness: Brightness.dark,
@@ -1623,6 +1676,196 @@ void main() {
       expect(ctx.customThemes.byId(created.id), isNotNull);
       expect(find.byKey(ValueKey('custom-${created.id}')), findsOneWidget);
       expect(find.byType(SnackBar), findsNothing);
+    });
+  });
+
+  group('Theme screen — Appearance entry and search', () {
+    /// The `theme-<name>` keys of the built-in cards on screen, in order.
+    List<String> shownBuiltIns(WidgetTester tester) => [
+      for (final element
+          in find
+              .byWidgetPredicate(
+                (w) =>
+                    w.key is ValueKey<String> &&
+                    (w.key! as ValueKey<String>).value.startsWith('theme-') &&
+                    AppThemeSelection.forName(
+                          (w.key! as ValueKey<String>).value.substring(6),
+                        ) !=
+                        null,
+              )
+              .evaluate())
+        (element.widget.key! as ValueKey<String>).value.substring(6),
+    ];
+
+    Future<void> search(WidgetTester tester, String query) async {
+      await tester.enterText(find.byKey(const ValueKey('theme-search')), query);
+      await tester.pumpAndSettle();
+    }
+
+    final headings = [
+      for (final g in AppThemeGroup.values) ValueKey('theme-group-${g.name}'),
+    ];
+
+    testWidgets('the Appearance row names the theme in use and opens the '
+        'Theme screen', (tester) async {
+      final ctx = await _pumpSettings(
+        tester,
+        section: 'appearance',
+        initialTheme: AppThemeSelection.catppuccinMocha,
+      );
+      final row = find.byKey(const ValueKey('appearance-theme'));
+      expect(
+        find.descendant(of: row, matching: find.text('Catppuccin Mocha')),
+        findsOneWidget,
+      );
+      // The gallery itself is no longer inline in Appearance.
+      expect(
+        find.byKey(ValueKey('theme-${AppThemeSelection.light.name}')),
+        findsNothing,
+      );
+
+      // A custom theme wins while active, so the row names it instead.
+      final created = await ctx.customThemes.duplicate(
+        name: 'Barn Dance',
+        brightness: Brightness.dark,
+        roles: CustomTheme.rolesFromScheme(const ColorScheme.dark()),
+      );
+      await ctx.customThemes.setActive(created.id);
+      await tester.pumpAndSettle();
+      expect(
+        find.descendant(of: row, matching: find.text('Barn Dance')),
+        findsOneWidget,
+      );
+
+      await _openThemeScreen(tester);
+      expect(find.byKey(const ValueKey('theme-search')), findsOneWidget);
+      expect(find.text('Search themes…'), findsOneWidget);
+    });
+
+    testWidgets(
+      'unsearched, the themes keep their gallery order and headings',
+      (tester) async {
+        await _pumpSettings(tester, section: 'appearance');
+        await _openThemeScreen(tester);
+        for (final heading in headings) {
+          expect(find.byKey(heading), findsOneWidget, reason: '$heading');
+        }
+        expect(shownBuiltIns(tester), [
+          for (final g in AppThemeGroup.values)
+            for (final s in AppThemeSelection.inGroup(g)) s.name,
+        ]);
+        // Each heading sits above its own cards.
+        expect(
+          tester.getTopLeft(find.byKey(const ValueKey('theme-group-dark'))).dy,
+          lessThan(
+            tester
+                .getTopLeft(
+                  find.byKey(
+                    ValueKey('theme-${AppThemeSelection.dracula.name}'),
+                  ),
+                )
+                .dy,
+          ),
+        );
+      },
+    );
+
+    testWidgets('a search by name drops the headings and shows only the '
+        'matches', (tester) async {
+      await _pumpSettings(tester, section: 'appearance');
+      await _openThemeScreen(tester);
+      await search(tester, 'nord');
+      for (final heading in headings) {
+        expect(find.byKey(heading), findsNothing, reason: '$heading');
+      }
+      expect(
+        find.byKey(const ValueKey('theme-search-results')),
+        findsOneWidget,
+      );
+      expect(shownBuiltIns(tester), [
+        AppThemeSelection.nordLight.name,
+        AppThemeSelection.nord.name,
+      ]);
+    });
+
+    testWidgets('a color word finds the themes tagged with it', (tester) async {
+      await _pumpSettings(tester, section: 'appearance');
+      await _openThemeScreen(tester);
+      await search(tester, 'purple');
+      final shown = shownBuiltIns(tester);
+      expect(shown, contains(AppThemeSelection.dracula.name));
+      expect(shown, contains(AppThemeSelection.catppuccinLatte.name));
+      expect(shown, isNot(contains(AppThemeSelection.gruvboxDark.name)));
+    });
+
+    testWidgets('a synonym finds the same themes as its keyword', (
+      tester,
+    ) async {
+      await _pumpSettings(tester, section: 'appearance');
+      await _openThemeScreen(tester);
+      await search(tester, 'purple');
+      final purple = shownBuiltIns(tester);
+      await search(tester, 'lavender');
+      expect(shownBuiltIns(tester), purple);
+    });
+
+    testWidgets('two words narrow together: "dark purple"', (tester) async {
+      await _pumpSettings(tester, section: 'appearance');
+      await _openThemeScreen(tester);
+      await search(tester, 'dark purple');
+      final shown = shownBuiltIns(tester);
+      expect(shown, contains(AppThemeSelection.dracula.name));
+      expect(shown, isNot(contains(AppThemeSelection.catppuccinLatte.name)));
+    });
+
+    testWidgets('accents need not be typed', (tester) async {
+      await _pumpSettings(tester, section: 'appearance');
+      await _openThemeScreen(tester);
+      await search(tester, 'frappe');
+      expect(shownBuiltIns(tester), [AppThemeSelection.catppuccinFrappe.name]);
+    });
+
+    testWidgets('a saved custom theme is found by its name', (tester) async {
+      final ctx = await _pumpSettings(tester, section: 'appearance');
+      await _openThemeScreen(tester);
+      final created = await ctx.customThemes.duplicate(
+        name: 'Barn Dance',
+        brightness: Brightness.light,
+        roles: CustomTheme.rolesFromScheme(const ColorScheme.light()),
+      );
+      await tester.pumpAndSettle();
+      await search(tester, 'barn');
+      expect(find.byKey(ValueKey('custom-${created.id}')), findsOneWidget);
+      expect(shownBuiltIns(tester), isEmpty);
+      expect(find.byKey(const ValueKey('theme-group-custom')), findsNothing);
+    });
+
+    testWidgets('no match says so, and clearing brings the headings back', (
+      tester,
+    ) async {
+      await _pumpSettings(tester, section: 'appearance');
+      await _openThemeScreen(tester);
+      await search(tester, 'zzzz');
+      expect(find.byKey(const ValueKey('theme-no-matches')), findsOneWidget);
+      expect(find.text('No themes match your search.'), findsOneWidget);
+      expect(shownBuiltIns(tester), isEmpty);
+
+      await tester.tap(find.byKey(const ValueKey('theme-search-clear')));
+      await tester.pumpAndSettle();
+      for (final heading in headings) {
+        expect(find.byKey(heading), findsOneWidget, reason: '$heading');
+      }
+    });
+
+    testWidgets('selecting a search result applies it', (tester) async {
+      final ctx = await _pumpSettings(tester, section: 'appearance');
+      await _openThemeScreen(tester);
+      await search(tester, 'monokai');
+      await tester.tap(
+        find.byKey(ValueKey('theme-${AppThemeSelection.monokai.name}')),
+      );
+      await tester.pumpAndSettle();
+      expect(ctx.themeNotifier.value, AppThemeSelection.monokai);
     });
   });
 
@@ -1920,10 +2163,7 @@ void main() {
       // by the shared SectionHeader (extracted from this screen so the dance
       // editor can reuse the identical style).
       expect(find.widgetWithText(SectionHeader, 'Theme'), findsOneWidget);
-      expect(
-        find.widgetWithText(SectionHeader, 'Custom themes'),
-        findsOneWidget,
-      );
+      expect(find.widgetWithText(SectionHeader, 'Easter eggs'), findsOneWidget);
     });
     group('SettingsScreen — Device Sync (ADR-004/W13)', () {
       Future<void> openExperimental(WidgetTester tester) async {

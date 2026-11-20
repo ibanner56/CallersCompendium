@@ -1996,6 +1996,98 @@
   "@appThemeGroupDark": {
     "x-sourceSha256": "60acc53f13a5d1bf115878c4a785e9a43e8286c4139a8402a6ac7d23966f9153"
   },
+  "settingsAppearanceThemeSubtitle": "組み込みテーマを閲覧・検索するか、独自のテーマを作成します。",
+  "@settingsAppearanceThemeSubtitle": {
+    "x-sourceSha256": "6e102ced6b1f3c2cab6df239972f96adfd56a9c942da014ae83b155fec203219"
+  },
+  "themeScreenSearchHint": "テーマを検索…",
+  "@themeScreenSearchHint": {
+    "x-sourceSha256": "a13ac564360d6c1832ff8e64b878ec7c995ee7df6a44ff82aa0cd99b54623633"
+  },
+  "themeScreenClearSearchTooltip": "検索をクリア",
+  "@themeScreenClearSearchTooltip": {
+    "x-sourceSha256": "3b7ea51793e9d906afa06afb86252abb48e1125cc96a7f5efabcfd8597ea183a"
+  },
+  "themeScreenNoMatches": "検索に一致するテーマがありません。",
+  "@themeScreenNoMatches": {
+    "x-sourceSha256": "32c5f0cd590d2ee36063a7db9d610bcd10d3236c04877c33ae755d8ff1235695"
+  },
+  "themeScreenNewCustomTheme": "カスタムテーマ",
+  "@themeScreenNewCustomTheme": {
+    "x-sourceSha256": "70a67d05f9bcdd1e499cecf43d11ce6455bb106d8c11101653cfdc622eb8b398"
+  },
+  "appThemeKeywordRed": "赤, 赤い, 紅, 深紅, コーラル, レッド",
+  "@appThemeKeywordRed": {
+    "x-sourceSha256": "1d64bee2cdabacebf4de4759d820da9e4a5674dffd64801fafaf37a28cd2b798"
+  },
+  "appThemeKeywordOrange": "オレンジ, 橙, 琥珀, 銅",
+  "@appThemeKeywordOrange": {
+    "x-sourceSha256": "a9cf27146f313337b8210d590de271fbf9a5aec45733075567782be4135a1564"
+  },
+  "appThemeKeywordYellow": "黄, 黄色, 金, 金色, からし色, イエロー",
+  "@appThemeKeywordYellow": {
+    "x-sourceSha256": "4e71cb0d24a11d1ab6649f2d25303bc7237afa933bfc0c173e82577f4be49c34"
+  },
+  "appThemeKeywordGreen": "緑, 緑色, セージ, オリーブ, 森, グリーン",
+  "@appThemeKeywordGreen": {
+    "x-sourceSha256": "350e63540b3d8e553b47fd6ad9bd029231fc83de5cdfa3fa0e88cb34332d9438"
+  },
+  "appThemeKeywordTeal": "青緑, シアン, ターコイズ, 水色, ミント, ティール",
+  "@appThemeKeywordTeal": {
+    "x-sourceSha256": "faffe5f3060a4fdd3c1038b43ebc7fe88dffabff88c1b56ec440896f9fc75da8"
+  },
+  "appThemeKeywordBlue": "青, 青い, 紺, 藍, 空色, ブルー",
+  "@appThemeKeywordBlue": {
+    "x-sourceSha256": "d6774d1f0ebd8ad748d24469778134aaf091d0f89fa2ee80fbdc92de89786141"
+  },
+  "appThemeKeywordPurple": "紫, 紫色, すみれ色, ライラック, ラベンダー, パープル",
+  "@appThemeKeywordPurple": {
+    "x-sourceSha256": "2d2295064c2abfe70d579b48ea1337a80bad2eb196e209d98411b22b1c38a1c8"
+  },
+  "appThemeKeywordPink": "ピンク, 桃色, マゼンタ, ローズ",
+  "@appThemeKeywordPink": {
+    "x-sourceSha256": "5b77f0ec44790e33699a0e21474c096eda5118543ddd00f6018778671502945d"
+  },
+  "appThemeKeywordBrown": "茶, 茶色, ベージュ, クリーム, セピア, ブラウン",
+  "@appThemeKeywordBrown": {
+    "x-sourceSha256": "3d7632009920c85d9da2f4e73c90298e9578923efec4c43f91703ee4a833a5e1"
+  },
+  "appThemeKeywordGrey": "灰, 灰色, グレー, チャコール, 銀",
+  "@appThemeKeywordGrey": {
+    "x-sourceSha256": "059cc11c959dcd0bd549687cd47ba1d5ef2cb8b12f3c1a95f769934a2c8b653c"
+  },
+  "appThemeKeywordWarm": "暖かい, 温かみ, 暖色, ウォーム",
+  "@appThemeKeywordWarm": {
+    "x-sourceSha256": "d3d857f4848c0d6b889007b433e333088a374ef2d3a2fa5ae6794a1a6fc565b8"
+  },
+  "appThemeKeywordCool": "涼しい, 冷たい, 寒色, 氷, クール",
+  "@appThemeKeywordCool": {
+    "x-sourceSha256": "2fbd8c1bb79f3b9c4be843fcd73fd1eef939503cc480502d9583b7330c40c132"
+  },
+  "appThemeKeywordPastel": "パステル, 淡い, やわらかい",
+  "@appThemeKeywordPastel": {
+    "x-sourceSha256": "b6dd10eec27adb4d8b1dacb7aa0b70ffd9fbe90a3697f8ccf365d96140aedb37"
+  },
+  "appThemeKeywordVivid": "鮮やか, 明るい, ビビッド, ネオン",
+  "@appThemeKeywordVivid": {
+    "x-sourceSha256": "ad3f84dba7a843e54aa0b22c6bf9127f340b9058cc7e6bf93700cdc181fc9ad7"
+  },
+  "appThemeKeywordMuted": "落ち着いた, くすんだ, 穏やか, 控えめ",
+  "@appThemeKeywordMuted": {
+    "x-sourceSha256": "77f9b99cf6438435f1b85715612b672bf021cf083b5ed00c3609803116699239"
+  },
+  "appThemeKeywordRetro": "レトロ, ヴィンテージ, クラシック",
+  "@appThemeKeywordRetro": {
+    "x-sourceSha256": "9df8deb16757772e21319ea8ba69b7f93fd9c3b5eb882facd289f9404756b3a9"
+  },
+  "appThemeKeywordAccessible": "アクセシブル, 読みやすい, 見やすい, コントラスト",
+  "@appThemeKeywordAccessible": {
+    "x-sourceSha256": "4b06d9b7a4631f50e0b373a3bc07e18fbdb2ca29909fc23f01fe9863932735fb"
+  },
+  "appThemeKeywordAutomatic": "自動, オート, デバイス, 端末",
+  "@appThemeKeywordAutomatic": {
+    "x-sourceSha256": "65bc1a9a151d34fd19a0d3fe10cedb156ccb28534e011d1ec82e94e6347e2016"
+  },
   "appThemeLabelSystem": "システム",
   "@appThemeLabelSystem": {
     "x-sourceSha256": "6725e7bbcd28f3a8a586fa34bf191fd72dde8b61756932cd3237c17a6f196f1a"
@@ -2408,17 +2500,9 @@
   "@settingsAppearancePreviewBody": {
     "x-sourceSha256": "ea536aea06580bb4ba9cd1d68d1a80de67b96ac3f0c2c2bd7831e900c7a117ef"
   },
-  "settingsAppearanceNewThemeButton": "新しいカスタムテーマ",
-  "@settingsAppearanceNewThemeButton": {
-    "x-sourceSha256": "065207e0e6af9dd09d1817293ab0f8c63e9ede810e360a7474359d49a21f20c1"
-  },
   "settingsAppearanceNewThemeDefaultName": "マイテーマ",
   "@settingsAppearanceNewThemeDefaultName": {
     "x-sourceSha256": "83389aefec657bff4f34672c6a577634b97cb2197c25a9a4fa515216954a20cc"
-  },
-  "settingsAppearanceCustomThemesEmpty": "現在のテーマをコピーして色を調整できます。カスタムテーマは、同期がオンのとき、他のデバイスと同期されます。",
-  "@settingsAppearanceCustomThemesEmpty": {
-    "x-sourceSha256": "95b8a0f6f3b5190ec400652935ba9981213e44fc2eacb56637799159e84c7d3f"
   },
   "settingsAppearanceCustomThemeSemantic": "カスタムテーマ {name}",
   "@settingsAppearanceCustomThemeSemantic": {

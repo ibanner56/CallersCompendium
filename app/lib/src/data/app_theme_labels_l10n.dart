@@ -79,6 +79,40 @@ String appThemeDescription(
   AppThemeSelection.noctisLilac => l10n.appThemeDescriptionNoctisLilac,
 };
 
+/// The words that find [keyword] in the Theme screen's search, in the active
+/// language: the ARB value is a comma-separated list of synonyms ("purple,
+/// violet, lilac, …"), split and trimmed here. Empty entries are dropped, so a
+/// stray trailing comma in a translation cannot make every theme match.
+List<String> appThemeKeywordTerms(
+  AppLocalizations l10n,
+  AppThemeKeyword keyword,
+) {
+  final value = switch (keyword) {
+    AppThemeKeyword.red => l10n.appThemeKeywordRed,
+    AppThemeKeyword.orange => l10n.appThemeKeywordOrange,
+    AppThemeKeyword.yellow => l10n.appThemeKeywordYellow,
+    AppThemeKeyword.green => l10n.appThemeKeywordGreen,
+    AppThemeKeyword.teal => l10n.appThemeKeywordTeal,
+    AppThemeKeyword.blue => l10n.appThemeKeywordBlue,
+    AppThemeKeyword.purple => l10n.appThemeKeywordPurple,
+    AppThemeKeyword.pink => l10n.appThemeKeywordPink,
+    AppThemeKeyword.brown => l10n.appThemeKeywordBrown,
+    AppThemeKeyword.grey => l10n.appThemeKeywordGrey,
+    AppThemeKeyword.warm => l10n.appThemeKeywordWarm,
+    AppThemeKeyword.cool => l10n.appThemeKeywordCool,
+    AppThemeKeyword.pastel => l10n.appThemeKeywordPastel,
+    AppThemeKeyword.vivid => l10n.appThemeKeywordVivid,
+    AppThemeKeyword.muted => l10n.appThemeKeywordMuted,
+    AppThemeKeyword.retro => l10n.appThemeKeywordRetro,
+    AppThemeKeyword.accessible => l10n.appThemeKeywordAccessible,
+    AppThemeKeyword.automatic => l10n.appThemeKeywordAutomatic,
+  };
+  return [
+    for (final term in value.split(RegExp('[,、，]')))
+      if (term.trim().isNotEmpty) term.trim(),
+  ];
+}
+
 /// Heading of [group] in the custom-theme editor. Resolved by the group's
 /// stable English [RoleGroup.label]; an unknown group falls back to it.
 String themeEditorGroupLabel(AppLocalizations l10n, RoleGroup group) =>

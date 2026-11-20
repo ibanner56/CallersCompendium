@@ -536,8 +536,23 @@ Appearance body with a **grouped swatch gallery**:
 - Preserve single-selection radio semantics: one selected at a time, each card
   exposes name/role/state, keyboard-traversable in visual order, with a visible
   focus indicator (accessibility-baseline). Selection is instant and persisted
-  via the existing `_onThemeChanged` path (live `AppThemeScope` notifier +
-  background `repos.settings.set`).
+  via `_onThemeSelected` in `screens/theme_screen.dart` (live `AppThemeScope`
+  notifier + background `repos.settings.set`).
+
+**Its own screen, with search (issue #2228).** At 35 built-in themes the
+gallery outgrew the Appearance page: everything below it sat several screens
+down. Appearance now holds one **Theme** row naming the theme in use, which
+opens `ThemeScreen` (`screens/theme_screen.dart`), laid out like the Venues
+manager: a **Search themes…** box over the gallery, which keeps the sections and
+order above, with saved custom themes after them under their own heading (left
+out while there are none), and a floating **+ Custom theme** button that starts
+a new one (§4B). A search drops the headings and shows just the matching cards
+in one run, in the same order. A theme is found by its name, its section, its
+brightness, or a few hand-picked keywords — color and character words
+(`AppThemeKeyword`, assigned in `AppThemeSelection.keywords`), each resolved to
+localized synonyms by `appThemeKeywordTerms`. Every word of the query must match
+(a name anywhere inside, a keyword from its start), case- and accent-folded as
+in the Collection's title search; `data/theme_search.dart` holds the matcher.
 
 ### 4A.6 Attribution & licensing
 
@@ -593,8 +608,9 @@ save it on-device**. Custom themes are personal to the install; nothing syncs.
   low-contrast palette; the editor flags it rather than blocking. (This is the
   one place the otherwise non-negotiable §4A.4 AA guarantee is advisory, and
   only for user-authored themes.)
-- Surfaces as a **Custom themes** section in Settings: copy from the current
-  theme, then edit / duplicate / delete each saved card.
+- Surfaces on the Theme screen (§4A.5): the floating **+ Custom theme** button
+  copies the current theme, and each saved card under **Custom themes** can be
+  edited, duplicated or deleted.
 
 ## 4C. Settings — sectioned master–detail (net-new; extends §4/§4A/§4B)
 
