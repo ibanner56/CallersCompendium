@@ -5,6 +5,7 @@ import '../../l10n/app_localizations.dart';
 import '../search/collection_query.dart';
 import '../theme/app_spacing.dart';
 import 'advanced_query_builder.dart' show MoveTypeAheadField;
+import 'move_autocomplete.dart' show moveLabelWithForm;
 
 /// A Caller's Box-style "search by phrase" panel
 /// (https://www.ibiblio.org/contradance/thecallersbox/). For each phrase of the
@@ -152,12 +153,19 @@ class _MoveMultiField extends StatelessWidget {
   final VoidCallback onChanged;
 
   /// The chip's label: the move's name in the active dialect, as the
-  /// suggestion that added it read.
-  String _displayName(String moveId) => taxonomy.resolve(moveId) == null
+  /// suggestion that added it read, its form named when another form's
+  /// figure is named alike ("circle · English (ECD)").
+  String _displayName(BuildContext context, String moveId) =>
+      taxonomy.resolve(moveId) == null
       ? moveId
-      : FigureRenderer(
+      : moveLabelWithForm(
+          context,
           taxonomy,
-        ).displayMoveName(moveId, dialect ?? Dialect.canonical);
+          moveId,
+          FigureRenderer(
+            taxonomy,
+          ).displayMoveName(moveId, dialect ?? Dialect.canonical),
+        );
 
   @override
   Widget build(BuildContext context) {
@@ -175,14 +183,14 @@ class _MoveMultiField extends StatelessWidget {
                 for (final moveId in moves)
                   InputChip(
                     key: ValueKey('$keyPrefix-chip-$moveId'),
-                    label: Text(_displayName(moveId)),
+                    label: Text(_displayName(context, moveId)),
                     onDeleted: () {
                       moves.remove(moveId);
                       onChanged();
                     },
                     deleteButtonTooltipMessage: l10n
                         .collectionByPhraseRemoveMove(
-                          _displayName(moveId),
+                          _displayName(context, moveId),
                           fieldLabel,
                         ),
                   ),
