@@ -32,7 +32,8 @@ void main() {
     });
 
     test('the Play define is off unless the Play build sets it', () {
-      // Only release.yml's appbundle step passes CALLERS_COMPENDIUM_PLAY_BUILD.
+      // Only the release build job's appbundle step (release.yml, copied into
+      // test-build.yml) passes CALLERS_COMPENDIUM_PLAY_BUILD.
       expect(kPlayStoreBuild, isFalse);
     });
 

@@ -14,9 +14,10 @@ import 'package:path/path.dart' as p;
 
 import 'update_manifest.dart';
 
-/// Set to `true` by the release workflow's Google Play `appbundle` build only,
-/// so a Play install can tell itself apart from the sideload APK. Everything
-/// else, including the signed sideload APK and local builds, leaves it off.
+/// Set to `true` only by the Google Play `appbundle` step of the release build
+/// job (release.yml, and its verbatim copy in test-build.yml), so a Play install
+/// can tell itself apart from the sideload APK. Everything else, including the
+/// signed sideload APK and local builds, leaves it off.
 const bool kPlayStoreBuild = bool.fromEnvironment(
   'CALLERS_COMPENDIUM_PLAY_BUILD',
 );

@@ -479,7 +479,7 @@ STEPS: tuple[Step, ...] = (
     ),
     Step(
         "release-tooling",
-        "release identity / SBOM / metadata / notes / Pages publishing",
+        "release identity / SBOM / metadata / notes / Pages publishing / test-build workflow",
         (
             py("tools/release/test_bash.py"),
             py("tools/release/test_apprun.py"),
@@ -492,6 +492,7 @@ STEPS: tuple[Step, ...] = (
             py("tools/release/test_gen_release_notes.py"),
             py("tools/release/test_gen_recovery_provenance.py"),
             py("tools/release/test_release_workflow_recovery.py"),
+            py("tools/release/test_sync_test_build_workflow.py"),
             py("tools/release/test_deploy_athenaeum.py"),
             py("tools/release/test_release_windows_crt.py"),
             py("tools/release/test_linux_desktop_integration.py"),

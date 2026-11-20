@@ -1,0 +1,1518 @@
+# Test build: package signed builds of any commit on a dispatched ref for
+# testing, WITHOUT releasing anything. Runbook:
+# docs/dev/releasing.md#test-builds-signed-never-released.
+#
+# What it shares with release.yml:
+#   * the `build` job, copied byte for byte (see the markers below), so every
+#     platform is built, packaged and signed exactly as a release would be:
+#     macOS Developer ID + notarization, Windows Azure Trusted Signing, the
+#     Android upload keystore, and the iOS App Store archive;
+#   * the reusable checks (_checks.yml) on the same commit the build packages;
+#   * every approval a release passes through. `release-signing` gates the
+#     build, as in a release. `release-server`, `release-publication` and
+#     `release-manifest` have their own approval jobs that publish nothing;
+#     they run BEFORE the checks and the build, so no artifact of a test
+#     build exists until all four have been approved.
+#
+# What it never does (and has no permission or credential reference to do):
+#   * create a tag, a GitHub Release or a draft;
+#   * mint SLSA / SBOM attestations;
+#   * deploy the Athenaeum server;
+#   * upload to TestFlight or Google Play;
+#   * generate, sign or publish an update manifest, or touch gh-pages.
+# The workflow token is `contents: read` throughout. Artifacts stay on the run:
+# every leg's own `dist-*` artifact (7 days, as in a release) and one combined
+# `CallersCompendium-test-<version>-<commit>` bundle (30 days).
+#
+# The build's version and Android versionCode are the ones the release of
+# app/pubspec.yaml's version would carry, exactly as the release.yml dry run
+# does. A test build therefore reports the release's version; see the runbook
+# for what that means for the in-app updater.
+name: Test build
+
+on:
+  workflow_dispatch:
+
+# One test build per ref at a time; a second dispatch queues rather than
+# cancelling a run that may be mid-way through signing or notarization.
+# Disjoint from release.yml's `release-` groups.
+concurrency:
+  group: test-build-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+# Same as release.yml: the copied build job relies on bash as the default shell.
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  # The release.yml dry-run identity: the pubspec's X.Y.Z, the stable-tag
+  # versionCode, no codename, never a recovery, and the dispatched commit.
+  # Exposes the outputs the copied build job reads.
+  meta:
+    name: Resolve test-build metadata
+    if: github.repository == 'ibanner56/CallersCompendium'
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.resolve.outputs.version }}
+      android_version_code: ${{ steps.resolve.outputs.android_version_code }}
+      codename: ${{ steps.resolve.outputs.codename }}
+      recovery: ${{ steps.resolve.outputs.recovery }}
+      source_sha: ${{ steps.resolve.outputs.source_sha }}
+      short_sha: ${{ steps.resolve.outputs.short_sha }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Resolve version and commit
+        id: resolve
+        run: |
+          set -euo pipefail
+          core_re='(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)'
+          pubspec_line="$(grep -E '^version:' app/pubspec.yaml | head -n1)"
+          if [[ ! "$pubspec_line" =~ ^version:[[:space:]]*($core_re)[[:space:]]*$ ]]; then
+            echo "::error::app/pubspec.yaml version must be valid X.Y.Z with no build metadata or prerelease suffix"
+            exit 1
+          fi
+          version="${BASH_REMATCH[1]}"
+          android_version_code="$(python3 tools/release/android_version_code.py --tag "v$version")"
+          {
+            echo "version=$version"
+            echo "android_version_code=$android_version_code"
+            echo "codename="
+            echo "recovery=false"
+            echo "source_sha=$GITHUB_SHA"
+            echo "short_sha=${GITHUB_SHA:0:12}"
+          } >> "$GITHUB_OUTPUT"
+          echo "Resolved: version=$version android_version_code=$android_version_code source_sha=$GITHUB_SHA"
+
+  # Approval-only jobs: one per release environment that the build job below
+  # does not already enter. Each waits for that environment's required
+  # reviewers (and deployment branch rules) like the release job it stands in
+  # for, then does nothing. `deployment: false` keeps them out of the
+  # environment's deployment history, so it never shows a server deploy or a
+  # store upload that did not happen. They check out nothing and reference no
+  # secret, so the environment's credentials never reach these jobs.
+  approve_server:
+    name: Approve (release-server; nothing is deployed)
+    needs: meta
+    if: github.repository == 'ibanner56/CallersCompendium'
+    runs-on: ubuntu-latest
+    environment:
+      name: release-server
+      deployment: false
+    permissions: {}
+    steps:
+      - name: Record the approval
+        run: echo "release-server approved. A test build never deploys the Athenaeum server."
+
+  approve_publication:
+    name: Approve (release-publication; nothing is uploaded)
+    needs: meta
+    if: github.repository == 'ibanner56/CallersCompendium'
+    runs-on: ubuntu-latest
+    environment:
+      name: release-publication
+      deployment: false
+    permissions: {}
+    steps:
+      - name: Record the approval
+        run: echo "release-publication approved. A test build never uploads to TestFlight or Google Play."
+
+  approve_manifest:
+    name: Approve (release-manifest; nothing is published)
+    needs: meta
+    if: github.repository == 'ibanner56/CallersCompendium'
+    runs-on: ubuntu-latest
+    environment:
+      name: release-manifest
+      deployment: false
+    permissions: {}
+    steps:
+      - name: Record the approval
+        run: echo "release-manifest approved. A test build never generates, signs or publishes an update manifest."
+
+  # The same gate a release passes, on the commit the build packages. It waits
+  # for the three approvals above, so a declined approval spends no runner time.
+  checks:
+    name: Reusable checks
+    needs: [meta, approve_server, approve_publication, approve_manifest]
+    if: github.repository == 'ibanner56/CallersCompendium'
+    uses: ./.github/workflows/_checks.yml
+    with:
+      checkout_ref: ${{ needs.meta.outputs.source_sha }}
+
+  # >>> BEGIN copy of release.yml's `build` job, written by tools/release/sync_test_build_workflow.py --write. Do not edit by hand.
+  build:
+    name: Build + package (${{ matrix.platform }})
+    needs: [meta, checks]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Built inside an ubuntu:22.04 container: the shipped binaries need
+          # the glibc of the system that built them, so this image sets the
+          # minimum Linux (glibc 2.35, Ubuntu 22.04) that
+          # docs/user/installation.md states. The glibc comes from the
+          # container, not the runner, so the runner can move with
+          # ubuntu-latest. Pinned by digest (bump it in ci.yml too);
+          # tools/ci/check_linux_build_runner.py enforces all of this.
+          - platform: linux
+            arch: x64
+            os: ubuntu-latest
+            container: ubuntu:22.04@sha256:5ec03bb3441e8b0bf3b4f9cd4629a1ae763010dc3035bb8da3ae6cf026486401
+          - platform: macos
+            arch: universal
+            os: macos-latest
+          # Android ships a single signed universal (fat) APK. The name matches
+          # the client's UpdateArch.universal and gen_release_metadata's
+          # _EXT_PRIORITY['android']==['apk'], so the manifest entry + SHA256SUMS
+          # are produced automatically. This leg is a clean NO-OP that still
+          # succeeds when the signing secrets are absent (see the gate below), so
+          # merging never changes the current release output and never publishes
+          # a debug-signed APK.
+          - platform: android
+            arch: universal
+            os: ubuntu-latest
+          # iOS is store-delivered (ADR-002): the signed .ipa goes to TestFlight
+          # via the App Store Connect API, NOT to the GitHub Release. So this leg
+          # deliberately stages NOTHING under dist/ and its .ipa is uploaded as a
+          # non-`dist-*` workflow artifact (see below) so it never lands in
+          # SHA256SUMS / the channel manifest / the SLSA subject glob. Like the
+          # android/macos legs it is a clean NO-OP when the Apple API-key secrets
+          # are absent (see the iOS signing gate below). arch:universal names the
+          # workflow artifact only — an .ipa is a single device-family-agnostic
+          # bundle (iPhone + iPad).
+          - platform: ios
+            arch: universal
+            os: macos-latest
+          # Windows signs with Azure Trusted Signing over GitHub OIDC (see the
+          # release-signing environment and `id-token: write` below).
+          - platform: windows
+            arch: x64
+            os: windows-latest
+    runs-on: ${{ matrix.os }}
+    # Only the Linux leg sets matrix.container. For the others it evaluates to
+    # an empty string, which the runner treats as no container at all.
+    container: ${{ matrix.container }}
+    # Every leg of the matrix waits on the release-signing approval gate, not
+    # just the ones that sign, so nothing is built until it is approved.
+    environment: release-signing
+    # Job-level `permissions` takes no `matrix` expression, so `id-token: write`
+    # applies to EVERY leg, not just Windows. Only the three Windows-gated Azure
+    # steps (`azure/login` and the two Azure/artifact-signing-action steps) use
+    # it. Because every leg references the same environment, GitHub's default
+    # OIDC subject for any leg is `repo:<owner>/<repo>:environment:release-signing`
+    # (no ref, no job_workflow_ref), so an Azure federated credential keyed on
+    # that subject cannot tell the legs apart. Narrowing the permission means
+    # moving Windows back into its own job, as before #1716. See "OIDC scope of
+    # the build matrix" in docs/dev/releasing.md.
+    permissions:
+      contents: read
+      id-token: write  # Windows: Azure Trusted Signing uses GitHub OIDC
+    env:
+      VERSION: ${{ needs.meta.outputs.version }}
+      ANDROID_VERSION_CODE: ${{ needs.meta.outputs.android_version_code }}
+      CODENAME: ${{ needs.meta.outputs.codename }}
+      # The MSVC runtime DLLs the x64 Windows bundle imports (platform-4). Shipped
+      # app-local, next to compendium_app.exe, so the app starts on a PC that
+      # has no Visual C++ Redistributable. The Windows staging step fails the
+      # job if any bundled binary imports a runtime DLL missing from this list.
+      MSVC_RUNTIME_DLLS: vcruntime140.dll vcruntime140_1.dll msvcp140.dll
+    steps:
+      # The container starts with only the base system and runs as root (no
+      # sudo). This runs before checkout because actions/checkout needs git
+      # 2.18 or later, or it downloads a tarball with no .git instead.
+      # Keep the package list the same as ci.yml's.
+      - name: Install Linux build dependencies (ubuntu:22.04 container)
+        if: matrix.platform == 'linux'
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          apt-get update
+          # git, curl, jq, unzip, xz-utils, zip: actions/checkout,
+          #   subosito/flutter-action and the Flutter tool.
+          # clang, cmake, ninja-build, pkg-config, libgtk-3-dev: Flutter's
+          #   Linux toolchain.
+          # libstdc++-12-dev: clang builds against the newest GCC installation
+          #   it finds. On its own it pulls in GCC 11; this makes it GCC 12,
+          #   as on the runner images these legs used to build on, so the C++
+          #   runtime the binaries need is unchanged.
+          # No JDK, deliberately. The jni plugin (pulled in by
+          #   path_provider_android) builds lib/libdartjni.so only when CMake
+          #   finds one. Builds on the runner images did, and shipped a file
+          #   no Linux code loads and that cannot load anyway: it needs
+          #   libjvm.so through a RUNPATH into the build machine's JDK.
+          # binutils, python3: tools/ci/check_linux_glibc_floor.py.
+          # file: appimagetool refuses to run without it.
+          # desktop-file-utils: appimagetool validates the .desktop file with it.
+          apt-get install -y --no-install-recommends \
+            ca-certificates git curl jq unzip xz-utils zip \
+            clang cmake ninja-build pkg-config libgtk-3-dev libstdc++-12-dev \
+            binutils python3 \
+            file desktop-file-utils
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.meta.outputs.source_sha }}
+
+      # Android signing gate. `secrets` context is NOT allowed in a step-level
+      # `if:`, so read the keystore secret via `env:` here and export a plain
+      # step output (`signing=configured|missing`) that the android build/package
+      # steps below gate on. When the secret is absent (secrets not yet added by
+      # the maintainer) the android leg is a clean no-op: it stages NO apk and
+      # still succeeds. `mkdir -p dist` keeps the shared "List/Upload" steps happy
+      # on that skip path.
+      - name: Determine Android signing availability
+        if: matrix.platform == 'android'
+        id: android_signing
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          if [ -n "${ANDROID_KEYSTORE_BASE64:-}" ]; then
+            echo "signing=configured" >> "$GITHUB_OUTPUT"
+            echo "Android signing secrets configured; building + staging a signed APK."
+          else
+            echo "signing=missing" >> "$GITHUB_OUTPUT"
+            echo "::notice::Android signing secrets not configured; skipping Android release artifact"
+          fi
+
+      # macOS signing gate, mirroring the Android gate above. The `secrets`
+      # context can't be used in a step-level `if:`, so read the Apple secrets
+      # via `env:` and export a plain `signing=configured|missing` output that
+      # the macOS sign/package steps below gate on. `signing=configured` ONLY
+      # when the full Developer ID cert set AND all three notarytool credentials
+      # are present; otherwise `signing=missing` and the macOS leg builds the
+      # UNSIGNED zip + dmg (no failure) until the maintainer adds the
+      # Apple secrets. Names are never interpolated into a `run:` line.
+      - name: Determine macOS signing availability
+        if: matrix.platform == 'macos'
+        id: macos_signing
+        env:
+          APPLE_DEVELOPER_ID_CERT_P12: ${{ secrets.APPLE_DEVELOPER_ID_CERT_P12 }}
+          APPLE_CERT_PASSWORD: ${{ secrets.APPLE_CERT_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
+        run: |
+          set -euo pipefail
+          if [ -n "${APPLE_DEVELOPER_ID_CERT_P12:-}" ] \
+            && [ -n "${APPLE_CERT_PASSWORD:-}" ] \
+            && [ -n "${APPLE_TEAM_ID:-}" ] \
+            && [ -n "${APPLE_API_KEY_P8:-}" ] \
+            && [ -n "${APPLE_API_KEY_ID:-}" ] \
+            && [ -n "${APPLE_API_ISSUER_ID:-}" ]; then
+            echo "signing=configured" >> "$GITHUB_OUTPUT"
+            echo "macOS Developer ID signing secrets configured; signing + notarizing the macOS artifacts."
+          else
+            echo "signing=missing" >> "$GITHUB_OUTPUT"
+            echo "::notice::macOS signing secrets not configured; producing UNSIGNED macOS artifacts (unchanged from today)."
+          fi
+
+      # iOS signing gate, mirroring the macOS/Android gates above. iOS has NO
+      # sideload/unsigned path (Apple-only distribution), so unlike the desktop
+      # legs there is no "unsigned fallback" — when the App Store Connect API-key
+      # secrets are absent the whole iOS leg is a clean no-op (it stages nothing
+      # and still succeeds). `signing=configured` ONLY when the full signing set
+      # is present: the App Store Connect API key (base64 .p8, key id, issuer id),
+      # the team id, the Apple Distribution certificate (base64 .p12 + its
+      # password), AND both App Store provisioning profiles (base64
+      # .mobileprovision each: the app's and the ShareExtension's). Secrets
+      # arrive via `env:` (never a step-level `if:`);
+      # names are never interpolated into a `run:` line. `mkdir -p dist` keeps the
+      # shared List/Upload steps happy on the no-op path.
+      - name: Determine iOS signing availability
+        if: matrix.platform == 'ios'
+        id: ios_signing
+        env:
+          RECOVERY: ${{ needs.meta.outputs.recovery }}
+          APPLE_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_DISTRIBUTION_CERT_P12: ${{ secrets.APPLE_DISTRIBUTION_CERT_P12 }}
+          APPLE_DISTRIBUTION_CERT_PASSWORD: ${{ secrets.APPLE_DISTRIBUTION_CERT_PASSWORD }}
+          APPLE_DISTRIBUTION_PROFILE: ${{ secrets.APPLE_DISTRIBUTION_PROFILE }}
+          APPLE_SHAREEXT_DISTRIBUTION_PROFILE: ${{ secrets.APPLE_SHAREEXT_DISTRIBUTION_PROFILE }}
+        run: |
+          set -euo pipefail
+          mkdir -p dist ios-testflight-status
+          if [ "$RECOVERY" = "true" ]; then
+            signing=skipped-recovery
+            echo "::notice::Existing-tag recovery skips iOS signing, packaging, and TestFlight upload."
+          elif [ -n "${APPLE_API_KEY_P8:-}" ] \
+            && [ -n "${APPLE_API_KEY_ID:-}" ] \
+            && [ -n "${APPLE_API_ISSUER_ID:-}" ] \
+            && [ -n "${APPLE_TEAM_ID:-}" ] \
+            && [ -n "${APPLE_DISTRIBUTION_CERT_P12:-}" ] \
+            && [ -n "${APPLE_DISTRIBUTION_CERT_PASSWORD:-}" ] \
+            && [ -n "${APPLE_DISTRIBUTION_PROFILE:-}" ] \
+            && [ -n "${APPLE_SHAREEXT_DISTRIBUTION_PROFILE:-}" ]; then
+            signing=configured
+            echo "iOS App Store Connect API-key + distribution cert secrets configured; archiving + signing the .ipa."
+          else
+            signing=missing
+            echo "::notice::iOS signing secrets not fully configured (need the App Store Connect API key, team id, distribution .p12 + password, the App Store provisioning profile, and the ShareExtension App Store provisioning profile); skipping the iOS/TestFlight leg."
+          fi
+          echo "signing=$signing" >> "$GITHUB_OUTPUT"
+          printf '%s\n' "$signing" > ios-testflight-status/signing
+
+      # subosito/flutter-action does NOT install a JDK, and an Android Gradle
+      # build needs one. We pin JDK 21 (not 17) specifically because the release
+      # leg runs Android Lint's release-only `lintVitalAnalyzeRelease` task: AGP
+      # 9.3.x bundles a lint whose IntelliJ platform (intellij-core 32.3.x) ships
+      # a JavaDocParser that calls java.util.List.removeLast() — a JDK 21 API
+      # (JEP 431, SequencedCollection) — yet is compiled to Java 8 bytecode. It
+      # links but throws NoSuchMethodError on JDK < 21 while parsing any inline
+      # Javadoc tag (e.g. in the file_selector_android plugin), which is exactly
+      # what crashed `flutter build apk --release` here. Running Gradle on JDK 21
+      # resolves the method so release lint stays ENABLED and completes. See
+      # https://issuetracker.google.com/issues/522845800. The app still targets
+      # Java 17 bytecode (app/android/app/build.gradle.kts is unchanged); only the
+      # JVM that runs Gradle/lint is bumped. Only set it up when we're actually
+      # going to build a signed APK (android + secrets present).
+      - name: Set up JDK 21 (Temurin)
+        if: matrix.platform == 'android' && steps.android_signing.outputs.signing == 'configured'
+        uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+        with:
+          flutter-version-file: .fvmrc
+          channel: stable
+          cache: true
+
+      # Two git repositories here belong to a user other than the
+      # container's root: the workspace (created by the runner's user) and
+      # the Flutter SDK (extracted by root, keeping the archive's own uid).
+      # git refuses to work in either ("detected dubious ownership"), and the
+      # flutter tool runs git in its SDK on every invocation.
+      - name: Trust the workspace and Flutter SDK repositories (container)
+        if: matrix.platform == 'linux'
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git config --global --add safe.directory "$FLUTTER_ROOT"
+
+      - run: flutter pub get --enforce-lockfile
+
+      # --- Linux: tar.gz (portable) + AppImage -----------------------------
+      - name: Build Linux release bundle
+        if: matrix.platform == 'linux'
+        working-directory: app
+        run: |
+          codename_define=()
+          if [ -n "${CODENAME:-}" ]; then
+            codename_define+=(--dart-define=CALLERS_COMPENDIUM_RELEASE_CODENAME="$CODENAME")
+          fi
+          flutter build linux --release \
+            --dart-define=CALLERS_COMPENDIUM_RELEASE_VERSION="$VERSION" \
+            "${codename_define[@]}"
+
+      # The binaries need at most the glibc of the container that built them;
+      # this reads what they actually need and fails above the floor, before
+      # anything is packaged.
+      - name: Check the Linux bundle's glibc floor
+        if: matrix.platform == 'linux'
+        run: python3 tools/ci/check_linux_glibc_floor.py app/build/linux/x64/release/bundle
+
+      - name: Package Linux (tar.gz + AppImage)
+        if: matrix.platform == 'linux'
+        env:
+          APPIMAGETOOL_URL: https://github.com/AppImage/appimagetool/releases/download/1.9.1/appimagetool-x86_64.AppImage
+          APPIMAGETOOL_SHA256: ed4ce84f0d9caff66f50bcca6ff6f35aae54ce8135408b3fa33abfc3cb384eb0
+          RUNTIME_URL: https://github.com/AppImage/type2-runtime/releases/download/20251108/runtime-x86_64
+          RUNTIME_SHA256: 2fca8b443c92510f1483a883f60061ad09b46b978b2631c807cd873a47ec260d
+        run: |
+          set -euo pipefail
+          bundle="app/build/linux/x64/release/bundle"
+          mkdir -p dist
+
+          # Portable tar.gz: extraction yields a single named directory. The
+          # launcher and its icon sit at the top for a user who installs them;
+          # the bundle already holds data/compendium_app.png, the window icon.
+          # The launcher is named after the GtkApplication id (APPLICATION_ID in
+          # app/linux/CMakeLists.txt) and carries it as StartupWMClass, so a
+          # desktop shell pairs the running window with it (platform-8). The
+          # shared-mime-info XML declares the .ccshare type the launcher's
+          # MimeType= names (PLAT-3); a user installs it beside the launcher.
+          stage="CallersCompendium-${VERSION}-linux-x64"
+          rm -rf "$stage" && cp -r "$bundle" "$stage"
+          cp packaging/linux/org.callerscompendium.compendiumApp.desktop "$stage/org.callerscompendium.compendiumApp.desktop"
+          cp packaging/linux/org.callerscompendium.compendiumApp.xml "$stage/org.callerscompendium.compendiumApp.xml"
+          cp packaging/linux/icon.png "$stage/compendium_app.png"
+          tar -czf "dist/${stage}.tar.gz" "$stage"
+          members="$(tar -tzf "dist/${stage}.tar.gz")"
+          for member in org.callerscompendium.compendiumApp.desktop org.callerscompendium.compendiumApp.xml compendium_app.png data/compendium_app.png; do
+            if ! grep -qxF "${stage}/${member}" <<<"$members"; then
+              echo "::error::${stage}.tar.gz is missing ${member}"
+              exit 1
+            fi
+          done
+
+          # AppImage: build an AppDir from the committed recipe, then pack with a
+          # pinned + checksummed appimagetool and a pinned runtime (no network
+          # runtime fetch, no FUSE needed via --appimage-extract-and-run).
+          curl -fsSL -o appimagetool "$APPIMAGETOOL_URL"
+          echo "${APPIMAGETOOL_SHA256}  appimagetool" | sha256sum -c -
+          chmod +x appimagetool
+          curl -fsSL -o runtime-x86_64 "$RUNTIME_URL"
+          echo "${RUNTIME_SHA256}  runtime-x86_64" | sha256sum -c -
+
+          appdir="AppDir"
+          rm -rf "$appdir" && mkdir -p "$appdir/usr/bin"
+          cp -r "$bundle"/. "$appdir/usr/bin/"
+          install -m 0755 packaging/linux/AppRun "$appdir/AppRun"
+          cp packaging/linux/org.callerscompendium.compendiumApp.desktop "$appdir/org.callerscompendium.compendiumApp.desktop"
+          cp packaging/linux/icon.png "$appdir/compendium_app.png"
+          # Where AppImage integration tools look for a bundled MIME type.
+          install -D -m 0644 packaging/linux/org.callerscompendium.compendiumApp.xml \
+            "$appdir/usr/share/mime/packages/org.callerscompendium.compendiumApp.xml"
+
+          # APPIMAGE_EXTRACT_AND_RUN lets appimagetool (itself an AppImage) run
+          # without FUSE on CI; --runtime-file uses the pinned runtime (no fetch).
+          APPIMAGE_EXTRACT_AND_RUN=1 ARCH=x86_64 ./appimagetool \
+            --runtime-file runtime-x86_64 \
+            "$appdir" "dist/CallersCompendium-${VERSION}-linux-x64.AppImage"
+
+      # --- macOS: zip + dmg ------------------------------------------------
+      # Unsigned by default (Linux/Windows parity); Developer ID-signed +
+      # notarized when the Apple secrets are configured (see the macOS signing
+      # gate above and the two mutually-exclusive package steps below).
+      - name: Build macOS release bundle
+        if: matrix.platform == 'macos'
+        working-directory: app
+        run: |
+          codename_define=()
+          if [ -n "${CODENAME:-}" ]; then
+            codename_define+=(--dart-define=CALLERS_COMPENDIUM_RELEASE_CODENAME="$CODENAME")
+          fi
+          flutter build macos --release \
+            --dart-define=CALLERS_COMPENDIUM_RELEASE_VERSION="$VERSION" \
+            "${codename_define[@]}"
+
+      # The installer disk image is laid out by dmgbuild (branded background,
+      # arrow + instructions, fixed icon positions, volume icon) via
+      # packaging/macos/build_dmg.sh. It is installed hash-pinned into a
+      # virtualenv, so the runner's externally-managed Python is untouched.
+      # Build-time only: nothing from it ships inside the app.
+      - name: Install DMG layout tool (dmgbuild, hash-pinned)
+        if: matrix.platform == 'macos'
+        run: |
+          set -euo pipefail
+          python3 -m venv "$RUNNER_TEMP/dmgbuild-venv"
+          "$RUNNER_TEMP/dmgbuild-venv/bin/python" -m pip install --quiet \
+            --require-hashes -r packaging/macos/requirements-dmg.txt
+          echo "DMGBUILD_PYTHON=$RUNNER_TEMP/dmgbuild-venv/bin/python" >> "$GITHUB_ENV"
+
+      # UNSIGNED path (secrets absent): a ditto zip + the laid-out
+      # drag-to-Applications dmg, neither signed.
+      - name: Package macOS (zip + dmg)
+        if: matrix.platform == 'macos' && steps.macos_signing.outputs.signing == 'missing'
+        run: |
+          set -euo pipefail
+          app_path="app/build/macos/Build/Products/Release/Caller’s Compendium.app"
+          mkdir -p dist
+
+          # Informational: confirm the produced binary is a universal (fat) Mach-O.
+          lipo -info "$app_path/Contents/MacOS/Caller’s Compendium" || true
+
+          # Portable zip (ditto preserves macOS bundle metadata / symlinks).
+          ditto -c -k --keepParent "$app_path" \
+            "dist/CallersCompendium-${VERSION}-macos-universal.zip"
+
+          # Drag-to-Applications .dmg with the guided installer window.
+          packaging/macos/build_dmg.sh "$app_path" \
+            "dist/CallersCompendium-${VERSION}-macos-universal.dmg"
+
+      # SIGNED path (secrets present): deep-codesign the .app with the hardened
+      # runtime, build + sign the .dmg, notarize with notarytool, staple the
+      # ticket to BOTH the .app (before zipping, so the zip carries a stapled
+      # bundle) and the .dmg, then verify as a hard gate. The whole flow lives in
+      # one step so the ephemeral keychain never has to be handed across steps;
+      # the always() cleanup step below deletes it. Secrets arrive via `env:` and
+      # are only ever decoded to files with `base64 -D` (never echoed), and
+      # `set -x` is deliberately NOT used so nothing sensitive reaches the log.
+      - name: Sign, notarize & package macOS (Developer ID)
+        if: matrix.platform == 'macos' && steps.macos_signing.outputs.signing == 'configured'
+        env:
+          APPLE_DEVELOPER_ID_CERT_P12: ${{ secrets.APPLE_DEVELOPER_ID_CERT_P12 }}
+          APPLE_CERT_PASSWORD: ${{ secrets.APPLE_CERT_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
+        run: |
+          set -euo pipefail
+          app_path="app/build/macos/Build/Products/Release/Caller’s Compendium.app"
+          entitlements="app/macos/Runner/Release.entitlements"
+          dmg="dist/CallersCompendium-${VERSION}-macos-universal.dmg"
+          zip="dist/CallersCompendium-${VERSION}-macos-universal.zip"
+          mkdir -p dist
+
+          # Informational: confirm the produced binary is a universal (fat) Mach-O.
+          lipo -info "$app_path/Contents/MacOS/Caller’s Compendium" || true
+
+          # ---- 1. Ephemeral, dedicated signing keychain ---------------------
+          # A throwaway keychain (random password, fixed path so the always()
+          # cleanup step can find it) holds the imported Developer ID cert+key.
+          keychain="$RUNNER_TEMP/cc-signing.keychain-db"
+          keychain_pw="$(openssl rand -base64 24)"
+          cert_p12="$RUNNER_TEMP/cc-developer-id.p12"
+          api_key="$RUNNER_TEMP/cc-asc-api-key.p8"
+
+          # macOS runners ship BSD base64; `-D` (decode) is the portable flag
+          # there (GNU's `--decode` isn't guaranteed on older runner images).
+          printf '%s' "$APPLE_DEVELOPER_ID_CERT_P12" | base64 -D > "$cert_p12"
+          printf '%s' "$APPLE_API_KEY_P8" | base64 -D > "$api_key"
+
+          security create-keychain -p "$keychain_pw" "$keychain"
+          # Keep it unlocked for the whole job (no idle auto-lock during notarize).
+          security set-keychain-settings -lut 21600 "$keychain"
+          security unlock-keychain -p "$keychain_pw" "$keychain"
+          # Import cert+key; allowlist codesign/security so no UI prompt is needed.
+          security import "$cert_p12" -k "$keychain" -P "$APPLE_CERT_PASSWORD" \
+            -T /usr/bin/codesign -T /usr/bin/security -f pkcs12
+          # Prepend our keychain to the user search list, preserving the rest.
+          # shellcheck disable=SC2046  # intentional split: each path is its own arg
+          security list-keychains -d user -s "$keychain" \
+            $(security list-keychains -d user | sed 's/"//g')
+          # Let codesign use the imported private key non-interactively.
+          security set-key-partition-list -S apple-tool:,apple:,codesign: \
+            -s -k "$keychain_pw" "$keychain" >/dev/null
+
+          # Resolve the Developer ID Application identity for this team, by its
+          # SHA-1 (unambiguous) rather than a hardcoded name. Fail loudly if the
+          # imported cert isn't a Developer ID Application cert for APPLE_TEAM_ID.
+          identity="$(security find-identity -v -p codesigning "$keychain" \
+            | awk -v team="($APPLE_TEAM_ID)" \
+                '/Developer ID Application/ && index($0, team) {print $2; exit}')"
+          if [ -z "${identity:-}" ]; then
+            echo "::error::No 'Developer ID Application' code-signing identity for team ${APPLE_TEAM_ID} was found in the imported certificate." >&2
+            exit 1
+          fi
+          echo "Resolved Developer ID Application identity: ${identity}"
+
+          # ---- 2. Deep-codesign the .app (hardened runtime), inside-out -----
+          # Sign nested Mach-O FIRST (dylibs, then framework/xpc/helper bundles),
+          # THEN the outer app bundle with entitlements. --options runtime turns
+          # on the hardened runtime, --timestamp is required for notarization,
+          # --force re-signs anything Flutter already ad-hoc signed.
+          sign() {
+            codesign --force --options runtime --timestamp --sign "$identity" "$1"
+          }
+          while IFS= read -r -d '' f; do sign "$f"; done \
+            < <(find "$app_path/Contents" -type f -name '*.dylib' -print0)
+          while IFS= read -r -d '' f; do sign "$f"; done \
+            < <(find "$app_path/Contents" -type d -name '*.framework' -print0)
+          while IFS= read -r -d '' f; do sign "$f"; done \
+            < <(find "$app_path/Contents" -type d -name '*.xpc' -print0)
+          while IFS= read -r -d '' f; do sign "$f"; done \
+            < <(find "$app_path/Contents" -type d -name '*.app' ! -path "$app_path" -print0)
+          codesign --force --options runtime --timestamp \
+            --entitlements "$entitlements" --sign "$identity" "$app_path"
+
+          # ---- 3. Build the .dmg (same recipe as unsigned) and sign it -----
+          # build_dmg.sh copies the signed .app with ditto and checks the copy
+          # matches it file for file.
+          packaging/macos/build_dmg.sh "$app_path" "$dmg"
+          codesign --force --timestamp --sign "$identity" "$dmg"
+
+          # ---- 4. Notarize the .dmg (registers the nested .app cdhash too) --
+          # notarytool authenticates with an App Store Connect API key (.p8).
+          # --wait blocks until Apple returns Accepted/Invalid (non-zero on
+          # Invalid, which fails the step). --timeout 30m bounds that wait so a
+          # backlogged Apple notary service can't hang the job for hours; if the
+          # ticket isn't ready in 30 minutes notarytool exits non-zero and the
+          # step fails (re-run the release once Apple's queue drains).
+          xcrun notarytool submit "$dmg" \
+            --key "$api_key" \
+            --key-id "$APPLE_API_KEY_ID" \
+            --issuer "$APPLE_API_ISSUER_ID" \
+            --wait \
+            --timeout 30m
+
+          # ---- 5. Staple the ticket to the .app (pre-zip) and the .dmg ------
+          # The .app's cdhash was registered by the .dmg submission above, so it
+          # can be stapled directly. Stapling BEFORE the ditto zip means the zip
+          # captures a stapled (offline-verifiable) bundle.
+          xcrun stapler staple "$app_path"
+          xcrun stapler staple "$dmg"
+
+          # ---- 6. Zip the STAPLED, signed .app ------------------------------
+          ditto -c -k --keepParent "$app_path" "$zip"
+
+          # ---- 7. Verify as a hard gate -------------------------------------
+          codesign --verify --deep --strict --verbose=2 "$app_path"
+          spctl -a -t exec -vvv "$app_path"
+          spctl -a -t open --context context:primary-signature -vvv "$dmg"
+          xcrun stapler validate "$app_path"
+          xcrun stapler validate "$dmg"
+
+      # Always tear down the ephemeral signing keychain + decoded secret files,
+      # even if signing failed. `security delete-keychain` both removes the
+      # keychain from the search list and deletes the file, so we don't clobber
+      # the rest of the user search list. A no-op on the unsigned path (the
+      # keychain + secret files never existed).
+      - name: Clean up macOS signing keychain
+        if: always() && matrix.platform == 'macos'
+        run: |
+          keychain="$RUNNER_TEMP/cc-signing.keychain-db"
+          if [ -f "$keychain" ]; then
+            security delete-keychain "$keychain" 2>/dev/null || true
+          fi
+          rm -f "$RUNNER_TEMP/cc-developer-id.p12" \
+                "$RUNNER_TEMP/cc-asc-api-key.p8" 2>/dev/null || true
+          exit 0
+
+      # --- iOS: signed App Store archive + TestFlight upload ----------------
+      # Xcode signs the App Store build with the team's Apple Distribution
+      # certificate, imported from a base64 .p12 secret into an ephemeral
+      # keychain, plus the two pre-provisioned App Store profiles (base64
+      # secrets — one for the app, one for the ShareExtension) installed onto
+      # the runner. The archive does NOT sign at all, and the export uses MANUAL
+      # signing with the local distribution identity + those profiles, mapped
+      # per bundle id in ExportOptions.plist. Automatic/cloud signing cannot be
+      # used for the distribution
+      # export: the distribution cert is not Apple-managed, so cloud signing
+      # fails with "Cloud signing permission error / no profiles found". The App
+      # Store Connect API key is used ONLY by the TestFlight upload (the archive
+      # used to consume it too, which is what leaked a certificate per run —
+      # #758); it needs the App Manager role (Developer is not enough).
+      #
+      # Secrets arrive via `env:` and are only ever decoded to files with
+      # `base64 -D` (never echoed); `set -x` is deliberately NOT used. The .p8 is
+      # written to the two dirs xcodebuild + altool auto-search
+      # (~/.appstoreconnect/private_keys and ~/.private_keys) as
+      # AuthKey_<KEYID>.p8; the .p12 is imported into an ephemeral keychain under
+      # $RUNNER_TEMP; the provisioning profiles are installed under
+      # ~/Library/Developer/Xcode/UserData/Provisioning Profiles (+ the classic
+      # MobileDevice dir). DEVELOPMENT_TEAM (absent from the checked-in project)
+      # is injected into Release.xcconfig so signing has a team. The always()
+      # cleanup step removes the key material, deletes the keychain + both
+      # profiles, and reverts the xcconfig.
+      - name: Prepare iOS signing (App Store Connect API key)
+        if: matrix.platform == 'ios' && steps.ios_signing.outputs.signing == 'configured'
+        env:
+          APPLE_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_DISTRIBUTION_CERT_P12: ${{ secrets.APPLE_DISTRIBUTION_CERT_P12 }}
+          APPLE_DISTRIBUTION_CERT_PASSWORD: ${{ secrets.APPLE_DISTRIBUTION_CERT_PASSWORD }}
+          APPLE_DISTRIBUTION_PROFILE: ${{ secrets.APPLE_DISTRIBUTION_PROFILE }}
+          APPLE_SHAREEXT_DISTRIBUTION_PROFILE: ${{ secrets.APPLE_SHAREEXT_DISTRIBUTION_PROFILE }}
+        run: |
+          set -euo pipefail
+          # App Store Connect API key, in BOTH well-known locations that
+          # xcodebuild (automatic signing) and altool (upload) auto-discover.
+          asc_dir="$HOME/.appstoreconnect/private_keys"
+          alt_dir="$HOME/.private_keys"
+          mkdir -p "$asc_dir" "$alt_dir"
+          # macOS runners ship BSD base64; `-D` (decode) is the portable flag.
+          printf '%s' "$APPLE_API_KEY_P8" | base64 -D > "$asc_dir/AuthKey_${APPLE_API_KEY_ID}.p8"
+          cp "$asc_dir/AuthKey_${APPLE_API_KEY_ID}.p8" "$alt_dir/AuthKey_${APPLE_API_KEY_ID}.p8"
+          chmod 600 "$asc_dir/AuthKey_${APPLE_API_KEY_ID}.p8" \
+                    "$alt_dir/AuthKey_${APPLE_API_KEY_ID}.p8"
+
+          # Import the Apple Distribution certificate (+ its private key) from the
+          # base64 .p12 secret into an ephemeral keychain, so xcodebuild signs the
+          # App Store build with this LOCAL identity instead of failing over to
+          # cloud signing (which cannot mint this non-Apple-managed cert).
+          keychain="$RUNNER_TEMP/cc-ios.keychain-db"
+          kc_pass="$(openssl rand -base64 24)"
+          security create-keychain -p "$kc_pass" "$keychain"
+          security set-keychain-settings -lut 21600 "$keychain"
+          security unlock-keychain -p "$kc_pass" "$keychain"
+          p12="$RUNNER_TEMP/dist.p12"
+          printf '%s' "$APPLE_DISTRIBUTION_CERT_P12" | base64 -D > "$p12"
+          security import "$p12" -k "$keychain" -P "$APPLE_DISTRIBUTION_CERT_PASSWORD" \
+            -T /usr/bin/codesign -T /usr/bin/xcodebuild -f pkcs12
+          rm -f "$p12"
+          # Let codesign/xcodebuild use the private key without an interactive prompt.
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$kc_pass" "$keychain" >/dev/null
+          # Prepend our keychain to the user search list (keeping the existing
+          # entries) so xcodebuild can find the imported signing identity.
+          # Read existing keychains line-by-line into an array so paths that
+          # contain spaces (possible on custom/self-hosted runners) survive:
+          # word-splitting an unquoted string would corrupt them.
+          existing_keychains=()
+          while IFS= read -r line; do
+            line="${line#"${line%%[![:space:]]*}"}"   # trim leading whitespace
+            line="${line%"${line##*[![:space:]]}"}"   # trim trailing whitespace
+            line="${line#\"}"; line="${line%\"}"       # strip wrapping quotes
+            if [ -n "$line" ]; then existing_keychains+=("$line"); fi
+          done < <(security list-keychains -d user)
+          security list-keychains -d user -s "$keychain" "${existing_keychains[@]}"
+          security find-identity -v -p codesigning "$keychain"
+
+          # Install the App Store provisioning profile so MANUAL export signing
+          # can find it (ExportOptions.plist below references it by UUID).
+          # Automatic export signing insists on cloud
+          # signing for the distribution identity (which fails: our distribution
+          # cert is not Apple-managed), so the export below uses signingStyle
+          # manual against this pre-provisioned profile + the imported cert. The
+          # profile is a CMS-signed plist; decode it to read its UUID and install
+          # under the file name Xcode expects. Xcode 16 and later (including the
+          # Xcode 26 on GitHub's macOS runners) reads profiles from
+          # ~/Library/Developer/Xcode/UserData/Provisioning Profiles; also drop a
+          # copy in the classic ~/Library/MobileDevice location for safety.
+          prof_raw="$RUNNER_TEMP/cc_appstore.mobileprovision"
+          printf '%s' "$APPLE_DISTRIBUTION_PROFILE" | base64 -D > "$prof_raw"
+          prof_plist="$RUNNER_TEMP/cc_appstore.plist"
+          security cms -D -i "$prof_raw" > "$prof_plist"
+          prof_uuid=$(/usr/libexec/PlistBuddy -c "Print :UUID" "$prof_plist")
+          if [ -z "$prof_uuid" ]; then
+            echo "::error::Could not read a UUID from the App Store distribution profile (APPLE_DISTRIBUTION_PROFILE); it is likely empty or malformed." >&2
+            exit 1
+          fi
+          prof_name=$(/usr/libexec/PlistBuddy -c "Print :Name" "$prof_plist")
+          echo "Installing provisioning profile '${prof_name}' (${prof_uuid})"
+          # Persist the UUID so the cleanup step removes ONLY this profile
+          # (never a blanket wipe of the runner's profile dirs).
+          printf '%s' "$prof_uuid" > "$RUNNER_TEMP/cc-ios-profile-uuid"
+          for dir in "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles" \
+                     "$HOME/Library/MobileDevice/Provisioning Profiles"; do
+            mkdir -p "$dir"
+            cp "$prof_raw" "$dir/${prof_uuid}.mobileprovision"
+          done
+
+          # Install the ShareExtension's App Store distribution profile too.
+          # Issue #343 (#394) added a Share Extension target
+          # (org.callerscompendium.compendiumApp.ShareExtension) with an App
+          # Group entitlement. App Store export signs every EMBEDDED target, so
+          # the extension needs its own distribution profile in addition to the
+          # host app's — installed and mapped in ExportOptions exactly like the
+          # main profile above.
+          ext_prof_raw="$RUNNER_TEMP/cc_appstore_shareext.mobileprovision"
+          printf '%s' "$APPLE_SHAREEXT_DISTRIBUTION_PROFILE" | base64 -D > "$ext_prof_raw"
+          ext_prof_plist="$RUNNER_TEMP/cc_appstore_shareext.plist"
+          security cms -D -i "$ext_prof_raw" > "$ext_prof_plist"
+          ext_prof_uuid=$(/usr/libexec/PlistBuddy -c "Print :UUID" "$ext_prof_plist")
+          if [ -z "$ext_prof_uuid" ]; then
+            echo "::error::Could not read a UUID from the ShareExtension App Store distribution profile (APPLE_SHAREEXT_DISTRIBUTION_PROFILE); it is likely empty or malformed." >&2
+            exit 1
+          fi
+          ext_prof_name=$(/usr/libexec/PlistBuddy -c "Print :Name" "$ext_prof_plist")
+          echo "Installing ShareExtension provisioning profile '${ext_prof_name}' (${ext_prof_uuid})"
+          printf '%s' "$ext_prof_uuid" > "$RUNNER_TEMP/cc-ios-shareext-profile-uuid"
+          for dir in "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles" \
+                     "$HOME/Library/MobileDevice/Provisioning Profiles"; do
+            mkdir -p "$dir"
+            cp "$ext_prof_raw" "$dir/${ext_prof_uuid}.mobileprovision"
+          done
+
+          # Give the build a team. Release.xcconfig only #includes the
+          # ephemeral Generated.xcconfig today; append a team line (reverted in
+          # cleanup). The team id is not secret, but sourcing it from the secret
+          # keeps the checked-in project team-agnostic. (Kept now that the
+          # archive is unsigned: the export still resolves against this team,
+          # and the ShareExtension picks it up without a project edit.)
+          printf 'DEVELOPMENT_TEAM=%s\n' "$APPLE_TEAM_ID" >> app/ios/Flutter/Release.xcconfig
+
+          # ExportOptions for the xcodebuild -exportArchive step, built with
+          # PlistBuddy so no
+          # heredoc indentation leaks into the file. `app-store` is accepted by
+          # every Xcode the runner is likely to ship (newer Xcode may emit a
+          # non-fatal deprecation notice for the renamed `app-store-connect`).
+          # destination=export keeps the build local; the actual TestFlight
+          # upload is a separate, tag-gated altool step below.
+          # manageAppVersionAndBuildNumber=false so our --build-number stays
+          # authoritative (TestFlight rejects duplicate build numbers).
+          # signingStyle=manual with an explicit signingCertificate +
+          # provisioningProfiles map: the distribution cert is imported LOCALLY
+          # and its profile is pre-installed above, so export never touches cloud
+          # signing (which cannot mint this non-Apple-managed distribution cert).
+          # The profile is referenced by UUID (not name): profile names contain
+          # spaces/parens that PlistBuddy would mis-tokenize, whereas the UUID is
+          # a bare token and xcodebuild accepts either.
+          plist="$RUNNER_TEMP/ExportOptions.plist"
+          printf '%s\n' \
+            '<?xml version="1.0" encoding="UTF-8"?>' \
+            '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">' \
+            '<plist version="1.0"><dict></dict></plist>' > "$plist"
+          /usr/libexec/PlistBuddy \
+            -c "Add :method string app-store" \
+            -c "Add :signingStyle string manual" \
+            -c "Add :teamID string ${APPLE_TEAM_ID}" \
+            -c "Add :signingCertificate string Apple Distribution" \
+            -c "Add :provisioningProfiles dict" \
+            -c "Add :provisioningProfiles:org.callerscompendium.compendiumApp string ${prof_uuid}" \
+            -c "Add :provisioningProfiles:org.callerscompendium.compendiumApp.ShareExtension string ${ext_prof_uuid}" \
+            -c "Add :destination string export" \
+            -c "Add :uploadSymbols bool true" \
+            -c "Add :manageAppVersionAndBuildNumber bool false" \
+            "$plist"
+
+      - name: Build signed iOS .ipa (App Store archive)
+        if: matrix.platform == 'ios' && steps.ios_signing.outputs.signing == 'configured'
+        working-directory: app
+        # No App Store Connect API key here on purpose: this step no longer
+        # talks to the portal (see the archive comment below), so withholding
+        # the credential makes that structural rather than merely intended.
+        # The key is still available to the TestFlight upload step, which needs it.
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          set -euo pipefail
+          # The resolved tag's bounded SemVer-derived Android code also gives
+          # TestFlight a deterministic, unique CFBundleVersion. It needs no
+          # manual pubspec build suffix and keeps the host/extension in lockstep.
+          build_number="${ANDROID_VERSION_CODE:?missing Android version code from meta job}"
+          echo "Using tag-derived CFBundleVersion: ${build_number}"
+
+          # Keep the Share Extension's version + build in lockstep with the host
+          # app. `flutter build --build-number` only stamps the Runner target via
+          # Generated.xcconfig; the ShareExtension (issue #343) has its own
+          # Info.plist and does NOT include the Flutter xcconfig, so its
+          # CFBundleShortVersionString / CFBundleVersion would otherwise stay the
+          # checked-in placeholder (1.0 / 1). App Store validation REJECTS an
+          # embedded extension whose version or build differs from the host, so
+          # stamp them here to the pubspec release version + derived build code.
+          # Reverted by the always() cleanup step (git checkout), mirroring how
+          # the DEVELOPMENT_TEAM line is appended to Release.xcconfig above.
+          build_name="$(sed -n 's/^version:[[:space:]]*//p' pubspec.yaml | head -n1 | tr -d '[:space:]')"
+          if [ -z "$build_name" ]; then
+            echo "::error::Could not parse a marketing version from app/pubspec.yaml ('version:') to stamp the ShareExtension." >&2
+            exit 1
+          fi
+          echo "Stamping ShareExtension version ${build_name} (${build_number})"
+          /usr/libexec/PlistBuddy \
+            -c "Set :CFBundleShortVersionString ${build_name}" \
+            -c "Set :CFBundleVersion ${build_number}" \
+            ios/ShareExtension/Info.plist
+
+          # `flutter build ipa` runs its own internal `xcodebuild archive`, which
+          # we cannot pass signing settings to. Instead: (1) build the Flutter
+          # assets + generated project UNSIGNED, then (2) archive UNSIGNED and
+          # (3) export with xcodebuild directly, signing once at export time.
+          # (2) The archive is deliberately NOT signed. Its signature would be
+          # thrown away regardless — step (3) re-signs — so signing here bought
+          # nothing and cost a certificate: automatic signing with
+          # -allowProvisioningUpdates made Xcode MINT a new Apple Development
+          # identity in the portal on every run (a CI runner is ephemeral, so
+          # there is never an existing key to reuse), and nothing revoked it.
+          # That accumulated until the account hit Apple's certificate cap and
+          # every release failed (#758). No portal access happens here now.
+          # (3) The export signs with MANUAL signing against the LOCALLY-imported
+          # distribution cert + the pre-installed App Store profiles. It is the
+          # only step that signs, and the only one that can sign the Runner and
+          # ShareExtension targets with their OWN profiles (via the
+          # per-bundle-id map in ExportOptions.plist — CLI build settings would
+          # apply one profile to every target).
+
+          # 1) Flutter build — populates Generated.xcconfig (incl. the build
+          #    number) and compiles the Dart/asset bundle. --no-codesign because
+          #    signing happens once, at export (step 3).
+          codename_define=()
+          if [ -n "${CODENAME:-}" ]; then
+            codename_define+=(--dart-define=CALLERS_COMPENDIUM_RELEASE_CODENAME="$CODENAME")
+          fi
+          flutter build ios --release --no-codesign --build-number="${build_number}" \
+            --dart-define=CALLERS_COMPENDIUM_RELEASE_VERSION="$VERSION" \
+            "${codename_define[@]}"
+
+          # 2) Archive WITHOUT signing. No -allowProvisioningUpdates (that flag
+          #    is what authorizes Xcode to create portal resources) and no API
+          #    key: the archive needs neither, because it no longer signs. The
+          #    App Store Connect key is still written by the prepare step for the
+          #    altool upload below.
+          xcodebuild archive \
+            -workspace ios/Runner.xcworkspace \
+            -scheme Runner \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$RUNNER_TEMP/Runner.xcarchive" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            DEVELOPMENT_TEAM="$APPLE_TEAM_ID"
+
+          # 3) Export the App Store .ipa to app/build/ios/ipa. The protected
+          #    publish job downloads its artifact before uploading to TestFlight.
+          #    Manual signing: uses the LOCAL distribution identity + the
+          #    pre-installed profiles from ExportOptions — NO cloud signing, NO
+          #    -allowProvisioningUpdates (which would re-trigger the failing
+          #    cloud distribution signing). This is what produces the signed
+          #    artifact; the .xcarchive never leaves the runner.
+          rm -rf build/ios/ipa
+          xcodebuild -exportArchive \
+            -archivePath "$RUNNER_TEMP/Runner.xcarchive" \
+            -exportPath "$PWD/build/ios/ipa" \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist"
+
+          ls -l build/ios/ipa
+
+      # Keep the signed .ipa as a workflow artifact for validation/debugging.
+      # The name is OUTSIDE the `dist-*` namespace the publish job downloads
+      # (pattern: dist-*), so it is never merged into the GitHub Release,
+      # SHA256SUMS, the channel manifest, or the SLSA subject glob — iOS is
+      # store-delivered (ADR-002), not a direct download.
+      - name: Upload iOS .ipa artifact
+        if: matrix.platform == 'ios' && steps.ios_signing.outputs.signing == 'configured'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ios-ipa
+          path: app/build/ios/ipa/*.ipa
+          if-no-files-found: error
+          retention-days: 7
+
+      # Let the protected publish job distinguish a signed IPA from the intended
+      # no-op paths without exporting signing secrets or matrix-step outputs.
+      - name: Upload iOS TestFlight status
+        if: matrix.platform == 'ios'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ios-testflight-status
+          path: ios-testflight-status/signing
+          if-no-files-found: error
+          retention-days: 7
+
+      # Always tear down the decoded API key material + revert the injected
+      # DEVELOPMENT_TEAM, even if the build failed. A no-op on the skip path
+      # (nothing was written). The key id may be empty on that path, so the rm
+      # targets are guarded with a default.
+      - name: Clean up iOS signing material
+        if: always() && matrix.platform == 'ios'
+        env:
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+        run: |
+          key_id="${APPLE_API_KEY_ID:-__none__}"
+          rm -f "$HOME/.appstoreconnect/private_keys/AuthKey_${key_id}.p8" \
+                "$HOME/.private_keys/AuthKey_${key_id}.p8" 2>/dev/null || true
+          security delete-keychain "$RUNNER_TEMP/cc-ios.keychain-db" 2>/dev/null || true
+          # Remove ONLY the profiles this workflow installed (both, by UUID:
+          # the app's and the ShareExtension's), never a blanket wipe that could
+          # delete unrelated profiles on the runner.
+          prof_uuid="$(cat "$RUNNER_TEMP/cc-ios-profile-uuid" 2>/dev/null || true)"
+          if [ -n "$prof_uuid" ]; then
+            rm -f "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles/${prof_uuid}.mobileprovision" \
+                  "$HOME/Library/MobileDevice/Provisioning Profiles/${prof_uuid}.mobileprovision" 2>/dev/null || true
+          fi
+          ext_prof_uuid="$(cat "$RUNNER_TEMP/cc-ios-shareext-profile-uuid" 2>/dev/null || true)"
+          if [ -n "$ext_prof_uuid" ]; then
+            rm -f "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles/${ext_prof_uuid}.mobileprovision" \
+                  "$HOME/Library/MobileDevice/Provisioning Profiles/${ext_prof_uuid}.mobileprovision" 2>/dev/null || true
+          fi
+          # Remove the decoded profile/plist + generated ExportOptions + UUID
+          # marker from $RUNNER_TEMP (derived from secrets; $RUNNER_TEMP is
+          # ephemeral, but tear them down explicitly per the cleanup contract).
+          rm -f "$RUNNER_TEMP/cc_appstore.mobileprovision" \
+                "$RUNNER_TEMP/cc_appstore.plist" \
+                "$RUNNER_TEMP/cc_appstore_shareext.mobileprovision" \
+                "$RUNNER_TEMP/cc_appstore_shareext.plist" \
+                "$RUNNER_TEMP/ExportOptions.plist" \
+                "$RUNNER_TEMP/cc-ios-profile-uuid" \
+                "$RUNNER_TEMP/cc-ios-shareext-profile-uuid" \
+                "$RUNNER_TEMP/dist.p12" 2>/dev/null || true
+          git checkout -- app/ios/Flutter/Release.xcconfig 2>/dev/null || true
+          git checkout -- app/ios/ShareExtension/Info.plist 2>/dev/null || true
+          exit 0
+
+      # --- Android: signed universal APK -----------------------------------
+      # Reconstruct the upload keystore + key.properties from repo secrets at
+      # runtime, under app/android/ (already gitignored). Secrets are passed via
+      # `env:` and never interpolated into the `run:` script, so they can't leak
+      # into the build log. app/android/app/build.gradle.kts then picks up the
+      # release signingConfig because key.properties now exists (each field is
+      # `?: error(...)`, so a misconfigured secret fails the build loudly rather
+      # than silently producing a debug-signed APK).
+      - name: Reconstruct Android signing config
+        if: matrix.platform == 'android' && steps.android_signing.outputs.signing == 'configured'
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: |
+          set -euo pipefail
+          # If the keystore secret is configured, all four must be present — fail
+          # fast with a clear message rather than writing an empty field that
+          # would surface as a confusing Gradle signing error later. (The message
+          # names only the variable, never the value.)
+          : "${ANDROID_KEYSTORE_PASSWORD:?ANDROID_KEYSTORE_PASSWORD secret is empty/unset}"
+          : "${ANDROID_KEY_PASSWORD:?ANDROID_KEY_PASSWORD secret is empty/unset}"
+          : "${ANDROID_KEY_ALIAS:?ANDROID_KEY_ALIAS secret is empty/unset}"
+          # storeFile is relative, so build.gradle.kts (rootProject.file) anchors
+          # it at app/android/ next to key.properties.
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 -d > app/android/callerscompendium-upload.jks
+          # key.properties is a java.util.Properties file, where backslashes are
+          # escape chars; double them so a value with a backslash round-trips
+          # verbatim. Output is redirected to the file (never echoed to the log).
+          esc() { printf '%s' "$1" | sed 's/\\/\\\\/g'; }
+          {
+            printf '%s\n' "storeFile=callerscompendium-upload.jks"
+            printf '%s\n' "storePassword=$(esc "$ANDROID_KEYSTORE_PASSWORD")"
+            printf '%s\n' "keyPassword=$(esc "$ANDROID_KEY_PASSWORD")"
+            printf '%s\n' "keyAlias=$(esc "$ANDROID_KEY_ALIAS")"
+          } > app/android/key.properties
+
+      - name: Build Android release APK (signed)
+        if: matrix.platform == 'android' && steps.android_signing.outputs.signing == 'configured'
+        working-directory: app
+        # The code is derived from the resolved tag: radix-1000 SemVer core
+        # packing plus a channel bit (beta < stable for one core).
+        run: |
+          codename_define=()
+          if [ -n "${CODENAME:-}" ]; then
+            codename_define+=(--dart-define=CALLERS_COMPENDIUM_RELEASE_CODENAME="$CODENAME")
+          fi
+          flutter build apk --release --build-number="$ANDROID_VERSION_CODE" \
+            --dart-define=CALLERS_COMPENDIUM_RELEASE_VERSION="$VERSION" \
+            "${codename_define[@]}"
+
+      - name: Package Android (signed APK)
+        if: matrix.platform == 'android' && steps.android_signing.outputs.signing == 'configured'
+        run: |
+          set -euo pipefail
+          # `flutter build apk --release` emits a universal (fat) APK here.
+          apk="app/build/app/outputs/flutter-apk/app-release.apk"
+          mkdir -p dist
+          cp "$apk" "dist/CallersCompendium-${VERSION}-android-universal.apk"
+
+      # --- Android: signed App Bundle (.aab) for Google Play ----------------
+      # Play requires an .aab (Play App Signing then re-signs it with the
+      # Google-held app signing key). It is built + signed with the SAME upload
+      # keystore as the APK (key.properties was reconstructed above), so no new
+      # secrets are needed. It is staged OUTSIDE dist/ (into aab/) and uploaded
+      # as its own `android-aab` workflow artifact, so — exactly like the iOS
+      # `ios-ipa` — it never lands in SHA256SUMS, the channel manifest, the SLSA
+      # subject glob, or the public GitHub Release. The .aab is a store-upload
+      # input, not a sideloadable end-user download.
+      # PLAY_BUILD is defined here and nowhere else: it is how an installed Play
+      # build knows to leave updating to the store (install_kind.dart).
+      - name: Build Android App Bundle (signed .aab)
+        if: matrix.platform == 'android' && steps.android_signing.outputs.signing == 'configured'
+        working-directory: app
+        run: |
+          codename_define=()
+          if [ -n "${CODENAME:-}" ]; then
+            codename_define+=(--dart-define=CALLERS_COMPENDIUM_RELEASE_CODENAME="$CODENAME")
+          fi
+          flutter build appbundle --release --build-number="$ANDROID_VERSION_CODE" \
+            --dart-define=CALLERS_COMPENDIUM_RELEASE_VERSION="$VERSION" \
+            --dart-define=CALLERS_COMPENDIUM_PLAY_BUILD=true \
+            "${codename_define[@]}"
+
+      - name: Package Android (signed .aab)
+        if: matrix.platform == 'android' && steps.android_signing.outputs.signing == 'configured'
+        run: |
+          set -euo pipefail
+          # `flutter build appbundle --release` emits the release bundle here.
+          aab="app/build/app/outputs/bundle/release/app-release.aab"
+          mkdir -p aab
+          cp "$aab" "aab/CallersCompendium-${VERSION}.aab"
+          ls -l aab
+
+      # Windows signing gate, mirroring the Android/macOS/iOS gates above. Read the
+      # Azure configuration variables via `env:` here and export a plain step output
+      # (`signing=configured|missing`) that the Windows build/package steps below
+      # gate on. When the variables are absent (not yet configured by the
+      # maintainer) the Windows leg is a clean no-op: it stages UNSIGNED binaries
+      # and still succeeds. `mkdir -p dist` keeps the shared "List/Upload" steps
+      # happy on that skip path.
+      - name: Determine Windows signing availability
+        if: matrix.platform == 'windows'
+        id: windows_signing
+        shell: bash
+        env:
+          AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+          AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+          AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          AZURE_SIGNING_ACCOUNT_NAME: ${{ vars.AZURE_SIGNING_ACCOUNT_NAME }}
+          AZURE_CERT_PROFILE_NAME: ${{ vars.AZURE_CERT_PROFILE_NAME }}
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          if [ -n "${AZURE_CLIENT_ID:-}" ] \
+            && [ -n "${AZURE_TENANT_ID:-}" ] \
+            && [ -n "${AZURE_SUBSCRIPTION_ID:-}" ] \
+            && [ -n "${AZURE_SIGNING_ACCOUNT_NAME:-}" ] \
+            && [ -n "${AZURE_CERT_PROFILE_NAME:-}" ]; then
+            echo "signing=configured" >> "$GITHUB_OUTPUT"
+            echo "Windows Azure Trusted Signing variables configured; signing the Windows binaries."
+          else
+            echo "signing=missing" >> "$GITHUB_OUTPUT"
+            echo "::notice::Windows Azure Trusted Signing not configured; producing UNSIGNED Windows artifacts (unchanged from today)."
+          fi
+
+      # --- Windows: zip (portable) + Inno Setup installer ------------------
+      - name: Build Windows release bundle
+        if: matrix.platform == 'windows'
+        working-directory: app
+        run: |
+          codename_define=()
+          if [ -n "${CODENAME:-}" ]; then
+            codename_define+=(--dart-define=CALLERS_COMPENDIUM_RELEASE_CODENAME="$CODENAME")
+          fi
+          flutter build windows --release \
+            --dart-define=CALLERS_COMPENDIUM_RELEASE_VERSION="$VERSION" \
+            "${codename_define[@]}"
+
+      - name: Azure Login
+        if: matrix.platform == 'windows' && steps.windows_signing.outputs.signing == 'configured'
+        uses: azure/login@a641126d1b8aa4d1fa005f4f92df94a3a4c4c906 # v3
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Sign Windows bundle binaries with Azure Artifact Signing
+        if: matrix.platform == 'windows' && steps.windows_signing.outputs.signing == 'configured'
+        uses: Azure/artifact-signing-action@c7ab2a863ab5f9a846ddb8265964877ef296ee82 # v2
+        with:
+          endpoint: https://wus2.codesigning.azure.net/
+          signing-account-name: ${{ vars.AZURE_SIGNING_ACCOUNT_NAME }}
+          certificate-profile-name: ${{ vars.AZURE_CERT_PROFILE_NAME }}
+          files-folder: ${{ github.workspace }}\app\build\windows\x64\runner\Release
+          files-folder-filter: exe,dll
+
+      # The runner and plugin DLLs link the MSVC runtime dynamically (/MD, the
+      # CMake default), and Flutter's Release folder does not include it. Copy
+      # the redistributable DLLs from this runner's Visual Studio install into
+      # the Release folder so both the zip and the installer (whose [Files]
+      # copies that folder, and whose uninstaller removes what it installed)
+      # carry them. This runs AFTER the bundle-signing step on purpose: the
+      # DLLs are already Microsoft-signed and must not be re-signed as ours.
+      # These files are on Microsoft's Visual Studio redistributable list.
+      - name: Stage the MSVC runtime beside the app
+        if: matrix.platform == 'windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $release = "app/build/windows/x64/runner/Release"
+          $required = @($env:MSVC_RUNTIME_DLLS -split '\s+' | Where-Object { $_ })
+          if ($required.Count -eq 0) { throw "MSVC_RUNTIME_DLLS is empty" }
+
+          $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
+          if (-not (Test-Path $vswhere)) { throw "vswhere.exe not found at $vswhere" }
+          $vs = @(& $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath)
+          if ($LASTEXITCODE -ne 0 -or $vs.Count -ne 1 -or -not $vs[0]) {
+            throw "expected one Visual Studio install with the x64 C++ tools, vswhere returned: $($vs -join '; ')"
+          }
+          $vs = $vs[0]
+
+          # Read the redistributable version Visual Studio itself records; never
+          # hard-code a version folder, the runner image moves it.
+          $redistVersionFile = Join-Path $vs 'VC\Auxiliary\Build\Microsoft.VCRedistVersion.default.txt'
+          if (-not (Test-Path $redistVersionFile)) { throw "$redistVersionFile not found" }
+          $redistVersion = (Get-Content -Raw $redistVersionFile).Trim()
+          $redistRoot = Join-Path $vs "VC\Redist\MSVC\$redistVersion\x64"
+          $crtDirs = @(Get-ChildItem -Directory -Path $redistRoot -Filter 'Microsoft.VC14*.CRT' -ErrorAction SilentlyContinue)
+          if ($crtDirs.Count -ne 1) {
+            throw "expected exactly one Microsoft.VC14*.CRT folder under $redistRoot, found $($crtDirs.Count): $($crtDirs.Name -join ', ')"
+          }
+          $crt = $crtDirs[0].FullName
+          Write-Host "MSVC runtime source: $crt"
+
+          # Check what the bundle actually imports, so a binary that needs a
+          # runtime DLL outside the list fails here rather than on a user's PC.
+          $toolsVersionFile = Join-Path $vs 'VC\Auxiliary\Build\Microsoft.VCToolsVersion.default.txt'
+          if (-not (Test-Path $toolsVersionFile)) { throw "$toolsVersionFile not found" }
+          $toolsVersion = (Get-Content -Raw $toolsVersionFile).Trim()
+          $dumpbin = Join-Path $vs "VC\Tools\MSVC\$toolsVersion\bin\Hostx64\x64\dumpbin.exe"
+          if (-not (Test-Path $dumpbin)) { throw "dumpbin.exe not found at $dumpbin" }
+          $runtimePattern = '^(vcruntime|msvcp|concrt|vccorlib)140(_[a-z0-9_]+)?\.dll$'
+          $imported = @{}
+          foreach ($bin in Get-ChildItem -Path $release -Recurse -File -Include *.exe, *.dll) {
+            $out = & $dumpbin /nologo /dependents $bin.FullName
+            if ($LASTEXITCODE -ne 0) { throw "dumpbin failed on $($bin.FullName)" }
+            foreach ($line in $out) {
+              $name = $line.Trim().ToLowerInvariant()
+              if ($name -match $runtimePattern) {
+                $imported[$name] = $true
+                Write-Host "$($bin.Name) imports $name"
+              }
+            }
+          }
+          $notShipped = @($imported.Keys | Where-Object { $required -notcontains $_ } | Sort-Object)
+          if ($notShipped.Count -gt 0) {
+            throw "the bundle imports MSVC runtime DLLs that are not shipped app-local: $($notShipped -join ', '). Add them to MSVC_RUNTIME_DLLS."
+          }
+          $unused = @($required | Where-Object { -not $imported.ContainsKey($_.ToLowerInvariant()) })
+          if ($unused.Count -gt 0) {
+            Write-Host "::warning::no bundled binary imports $($unused -join ', '); consider dropping it from MSVC_RUNTIME_DLLS."
+          }
+
+          foreach ($dll in $required) {
+            $source = Join-Path $crt $dll
+            if (-not (Test-Path $source)) { throw "$dll not found in $crt" }
+            Copy-Item -Path $source -Destination $release -Force
+            if (-not (Test-Path (Join-Path $release $dll))) { throw "$dll was not staged into $release" }
+            Write-Host "staged $dll"
+          }
+
+          # Record what was staged for the SBOM (platform-5). The SBOM is built
+          # on Linux in publish_draft, which cannot see this runner's Visual
+          # Studio, so it reads each DLL's file version and SHA-256 from here.
+          $entries = foreach ($dll in $required) {
+            $staged = Get-Item (Join-Path $release $dll)
+            $info = $staged.VersionInfo
+            [ordered]@{
+              name = $dll.ToLowerInvariant()
+              file_version = '{0}.{1}.{2}.{3}' -f $info.FileMajorPart, $info.FileMinorPart, $info.FileBuildPart, $info.FilePrivatePart
+              sha256 = (Get-FileHash -Algorithm SHA256 -Path $staged.FullName).Hash.ToLowerInvariant()
+            }
+          }
+          New-Item -ItemType Directory -Force -Path native-components | Out-Null
+          [ordered]@{
+            redist_version = $redistVersion
+            crt_folder = $crtDirs[0].Name
+            dlls = @($entries)
+          } | ConvertTo-Json -Depth 4 | Set-Content -Encoding utf8NoBOM -Path native-components/msvc-runtime.json
+          Get-Content native-components/msvc-runtime.json
+
+      # Not a dist-* artifact: it feeds the SBOM in publish_draft and must not
+      # be merged into the release assets.
+      - name: Upload the MSVC runtime manifest for the SBOM
+        if: matrix.platform == 'windows'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: native-components-windows
+          path: native-components/msvc-runtime.json
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Package Windows (zip + installer)
+        if: matrix.platform == 'windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $release = "app/build/windows/x64/runner/Release"
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+
+          # Portable zip: extraction yields a single named directory.
+          $stage = "CallersCompendium-$env:VERSION-windows-x64"
+          if (Test-Path $stage) { Remove-Item -Recurse -Force $stage }
+          Copy-Item -Recurse $release $stage
+          Compress-Archive -Path $stage -DestinationPath "dist/$stage.zip" -Force
+
+          # Installer via Inno Setup (preinstalled on windows-latest; fall back
+          # to Chocolatey if the image ever drops it). The fallback is fully
+          # supply-chain hardened (#451): every Chocolatey package it needs is
+          # PINNED to a specific version and its .nupkg SHA-512 is verified
+          # (fail-closed) against the community feed's published PackageHash
+          # BEFORE any install runs, and the install resolves EXCLUSIVELY from
+          # the verified local directory (no live feed). Nothing unverified is
+          # fetched or executed at install time — this matters because a
+          # Chocolatey package's (and its dependencies') install-time PowerShell
+          # runs in the release job, so hashing only the Inno Setup .nupkg would
+          # still leave the dependency chain trusting the live feed.
+          #
+          # The pinned set below is the COMPLETE dependency tree (resolved and
+          # verified transitively; the leaf has no further dependencies):
+          #   innosetup 6.7.1
+          #     -> chocolatey-core.extension 1.4.0
+          #          -> chocolatey-compatibility.extension 1.0.0 (no deps)
+          # innosetup 6.7.1 is the latest stable on the community feed (published
+          # 2026-02-17). Each Sha512 is the hex SHA-512 of that exact .nupkg and
+          # matches the feed's published PackageHash. Bump version + Sha512
+          # together when updating any package, and re-check the dependency tree.
+          $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) {
+            $innoPackages = @(
+              @{ Id = 'innosetup';                         Version = '6.7.1'; Sha512 = '431A9F0A8D40D95F8A04C8D98617D2F6E88AC08B65A01BE1F272D6978C3F726AE118F9D7DC04C2B52A429DDEC3D491358A1C8BF2F77DEEE0ABDA8606A975EB61' }
+              @{ Id = 'chocolatey-core.extension';          Version = '1.4.0'; Sha512 = '78F66C4259BC7AEAFC177EFD6CE1988112B3EF7FC436D330DBE7EF601308A1795EB94D4E117731A3BEE118439E5809FB05927B065E14D0C69F4E2F93BDC7E11B' }
+              @{ Id = 'chocolatey-compatibility.extension'; Version = '1.0.0'; Sha512 = '7117C2BFDD36396A0151110E21D3E9592E72EC79BEAA9B1C06911E2745F6202D6A364A028452873CCFD7F07D237AEB4EFE8FFAB43FF8B8D4A652E7915A32568D' }
+            )
+            $pkgDir = Join-Path $env:RUNNER_TEMP 'innosetup-pkg'
+            New-Item -ItemType Directory -Force -Path $pkgDir | Out-Null
+            foreach ($pkg in $innoPackages) {
+              $nupkg = Join-Path $pkgDir "$($pkg.Id).$($pkg.Version).nupkg"
+              Invoke-WebRequest -UseBasicParsing `
+                -Uri "https://community.chocolatey.org/api/v2/package/$($pkg.Id)/$($pkg.Version)" `
+                -OutFile $nupkg
+              $actualSha512 = (Get-FileHash -Algorithm SHA512 -Path $nupkg).Hash
+              if ($actualSha512 -ne $pkg.Sha512) {
+                throw "$($pkg.Id) $($pkg.Version) package SHA-512 mismatch: expected $($pkg.Sha512), got $actualSha512"
+              }
+            }
+            # Install ONLY from the verified local dir (no community feed), so
+            # every package — including the dependency chain — comes from bytes
+            # we just hash-verified. --require-checksums is defense-in-depth.
+            choco install innosetup --version 6.7.1 -y --no-progress --require-checksums --source "$pkgDir"
+            if ($LASTEXITCODE -ne 0) { throw "choco install innosetup failed ($LASTEXITCODE)" }
+          }
+          if (-not (Test-Path $iscc)) { throw "ISCC.exe not found after install" }
+
+          # Inno resolves relative [Files] Source paths against the .iss dir, so
+          # pass ABSOLUTE source/output dirs.
+          $releaseAbs = (Resolve-Path $release).Path
+          $distAbs = (Resolve-Path dist).Path
+          & "$iscc" `
+            "/DMyAppVersion=$env:VERSION" `
+            "/DSourceDir=$releaseAbs" `
+            "/DOutputDir=$distAbs" `
+            "/DOutputBaseName=CallersCompendium-$env:VERSION-windows-x64" `
+            packaging\windows\CallersCompendium.iss
+          if ($LASTEXITCODE -ne 0) { throw "Inno Setup failed ($LASTEXITCODE)" }
+
+      - name: Sign Windows installer with Azure Artifact Signing
+        if: matrix.platform == 'windows' && steps.windows_signing.outputs.signing == 'configured'
+        uses: Azure/artifact-signing-action@c7ab2a863ab5f9a846ddb8265964877ef296ee82 # v2
+        with:
+          endpoint: https://wus2.codesigning.azure.net/
+          signing-account-name: ${{ vars.AZURE_SIGNING_ACCOUNT_NAME }}
+          certificate-profile-name: ${{ vars.AZURE_CERT_PROFILE_NAME }}
+          files: ${{ github.workspace }}\dist\CallersCompendium-${{ needs.meta.outputs.version }}-windows-x64.exe
+
+      # The proof for the app-local MSVC runtime (platform-4): every required
+      # DLL must be in the staged folder, inside the portable zip, and in the
+      # tree the (signed) installer actually installs, and the uninstaller must
+      # remove it again. Windows-only, but deliberately not conditioned on signing
+      # availability: it runs for signed and unsigned Windows releases alike.
+      - name: Verify the MSVC runtime ships in the zip and the installer
+        if: matrix.platform == 'windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $required = @($env:MSVC_RUNTIME_DLLS -split '\s+' | Where-Object { $_ })
+          if ($required.Count -eq 0) { throw "MSVC_RUNTIME_DLLS is empty" }
+          $base = "CallersCompendium-$env:VERSION-windows-x64"
+
+          foreach ($dll in $required) {
+            if (-not (Test-Path (Join-Path $base $dll))) { throw "$dll is missing from the staged folder $base" }
+          }
+
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          $zip = [System.IO.Compression.ZipFile]::OpenRead((Resolve-Path "dist/$base.zip").Path)
+          try {
+            $entries = @($zip.Entries | ForEach-Object { $_.FullName.Replace('\', '/').ToLowerInvariant() })
+          } finally {
+            $zip.Dispose()
+          }
+          foreach ($dll in $required) {
+            if ($entries -notcontains "$base/$dll".ToLowerInvariant()) { throw "$dll is missing from dist/$base.zip" }
+          }
+          Write-Host "zip carries: $($required -join ', ')"
+
+          $installDir = Join-Path $env:RUNNER_TEMP 'msvc-runtime-install-check'
+          $log = Join-Path $env:RUNNER_TEMP 'msvc-runtime-install-check.log'
+          $setup = (Resolve-Path "dist/$base.exe").Path
+          $install = Start-Process -FilePath $setup -Wait -PassThru -ArgumentList @(
+            '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', "/DIR=`"$installDir`"", "/LOG=`"$log`"")
+          if ($install.ExitCode -ne 0) {
+            Get-Content $log -ErrorAction SilentlyContinue
+            throw "installer exited with $($install.ExitCode)"
+          }
+          foreach ($file in @('compendium_app.exe') + $required) {
+            if (-not (Test-Path (Join-Path $installDir $file))) { throw "the installer did not install $file" }
+          }
+          Write-Host "installer installs: $($required -join ', ')"
+
+          $uninstaller = Join-Path $installDir 'unins000.exe'
+          if (-not (Test-Path $uninstaller)) { throw "unins000.exe not found in $installDir" }
+          $uninstall = Start-Process -FilePath $uninstaller -Wait -PassThru -ArgumentList @(
+            '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART')
+          if ($uninstall.ExitCode -ne 0) { throw "uninstaller exited with $($uninstall.ExitCode)" }
+          # The uninstaller hands off to a temporary copy of itself, so poll.
+          $deadline = (Get-Date).AddSeconds(120)
+          do {
+            $left = @($required | Where-Object { Test-Path (Join-Path $installDir $_) })
+            if ($left.Count -eq 0) { break }
+            Start-Sleep -Seconds 2
+          } while ((Get-Date) -lt $deadline)
+          if ($left.Count -gt 0) { throw "the uninstaller left $($left -join ', ') in $installDir" }
+          Write-Host "uninstaller removes: $($required -join ', ')"
+
+      - name: List packaged artifacts
+        run: ls -l dist
+
+      - name: Upload packaged artifacts
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: dist-${{ matrix.platform }}
+          path: dist/
+          # Desktop legs must always stage binaries (error on empty). The android
+          # leg is a no-op when signing secrets are absent, and the ios leg never
+          # stages into dist/ (its signed .ipa is store-delivered to TestFlight
+          # and uploaded as the separate `ios-ipa` artifact), so both tolerate an
+          # empty dist/ (no dist-android/dist-ios artifact is uploaded, step still
+          # passes).
+          if-no-files-found: ${{ (matrix.platform == 'android' || matrix.platform == 'ios') && 'ignore' || 'error' }}
+          retention-days: 7
+
+      # Keep the signed .aab as its own workflow artifact for the Play upload.
+      # Like the iOS `ios-ipa` artifact, it is deliberately NOT staged into dist/,
+      # so it never enters SHA256SUMS, the channel manifest, the SLSA subject
+      # glob, or the GitHub Release. The approval-gated `publish_mobile` job
+      # downloads it and uploads it to Google Play when the Play service-account
+      # secret is configured (see docs/dev/releasing.md#upload-to-google-play).
+      - name: Upload Android .aab artifact
+        if: matrix.platform == 'android' && steps.android_signing.outputs.signing == 'configured'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: android-aab
+          path: aab/CallersCompendium-*.aab
+          if-no-files-found: error
+          retention-days: 7
+  # <<< END copy of release.yml's `build` job.
+
+  # One downloadable bundle of everything a teammate installs directly: the
+  # desktop packages and the Android APK, with SHA256SUMS and a note naming the
+  # commit. The Android .aab (`android-aab`) and the iOS .ipa (`ios-ipa`) stay
+  # separate run artifacts: neither installs directly on a device.
+  package:
+    name: Bundle test build
+    needs: [meta, build]
+    if: github.repository == 'ibanner56/CallersCompendium'
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - name: Download every leg's packaged artifacts
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          path: dist
+          pattern: dist-*
+          merge-multiple: true
+
+      - name: Write SHA256SUMS and the test-build note
+        env:
+          VERSION: ${{ needs.meta.outputs.version }}
+          SOURCE_SHA: ${{ needs.meta.outputs.source_sha }}
+          REF_NAME: ${{ github.ref_name }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          cd dist
+          binaries=(CallersCompendium-*)
+          if [ "${#binaries[@]}" -eq 0 ]; then
+            echo "::error::no CallersCompendium-* packages were downloaded"
+            exit 1
+          fi
+          sha256sum "${binaries[@]}" > SHA256SUMS
+          {
+            printf 'Callers Compendium TEST BUILD - not a release.\n\n'
+            printf 'Version reported by the app: %s\n' "$VERSION"
+            printf 'Commit: %s\n' "$SOURCE_SHA"
+            printf 'Ref: %s\n' "$REF_NAME"
+            printf 'Workflow run: %s\n\n' "$RUN_URL"
+            printf 'Signed like a release; never published. The in-app updater treats\n'
+            printf 'this build as version %s, so it will not offer the release of the\n' "$VERSION"
+            printf 'same version: install that release by hand when it ships.\n'
+          } > TEST-BUILD.txt
+          {
+            echo "### Test build $VERSION ($SOURCE_SHA)"
+            echo
+            echo "Not a release. Download the \`CallersCompendium-test-*\` artifact below."
+            echo
+            echo '```'
+            cat SHA256SUMS
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          ls -l
+
+      - name: Upload the test-build bundle
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: CallersCompendium-test-${{ needs.meta.outputs.version }}-${{ needs.meta.outputs.short_sha }}
+          path: dist/
+          if-no-files-found: error
+          retention-days: 30
