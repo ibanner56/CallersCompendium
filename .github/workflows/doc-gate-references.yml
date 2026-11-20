@@ -1,0 +1,53 @@
+# The developer docs cite only tool scripts that exist, and cited gates have tests.
+#
+# See tools/ci/check_doc_gate_references.py for what counts as a citation and
+# which exemptions exist (each with its reason).
+#
+# This lives in its own workflow, like branch-citations.yml and for the same
+# reason: ci.yml skips _checks.yml for a Markdown-only change, and the documents
+# this gate reads are Markdown. It also runs when a script under tools/ is added,
+# renamed or removed, because that is what makes a citation dangle without any
+# Markdown changing.
+#
+# It is intentionally cheap (plain python3, no toolchain setup) and is not
+# marked a required status, so it never leaves a required check pending on an
+# unrelated PR.
+name: Doc gate references
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'AGENTS.md'
+      - 'CONTRIBUTING.md'
+      - 'docs/dev/**'
+      - '.github/instructions/**'
+      - '.github/skills/**'
+      - 'tools/**'
+      - '.github/workflows/doc-gate-references.yml'
+  pull_request:
+    paths:
+      - 'AGENTS.md'
+      - 'CONTRIBUTING.md'
+      - 'docs/dev/**'
+      - '.github/instructions/**'
+      - '.github/skills/**'
+      - 'tools/**'
+      - '.github/workflows/doc-gate-references.yml'
+
+# Least privilege: this check only reads the checked-out code.
+permissions:
+  contents: read
+
+jobs:
+  doc-gate-references:
+    name: Docs cite existing, tested gates
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # The ratchet's own suite runs first, so a gate that has only ever been
+      # seen green is not mistaken for one that works.
+      - name: Test the doc-reference ratchet
+        run: python3 tools/ci/test_check_doc_gate_references.py
+      - name: Guard documentation citations of tool scripts
+        run: python3 tools/ci/check_doc_gate_references.py
