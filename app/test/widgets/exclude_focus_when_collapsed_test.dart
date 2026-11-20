@@ -1,3 +1,4 @@
+import 'package:compendium_app/src/widgets/app_dropdown_field.dart';
 import 'package:compendium_app/src/widgets/exclude_focus_when_collapsed.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -70,13 +71,14 @@ void main() {
     );
   });
 
-  testWidgets('a DropdownMenu built while collapsed can take focus once the '
+  testWidgets('an AppDropdownField built while collapsed takes typing once the '
       'tile opens', (tester) async {
-    // DropdownMenu reads its focus node's effective canRequestFocus when it
-    // builds, and its text field writes what it read onto the node. Built under
-    // a collapsed tile that is false. The wrapper must build the field again
-    // when the tile opens, or the field stays unfocusable and typing in it does
-    // nothing (the Program builder's dialect picker did exactly that).
+    // The app's dropdown hands its focus node to DropdownMenu, which reads the
+    // node's effective canRequestFocus when it builds and writes what it read
+    // onto the node. Built under a collapsed tile that is false. The wrapper
+    // must build the field again when the tile opens, or the field stays
+    // unfocusable and typing in it does nothing (the Program builder's dialect
+    // picker did exactly that).
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
@@ -88,13 +90,14 @@ void main() {
               children: [
                 ExcludeFocusWhenCollapsed(
                   controller: controller,
-                  builder: (_) => DropdownMenu<int>(
-                    focusNode: inside,
-                    enableFilter: true,
-                    requestFocusOnTap: true,
-                    dropdownMenuEntries: const [
-                      DropdownMenuEntry(value: 1, label: 'One'),
-                      DropdownMenuEntry(value: 2, label: 'Two'),
+                  builder: (_) => AppDropdownField<int>(
+                    key: const ValueKey('picker'),
+                    value: 1,
+                    filterable: true,
+                    onChanged: (_) {},
+                    entries: const [
+                      AppDropdownEntry(value: 1, label: 'One'),
+                      AppDropdownEntry(value: 2, label: 'Two'),
                     ],
                   ),
                 ),
@@ -107,7 +110,6 @@ void main() {
     controller.expand();
     await tester.pumpAndSettle();
 
-    expect(inside.canRequestFocus, isTrue);
     await tester.enterText(find.byType(TextField), 'Tw');
     await tester.pumpAndSettle();
     expect(
