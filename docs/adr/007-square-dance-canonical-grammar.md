@@ -95,6 +95,11 @@ you look around online for sources of traditional squares choreography
 you'll find that some of the Plus/Advanced/Challenge calls still show up in
 trad squares or contra." §7.3 records that search.
 
+Later on 20 November 2026 the maintainer asked: "Take a look at the ECD
+implementation work that is now mostly completed and update your ADR with
+any changes or learnings that you find are applicable to your original
+design." §12 records the result.
+
 ### 1.2 The proposal in brief
 
 Everything below is proposed by this ADR's author for the maintainer to
@@ -205,8 +210,8 @@ not.
   heading in [figure-taxonomy.md](../design/figure-taxonomy.md), rows in the
   version-history and version-bump gates under `tools/ci/`, and a one-time
   rebuild marker for dances that held `ecd_` IDs before they were known.
-- 38 Dart files outside test directories under `packages/` and `app/` still
-  refer to `contraTaxonomy` by name, 34 of them under a `lib/` directory.
+- 37 Dart files outside test directories under `packages/` and `app/` still
+  refer to `contraTaxonomy` by name, 33 of them under a `lib/` directory.
   Some are contra-only by nature (the ContraDB and Caller's Box importers,
   the registry's base). Others serve any form and still name contra's
   taxonomy directly, among them the glossary's list of figures of your own,
@@ -1080,8 +1085,8 @@ animations, and any code, data or text from Taminations.
 ## 12. Learnings from the ECD implementation
 
 The maintainer asked on 20 November 2026 for this ADR to take what applies
-from the ECD work, which was mostly complete by then. Each choice below is
-this ADR author's call unless it says otherwise.
+from the ECD work, which was mostly complete by then (§1.1). Each choice
+below is this ADR author's call unless it says otherwise.
 
 **Taken from ECD:**
 
