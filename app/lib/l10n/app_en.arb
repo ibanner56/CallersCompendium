@@ -142,7 +142,7 @@
   },
   "appBootstrapReleasesLink": "Open the Releases page",
   "@appBootstrapReleasesLink": {
-    "description": "Button on the terminal startup screens (newer data, too-old data, backup could not be made, data could not be moved) that opens the project's GitHub Releases page in the browser, where newer builds and the migration-bridge build can be downloaded."
+    "description": "Button on the terminal startup screens (newer data, backup could not be made, data could not be moved) that opens the project's GitHub Releases page in the browser, where newer builds and the migration-bridge build can be downloaded."
   },
   "migrationDowngradeVersions": "Your data uses storage format {fileVersion}. This version of the app reads up to format {appVersion}.",
   "@migrationDowngradeVersions": {

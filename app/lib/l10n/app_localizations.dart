@@ -298,7 +298,7 @@ abstract class AppLocalizations {
   /// **'Details were also written to the diagnostics log in the app\'s support folder.'**
   String get appBootstrapLogHint;
 
-  /// Button on the terminal startup screens (newer data, too-old data, backup could not be made, data could not be moved) that opens the project's GitHub Releases page in the browser, where newer builds and the migration-bridge build can be downloaded.
+  /// Button on the terminal startup screens (newer data, backup could not be made, data could not be moved) that opens the project's GitHub Releases page in the browser, where newer builds and the migration-bridge build can be downloaded.
   ///
   /// In en, this message translates to:
   /// **'Open the Releases page'**

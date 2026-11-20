@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
 import '../theme/app_spacing.dart';
 
-/// A centred "couldn't load this" message with a Retry button.
+/// A centred "couldn't load this" message with a Try again button.
 ///
 /// For a screen whose whole body failed to load: the message says what
 /// happened and [onRetry] is the way forward, so a transient failure doesn't
