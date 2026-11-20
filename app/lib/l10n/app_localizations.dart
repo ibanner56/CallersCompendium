@@ -11836,6 +11836,12 @@ abstract class AppLocalizations {
   /// **'A progression wasn\'t recognized; defaulted to single.'**
   String get importIssueUnmappedProgression;
 
+  /// Import note: an English dance's figure lines count in bars ("1-4 partners set"), but its music states no meter, so bars were counted as 2 beats each.
+  ///
+  /// In en, this message translates to:
+  /// **'This dance counts in bars but states no meter, so each bar was counted as 2 beats. Check its counts.'**
+  String get importIssueBarsMeterUnstated;
+
   /// Import note: a dance-type string wasn't recognized; the dance was imported as a contra with the original value kept in the notes.
   ///
   /// In en, this message translates to:
@@ -12381,6 +12387,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t import that dance to edit. Try again.'**
   String get importReviewEditError;
+
+  /// Title of the question asked once per Caller's Companion .USR file before it is read: whether its dances are English country dances.
+  ///
+  /// In en, this message translates to:
+  /// **'Are these English country dances?'**
+  String get importUsrEnglishTitle;
+
+  /// Body of the English-dances question for a Caller's Companion .USR file. 'Contra' is the Type value the other app shows.
+  ///
+  /// In en, this message translates to:
+  /// **'Caller\'s Companion often lists English country dances as Contra. If this file holds English dances, they\'re read with English figures, formations and bar counts. Square dances stay squares.'**
+  String get importUsrEnglishBody;
+
+  /// Answer: the file's dances are read by the Type each one has in the file.
+  ///
+  /// In en, this message translates to:
+  /// **'No, read their types'**
+  String get importUsrEnglishNo;
+
+  /// Answer: every dance in the file except squares is read as an English country dance.
+  ///
+  /// In en, this message translates to:
+  /// **'Yes, English dances'**
+  String get importUsrEnglishYes;
 
   /// Title of the confirmation shown when Import and edit is pressed on a row set to Same dance (replace), because the matched dance is replaced immediately. A row set to Re-import uses importReviewEditReimportTitle.
   ///

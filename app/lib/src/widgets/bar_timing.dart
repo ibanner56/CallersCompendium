@@ -24,20 +24,32 @@ class BarTimingScope extends InheritedWidget {
   /// its own.
   final bool allowsUntimed;
 
-  /// The bar timing of a dance of [form] set to [structure], or null where it
-  /// is timed in beats: any form but ECD, and a tune whose parts differ in
-  /// beats per bar, where one count of bars would mean different beats in
-  /// different parts.
-  static int? beatsPerBarFor(DanceForm form, PhraseStructure structure) {
+  /// The bar timing of a dance of [form] set to [structure] in [meter], or
+  /// null where it is timed in beats: any form but ECD, and a tune whose parts
+  /// differ in beats per bar, where one count of bars would mean different
+  /// beats in different parts. A bar holds the beats [meter] states (Hudson,
+  /// 19 November 2026: "the meter is the rule"), or with none the beats per
+  /// bar of [structure] ([ecdMeterForBars]), as a typed bar range counts them.
+  static int? beatsPerBarFor(
+    DanceForm form,
+    PhraseStructure structure, {
+    String meter = '',
+  }) {
     if (form != DanceForm.ecd) return null;
     final perBar = {for (final c in structure.components) c.beatsPerBar};
-    return perBar.length == 1 ? perBar.single : null;
+    if (perBar.length != 1) return null;
+    final stated = ecdBeatsPerBar(meter);
+    return stated.stated ? stated.beatsPerBar : perBar.single;
   }
 
   /// [child] under the bar timing of [dance], or as it is where the dance
   /// is timed in beats ([beatsPerBarFor]).
   static Widget forDance(Dance dance, {required Widget child}) {
-    final beatsPerBar = beatsPerBarFor(dance.form, dance.phraseStructure);
+    final beatsPerBar = beatsPerBarFor(
+      dance.form,
+      dance.phraseStructure,
+      meter: dance.meter,
+    );
     return beatsPerBar == null
         ? child
         : BarTimingScope(beatsPerBar: beatsPerBar, child: child);

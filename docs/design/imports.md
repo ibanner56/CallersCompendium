@@ -286,6 +286,19 @@ use; the detail screen's **Re-import choreography** (`replaceDanceChoreography`,
 moved into core from the app) adds a stale-preview check and writes no
 provenance.
 
+Figures and formation are written in their dance form's taxonomy, so the form
+travels with them: when the incoming figures are taken, so is the incoming
+form, and when they are not and the forms differ, the existing formation stays
+too. Without this, a `.USR` dance imported as contra and re-imported as English
+would hold ECD figures under a contra form. (Implementer's call for ADR-006 W6
+part 3; the alternative, refusing a re-import whose form differs, would leave
+the person no way to correct a wrong answer to the English question.)
+When the incoming figures are taken, an empty meter or key is filled from
+the incoming dance, because English figures are counted in bars of the meter;
+a set one stays (implementer's call, keeping INTAKE-7's "never overwritten").
+A re-import from a contra-only source (The Caller's Box, ContraDB) onto an
+English dance makes it contra by the same rule.
+
 This applies to every source that reaches the pipeline: `.ccshare` and other
 Compendium archives, published collections, Caller's Companion `.USR`, ContraDB
 and The Caller's Box. For a published collection it means a newer version's
@@ -2229,8 +2242,9 @@ above: an unprefixed move in an ECD dance means one stored before the ECD
 taxonomy existed (ADR-006 §5.1), so new entry must not create one. It is used
 by free-text entry when the dance's taxonomy is ECD's
 (`shippedTaxonomies.forForm(DanceForm.ecd)`), by a Caller's Companion dance
-whose Type is English, and by **Re-check unrecognized figures** for an ECD
-dance.
+whose Type is English (or every non-square dance of a `.USR` file the person
+says holds English dances), and by **Re-check unrecognized figures** for an
+ECD dance.
 
 - **Same contract.** A line not read in full is a custom `importGap` figure
   with its scrubbed text; nothing throws; every structured leaf is validated
@@ -2283,6 +2297,34 @@ dance.
   retries a line with the dialect's role words as for contra. A line that
   starts with a bare number is read whole first (`2 changes of rights and
   lefts`, `2 hand turn`), then with the number as its count.
+- **Bars** (`ecd_bars.dart`, Hudson, 19 November 2026: "the meter is the
+  rule"). ECD notation counts in bars of the tune, so a leading bar range
+  (`1-4`, `(5-8)`, `9 – 12`, after a section label as in `A1 1-8` or
+  `A1&2 1-4`, which is dropped) is the line's count: its bars times the beats
+  in a bar of the dance's meter (`ecdBeatsPerBar`). A simple meter counts its
+  top number (`3/2` is 3), a compound one its dotted beats (`6/8` and `6/4`
+  are 2, `9/8` and `9/4` are 3); no meter, one it cannot read (`3/12`,
+  a date), or meters of different bars in one text (`2/4 and 3/4`) count 2
+  and say it was not stated. Where the dance's phrase structure gives one beats per bar, that is
+  the fallback for an unstated meter (`ecdMeterForBars`: `4*8*3` reads as
+  `3/4`, a `4*8*6` one as `6/2`), as for the editor's bar timing (`BarTimingScope.beatsPerBarFor`,
+  which takes the meter first too). A range that runs backwards, spans more than 32 bars, would come to
+  more than 64 beats, or has nothing after it is not one, and a lone number is
+  never a bar (`2 changes of rights and lefts`). The bars are the count, over
+  a count the line was given (a Caller's Companion `(8)`, a re-checked
+  line's stored count) and over a count the figure takes by default; a line
+  whose rest also states a count in beats (`1-4 (6) …`, `… 6 beats`,
+  `ecdRestStatesBeats`) is kept as text, so that count stays in its words.
+  So is a Caller's Companion line whose beat prefix (`(6)`, `(4,4)`)
+  disagrees with its bars, prefix included (`_ecdLineFigures`); a compound
+  prefix that agrees is spread on a sequence's steps. A
+  section label may be `A1`, `a1`, `A1:` or `A1&A2`; brackets must pair. A
+  line kept as text keeps the range in its words and the
+  count. The meter comes from the editor in free-text entry and from the
+  stored dance in Re-check (`FigureReparser`'s `meter` and
+  `phraseStructure`). Only an English
+  dance's lines are read for bars; `1-4` in a contra line is untouched. One
+  line holding several ranges (`(5-8) X (9-12) Y`) is not split.
 - **Caller's Companion English dances** also take the ECD shape their contra
   shape names (`ecdFormationFromContra`: duple proper → duple minor, duple
   improper → duple minor, improper; triplet and quadruplet → three- and
@@ -2290,8 +2332,25 @@ dance.
   improper; an English dance is improper only when its source says so, since
   ECD's flag defaults to proper (ADR-006 §9.2). Its lines are cached apart
   from contra's and per ring size, since a `half way` circle is two places in
-  one dance and three in another. A compound prefix (`(4,4)`) whose parts match the
-  sequence's steps keeps each part on its step.
+  one dance and three in another, and per beats in a bar. A compound prefix
+  (`(4,4)`) whose parts match the sequence's steps keeps each part on its
+  step. An English dance takes `Dance.meter` and `musicalKey` from the Music
+  field (`ccMusicMeterAndKey`: `Key: G, Meter: 3/2`, `Key Dm Meter 6/8`,
+  `Em 3/4`); a contra dance keeps Music as a note only. When a bar range is
+  counted with no stated meter, the dance gets the info issue
+  `cc_bars_meter_unstated`.
+- **Is the file English?** A Caller's Companion library often types its
+  English dances "Contra", so the import screen asks once per `.USR` file,
+  before reading it, whether its dances are English (Hudson, 19 November
+  2026; `.USR` only, since an ECDDB source is always English, a ContraDB one
+  always contra, and a Compendium file states each dance's form). The answer
+  rides on the request (`CallersCompanionUsrAdapter.englishDancesOption`)
+  from discover to parse; yes reads every dance but a square as English
+  (`mapCallersCompanionDance(englishDances: true)`, which raises no
+  "imported as a contra" note for an unknown Type). Closing the question
+  plans nothing. The answer is held per file bytes in an `Expando`, so
+  trying a file again after a failed plan does not ask again, and the
+  screen can still release a planned file.
 
 Measured on 19 November 2026 against one caller's own notes for about 100
 English dances (split into 1,475 fragments at counts and full stops; most
@@ -2349,8 +2408,9 @@ migration that turns them into ECD figures. Nothing runs it on its own.
      figure, so containers never nest. The figure keeps its
      note, mark and overrides, and its contra count as below;
   3. import-gap custom lines are re-read with the ECD grammar
-     (`reparseImportGapFigures` with ECD's taxonomy); user-entered customs are
-     left alone, as in Re-check;
+     (`reparseImportGapFigures` with ECD's taxonomy, and the dance's meter and
+     phrase structure, so a bar range counts as in Re-check); user-entered
+     customs are left alone, as in Re-check;
   4. the shape becomes `ecdFormationFromContra`'s.
 - In a twin (step 1), only values the contra figure **stores** are carried, never a contra default,
   so the migrated figure states nothing the dance did not (R2). A `who` the
@@ -2398,8 +2458,9 @@ uncached parser over a 20,516-dance corpus and ~200k mutated lines):
   Keyed on the trimmed raw line **including its beats prefix**, bounded (50,000
   lines; past that new lines are just parsed each time), and safe to share
   between dances because `Figure` is immutable. An English dance's lines are
-  kept in a map of their own (`lookup(line, ecd: true)`): the same text reads
-  as an ECD figure there and a contra one elsewhere.
+  kept in a map of their own (`lookup(line, ecd: true)`), keyed on the ring
+  size and the beats in a bar too: the same text reads as an ECD figure there
+  and a contra one elsewhere, and `1-4` is 8 beats in 2/2 and 12 in 3/2.
 
 Everything above is static or per-adapter state, so it is **per isolate**. Two
 things keep it honest: a cache must never hold anything but a pure function of

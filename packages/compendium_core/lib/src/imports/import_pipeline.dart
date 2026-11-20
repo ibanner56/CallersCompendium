@@ -926,7 +926,9 @@ class ImportPipeline {
           );
         } else if (action == CommitAction.reimport) {
           // A re-import refreshes only the choreography (figures, formation,
-          // progression) and the provenance, from every source: the caller's
+          // progression, and the form, meter and key they need; see
+          // [withReimportedChoreography]) and the provenance, from every
+          // source: the caller's
           // own title, notes, rating, tags, links, authors and custom fields
           // are never overwritten (maintainer decisions, 2026-10-29 and
           // 2026-10-30, INTAKE-7). The draft's links are not written either,

@@ -3494,6 +3494,8 @@ class DanceRepository {
                 _db.dances.id,
                 _db.dances.title,
                 _db.dances.form,
+                _db.dances.meter,
+                _db.dances.phraseStructure,
                 _db.dances.figuresJson,
               ])
               ..where(_db.dances.deletedAt.isNull()))
@@ -3517,6 +3519,12 @@ class DanceRepository {
       final outcome = reparse(
         figures,
         taxonomy: _parseTaxonomy(row.readWithConverter(_db.dances.form)!),
+        meter: row.read(_db.dances.meter),
+        // As the row mapper reads it: a value stored before the bounds
+        // existed loads as standard, so the dry run matches the apply.
+        phraseStructure: PhraseStructure.parseOrStandard(
+          row.read(_db.dances.phraseStructure) ?? '',
+        ),
       );
       if (outcome.upgradedCount > 0) {
         previews.add(
@@ -3568,7 +3576,12 @@ class DanceRepository {
           UnreadableFigures() => null,
         };
         if (figures == null) return null;
-        final outcome = reparse(figures, taxonomy: _parseTaxonomy(dance.form));
+        final outcome = reparse(
+          figures,
+          taxonomy: _parseTaxonomy(dance.form),
+          meter: dance.meter,
+          phraseStructure: dance.phraseStructure,
+        );
         if (outcome.upgradedCount == 0) return null;
         return dance.copyWith(figures: outcome.figures, updatedAt: now);
       },
@@ -3603,6 +3616,8 @@ class DanceRepository {
                 _db.dances.formationDetail,
                 _db.dances.formationImproper,
                 _db.dances.figuresJson,
+                _db.dances.meter,
+                _db.dances.phraseStructure,
               ])
               ..where(
                 _db.dances.deletedAt.isNull() &
@@ -3624,6 +3639,10 @@ class DanceRepository {
           row.readWithConverter(_db.dances.formationShape)!,
           detail: row.read(_db.dances.formationDetail),
           improper: row.read(_db.dances.formationImproper)!,
+        ),
+        meter: row.read(_db.dances.meter),
+        phraseStructure: PhraseStructure.parseOrStandard(
+          row.read(_db.dances.phraseStructure) ?? '',
         ),
       );
       if (!result.changed) continue;
@@ -3671,7 +3690,12 @@ class DanceRepository {
           UnreadableFigures() => null,
         };
         if (figures == null) return null;
-        final result = migrate(figures, dance.formation);
+        final result = migrate(
+          figures,
+          dance.formation,
+          meter: dance.meter,
+          phraseStructure: dance.phraseStructure,
+        );
         if (!result.changed) return null;
         return dance.copyWith(
           figures: result.figures,

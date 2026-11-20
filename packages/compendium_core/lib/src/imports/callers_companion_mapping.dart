@@ -16,6 +16,7 @@ import 'author_tokenizer.dart';
 import 'beat_implied_balance.dart';
 import 'callers_companion_comma_split.dart';
 import 'callers_companion_user_fields.dart';
+import 'ecd_bars.dart';
 import 'ecd_figure_parser.dart';
 import 'ecd_formation.dart';
 import 'figure_front_end_fan_out.dart';
@@ -314,34 +315,44 @@ class CcFigureLineCache {
 
   /// An English dance's lines, kept apart: the same text reads differently
   /// in an English dance (ADR-006 W6), and differently again in a ring of
-  /// another size (a `half way` circle turns 2 places of 4, 3 of 6), so each
-  /// is keyed by the ring size its dance gives too.
-  final Map<(String, int?), List<Figure>> _ecdFiguresByLine =
-      <(String, int?), List<Figure>>{};
+  /// another size (a `half way` circle turns 2 places of 4, 3 of 6) or a tune
+  /// of another meter (`1-4` is 8 beats in 2/2, 12 in 3/4), so each is keyed
+  /// by the ring size and the beats in a bar its dance gives too.
+  final Map<(String, int?, int?), List<Figure>> _ecdFiguresByLine =
+      <(String, int?, int?), List<Figure>>{};
 
   /// How many distinct lines are remembered, of either kind.
   int get length => _figuresByLine.length + _ecdFiguresByLine.length;
 
   /// The figures [line] parsed to, or null if it has not been remembered.
-  /// [ecd] selects an English dance's lines, read in a ring of [ringDancers].
-  List<Figure>? lookup(String line, {bool ecd = false, int? ringDancers}) =>
-      ecd ? _ecdFiguresByLine[(line, ringDancers)] : _figuresByLine[line];
+  /// [ecd] selects an English dance's lines, read in a ring of [ringDancers]
+  /// with [beatsPerBar] beats in a bar.
+  List<Figure>? lookup(
+    String line, {
+    bool ecd = false,
+    int? ringDancers,
+    int? beatsPerBar,
+  }) => ecd
+      ? _ecdFiguresByLine[(line, ringDancers, beatsPerBar)]
+      : _figuresByLine[line];
 
   /// The figures [line] of a contra or square dance parsed to, or null.
   List<Figure>? operator [](String line) => lookup(line);
 
   /// Remembers [figures] for [line] unless the cache is full. [ecd] marks an
-  /// English dance's line, read in a ring of [ringDancers].
+  /// English dance's line, read in a ring of [ringDancers] with [beatsPerBar]
+  /// beats in a bar.
   void remember(
     String line,
     List<Figure> figures, {
     bool ecd = false,
     int? ringDancers,
+    int? beatsPerBar,
   }) {
     if (length >= maxEntries) return;
     final kept = List<Figure>.unmodifiable(figures);
     if (ecd) {
-      _ecdFiguresByLine[(line, ringDancers)] = kept;
+      _ecdFiguresByLine[(line, ringDancers, beatsPerBar)] = kept;
     } else {
       _figuresByLine[line] = kept;
     }
@@ -367,6 +378,7 @@ CcDanceMapping mapCallersCompanionDance(
   String Function()? newId,
   DateTime? timestamp,
   CcFigureLineCache? lineCache,
+  bool englishDances = false,
 }) {
   final issues = <ImportIssue>[];
   final now = timestamp ?? DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
@@ -420,7 +432,22 @@ CcDanceMapping mapCallersCompanionDance(
   final usr = record.fromUsrColumns;
 
   // Type → DanceForm, best-effort; unknown types are preserved as a note.
-  final (form, typeNote) = _mapForm(record.type, issues, typeIsFormation: usr);
+  // A file the person says holds English dances reads every dance that is not
+  // a square as English, whatever its Type says (Hudson, 19 November 2026: a
+  // Caller's Companion library often types its English dances "Contra").
+  final (mappedForm, typeNote) = _mapForm(
+    record.type,
+    issues,
+    typeIsFormation: usr,
+  );
+  final form = englishDances && mappedForm == DanceForm.contra
+      ? DanceForm.ecd
+      : mappedForm;
+  // An unknown Type was read as English, not "imported as a contra": its
+  // note still keeps the Type.
+  if (form != mappedForm) {
+    issues.removeWhere((issue) => issue.code == 'cc_unmapped_type');
+  }
 
   // Formation → FormationShape, preserving unmapped text as detail. An
   // English dance takes the ECD shape its contra shape names (ADR-006 W6).
@@ -531,6 +558,14 @@ CcDanceMapping mapCallersCompanionDance(
   // ([splitCallersCompanionCommaLine]). Section labels are NOT embedded in the
   // figure text (they derive from cumulative beats), so the section label is
   // not prefixed.
+  // An English dance's tune meter and key, from the Music text ("Key: G,
+  // Meter: 2/2"); a leading bar range counts in bars of that meter.
+  final music = form == DanceForm.ecd
+      ? ccMusicMeterAndKey(record.music)
+      : (meter: '', key: '');
+  final meter = music.meter;
+  final barBeats = ecdBeatsPerBar(meter);
+  var countedBarsUnstated = false;
   final figures = <Figure>[];
   for (final section in record.body) {
     for (final rawLine in section.lines) {
@@ -540,7 +575,19 @@ CcDanceMapping mapCallersCompanionDance(
       // (ADR-006 §5.1), so its cache entry is kept apart from contra's.
       final ecd = form == DanceForm.ecd;
       final ring = ecd ? ecdRingDancers(formation.shape) : null;
-      final cached = lineCache?.lookup(line, ecd: ecd, ringDancers: ring);
+      final bar = ecd ? barBeats.beatsPerBar : null;
+      // The bars are counted after a `(8)` prefix, so look past it too.
+      if (ecd &&
+          !barBeats.stated &&
+          splitEcdBarRange(splitCcBeatPrefix(line).text) != null) {
+        countedBarsUnstated = true;
+      }
+      final cached = lineCache?.lookup(
+        line,
+        ecd: ecd,
+        ringDancers: ring,
+        beatsPerBar: bar,
+      );
       if (cached != null) {
         figures.addAll(cached);
         continue;
@@ -551,9 +598,17 @@ CcDanceMapping mapCallersCompanionDance(
           prefix.text,
           prefix.beats,
           prefix.parts,
+          line: line,
           ringDancers: ring,
+          meter: meter,
         );
-        lineCache?.remember(line, read, ecd: true, ringDancers: ring);
+        lineCache?.remember(
+          line,
+          read,
+          ecd: true,
+          ringDancers: ring,
+          beatsPerBar: bar,
+        );
         figures.addAll(read);
         continue;
       }
@@ -604,9 +659,22 @@ CcDanceMapping mapCallersCompanionDance(
     ],
     composedOn: composedOn,
     revisedOn: revisedOn,
+    meter: meter,
+    musicalKey: music.key,
     createdAt: now,
     updatedAt: now,
   );
+  if (countedBarsUnstated) {
+    issues.add(
+      const ImportIssue(
+        severity: ImportIssueSeverity.info,
+        code: 'cc_bars_meter_unstated',
+        message:
+            'The dance counts in bars but its Music states no meter; each '
+            'bar was counted as 2 beats.',
+      ),
+    );
+  }
 
   return CcDanceMapping(
     dance: dance,
@@ -927,26 +995,48 @@ bool callersCompanionDifficultyLabelMatches(
 
 /// The figures of one body line of an English dance, read by the ECD grammar
 /// ([parseEcdFigureLine]). A compound prefix (`(4,4)`) whose parts match the
-/// steps of the sequence the line reads keeps each part on its step, as
+/// steps of the sequence the line reads, and add up to its count (a bar range
+/// may count it otherwise), keeps each part on its step, as
 /// [_allocateCompoundBeats] does for contra's split figures; otherwise the
 /// total is the figure's span. None of contra's other retries apply: they
 /// read contra's grammar.
+///
+/// A prefix count (`(6)`, `(4,4)`) that disagrees with the line's bar range
+/// keeps the whole [line] as text, prefix included, with the bars' count:
+/// the bars win, and the disagreement stays visible, as for a count written
+/// after the range ([ecdRestStatesBeats]).
 List<Figure> _ecdLineFigures(
   String text,
   int beats,
   List<int> parts, {
+  required String line,
   int? ringDancers,
+  String? meter,
 }) {
+  final bars = beats > 0 ? ecdBarCount(text, meter: meter) : null;
+  if (bars != null && bars.beats != beats) {
+    return [
+      customFigure(
+        scrubFigureText(line),
+        beats: bars.beats,
+        origin: CustomOrigin.importGap,
+      ),
+    ];
+  }
   final figure = parseEcdFigureLine(
     text,
     beats: beats,
     ringDancers: ringDancers,
+    meter: meter,
   );
   if (figure == null) return const [];
   if (parts.length >= 2 &&
       figure.isSequence &&
       figure.subFigures.length == parts.length &&
-      parts.every((part) => part >= 0 && part <= 64)) {
+      parts.every((part) => part >= 0 && part <= 64) &&
+      // A bar range counts the line over the prefix (the bars are the
+      // count), and parts that no longer add up to it would contradict it.
+      parts.fold(0, (sum, part) => sum + part) == figure.params['beats']) {
     final steps = [
       for (var i = 0; i < parts.length; i++)
         _withBeats(figure.subFigures[i], parts[i]),
@@ -959,6 +1049,37 @@ List<Figure> _ecdLineFigures(
   }
   return [figure];
 }
+
+/// The tune [music] text's meter (`2/2`, `6/8`) and key (`G`, `Dm`, `Bb`),
+/// each `''` when it does not state one. Caller's Companion keeps both in its
+/// free-text Music field, written `Key: G, Meter: 2/2`, `Key D Meter 3/4` or
+/// `Em 6/8`. Bounded to [kMaxMusicLabelLength] characters each.
+({String meter, String key}) ccMusicMeterAndKey(String? music) {
+  final text = music ?? '';
+  final meter = _ccMeter.firstMatch(text);
+  final key = _ccKeyWord.firstMatch(text) ?? _ccLeadingKey.firstMatch(text);
+  // Only a meter the bars can be counted by: `track 3/12` is no meter.
+  final meterText = meter == null ? '' : '${meter.group(1)}/${meter.group(2)}';
+  final stated = ecdBeatsPerBar(meterText).stated;
+  String clip(String value) => value.length > kMaxMusicLabelLength
+      ? value.substring(0, kMaxMusicLabelLength)
+      : value;
+  return (
+    meter: stated ? clip(meterText) : '',
+    key: key == null ? '' : clip(key.group(1)!),
+  );
+}
+
+final RegExp _ccMeter = RegExp(r'(?<![\d/])(\d{1,2})\s*/\s*(\d{1,2})(?![\d/])');
+
+/// A key: its note, then `m`, `minor` or `major` when it says (`E minor`).
+const String _ccKey =
+    r'([A-G](?:b|#|♭|♯)?(?:\s*(?:minor|major)\b|m(?![A-Za-z]))?)';
+final RegExp _ccKeyWord = RegExp(
+  '\\bkey\\s*:?\\s*$_ccKey(?![A-Za-z])',
+  caseSensitive: false,
+);
+final RegExp _ccLeadingKey = RegExp('^\\s*$_ccKey\\s*[,;]?\\s+\\d');
 
 (DanceForm, String?) _mapForm(
   String? raw,

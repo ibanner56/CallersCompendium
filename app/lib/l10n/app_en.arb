@@ -10311,6 +10311,10 @@
   "@importIssueUnmappedProgression": {
     "description": "Import note: a progression string wasn't recognized and defaulted to single progression."
   },
+  "importIssueBarsMeterUnstated": "This dance counts in bars but states no meter, so each bar was counted as 2 beats. Check its counts.",
+  "@importIssueBarsMeterUnstated": {
+    "description": "Import note: an English dance's figure lines count in bars (\"1-4 partners set\"), but its music states no meter, so bars were counted as 2 beats each."
+  },
   "importIssueUnmappedType": "A dance type wasn't recognized; imported as a contra and preserved in the notes.",
   "@importIssueUnmappedType": {
     "description": "Import note: a dance-type string wasn't recognized; the dance was imported as a contra with the original value kept in the notes."
@@ -10846,6 +10850,22 @@
   "importReviewEditError": "Couldn't import that dance to edit. Try again.",
   "@importReviewEditError": {
     "description": "Snackbar shown when committing a single record so it can be edited fails."
+  },
+  "importUsrEnglishTitle": "Are these English country dances?",
+  "@importUsrEnglishTitle": {
+    "description": "Title of the question asked once per Caller's Companion .USR file before it is read: whether its dances are English country dances."
+  },
+  "importUsrEnglishBody": "Caller's Companion often lists English country dances as Contra. If this file holds English dances, they're read with English figures, formations and bar counts. Square dances stay squares.",
+  "@importUsrEnglishBody": {
+    "description": "Body of the English-dances question for a Caller's Companion .USR file. 'Contra' is the Type value the other app shows."
+  },
+  "importUsrEnglishNo": "No, read their types",
+  "@importUsrEnglishNo": {
+    "description": "Answer: the file's dances are read by the Type each one has in the file."
+  },
+  "importUsrEnglishYes": "Yes, English dances",
+  "@importUsrEnglishYes": {
+    "description": "Answer: every dance in the file except squares is read as an English country dance."
   },
   "importReviewEditOverwriteTitle": "Replace the existing dance now?",
   "@importReviewEditOverwriteTitle": {

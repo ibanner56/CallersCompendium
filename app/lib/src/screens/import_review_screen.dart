@@ -978,6 +978,23 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       _bundleMemoText = null;
       return _planTitleList(payload);
     }
+    // A Caller's Companion library often types its English dances "Contra", so
+    // the person is asked once per file (ADR-006 W6, Hudson 2026-11-19).
+    // Closing the question plans nothing.
+    var englishDances = false;
+    if (_selected.kind == ImportSourceKind.callersCompanionUsr &&
+        _effectiveSharedBundle == null &&
+        bytes != null) {
+      final asked = _usrEnglishAnswers[bytes];
+      if (asked != null) {
+        englishDances = asked;
+      } else {
+        final answer = await _askUsrEnglishDances();
+        if (answer == null || !mounted) return;
+        _usrEnglishAnswers[bytes] = answer;
+        englishDances = answer;
+      }
+    }
     setState(() {
       _phase = _Phase.planning;
       _planError = null;
@@ -993,7 +1010,13 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       // Byte sources (Caller's Companion `.USR`) carry the raw file on
       // `options['bytes']`; text sources carry the pasted/fetched payload.
       final request = _isByteSource
-          ? ImportRequest(options: {'bytes': bytes!})
+          ? ImportRequest(
+              options: {
+                'bytes': bytes!,
+                if (englishDances)
+                  CallersCompanionUsrAdapter.englishDancesOption: true,
+              },
+            )
           : ImportRequest(payload: payload, uri: _sourceUri);
       // Decide bundle routing once for this plan, from the decoded JSON keys.
       // Byte sources and pasted title lists never carry an archive here.
@@ -1606,6 +1629,39 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
           (record.draft.raw.externalId ?? '').isNotEmpty)
         record.draft.raw.externalId!: record.verdict.targetDanceId!,
   };
+
+  /// The answer to [_askUsrEnglishDances] for each file it was asked about,
+  /// so trying the same file again (after a plan that failed) does not ask
+  /// again. Weakly held: the answer must not keep a released file alive.
+  final Expando<bool> _usrEnglishAnswers = Expando<bool>();
+
+  /// Whether a Caller's Companion file's dances are English country dances:
+  /// true reads every dance but a square as English, false reads them by
+  /// their Type, and null (the question closed) plans nothing.
+  Future<bool?> _askUsrEnglishDances() {
+    final l10n = AppLocalizations.of(context);
+    return showDialog<bool>(
+      context: context,
+      animationStyle: AppMotion.styleFor(context),
+      builder: (dialogContext) => AlertDialog(
+        key: const ValueKey('import-usr-english-question'),
+        title: Text(l10n.importUsrEnglishTitle),
+        content: Text(l10n.importUsrEnglishBody),
+        actions: [
+          TextButton(
+            key: const ValueKey('import-usr-english-no'),
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(l10n.importUsrEnglishNo),
+          ),
+          FilledButton(
+            key: const ValueKey('import-usr-english-yes'),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(l10n.importUsrEnglishYes),
+          ),
+        ],
+      ),
+    );
+  }
 
   /// Asks before Import and edit writes onto [matchedTitle]'s dance. A
   /// re-import ([choice] is [_ActionKind.reimport]) says it replaces only the
