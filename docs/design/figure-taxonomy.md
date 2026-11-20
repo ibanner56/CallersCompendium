@@ -95,6 +95,17 @@ searchKeywords: [allemande, almond]
   is outside its values. #417's re-parse and figure shorthands never take a
   use (`hasUserFigureReferenceKeys`).
 
+### Namesakes across dance forms
+
+A figure several dance forms name alike (contra `box_the_gnat`, ECD
+`ecd_box_the_gnat`) is defined once per taxonomy, and a change to one may need
+the same change to the other. Namesakes may legitimately differ, so nothing
+enforces it: a PR that changes a figure definition gets an advisory that lists
+the same-named figures in the other taxonomies, matched on display name and on
+the id after the form's prefix (`tools/ci/report_figure_namesakes.py`). It reads
+the forms from `danceFormMovePrefixes` and never fails the build; it is a prompt
+to look, not a claim of drift.
+
 ## Parameter types
 
 | Type | Values | Notes |
