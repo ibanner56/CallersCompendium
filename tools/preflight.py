@@ -69,8 +69,9 @@ LOCK_POLL_SECONDS = 2.0
 # `numberOfProcessors / 2` test processes -- 8 here -- and each holds a full
 # engine: measured 5.1 GB peak at 8 against 3.3 GB at 4, for 196s against
 # 208-235s over three capped runs. Half a minute is worth 1.8 GB on a host whose
-# spare commit is ~5 GB. CI pins its own concurrency (`--concurrency=4` /
-# `-j 4`, enforced by test_preflight.py), so this cap does not reach it.
+# spare commit is ~5 GB. CI pins its own concurrency (`-j 4` on the app test
+# wrapper, `--concurrency=4` / `-j 4` on the other test commands, enforced by
+# test_preflight.py), so this cap does not reach it.
 MAX_TEST_JOBS = 4
 TEST_JOBS_ENV = "PREFLIGHT_TEST_JOBS"
 

@@ -133,6 +133,15 @@ def test_app_tests_cap_flutter_test_concurrency() -> None:
     assert preflight.TEST_JOBS <= preflight.MAX_TEST_JOBS
 
 
+def test_workflow_app_tests_pass_explicit_jobs() -> None:
+    """The app suite's CI run goes through the coverage wrapper, so the generic
+    `flutter test` concurrency guard below no longer sees it; pin the wrapper's `-j`."""
+    commands = run_commands_text()
+    assert re.search(r"run_app_tests_with_coverage\.py\s+-j\s*\d+", commands), (
+        "the app test step must pass -j to tools/ci/run_app_tests_with_coverage.py"
+    )
+
+
 def test_toolchain_lock_excludes_a_second_holder() -> None:
     with private_lock_path() as path:
         with preflight.toolchain_lock():

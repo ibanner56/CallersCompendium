@@ -106,6 +106,7 @@ def main() -> int:
         ("relative", "lib/l10n/app_localizations_en.dart"),
         ("absolute", "/work/CallersCompendium/app/lib/l10n/app_localizations.dart"),
         ("Windows separators", "lib\\l10n\\app_localizations_de.dart"),
+        ("leading ./", "./lib/l10n/app_localizations_fr.dart"),
     ):
         res = run("generated", base + record(source, 0, 1000), label=f"+1,000 uncovered generated lines ({label} path)")
         check("the percentage does not move", res.returncode == 0 and "80.00%" in res.stdout and "40/50" in res.stdout, f"exit={res.returncode} {res.stdout}")
@@ -113,7 +114,8 @@ def main() -> int:
     for label, source in (
         ("a similarly named file", "lib/src/l10n_helpers.dart"),
         ("a nested l10n folder", "lib/src/l10n/labels.dart"),
-        ("another package's l10n", "../packages/x/lib/l10n_extra.dart"),
+        ("another package's own l10n folder", "../packages/x/lib/l10n/labels.dart"),
+        ("an l10n folder nested under another lib", "lib/src/lib/l10n/x.dart"),
     ):
         res = run("not_generated", base + record(source, 0, 50), label=f"+50 uncovered lines in {label}")
         check("is NOT excluded: it moves the number", res.returncode == 1 and "40/100" in res.stdout, f"exit={res.returncode} {res.stdout}")
@@ -126,6 +128,18 @@ def main() -> int:
     res = run("missing", None, label="no report at all")
     check("missing report exits 2, not a skip", res.returncode == 2, f"exit={res.returncode} {res.stdout}")
     check("says no report was measured", "no coverage report" in res.stdout and "not measured" in res.stdout, res.stdout)
+
+    res = run("bom", "\ufeff" + record("lib/a.dart", 40, 10), label="a UTF-8 BOM")
+    check("a BOM is tolerated, not a false exit 2", res.returncode == 0, f"exit={res.returncode} {res.stdout}")
+
+    res = run("lf_mismatch", record("lib/a.dart", 40, 10).replace("LF:50", "LF:55"), label="LF disagrees with the DA lines read")
+    check("exits 2 naming the line", res.returncode == 2 and "LF:55" in res.stdout and "50 DA lines" in res.stdout, f"exit={res.returncode} {res.stdout}")
+    res = run("lh_mismatch", record("lib/a.dart", 40, 10).replace("LH:40", "LH:41"), label="LH disagrees with the hit lines read")
+    check("exits 2 naming the line", res.returncode == 2 and "LH:41" in res.stdout, f"exit={res.returncode} {res.stdout}")
+    res = run("lf_bad", record("lib/a.dart", 40, 10).replace("LF:50", "LF:x"), label="a non-numeric LF")
+    check("exits 2", res.returncode == 2, f"exit={res.returncode} {res.stdout}")
+    res = run("dup", record("lib/a.dart", 20, 5) + record("lib/a.dart", 20, 5), label="the same file listed twice")
+    check("exits 2: not counted twice", res.returncode == 2 and "listed twice" in res.stdout, f"exit={res.returncode} {res.stdout}")
 
     res = run("empty", "", label="an empty file")
     check("empty report exits 2, not 100%", res.returncode == 2, f"exit={res.returncode} {res.stdout}")
@@ -158,8 +172,15 @@ def main() -> int:
     res = run("binary", b"\xff\xfe\x00garbage\n".decode("latin-1").encode("latin-1"), label="not UTF-8")
     check("exits 2, not a crash", res.returncode == 2 and "Traceback" not in res.stderr, f"exit={res.returncode} {res.stdout}{res.stderr}")
 
-    res = run("bad_floor", record("lib/a.dart", 40, 10), floor="eighty", label="a non-numeric floor")
-    check("exits 2", res.returncode == 2, f"exit={res.returncode} {res.stdout}")
+    for bad in ("eighty", "90%", "", "nan", "0", "-5", "150", "100.5"):
+        res = run("bad_floor", record("lib/a.dart", 40, 10), floor=bad, label=f"floor {bad!r}")
+        check("exits 2", res.returncode == 2, f"exit={res.returncode} {res.stdout}")
+    res = run("floor_100", record("lib/a.dart", 50, 0), floor="100", label="floor 100 on a fully covered report")
+    check("100 is a valid floor", res.returncode == 0, f"exit={res.returncode} {res.stdout}")
+
+    res = run("distinct", record("lib/a.dart", 79996, 20004), floor="80", label="4 lines short of 80% of 100,000")
+    check("exits 1", res.returncode == 1, f"exit={res.returncode} {res.stdout}")
+    check("never prints identical required and measured figures", "80.0000% required, 79.9960% measured" in res.stdout, res.stdout)
 
     # ---- the test wrapper deletes a stale report ----------------------------
 
@@ -181,6 +202,15 @@ def main() -> int:
         check("passes --coverage and the job count", "--coverage" in seen["command"] and "--concurrency=3" in seen["command"], str(seen))
         check("runs in the app directory", seen["cwd"] == app_dir, str(seen))
         check("returns flutter's status", code == 7, str(code))
+
+        forwarded: list[int] = []
+        original = runner.run
+        runner.run = lambda *a, **k: forwarded.append(k.get("jobs")) or 0
+        try:
+            runner.main(["-j", "3"])
+        finally:
+            runner.run = original
+        check("main() forwards -j to run()", forwarded == [3], str(forwarded))
 
     # ---- the repository's own floor ----------------------------------------
 

@@ -50,6 +50,14 @@ CORE_TEST_DRIVER_PATHS = {
     b"tools/ci/check_core_flutter_free.py",
 }
 
+# The app suite's own coverage drivers: a broken wrapper or floor script fails the
+# `Test app` job, which only runs when the app suite does, so editing them has to run
+# it. They reach the suite, not the platform builds.
+APP_TEST_DRIVER_PATHS = {
+    b"tools/ci/run_app_tests_with_coverage.py",
+    b"tools/ci/check_app_coverage.py",
+}
+
 # Generated Markdown that is actually code: docs/dev/data-classification.md is
 # rendered from field_registry.dart by generate_data_classification_doc.dart,
 # and packages/compendium_core/test/privacy/data_classification_doc_test.dart
@@ -166,7 +174,8 @@ def classify(paths):
         for path in paths
     )
     app_tests_changed = app_source_changed or (
-        validation_changed and any(path in TEST_INPUT_PATHS for path in paths)
+        validation_changed
+        and any(path in TEST_INPUT_PATHS or path in APP_TEST_DRIVER_PATHS for path in paths)
     )
     server_tests_changed = validation_changed and any(
         path.startswith(b"server/")
