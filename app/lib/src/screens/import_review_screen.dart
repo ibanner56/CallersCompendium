@@ -1642,6 +1642,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     final l10n = AppLocalizations.of(context);
     return showDialog<bool>(
       context: context,
+      animationStyle: AppMotion.styleFor(context),
       builder: (dialogContext) => AlertDialog(
         key: const ValueKey('import-usr-english-question'),
         title: Text(l10n.importUsrEnglishTitle),
