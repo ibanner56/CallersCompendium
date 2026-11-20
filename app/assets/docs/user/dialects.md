@@ -154,10 +154,15 @@ names too: searching your name for a move finds every dance with that move.
 A name with `%S` in it is the exception; search for the move by its usual
 name instead.
 
-An English (ECD) dialect offers only English country dance moves in both
-sections. If one of your English dialects already rewords a contra move, that
-entry still shows, with **· Contra** after the move's name, so you can tell it
-from the English move of the same name.
+An English (ECD) dialect offers only the built-in English country dance moves,
+here and under **Move wording templates**. If one of your English dialects
+already names or rewords a contra move, that entry still shows, with
+**· Contra** after the move's name, so you can tell it from the English move of
+the same name. An English dance whose figures are still contra's, because it
+has not been
+[converted to English figures](./imports.md#convert-english-dances-to-english-figures),
+keeps those entries' words, but a new name or template for an English move
+does not reach it.
 
 ### Move wording templates
 

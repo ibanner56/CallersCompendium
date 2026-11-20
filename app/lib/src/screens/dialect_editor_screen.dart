@@ -39,9 +39,9 @@ class DialectEditorScreen extends StatefulWidget {
   /// The dialect being edited. Its name is kept as-is on save.
   final Dialect initial;
 
-  /// The dance form the dialect is for: its moves are the ones this form's
-  /// dances are edited with ([TaxonomyRegistry.forForm]), so a dialect can
-  /// name or word any of them (ADR-006 §9.1, point 1).
+  /// The dance form the dialect is for: it renders with this form's
+  /// taxonomy ([TaxonomyRegistry.forForm]), and can name or word the
+  /// form's own moves (ADR-006 §9.1, point 1; §12.2, S1).
   final DanceForm form;
 
   @override
@@ -1099,7 +1099,7 @@ class _MoveSubstitutionsEditor extends StatelessWidget {
   /// The user's figures that can be named (#1023), offered after the moves.
   final List<String> userFigureKeys;
 
-  /// Renders with the dialect's form's taxonomy, whose moves it lists.
+  /// Renders with the dialect's form's taxonomy, whose own moves it lists.
   final FigureRenderer renderer;
 
   @override
@@ -1316,7 +1316,7 @@ class _MoveWordingsEditor extends StatelessWidget {
   /// The user's figures, for a figure's slots and preview.
   final UserFigureCatalog userFigures;
 
-  /// Renders with the dialect's form's taxonomy, whose moves it lists.
+  /// Renders with the dialect's form's taxonomy, whose own moves it lists.
   final FigureRenderer renderer;
 
   /// The stored form of a wording still as the editor showed it, under its
