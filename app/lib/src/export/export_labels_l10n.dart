@@ -23,6 +23,7 @@ DanceExportLabels danceExportLabels(AppLocalizations l10n) => DanceExportLabels(
   hook: l10n.exportLabelHook,
   sources: l10n.exportLabelSources,
   beats: l10n.exportBeatsLabel,
+  bars: l10n.danceFigureBars,
   pageOf: l10n.exportPageOfPages,
 );
 

@@ -156,12 +156,17 @@ class PerformCard extends StatelessWidget {
     this.difficultyLevel,
     this.fitScaleCache,
     this.scrollController,
+    this.showForm = false,
   });
 
   final Dance dance;
   final FigureRenderer renderer;
   final Dialect dialect;
   final double textScale;
+
+  /// Whether the card names the dance's form beside its formation, as a
+  /// program that mixes forms names it on every row (ADR-006 S5).
+  final bool showForm;
 
   /// Optional caller note belonging to a program slot. Single-dance Perform
   /// leaves this null, so dance calling notes remain a separate field.
@@ -221,6 +226,7 @@ class PerformCard extends StatelessWidget {
                 canonicalizeDiscouragedTerms: canonicalDiscouragedTerms,
                 difficultyLevel: difficultyLevel,
                 chromeScale: chrome,
+                showForm: showForm,
               ),
               SizedBox(height: AppSpacing.lg * chrome),
               BarTimingScope.forDance(
@@ -908,7 +914,11 @@ class _Header extends StatelessWidget {
     required this.dialect,
     required this.canonicalizeDiscouragedTerms,
     this.chromeScale = 1.0,
+    this.showForm = false,
   });
+
+  /// See [PerformCard.showForm].
+  final bool showForm;
 
   final Dance dance;
   final String? callerNote;
@@ -961,13 +971,16 @@ class _Header extends StatelessWidget {
         SizedBox(height: AppSpacing.sm * chromeScale),
         _MetaRow(
           icon: formationIcon,
-          text: formationDisplayLabel(
-            l10n,
-            dance.formation,
-            renderer,
-            dialect,
-            canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
-          ),
+          text: [
+            if (showForm) danceFormLabel(l10n, dance.form),
+            formationDisplayLabel(
+              l10n,
+              dance.formation,
+              renderer,
+              dialect,
+              canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+            ),
+          ].join(' · '),
           // Per-formation label colour (issue #367): highlight only when the
           // user overrode this shape (override-only).
           highlightColor: FormationColorsScope.of(

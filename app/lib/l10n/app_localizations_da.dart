@@ -8840,6 +8840,38 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String validationPhraseCountMismatch(String actual, String expected) {
+    return 'Figurerne varer i alt $actual; frastrukturen forventer $expected.';
+  }
+
+  @override
+  String validationSequenceExceedsPhraseCount(
+    int position,
+    String actual,
+    String limit,
+  ) {
+    return 'En sekvens i figur $position varer $actual, længere end én frase ($limit).';
+  }
+
+  @override
+  String validationSequenceSpanNoRoomCount(
+    int position,
+    String actual,
+    String expected,
+  ) {
+    return 'De tidsangivne trin i sekvensen i figur $position varer $actual, så der intet er tilbage af dens $expected til resten.';
+  }
+
+  @override
+  String validationSequenceSpanMismatchCount(
+    int position,
+    String actual,
+    String expected,
+  ) {
+    return 'Trinnene i sekvensen i figur $position varer $actual; sekvensen varer $expected.';
+  }
+
+  @override
   String validationSequenceSpanNoRoom(int position, int actual, int expected) {
     return 'De tidsangivne trin i sekvensen i figur $position varer $actual slag, så der intet er tilbage af dens $expected til resten.';
   }
@@ -12256,7 +12288,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get callingCardHelpBlockFigures =>
-      'Figurerne, grupperet efter frase (A1, A2, B1, B2), med deres slag.';
+      'Figurerne, grupperet efter frase (A1, A2, B1, B2), med deres længde: slag, eller takter for en engelsk dans.';
 
   @override
   String get callingCardHelpBlockNotes => 'Dine kaldsnotes.';
@@ -12322,7 +12354,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get callingCardHelpOptionFigures =>
-      'For figures: udelad slagene, figurernes egne noter, frasenavnene eller stregerne mellem fraserne.';
+      'For figures: udelad længderne, figurernes egne noter, frasenavnene eller stregerne mellem fraserne.';
 
   @override
   String get callingCardHelpOptionThickness =>

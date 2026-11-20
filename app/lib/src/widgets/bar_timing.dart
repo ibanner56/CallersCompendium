@@ -25,22 +25,12 @@ class BarTimingScope extends InheritedWidget {
   final bool allowsUntimed;
 
   /// The bar timing of a dance of [form] set to [structure] in [meter], or
-  /// null where it is timed in beats: any form but ECD, and a tune whose parts
-  /// differ in beats per bar, where one count of bars would mean different
-  /// beats in different parts. A bar holds the beats [meter] states (Hudson,
-  /// 19 November 2026: "the meter is the rule"), or with none the beats per
-  /// bar of [structure] ([ecdMeterForBars]), as a typed bar range counts them.
+  /// null where it is timed in beats: the shared rule, [danceBeatsPerBar].
   static int? beatsPerBarFor(
     DanceForm form,
     PhraseStructure structure, {
     String meter = '',
-  }) {
-    if (form != DanceForm.ecd) return null;
-    final perBar = {for (final c in structure.components) c.beatsPerBar};
-    if (perBar.length != 1) return null;
-    final stated = ecdBeatsPerBar(meter);
-    return stated.stated ? stated.beatsPerBar : perBar.single;
-  }
+  }) => danceBeatsPerBar(form, structure, meter: meter);
 
   /// [child] under the bar timing of [dance], or as it is where the dance
   /// is timed in beats ([beatsPerBarFor]).
@@ -70,17 +60,6 @@ class BarTimingScope extends InheritedWidget {
   bool updateShouldNotify(BarTimingScope oldWidget) =>
       beatsPerBar != oldWidget.beatsPerBar ||
       allowsUntimed != oldWidget.allowsUntimed;
-}
-
-/// [beats] as a count of bars of [beatsPerBar] beats, such as "4" or "1½",
-/// or null when it is not a whole number of half bars.
-String? barsText(int beats, int beatsPerBar) {
-  final doubled = beats * 2;
-  if (doubled % beatsPerBar != 0) return null;
-  final halfBars = doubled ~/ beatsPerBar;
-  final whole = halfBars ~/ 2;
-  if (halfBars.isEven) return '$whole';
-  return whole == 0 ? '½' : '$whole½';
 }
 
 final RegExp _barsPattern = RegExp(r'^(\d{0,3})(\.5|,5|½|1/2)?$');

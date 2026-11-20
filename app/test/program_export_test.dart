@@ -365,6 +365,69 @@ void main() {
       expect(find.text('Set list copied to clipboard.'), findsOneWidget);
     });
 
+    testWidgets('Copy set list names each form when the program mixes '
+        'them (ADR-006 S5)', (tester) async {
+      String? clipboardText;
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        (call) async {
+          if (call.method == 'Clipboard.setData') {
+            clipboardText = (call.arguments as Map)['text'] as String?;
+          }
+          return null;
+        },
+      );
+      addTearDown(
+        () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          SystemChannels.platform,
+          null,
+        ),
+      );
+      Future<String?> copy(DanceForm secondForm) async {
+        clipboardText = null;
+        final dances = {
+          'd1': _dances['d1']!.copyWith(figures: const []),
+          'd2': _dances['d2']!.copyWith(form: secondForm),
+        };
+        await tester.pumpWidget(
+          MaterialApp(
+            localizationsDelegates: testLocalizationsDelegates,
+            supportedLocales: testSupportedLocales,
+            home: Scaffold(
+              appBar: AppBar(
+                actions: [
+                  ProgramExportMenu(
+                    key: ValueKey(secondForm),
+                    program: _program(
+                      slots: [
+                        ProgramSlot(id: 's1', position: 0, danceId: 'd1'),
+                        ProgramSlot(id: 's2', position: 1, danceId: 'd2'),
+                      ],
+                    ),
+                    titleFor: _titles,
+                    danceFor: (id) => dances[id],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('program-export-menu')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Copy set list'));
+        await tester.pumpAndSettle();
+        return clipboardText;
+      }
+
+      final mixed = await copy(DanceForm.ecd);
+      expect(mixed, contains("1. Rory O'More (Contra)"));
+      expect(mixed, contains('2. The Nice Combination (English (ECD))'));
+      final single = await copy(DanceForm.contra);
+      expect(single, contains("1. Rory O'More\n"));
+      expect(single, isNot(contains('(Contra)')));
+    });
+
     for (final (setting, expected) in [
       (DateFormatSetting(DateFormatPref.ymd), '2026-03-09'),
       (DateFormatSetting(DateFormatPref.dmy), '09/03/2026'),

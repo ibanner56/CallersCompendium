@@ -605,7 +605,14 @@ class DanceEditorForm extends StatelessWidget {
                 ),
                 if (controller.warnings.isNotEmpty) ...[
                   const SizedBox(height: AppSpacing.md),
-                  WarningsCard(warnings: controller.warnings),
+                  WarningsCard(
+                    warnings: controller.warnings,
+                    beatsPerBar: BarTimingScope.beatsPerBarFor(
+                      controller.form,
+                      controller.phraseStructure,
+                      meter: controller.meterController.text,
+                    ),
+                  ),
                 ],
               ],
             ),

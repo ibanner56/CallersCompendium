@@ -591,7 +591,9 @@ the beats of the dance's **Meter**: 2/2, 2/4, 6/8 and 6/4 have two, 3/2, 3/4,
 phrase structure says, so `4*8*3` (four 8-bar phrases of three beats) makes 2
 bars 6 beats too. A tune whose parts have different numbers of beats to the bar
 keeps its figures in beats, since one count of bars would mean different
-lengths in different parts. The dance's page and Perform show bars too.
+lengths in different parts. The dance's page and Perform show bars too, and so
+do the dance's warnings, its calling card, and its figures when you share, copy
+or print it, alone or with a program.
 
 An English sequence can also take its bars as a whole, as in "A, B and C in
 bars 1–4". Fill in **Bars for all** at the top of the sequence, and leave the

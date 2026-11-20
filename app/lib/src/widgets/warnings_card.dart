@@ -11,9 +11,13 @@ import 'notice_card.dart';
 /// and by the dance detail view for a saved dance (AUTH-12, October behaviour
 /// audit), so a mismatch is visible outside the editor, in the same words.
 class WarningsCard extends StatelessWidget {
-  const WarningsCard({super.key, required this.warnings});
+  const WarningsCard({super.key, required this.warnings, this.beatsPerBar});
 
   final List<ValidationIssue> warnings;
+
+  /// The bar of a dance timed in bars ([danceBeatsPerBar]), whose counts the
+  /// warnings then read in bars, as its figures do; null reads them in beats.
+  final int? beatsPerBar;
 
   @override
   Widget build(BuildContext context) {
@@ -29,7 +33,9 @@ class WarningsCard extends StatelessWidget {
             Padding(
               // intentional: 2px optical inset, below the 4px AppSpacing grid
               padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxxs),
-              child: Text('• ${validationIssueMessage(l10n, warning)}'),
+              child: Text(
+                '• ${validationIssueMessage(l10n, warning, beatsPerBar: beatsPerBar)}',
+              ),
             ),
         ],
       ),

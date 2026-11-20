@@ -13156,6 +13156,42 @@ abstract class AppLocalizations {
   /// **'The steps of the sequence in figure {position} take {actual} beats; the sequence takes {expected}.'**
   String validationSequenceSpanMismatch(int position, int actual, int expected);
 
+  /// Warning shown in the dance editor for an English country dance, timed in bars, when the figures' total doesn't match the phrase structure. {actual} and {expected} are counts with their unit, such as '30 bars' or '32 bars'.
+  ///
+  /// In en, this message translates to:
+  /// **'The figures total {actual}; the phrase structure expects {expected}.'**
+  String validationPhraseCountMismatch(String actual, String expected);
+
+  /// Editor warning for an English country dance, timed in bars, whose sequence group runs longer than one phrase. {position} is the figure that is, or holds, the sequence; {actual} and {limit} are counts with their unit, such as '10 bars'.
+  ///
+  /// In en, this message translates to:
+  /// **'A sequence in figure {position} is {actual}, longer than one phrase ({limit}).'**
+  String validationSequenceExceedsPhraseCount(
+    int position,
+    String actual,
+    String limit,
+  );
+
+  /// Editor warning for an English country dance, timed in bars, whose sequence's timed steps fill its count, leaving none for its untimed steps. {position} is the figure holding it; {actual} and {expected} are counts with their unit, such as '4 bars'.
+  ///
+  /// In en, this message translates to:
+  /// **'The timed steps of the sequence in figure {position} take {actual}, leaving none of its {expected} for the rest.'**
+  String validationSequenceSpanNoRoomCount(
+    int position,
+    String actual,
+    String expected,
+  );
+
+  /// Editor warning for an English country dance, timed in bars, whose sequence's steps each have a count that doesn't add up to the sequence's own. {position} is the figure holding it; {actual} and {expected} are counts with their unit, such as '4 bars'.
+  ///
+  /// In en, this message translates to:
+  /// **'The steps of the sequence in figure {position} take {actual}; the sequence takes {expected}.'**
+  String validationSequenceSpanMismatchCount(
+    int position,
+    String actual,
+    String expected,
+  );
+
   /// Editor warning for an English country dance's sequence whose timed steps fill its count, leaving none for its untimed steps. {position} is the figure holding it.
   ///
   /// In en, this message translates to:
@@ -17926,7 +17962,7 @@ abstract class AppLocalizations {
   /// Help: what the figures block prints.
   ///
   /// In en, this message translates to:
-  /// **'The figures, grouped by phrase (A1, A2, B1, B2), with their beats.'**
+  /// **'The figures, grouped by phrase (A1, A2, B1, B2), with their counts: beats, or bars for an English dance.'**
   String get callingCardHelpBlockFigures;
 
   /// Help: what the notes block prints.
@@ -18040,7 +18076,7 @@ abstract class AppLocalizations {
   /// Help: the figures block's on/off options.
   ///
   /// In en, this message translates to:
-  /// **'For figures: leave out the beats, the figures\' own notes, the phrase names, or the lines between phrases.'**
+  /// **'For figures: leave out the counts, the figures\' own notes, the phrase names, or the lines between phrases.'**
   String get callingCardHelpOptionFigures;
 
   /// Help: the thickness option.

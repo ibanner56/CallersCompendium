@@ -64,7 +64,10 @@ class FigureTable extends StatelessWidget {
     );
     final rows = <Widget>[
       if (warnings.isNotEmpty) ...[
-        WarningsCard(warnings: warnings),
+        WarningsCard(
+          warnings: warnings,
+          beatsPerBar: BarTimingScope.maybeOf(context)?.beatsPerBar,
+        ),
         const SizedBox(height: 8),
       ],
     ];

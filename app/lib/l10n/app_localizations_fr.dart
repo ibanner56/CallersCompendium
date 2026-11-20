@@ -8951,6 +8951,38 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String validationPhraseCountMismatch(String actual, String expected) {
+    return 'Les figures totalisent $actual ; la structure de phrase attend $expected.';
+  }
+
+  @override
+  String validationSequenceExceedsPhraseCount(
+    int position,
+    String actual,
+    String limit,
+  ) {
+    return 'Une séquence de la figure $position dure $actual, plus qu’une phrase ($limit).';
+  }
+
+  @override
+  String validationSequenceSpanNoRoomCount(
+    int position,
+    String actual,
+    String expected,
+  ) {
+    return 'Les étapes minutées de la séquence de la figure $position durent $actual, sans rien laisser de ses $expected aux autres.';
+  }
+
+  @override
+  String validationSequenceSpanMismatchCount(
+    int position,
+    String actual,
+    String expected,
+  ) {
+    return 'Les étapes de la séquence de la figure $position durent $actual ; la séquence dure $expected.';
+  }
+
+  @override
   String validationSequenceSpanNoRoom(int position, int actual, int expected) {
     return 'Les étapes minutées de la séquence de la figure $position durent $actual temps, sans rien laisser de ses $expected aux autres.';
   }
@@ -12395,7 +12427,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get callingCardHelpBlockFigures =>
-      'Les figures, regroupées par phrase (A1, A2, B1, B2), avec leurs temps.';
+      'Les figures, regroupées par phrase (A1, A2, B1, B2), avec leur durée : en temps, ou en mesures pour une danse anglaise.';
 
   @override
   String get callingCardHelpBlockNotes => 'Vos notes d’appel.';
@@ -12462,7 +12494,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get callingCardHelpOptionFigures =>
-      'Pour figures : omettre les temps, les notes propres aux figures, les noms des phrases ou les traits entre les phrases.';
+      'Pour figures : omettre les durées, les notes propres aux figures, les noms des phrases ou les traits entre les phrases.';
 
   @override
   String get callingCardHelpOptionThickness =>
