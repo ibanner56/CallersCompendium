@@ -244,9 +244,16 @@ class DataClassification {
   /// rewritten as content.
   final bool isIdentity;
 
-  /// Why this classification, where the reason is not self-evident. A reviewer
-  /// should not have to guess why a personal-data field is
-  /// [EgressClass.shareable].
+  /// Why this classification. A reviewer should not have to guess why a
+  /// personal-data field is [EgressClass.shareable].
+  ///
+  /// Required, as a non-empty trimmed string, on every entry that is not
+  /// [EgressClass.shareable], every entry whose [subject] is not
+  /// [DataSubject.none], and every [DataSubject.thirdParty] entry with no
+  /// exemption (`data_classification_note_test.dart` fails without it). Only a
+  /// shareable entry about nobody may omit it, and the app-user preference
+  /// settings that share one classification (`preferenceSettingKeys`) are
+  /// noted once, on that constant.
   final String? note;
 
   @override

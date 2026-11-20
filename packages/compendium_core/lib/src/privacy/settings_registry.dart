@@ -23,6 +23,19 @@ const _preference = DataClassification(
   egress: EgressClass.shareable,
 );
 
+/// Settings keys classified by the shared [_preference] constant.
+///
+/// [_preference] carries no `note`: whose preference it is, and that it travels,
+/// are the same on every key it covers. The note
+/// rule in `data_classification_note_test.dart` exempts exactly these keys, and
+/// only these, by identity, so a key leaves the exemption by being given its
+/// own classification, and cannot enter it any other way. Derived the way
+/// `syncBookkeepingTables` is.
+final Set<String> preferenceSettingKeys = {
+  for (final entry in settingsClassifications.entries)
+    if (identical(entry.value, _preference)) entry.key,
+};
+
 /// State belonging to this installation rather than to the user. Never
 /// transmitted, because it is meaningless or actively wrong elsewhere — not
 /// because it is sensitive.

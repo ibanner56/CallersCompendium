@@ -242,8 +242,12 @@ an unclassified column or settings key. When you add one:
   declared as `const String somethingKeyPrefix = ...` instead, and classified
   in `settingsPrefixClassifications` — the ratchet matches both declaration
   shapes.
-- Say **why** in the entry's `note` when the call is not obvious. A reviewer
-  should never have to guess why a personal-data field is `shareable`.
+- Say **why** in the entry's `note`. A reviewer should never have to guess why a
+  personal-data field is `shareable`, so a test
+  (`data_classification_note_test.dart`) fails without a note on every entry
+  that is not `shareable`, every `shareable` entry whose subject is not `none`,
+  and every third-party entry. The app-user preference settings, which share one
+  classification, are the only exemption (`preferenceSettingKeys`).
 - Regenerate the catalogue:
   `fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart`
 - If you added a whole new table — including a raw or virtual one drift does not
