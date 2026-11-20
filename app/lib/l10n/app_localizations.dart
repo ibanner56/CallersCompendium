@@ -7160,6 +7160,18 @@ abstract class AppLocalizations {
   /// **'Show dances that have at least one selected tag'**
   String get collectionFacetTagsMatchAnyTooltip;
 
+  /// Filter section heading for the meter facet: the time signature a dance's tune is in, such as 6/8 or 3/2.
+  ///
+  /// In en, this message translates to:
+  /// **'Meter'**
+  String get collectionFacetMeter;
+
+  /// Filter section heading for the musical key facet: the key a dance's tune is in, such as D minor.
+  ///
+  /// In en, this message translates to:
+  /// **'Key'**
+  String get collectionFacetMusicalKey;
+
   /// Filter section heading for the cited-source facet.
   ///
   /// In en, this message translates to:
@@ -17015,6 +17027,16 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'One of the figures isn\'t complete or valid yet.'**
   String get compoundEditorInvalidFigures;
+
+  /// Error shown when saving a combination whose figures belong to another dance type than the one picked for it, for example after its type was changed from English to Contra. {figureForm} and {entryForm} are dance type names such as 'Contra' or 'English (ECD)'.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 figure is} other{{count} figures are}} from {figureForm}, not {entryForm}. Change the dance type back, or remove {count, plural, =1{it} other{them}}.'**
+  String compoundEditorOtherFormFigures(
+    int count,
+    String figureForm,
+    String entryForm,
+  );
 
   /// Error shown when a custom figure's text is over its length limit.
   ///

@@ -6,15 +6,19 @@
 // trap. Each screen here is walked with real Tab key events and checked three
 // ways:
 //
-//  1. No trap: Tab wraps round the page within a bounded number of presses. A
-//     repeat of a stop is the page wrapping round unless its loop is only a few
-//     controls (under 5), which is a trap, wherever on the page it is. A trap
-//     of five or more controls inside a long lazy form cannot be told from a
-//     wrap this way (a lazy list's wrap lands on the first control still built,
-//     not the first stop); the reachability and Shift+Tab checks below are what
-//     would notice one. Shift+Tab, pressed as often, visits nearly as many
-//     distinct stops as Tab did (it is not compared stop for stop: see the note
-//     where it is checked).
+//  1. No trap: Tab wraps round the page within a bounded number of presses.
+//     In the ordinary window a repeat is the page wrapping round unless its loop
+//     is only a few controls (under 5): a long form is built lazily, and its
+//     wrap lands on the first control still built, not the first stop, so a
+//     larger trap there cannot be told from a wrap. So each lazily built screen
+//     is walked again in a window tall enough to build all of it ("whole form
+//     built"), where nothing is lazy: the wrap must return to the first stop,
+//     and every control that can take focus on the page must be a stop, so a
+//     loop of any size fails, including one that contains the first stop. That
+//     covers what is built: the Program builder's Matrix tab (a second page of a
+//     horizontal view) is not walked at all. Shift+Tab, pressed as often, visits
+//     nearly as many distinct stops as Tab did (it is not compared stop for
+//     stop: see the note where it is checked).
 //  2. Reachable: every tappable, enabled semantics node on screen is covered by
 //     a Tab stop of about its own size (a stop for a small button inside a large
 //     row does not count as reaching the row).
@@ -51,6 +55,15 @@ import 'support/real_fonts.dart';
 
 /// A desktop window: the checklist's keyboard gate is a desktop gate.
 const _desktop = Size(1100, 800);
+
+/// A window tall enough that the whole of a long form is built at once, so
+/// nothing is lazy: every control is on screen to be judged, and Tab's wrap is
+/// a return to the very first stop.
+const _tallDesktop = Size(1100, 6000);
+
+/// The size of the window the current test runs in. Set at the start of each
+/// test (they run one at a time).
+Size _window = _desktop;
 
 /// A repeat is a trap, not the page wrapping round, when its loop is fewer than
 /// this many stops, or fewer than this many were walked at all (a control that
@@ -89,7 +102,7 @@ class _Stop {
   /// by the same area share, so neither does this check count them as stops.
   bool get isWholeWindow =>
       rect.width * rect.height >
-      _desktop.width * _desktop.height * FocusRingLayer.maxAreaShare;
+      _window.width * _window.height * FocusRingLayer.maxAreaShare;
 }
 
 Future<AppData> _seed() async {
@@ -197,7 +210,7 @@ List<_Tappable> _tappables(WidgetTester tester) {
         data.flagsCollection.isEnabled != ui.Tristate.isFalse &&
         rect.width > 0 &&
         rect.height > 0 &&
-        rect.overlaps(Offset.zero & _desktop)) {
+        rect.overlaps(Offset.zero & _window)) {
       final f = data.flagsCollection;
       final label = data.label.isNotEmpty
           ? data.label.replaceAll('\n', ' ')
@@ -271,15 +284,21 @@ typedef _Walk = ({
   List<_Stop> stops,
   List<String> unreached,
 
-  /// The stops of a loop that is too small to be the page going round, or a
-  /// note that Tab visited too few stops to have wrapped: a keyboard trap.
-  /// `null` when Tab wrapped round the page.
+  /// The stops of a loop Tab could not leave (in the whole-form mode any loop
+  /// that is not a return to the first stop; otherwise one of only a few
+  /// controls), or a note that Tab visited too few stops to have wrapped: a
+  /// keyboard trap. `null` when Tab wrapped round the page.
   List<String>? trap,
 });
 
-/// Tab from a fresh start until a stop repeats, which is the page wrapping round
-/// unless its loop is only a few stops, which is a trap. `null` means no repeat
-/// within [_maxStops], that is, an unbounded traversal.
+/// Tab from a fresh start until a stop repeats. `null` means no repeat within
+/// [_maxStops], that is, an unbounded traversal.
+///
+/// With [strict] (the whole form is built, so nothing is lazy) the repeat must be
+/// the first stop: anything else is a loop Tab could not get out of, whatever its
+/// size. Nothing is rebuilt under the walk there, so a first stop that came back
+/// as a different node would fail here too, plainly, rather than be guessed at. Otherwise it is the page wrapping round unless its loop is only a few
+/// stops, which is a trap.
 ///
 /// On a lazy list the controls scrolled far above are no longer built when Tab
 /// wraps, so it lands on the first control still built, not on the first stop;
@@ -289,7 +308,7 @@ typedef _Walk = ({
 /// from step to step. Each step therefore asks which of the tappables on screen
 /// *now* the stop reaches, and a tappable counts as unreached only if it was on
 /// screen at some step and no step reached it.
-Future<_Walk?> _walk(WidgetTester tester) async {
+Future<_Walk?> _walk(WidgetTester tester, {required bool strict}) async {
   FocusManager.instance.primaryFocus?.unfocus();
   await tester.pump();
   final stops = <_Stop>[];
@@ -308,7 +327,9 @@ Future<_Walk?> _walk(WidgetTester tester) async {
           for (final e in seen.entries)
             if (!reached.contains(e.key)) e.value,
         ],
-        trap: loop >= _minLoop && stops.length >= _minLoop
+        trap:
+            (strict ? repeat == 0 : loop >= _minLoop) &&
+                stops.length >= _minLoop
             ? null
             : [
                 if (stops.length < _minLoop)
@@ -344,14 +365,42 @@ bool _sameBounds(Rect ring, Rect stop) =>
     (ring.width - stop.width).abs() < 1 &&
     (ring.height - stop.height).abs() < 1;
 
-/// Pumps the full app, runs [navigate] to reach a screen, then walks it.
+/// Registers a screen's walk. A [long] screen (a form built lazily because it
+/// runs past the window)
+/// is walked twice: in the ordinary window, where its lazy list scrolls under
+/// Tab as a person would see it, and in a window tall enough to build all of it
+/// (see [_tallDesktop]), where nothing is lazy and so the trap and reachability
+/// checks can be exact.
 void _screen(
   String name,
   Future<void> Function(WidgetTester tester) navigate, {
   required Finder landedOn,
   List<String> mustStopAt = const [],
+  bool long = false,
+}) {
+  _walkScreen(name, navigate, landedOn, mustStopAt, tall: false);
+  if (long) {
+    _walkScreen(
+      '$name, whole form built',
+      navigate,
+      landedOn,
+      mustStopAt,
+      tall: true,
+    );
+  }
+}
+
+/// Pumps the full app, runs [navigate] to reach a screen, then walks it.
+void _walkScreen(
+  String name,
+  Future<void> Function(WidgetTester tester) navigate,
+  Finder landedOn,
+  List<String> mustStopAt, {
+  required bool tall,
 }) {
   testWidgets(name, (tester) async {
+    _window = tall ? _tallDesktop : _desktop;
+    addTearDown(() => _window = _desktop);
     await loadBundledFonts();
     installFakeWakelock();
     addTearDown(() {
@@ -360,7 +409,7 @@ void _screen(
     });
     final appData = await _seed();
     tester.view.devicePixelRatio = 1;
-    tester.view.physicalSize = _desktop;
+    tester.view.physicalSize = _window;
     final semantics = tester.ensureSemantics();
     try {
       await tester.pumpWidget(
@@ -374,9 +423,27 @@ void _screen(
       await navigate(tester);
       expect(tester.takeException(), isNull, reason: 'navigating to $name');
       expect(landedOn, findsWidgets, reason: 'did not reach $name');
+      if (tall) {
+        // Guards against a window that is not tall enough: any vertical
+        // scrolling left means part of a form is still lazy and the exact
+        // checks would lie.
+        final scrolling = [
+          for (final state in tester.stateList<ScrollableState>(
+            find.byType(Scrollable),
+          ))
+            if (state.position.axis == Axis.vertical &&
+                state.position.maxScrollExtent > 1)
+              state.position.maxScrollExtent,
+        ];
+        expect(
+          scrolling,
+          isEmpty,
+          reason: '$name: still scrolls in a ${_tallDesktop.height} px window',
+        );
+      }
 
       // 1. No trap.
-      final walk = await _walk(tester);
+      final walk = await _walk(tester, strict: tall);
       expect(
         walk,
         isNotNull,
@@ -386,7 +453,7 @@ void _screen(
       expect(
         walk!.trap,
         isNull,
-        reason: '$name: Tab is stuck in a loop of a few controls',
+        reason: '$name: Tab is stuck in a loop it cannot leave',
       );
       final stops = walk.stops;
       final real = stops.where((s) => !s.isWholeWindow).toList();
@@ -421,6 +488,31 @@ void _screen(
             'Tab visited ${real.length}',
       );
 
+      if (tall) {
+        // Nothing is lazy here, so every control that can take focus must be a
+        // Tab stop. A loop that includes the first stop looks like a clean wrap
+        // by itself; it leaves the rest of the page unvisited.
+        // Only the current route's own nodes: the pages beneath it stay in the
+        // tree, and a nested trap scope must not shrink what is expected.
+        final route = ModalRoute.of(stops.first.node.context!);
+        final routeContext = route?.subtreeContext;
+        final expected = routeContext == null
+            ? FocusManager.instance.rootScope
+            : FocusScope.of(routeContext);
+        final missed = [
+          for (final node in expected.traversalDescendants)
+            if (_live(node) &&
+                node is! FocusScopeNode &&
+                !stops.any((s) => identical(s.node, node)))
+              '${_globalRect(node)} ${_describe(node)}',
+        ];
+        expect(
+          missed,
+          isEmpty,
+          reason: '$name: focusable controls Tab never reached',
+        );
+      }
+
       // Controls a lazy list never scrolls to are never on screen to be judged
       // below, so a screen can name the ones that must be Tab stops.
       for (final key in mustStopAt) {
@@ -446,7 +538,7 @@ void _screen(
           for (final stop in real)
             if (stop.rect.width < _minStop ||
                 stop.rect.height < _minStop ||
-                !(Offset.zero & _desktop).contains(stop.rect.center))
+                !(Offset.zero & _window).contains(stop.rect.center))
               '${stop.rect} ${stop.describe}',
         ],
         isEmpty,
@@ -518,9 +610,14 @@ void main() {
     await tester.pumpAndSettle();
   }, landedOn: find.byType(DanceDetailScreen));
 
-  _screen('Dance editor', (tester) async {
-    await _tapKey(tester, 'new-dance');
-  }, landedOn: find.byType(DanceEditorScreen));
+  _screen(
+    'Dance editor',
+    (tester) async {
+      await _tapKey(tester, 'new-dance');
+    },
+    landedOn: find.byType(DanceEditorScreen),
+    long: true,
+  );
 
   // The editors' "More details" section keeps its fields built while collapsed,
   // so it is walked open as well: its fields must join the focus order then, and
@@ -534,6 +631,7 @@ void main() {
     },
     landedOn: find.byType(DanceEditorScreen),
     mustStopAt: ['status-field', 'mixed-level-field'],
+    long: true,
   );
 
   _screen('Programs list', (tester) async {
@@ -566,6 +664,7 @@ void main() {
     },
     landedOn: find.byType(ProgramEditorScreen),
     mustStopAt: ['program-band'],
+    long: true,
   );
 
   _screen('Perform', (tester) async {
@@ -574,8 +673,13 @@ void main() {
   }, landedOn: find.byType(PerformProgramScreen));
 
   // On a desktop window Settings is a sidebar beside the section's content.
-  _screen('Settings', (tester) async {
-    await tester.tap(find.text('Settings').last);
-    await tester.pumpAndSettle();
-  }, landedOn: find.byKey(const ValueKey('settings-nav-general')));
+  _screen(
+    'Settings',
+    (tester) async {
+      await tester.tap(find.text('Settings').last);
+      await tester.pumpAndSettle();
+    },
+    landedOn: find.byKey(const ValueKey('settings-nav-general')),
+    long: true,
+  );
 }

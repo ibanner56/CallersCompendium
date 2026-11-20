@@ -2,21 +2,36 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
 
 /// The three `LIKE` binds an All fields word adds for the meter, the key
-/// and the interpreters' names (`_musicAndInterpreterMatch`).
+/// and the interpreters' names (`_musicAndInterpreterMatch`), folded as the
+/// values are (`cc_fold`: lowercased, accents removed).
 List<String> _music(String word, {bool prefix = false}) {
-  final p = prefix ? '% $word%' : '%$word%';
+  final folded = foldForSearch(word);
+  final p = prefix ? '% $folded%' : '%$folded%';
   return [p, p, p];
 }
 
 /// The SQL an All fields word of three or more characters adds for the
 /// meter, the key and the interpreters' names.
-const _musicSql =
+/// [column] folded as the compiler folds a meter, key or name for a `LIKE`:
+/// left as stored when it is ASCII, `cc_fold` for anything else.
+String _f(String column) =>
+    '(CASE WHEN length($column) = length(CAST($column AS BLOB)) '
+    'THEN $column ELSE cc_fold($column) END)';
+
+/// [column] folded for a whole-value `=` match.
+String _eq(String column) =>
+    '(CASE WHEN length($column) = length(CAST($column AS BLOB)) '
+    'THEN lower(trim($column, char(9, 10, 11, 12, 13, 32))) '
+    'ELSE cc_fold($column) END)';
+
+final _musicSql =
     "(id IN (SELECT id FROM dances WHERE (meter <> '' OR musical_key <> '') "
-    "AND (meter LIKE ? ESCAPE '\\' OR musical_key LIKE ? ESCAPE '\\')) "
+    "AND (${_f('meter')} LIKE ? ESCAPE '\\' "
+    "OR ${_f('musical_key')} LIKE ? ESCAPE '\\')) "
     'OR id IN (SELECT di.dance_id FROM dance_interpreters di '
     'JOIN choreographers c ON c.id = di.choreographer_id '
     'WHERE c.deleted_at IS NULL '
-    "AND c.name LIKE ? ESCAPE '\\'))";
+    "AND ${_f('c.name')} LIKE ? ESCAPE '\\'))";
 
 void main() {
   final compiler = FilterCompiler();
@@ -28,6 +43,26 @@ void main() {
     final end = sql.lastIndexOf(') ORDER BY');
     return sql.substring(start, end);
   }
+
+  group('Meter and Key leaves (ADR-006 F3)', () {
+    test('compile to a folded whole-value match', () {
+      final meter = compiler.compile(const MeterFilter(' Ré 6/8 '));
+      expect(meter.sql, contains("(meter <> '' AND ${_eq('meter')} = ?)"));
+      expect(meter.binds, ['re 6/8']);
+      final key = compiler.compile(const MusicalKeyFilter('D minor'));
+      expect(
+        key.sql,
+        contains("(musical_key <> '' AND ${_eq('musical_key')} = ?)"),
+      );
+      expect(key.binds, ['d minor']);
+    });
+
+    test('a blank value matches nothing', () {
+      final c = compiler.compile(const MeterFilter('  '));
+      expect(c.sql, contains('AND (0)'));
+      expect(c.binds, isEmpty);
+    });
+  });
 
   group('outer shape', () {
     test('wraps predicate with deleted_at guard and default title sort', () {
@@ -836,7 +871,7 @@ void main() {
 
     test('each word is its own canonical-or-raw match, ANDed', () {
       final c = compiler.compile(const FullTextFilter('Kaynor petronella'));
-      const word =
+      final word =
           '(id IN (SELECT dance_id FROM dance_substring_fts '
           'WHERE dance_substring_fts MATCH ?) '
           'OR id IN (SELECT dance_id FROM dance_substring_fts '
@@ -946,6 +981,31 @@ void main() {
         ),
       );
       expect(c.binds, ['"nice"', '"combination"']);
+    });
+
+    test('the Author scope also reads the interpreters, folded', () {
+      final c = compiler.compile(
+        const FullTextFilter('Émile Du', scope: FullTextScope.author),
+      );
+      const interpreters =
+          'id IN (SELECT di.dance_id FROM dance_interpreters di '
+          'JOIN choreographers c ON c.id = di.choreographer_id '
+          'WHERE c.deleted_at IS NULL ';
+      expect(
+        c.sql,
+        contains(
+          '((id IN (SELECT dance_id FROM dance_substring_fts '
+          'WHERE authors MATCH ?) OR $interpreters'
+          "AND ${_f('c.name')} LIKE ? ESCAPE '\\')) AND "
+          '(id IN (SELECT dance_id FROM dance_fts WHERE authors MATCH ?) OR '
+          "${interpreters}AND (' ' || replace(replace(replace("
+          "${_f('c.name')}, '/', ' '), '-', ' '), '(', ' ')) "
+          "LIKE ? ESCAPE '\\')))",
+        ),
+      );
+      // Only the interpreters: a meter or a key is not an author.
+      expect(c.sql, isNot(contains('meter')));
+      expect(c.binds, ['"Émile"', '%emile%', '"Du"*', '% du%']);
     });
   });
 

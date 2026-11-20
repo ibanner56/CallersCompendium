@@ -24,6 +24,8 @@ void main() {
           'call-status',
           'author',
           'tunes',
+          'meter',
+          'musical-key',
           'tags',
           'source',
         ]);

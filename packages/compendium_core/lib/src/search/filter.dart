@@ -49,8 +49,10 @@ class NotFilter extends DanceFilter {
 }
 
 /// The local full-text scope. [omni] preserves the historical canonical
-/// cross-field search and adds a raw-title fallback; [title], [author], and
-/// [figure] restrict matching to one derived column.
+/// cross-field search and adds a raw-title fallback; [title] and [figure]
+/// restrict matching to one derived column each; [author] matches the
+/// `authors` column and the names of the dance's interpreters, accents
+/// folded.
 enum FullTextScope { omni, title, author, figure }
 
 /// Full-text search over the derived FTS5 indexes. [scope] defaults to
@@ -126,6 +128,26 @@ class TunesFilter extends DanceFilter {
   const TunesFilter(this.query);
 
   final String query;
+}
+
+/// Dances whose meter is [meter] (ADR-006 §9.2, F3), ignoring case, accents
+/// and surrounding spaces: "6/8" finds a dance stored as " 6/8". The whole
+/// value must match; "6/8" does not find "6/8 and 9/8". The Collection's Meter
+/// filter offers the meters the collection already has.
+@immutable
+class MeterFilter extends DanceFilter {
+  const MeterFilter(this.meter);
+
+  final String meter;
+}
+
+/// Dances whose key is [musicalKey] (ADR-006 §9.2, F3), matched as
+/// [MeterFilter] matches a meter: "d minor" finds "D minor", and "D" does not.
+@immutable
+class MusicalKeyFilter extends DanceFilter {
+  const MusicalKeyFilter(this.musicalKey);
+
+  final String musicalKey;
 }
 
 /// Dances of a given [DanceForm] (roadmap "Type": contra / ecd / square).

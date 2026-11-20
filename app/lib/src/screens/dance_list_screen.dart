@@ -3283,6 +3283,8 @@ class _DanceListScreenState extends State<DanceListScreen>
       tags: data.tags,
       citedSources: data.citedSources,
       tunes: data.tunes,
+      meters: data.meters,
+      musicalKeys: data.musicalKeys,
       choiceFields: data.choiceFields,
       booleanFields: data.booleanFields,
       textFields: data.textFields,

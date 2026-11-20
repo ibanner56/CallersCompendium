@@ -20,6 +20,8 @@ abstract final class CollectionFacetIds {
   static const String callStatus = 'call-status';
   static const String author = 'author';
   static const String tunes = 'tunes';
+  static const String meter = 'meter';
+  static const String musicalKey = 'musical-key';
   static const String tags = 'tags';
   static const String source = 'source';
 
@@ -36,6 +38,8 @@ abstract final class CollectionFacetIds {
     callStatus,
     author,
     tunes,
+    meter,
+    musicalKey,
     tags,
     source,
   ];

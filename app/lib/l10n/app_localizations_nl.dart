@@ -4729,6 +4729,12 @@ class AppLocalizationsNl extends AppLocalizations {
       'Dansen tonen die minstens één van de gekozen tags hebben';
 
   @override
+  String get collectionFacetMeter => 'Maatsoort';
+
+  @override
+  String get collectionFacetMusicalKey => 'Toonsoort';
+
+  @override
   String get collectionFacetSource => 'Bron';
 
   @override
@@ -11675,6 +11681,27 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get compoundEditorInvalidFigures =>
       'Een van de figuren is nog niet volledig of geldig.';
+
+  @override
+  String compoundEditorOtherFormFigures(
+    int count,
+    String figureForm,
+    String entryForm,
+  ) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count figuren komen',
+      one: '1 figuur komt',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'ze',
+      one: 'hem',
+    );
+    return '$_temp0 uit $figureForm, niet uit $entryForm. Zet het danstype terug, of verwijder $_temp1.';
+  }
 
   @override
   String get compoundEditorTooLong => 'Een van de velden is te lang.';

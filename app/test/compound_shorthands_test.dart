@@ -16,6 +16,7 @@ import 'package:compendium_app/src/screens/dance_editor_screen.dart';
 import 'package:compendium_app/src/screens/glossary/compound_editor_screen.dart';
 import 'package:compendium_app/src/screens/shorthand_mappings_screen.dart';
 import 'package:compendium_app/src/widgets/compound_argument_editor.dart';
+import 'package:compendium_app/src/widgets/app_dropdown_field.dart';
 
 import 'figures_support.dart';
 import 'support/l10n_harness.dart';
@@ -627,6 +628,7 @@ void main() {
       bool customFigures = true,
       List<CompoundShorthand> compounds = const [],
       List<ShorthandMapping> figureShorthands = const [],
+      List<UserGlossaryEntry> moreEntries = const [],
     }) async {
       await tester.binding.setSurfaceSize(const Size(800, 1600));
       addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -635,6 +637,9 @@ void main() {
       addTearDown(controller.dispose);
       await tester.runAsync(() async {
         await repos.userGlossary.upsert(entry);
+        for (final e in moreEntries) {
+          await repos.userGlossary.upsert(e);
+        }
         for (final c in compounds) {
           await controller.upsertCompound(c);
         }
@@ -763,6 +768,55 @@ void main() {
         ),
         findsOneWidget,
       );
+    });
+
+    testWidgets('an English combination\'s parameter offers its values', (
+      tester,
+    ) async {
+      final english = UserGlossaryEntry(
+        id: 'gnat2',
+        kindName: UserGlossaryEntryKind.compound.name,
+        name: 'gnat twice',
+        definition: 'Box the gnat, then again.',
+        description: '',
+        payload: CompoundDefinition(
+          params: const [
+            CompoundParam(key: 'hand', kind: ParamKind.handedness),
+          ],
+          figures: [
+            for (var i = 0; i < 2; i++)
+              Figure(
+                move: 'ecd_box_the_gnat',
+                params: const {'hand': 'right', 'beats': 4},
+              ),
+          ],
+          bindings: [
+            for (var i = 0; i < 2; i++)
+              CompoundSlotBinding(
+                figureIndex: i,
+                slotKey: 'hand',
+                paramKey: 'hand',
+              ),
+          ],
+          form: DanceForm.ecd.name,
+        ).toJson(),
+        createdAt: created,
+      );
+      await pump(tester, moreEntries: [english]);
+      await tester.tap(find.byKey(const ValueKey('new-compound-shorthand')));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('compound-shorthand-compound')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('gnat twice').last);
+      await tester.pumpAndSettle();
+      final hand = tester.widget<AppDropdownField<String?>>(
+        find.byKey(const ValueKey('compound-shorthand-arg-hand')),
+      );
+      expect([
+        for (final e in hand.entries) e.value,
+      ], containsAll(['right', 'left']));
     });
 
     testWidgets('a compound shorthand cannot take a figure shorthand\'s '

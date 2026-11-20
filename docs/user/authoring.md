@@ -681,6 +681,9 @@ nothing in it to lose.
   B2, counted in the dance's meter. You can also
   type names into the **Phrase structure** field (`A:2*4*2 + B:1*8*2`);
   only an English dance can be saved with them.
+  Printed cards, PDFs and copied text show named phrases the way English
+  callers write them: A=4 played twice and B=8 once prints as
+  `AAB (A 4 bars, B 8 bars)`.
 - **Meter** and **Key** — the tune's written meter, such as `3/2`, and its key,
   such as `G minor`, in your own words. They sit here for an English dance and
   in **More details** for other types.

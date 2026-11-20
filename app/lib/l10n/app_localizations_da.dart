@@ -4701,6 +4701,12 @@ class AppLocalizationsDa extends AppLocalizations {
       'Vis danse, der har mindst ét af de valgte tags';
 
   @override
+  String get collectionFacetMeter => 'Taktart';
+
+  @override
+  String get collectionFacetMusicalKey => 'Toneart';
+
+  @override
   String get collectionFacetSource => 'Kilde';
 
   @override
@@ -11607,6 +11613,27 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get compoundEditorInvalidFigures =>
       'En af figurerne er endnu ikke fuldstændig eller gyldig.';
+
+  @override
+  String compoundEditorOtherFormFigures(
+    int count,
+    String figureForm,
+    String entryForm,
+  ) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count figurer er',
+      one: '1 figur er',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'dem',
+      one: 'den',
+    );
+    return '$_temp0 fra $figureForm, ikke $entryForm. Skift dansetypen tilbage, eller fjern $_temp1.';
+  }
 
   @override
   String get compoundEditorTooLong => 'Et af felterne er for langt.';

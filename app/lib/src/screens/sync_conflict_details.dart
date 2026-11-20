@@ -877,7 +877,10 @@ class SyncConflictComparison extends StatelessWidget {
       if (kind != UserGlossaryEntryKind.compound.name) {
         return l10n.glossaryCustomUnsupported;
       }
-      final definition = decodeCompoundDefinition(decoded, contraTaxonomy);
+      final definition = decodeCompoundDefinition(
+        decoded,
+        shippedTaxonomies.anyForm,
+      );
       if (definition == null) return l10n.glossaryCustomNeedsRepair;
       return [
         l10n.glossaryEntryKindCombination,

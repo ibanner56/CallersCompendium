@@ -4744,6 +4744,12 @@ class AppLocalizationsDe extends AppLocalizations {
       'Tänze anzeigen, die mindestens eines der gewählten Tags haben';
 
   @override
+  String get collectionFacetMeter => 'Taktart';
+
+  @override
+  String get collectionFacetMusicalKey => 'Tonart';
+
+  @override
   String get collectionFacetSource => 'Quelle';
 
   @override
@@ -11718,6 +11724,21 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get compoundEditorInvalidFigures =>
       'Eine der Figuren ist noch nicht vollständig oder gültig.';
+
+  @override
+  String compoundEditorOtherFormFigures(
+    int count,
+    String figureForm,
+    String entryForm,
+  ) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Figuren stammen',
+      one: '1 Figur stammt',
+    );
+    return '$_temp0 aus $figureForm, nicht aus $entryForm. Stelle den Tanztyp zurück oder entferne sie.';
+  }
 
   @override
   String get compoundEditorTooLong => 'Eines der Felder ist zu lang.';

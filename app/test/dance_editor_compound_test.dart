@@ -142,6 +142,33 @@ void main() {
       expect(controller.resolveCompound('broken'), isNull);
     });
 
+    test('offers an English combination in an English dance', () async {
+      final repos = openTestRepositories();
+      await repos.userGlossary.upsert(
+        UserGlossaryEntry(
+          id: 'sl2',
+          kindName: UserGlossaryEntryKind.compound.name,
+          name: 'set and link twice',
+          definition: 'Set and link, then again.',
+          description: '',
+          payload: CompoundDefinition(
+            params: const [],
+            figures: [
+              Figure(move: 'ecd_set_and_link', params: const {'beats': 4}),
+              Figure(move: 'ecd_set_and_link', params: const {'beats': 4}),
+            ],
+            bindings: const [],
+            form: DanceForm.ecd.name,
+          ).toJson(),
+          createdAt: created,
+        ),
+      );
+      final controller = await loaded(repos);
+      controller.setForm(DanceForm.ecd);
+      expect([for (final e in controller.compoundEntries) e.id], ['sl2']);
+      expect(controller.resolveCompound('sl2'), isNotNull);
+    });
+
     test(
       'will not group a placeholder, as the first row or the second',
       () async {
