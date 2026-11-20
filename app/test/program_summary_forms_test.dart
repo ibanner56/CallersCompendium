@@ -122,9 +122,8 @@ void main() {
     );
   });
 
-  testWidgets('a deleted dance does not count toward the forms', (
-    tester,
-  ) async {
+  testWidgets('a dance in Recently deleted still counts, on the type line '
+      'and its row', (tester) async {
     await _pumpSummary(
       tester,
       [
@@ -136,10 +135,11 @@ void main() {
     expect(
       find.descendant(
         of: find.byKey(const ValueKey('program-summary-forms')),
-        matching: find.text('Contra'),
+        matching: find.text('Contra + English (ECD)'),
       ),
       findsOneWidget,
     );
+    expect(find.text('English (ECD) · Duple minor'), findsOneWidget);
   });
 
   testWidgets('a program with no dances names no form', (tester) async {

@@ -1239,21 +1239,21 @@ class ProgramRepository {
     ];
   }
 
-  /// The forms of the live dances in each program, keyed by program id
+  /// The forms of the dances in each live program, keyed by program id
   /// (ADR-006: a program shows whether it is contra, English or both). Every
-  /// slot with a dance counts, alternates included, as the builder's
-  /// mixed-program check counts them; a free-text slot, a purged dance and a
-  /// deleted dance count for nothing, and a program with none is absent. A
-  /// form this build does not know is skipped.
+  /// slot with a dance counts, alternates and a dance in Recently deleted
+  /// included, as the builder, summary and Perform mixed-form checks count
+  /// them; a free-text slot and a purged dance count for nothing, and a
+  /// program with none is absent. A form this build does not know is skipped.
   Future<Map<String, Set<DanceForm>>> formsByProgram() async =>
       _formsOf(await _formsQuery().get());
 
   /// [formsByProgram] as a live stream: emits now, then after every write to
   /// a program, a slot or a dance. A stream of its own rather than a read
   /// folded into [watchAll], because it reads `dances`, which [watchAll] does
-  /// not watch (rule 2 under [halfCallingStatsForDance]): a dance deleted,
-  /// restored or given another form changes a program's forms without
-  /// touching the program. Widening [watchAll] to `dances` instead would
+  /// not watch (rule 2 under [halfCallingStatsForDance]): a dance given
+  /// another form, or purged, changes a program's forms without touching the
+  /// program. Widening [watchAll] to `dances` instead would
   /// reload every program on every dance edit (issue #340); this reload is one
   /// small query.
   Stream<Map<String, Set<DanceForm>>> watchFormsByProgram() =>
@@ -1264,7 +1264,7 @@ class ProgramRepository {
     'FROM program_slots ps '
     'JOIN programs p ON p.id = ps.program_id '
     'JOIN dances d ON d.id = ps.dance_id '
-    'WHERE p.deleted_at IS NULL AND d.deleted_at IS NULL',
+    'WHERE p.deleted_at IS NULL',
     readsFrom: {_db.programSlots, _db.programs, _db.dances},
   );
 

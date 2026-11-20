@@ -57,7 +57,7 @@ void main() {
   );
 
   group('watchFormsByProgram (ADR-006)', () {
-    test('GUARD: follows a dance deleted and restored, which writes only '
+    test('GUARD: follows a dance given another form, which writes only '
         'dances', () async {
       await dances.create(
         Dance(
@@ -82,13 +82,10 @@ void main() {
       expect(await probe.next(), {
         'mixed': {DanceForm.contra, DanceForm.ecd},
       });
-      await dances.softDelete('e1', at: DateTime.utc(2026, 2));
+      final english = (await dances.getById('e1'))!;
+      await dances.update(english.copyWith(form: DanceForm.contra));
       expect(await probe.next(), {
         'mixed': {DanceForm.contra},
-      });
-      await dances.restore('e1', at: DateTime.utc(2026, 3));
-      expect(await probe.next(), {
-        'mixed': {DanceForm.contra, DanceForm.ecd},
       });
     });
   });

@@ -1964,14 +1964,13 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
 
   /// Whether the program's dances are of more than one form, when each
   /// dance's row names its form (ADR-006 S5).
-  bool get _mixesForms {
-    final forms = <DanceForm>{
-      for (final slot in _program?.slots ?? const <ProgramSlot>[])
-        if (slot.danceId case final id?)
-          if (_dances[id] case final dance?) dance.form,
-    };
-    return forms.length > 1;
-  }
+  /// The same set as the type line at the top ([programSlotForms]).
+  bool get _mixesForms =>
+      programSlotForms(
+        _program?.slots ?? const <ProgramSlot>[],
+        _dances,
+      ).length >
+      1;
 
   DifficultyLevel? _difficultyLevelFor(Dance? dance) {
     if (dance == null) return null;

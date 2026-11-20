@@ -939,19 +939,20 @@ void _formFilterTests() {
     );
   }
 
-  testWidgets('a deleted dance stops counting at once', (tester) async {
+  testWidgets('a dance given another form counts at once', (tester) async {
     final repos = openTestRepositories();
     await seed(repos);
     await _pump(tester, repos);
     expect(find.textContaining('Contra + English (ECD)'), findsWidgets);
     // A write to the dance alone: the programs are untouched.
-    await repos.dances.softDelete('e', at: _now);
+    final english = (await repos.dances.getById('e'))!;
+    await repos.dances.update(english.copyWith(form: DanceForm.contra));
     await tester.pumpAndSettle();
     expect(find.textContaining('Contra + English (ECD)'), findsNothing);
     expect(
       find.byKey(const ValueKey('programs-form-filter')),
       findsNothing,
-      reason: 'every program with a live dance is now contra only',
+      reason: 'every program with a dance is now contra only',
     );
   });
 
