@@ -214,8 +214,15 @@ startup or select an unsupported option:
 ## Key-naming convention
 
 Keys are **camelCase** and **area-prefixed** so the flat ARB namespace stays
-navigable as it grows to ~900 strings. Every key gets an `@<key>` metadata block
-with a `description`; use ICU placeholders/plurals where relevant.
+navigable as it grows past a few thousand strings. Every key gets an `@<key>`
+metadata block with a `description`; use ICU placeholders/plurals where relevant.
+
+`app/test/l10n/arb_key_convention_test.dart` enforces the mechanical part on
+`app_en.arb`: lowerCamelCase keys, a non-empty `description` on every key, no
+orphaned `@key` block, and every ICU argument declared and typed in
+`@key.placeholders` (and every declared placeholder used). The area prefix is
+**not** asserted: the leading segments in use are an observation, and listing
+them would make each new feature area a failing build.
 
 | Prefix      | Area                                   | Examples                                      |
 | ----------- | -------------------------------------- | --------------------------------------------- |

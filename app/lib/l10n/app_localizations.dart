@@ -8536,7 +8536,7 @@ abstract class AppLocalizations {
   /// **'Close'**
   String get commonClose;
 
-  /// No description provided for @viewDetails.
+  /// Label for the action that opens a dance's details: the tooltip on the details button and the title of the matching menu item.
   ///
   /// In en, this message translates to:
   /// **'View details'**
