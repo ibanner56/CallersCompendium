@@ -45,6 +45,10 @@ import 'support/real_fonts.dart';
 /// A desktop window: the checklist's keyboard gate is a desktop gate.
 const _desktop = Size(1100, 800);
 
+/// The smallest a Tab stop may be on a side, in logical px. The smallest real
+/// control here is a 24 px tap target.
+const _minStop = 8.0;
+
 /// More Tab presses than any screen here has stops. A screen that does not come
 /// back to its first stop in this many is reported as a trap, not walked on.
 const _maxStops = 120;
@@ -220,7 +224,7 @@ bool _reaches(Rect stop, _Tappable target) {
   final targetArea = rect.width * rect.height;
   final union = stopArea + targetArea - overlapArea;
   return overlapArea / union >= 0.25 ||
-      (overlapArea >= 0.8 * stopArea && stopArea >= 0.25 * targetArea);
+      (overlapArea >= 0.8 * stopArea && stopArea >= 0.5 * targetArea);
 }
 
 /// What a walk found: the stops, and every tappable seen on screen along the
@@ -354,6 +358,21 @@ void _screen(
         walk.unreached,
         isEmpty,
         reason: '$name: tappable but never reached by Tab',
+      );
+
+      // A stop must be somewhere a person can see it. The ring check compares
+      // the ring with the stop's own bounds, so a zero-size or off-screen stop
+      // would otherwise pass it.
+      expect(
+        [
+          for (final stop in real)
+            if (stop.rect.width < _minStop ||
+                stop.rect.height < _minStop ||
+                !(Offset.zero & _desktop).contains(stop.rect.center))
+              '${stop.rect} ${stop.describe}',
+        ],
+        isEmpty,
+        reason: '$name: a Tab stop that is tiny or off screen',
       );
 
       // 3. Every stop shows the focus ring (text fields draw their own).
