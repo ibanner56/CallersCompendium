@@ -38,7 +38,8 @@ python3 tools/site/render_user_docs.py --out build/site
 ```
 
 A broken cross-link, an `#anchor` with no matching heading, two headings that
-collide on one anchor, a stale `guide/…` link on the landing page, or any GitHub
+collide on one anchor, an image with no alt text or a missing image file, a
+stale `guide/…` link on the landing page, or any GitHub
 repo URL in the built site whose path is missing or has the wrong `blob`/`tree`
 form all **fail the build**; the same check runs on every PR that touches
 `docs/user/` via `.github/workflows/docs-bundle-check.yml`.

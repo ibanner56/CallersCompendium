@@ -38,6 +38,13 @@ path must exist, and ``blob/`` must be a file while ``tree/`` must be a
 directory. The gate runs on every PR that touches the guides, so a broken
 cross-link can't reach ``main``.
 
+**Image alt text is enforced.** Every image in any ``docs/user/*.md`` (the
+unpublished style guide included, its fenced examples excluded) must have alt
+text, unless it is listed by name in ``DECORATIVE_IMAGES``; the alt text must not
+be just the file name or a bare "image"/"screenshot"; and the file must exist
+under ``docs/user/images/``, because a missing one otherwise ships as a text
+caption instead of failing. See ``check_images``.
+
 Usage::
 
     python3 tools/site/render_user_docs.py                 # -> build/site
@@ -47,7 +54,7 @@ Usage::
 ``--out`` is erased and rewritten, so it must be a new or empty directory, or
 sit **below** ``build/`` or a temp directory — never one of those roots itself.
 
-Exit codes: 0 = rendered, 1 = broken links, 2 = bad input.
+Exit codes: 0 = rendered, 1 = broken links or images, 2 = bad input.
 """
 
 from __future__ import annotations
@@ -721,28 +728,31 @@ def check_images(
             )
         unresolved = {href for href, ok in calls if not ok}
         for image in images:
-            where = f"docs/user/{doc}:{image.line}"
             key = (doc, image.dest)
             seen[key] = image.alt
-            if image.dest in unresolved:
-                errors.append(
-                    f"{where}: image {image.dest} does not resolve to a file "
-                    "under docs/user/images/ (a missing file ships as a text "
-                    "caption, not an image)."
-                )
+            problems: list[str] = []
             if not image.alt:
                 if key not in decorative:
-                    errors.append(
-                        f"{where}: image {image.dest} has no alt text. Describe "
-                        "what it shows, or, if it is purely decorative, add "
-                        f"({doc!r}, {image.dest!r}) to DECORATIVE_IMAGES in "
-                        "tools/site/render_user_docs.py."
+                    problems.append(
+                        "has no alt text (describe what it shows, or, if it is "
+                        f"purely decorative, add ({doc!r}, {image.dest!r}) to "
+                        "DECORATIVE_IMAGES in tools/site/render_user_docs.py)"
                     )
             elif _is_generic_alt(image.alt, image.dest):
+                problems.append(
+                    f"alt text {image.alt!r} is its file name or a bare "
+                    "placeholder (describe what the image shows)"
+                )
+            if image.dest in unresolved:
+                problems.append(
+                    "does not resolve to a file under docs/user/images/ (a "
+                    "missing file ships as a text caption, not an image)"
+                )
+            if problems:
                 errors.append(
-                    f"{where}: image {image.dest} has alt text {image.alt!r}, "
-                    "which is its file name or a bare placeholder; describe "
-                    "what the image shows."
+                    f"docs/user/{doc}:{image.line}: image {image.dest} "
+                    + "; ".join(problems)
+                    + "."
                 )
     for doc, dest in sorted(decorative):
         if (doc, dest) not in seen:

@@ -241,6 +241,11 @@ text zoom — the same audience the app itself is built for. Model good practice
 ## Alt-text policy
 
 Every image in the user docs **must** have alt text. This is not optional.
+`python3 tools/site/render_user_docs.py --check` fails on an image with no alt
+text (code examples in fenced blocks are skipped), on alt text that is just the
+file name or a bare "image" or "screenshot", and on an image file that is
+missing. A purely decorative image is allowed only by name, in
+`DECORATIVE_IMAGES` in that script.
 
 - **Informative images (screenshots, diagrams):** write alt text that conveys the
   same information the image gives a sighted reader — what screen it is and what

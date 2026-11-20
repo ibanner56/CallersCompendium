@@ -702,6 +702,13 @@ def test_alt_text_is_what_the_renderer_would_emit() -> None:
     assert [(r.line, r.alt, r.dest) for r in refs] == [(1, "bold and code alt", "x.png")]
 
 
+def test_an_image_with_two_problems_is_one_error_naming_both() -> None:
+    errors = _image_errors("# Pics\n\n![](images/nope.png)\n")
+    assert len(errors) == 1, errors
+    assert errors[0].startswith("docs/user/pics.md:3: ")
+    assert "has no alt text" in errors[0] and "does not resolve" in errors[0], errors
+
+
 def test_a_missing_image_file_is_flagged_not_silently_a_caption() -> None:
     errors = _image_errors("# Pics\n\n![A real description](images/nope.png)\n")
     assert len(errors) == 1 and ":3: " in errors[0], errors
@@ -985,6 +992,33 @@ def test_check_site_links_flags_a_stale_landing_page_link() -> None:
         assert len(errors) == 2, errors
         assert "retired-guide.html" in errors[0]
         assert "no matching heading" in errors[1]
+
+
+def _main_with_image_errors(argv: list[str]) -> tuple[int, str]:
+    """Run ``rud.main(argv)`` with check_images stubbed to report one problem."""
+    original = rud.check_images
+    rud.check_images = lambda *args, **kwargs: [
+        "docs/user/x.md:1: image y.png has no alt text."
+    ]
+    try:
+        with contextlib.redirect_stdout(io.StringIO()) as captured:
+            code = rud.main(argv)
+    finally:
+        rud.check_images = original
+    return code, captured.getvalue()
+
+
+def test_main_check_mode_runs_the_image_check() -> None:
+    code, output = _main_with_image_errors(["--check"])
+    assert code == 1, output
+    assert "has no alt text" in output, output
+
+
+def test_main_build_mode_runs_the_image_check() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        code, output = _main_with_image_errors(["--out", str(Path(tmp) / "build" / "site")])
+    assert code == 1, output
+    assert "has no alt text" in output, output
 
 
 def test_main_check_mode_passes_on_the_real_corpus() -> None:
