@@ -37,12 +37,22 @@ Future<void> pickDropdownEntry(
 /// not yet been built when the release arrives, and the tap lands on what is
 /// no longer there for a user. That hid #2292's menu that shut on a mouse
 /// press before the click could pick.
+///
+/// Fails if something else is over [target]'s centre, so the press would
+/// land on that instead.
 Future<void> press(
   WidgetTester tester,
   Finder target, {
   PointerDeviceKind? kind,
 }) async {
   final at = tester.getCenter(target);
+  final hit = tester.hitTestOnBinding(at);
+  final element = target.evaluate().single;
+  expect(
+    hit.path.any((entry) => entry.target == element.renderObject),
+    isTrue,
+    reason: 'a press at $at would not reach $target',
+  );
   final gesture = await tester.createGesture(
     kind:
         kind ??

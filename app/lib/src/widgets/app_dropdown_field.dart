@@ -166,6 +166,7 @@ class _AppDropdownFieldState<T> extends FormFieldState<T> {
     skipTraversal: true,
   );
   final MenuController _menu = MenuController();
+  late final _tapOutside = _KeepFocusForMenuPress(_pressIsInMenu);
   bool _menuWasOpen = false;
   bool _focused = false;
   ScrollPosition? _scroll;
@@ -173,10 +174,6 @@ class _AppDropdownFieldState<T> extends FormFieldState<T> {
   // True for the frames just after the field takes focus: the only time a
   // scroll is the field's own, not the user's.
   bool _justFocused = false;
-  // Whether a pick returns the focus to the field (on a desktop), set when the
-  // menu opens; and whether an entry was picked since then.
-  bool _focusBackOnClose = false;
-  bool _pickedSinceOpen = false;
   List<AppDropdownEntry<T>>? _builtFrom;
   List<DropdownMenuEntry<int>> _menuEntries = const [];
 
@@ -292,21 +289,21 @@ class _AppDropdownFieldState<T> extends FormFieldState<T> {
       return;
     }
     _reopenAfterScroll = false;
-    // A mouse press anywhere outside the text field, the open menu included,
-    // drops the focus to the page's scope (a text field's tap-outside) before
-    // the release can pick. Leave an open menu to itself then: a press on an
-    // entry goes on to pick it, and [_reclaimFocus] gives the focus back; a
-    // press anywhere else closes the menu by itself. Closing it here, or
-    // putting the choice back over a typed filter, would take the entries out
-    // from under the pointer, and no click could pick.
-    final primary = FocusManager.instance.primaryFocus;
-    final dropped =
-        primary is FocusScopeNode && _ownFocus.ancestors.contains(primary);
-    if (dropped && _menu.isOpen) return;
     // Tabbing away leaves no menu open over the next field.
     if (_menu.isOpen) _menu.close();
     _showCurrent();
   }
+
+  /// Whether [event] presses inside this field's open menu: its entries, its
+  /// padding, its scrollbar.
+  ///
+  /// The menu is a focus scope of its own under this field's node, laid out
+  /// over the panel, so its rect is the panel's. No other scope is under it.
+  bool _pressIsInMenu(PointerDownEvent event) =>
+      _menu.isOpen &&
+      _ownFocus.descendants.any(
+        (node) => node is FocusScopeNode && node.rect.contains(event.position),
+      );
 
   /// A go-back key (Esc, Ctrl/Cmd-W) in the field while its menu is closed.
   ///
@@ -361,31 +358,17 @@ class _AppDropdownFieldState<T> extends FormFieldState<T> {
   /// menu then leaves it on the page instead of the field. Esc from either
   /// place misses the field and whatever surrounds it, such as an inline
   /// editor that closes on Esc. So when the menu opens on a desktop, move the
-  /// focus to the field, and give it back to the field if the menu closes
-  /// with the focus dropped to the page; and when the menu closes with the
-  /// focus still on that node of the menu's, move it to the field, or on
-  /// touch to the arrow.
+  /// focus to the field; and when the menu closes with the focus still on
+  /// that node of the menu's, move it to the field, or on touch to the arrow.
+  /// A press in the open menu leaves the field its focus
+  /// ([_KeepFocusForMenuPress]), so a mouse pick ends on the field too.
   void _reclaimFocus({required bool opening}) {
     final primary = FocusManager.instance.primaryFocus;
-    if (opening) {
-      _focusBackOnClose = _fieldTakesFocus(context);
-      _pickedSinceOpen = false;
-    }
     if (primary == null || primary == _fieldFocus || primary == _arrowFocus) {
       return;
     }
     final inMenu = primary.ancestors.contains(_ownFocus);
-    // A mouse pick from the menu takes the focus off the field, back to the
-    // page's scope; return it, as a menu returns it to its button.
-    final dropped =
-        primary is FocusScopeNode && _ownFocus.ancestors.contains(primary);
-    // Only after a pick: a click elsewhere that dismissed the menu keeps the
-    // focus where that click left it.
-    final backOnClose = _focusBackOnClose && _pickedSinceOpen;
-    if (!opening) _focusBackOnClose = _pickedSinceOpen = false;
     if (opening && _fieldTakesFocus(context) && _fieldFocus.canRequestFocus) {
-      _fieldFocus.requestFocus();
-    } else if (!opening && dropped && backOnClose) {
       _fieldFocus.requestFocus();
     } else if (inMenu) {
       // On touch, the arrow rather than a filterable field: focusing the
@@ -445,7 +428,6 @@ class _AppDropdownFieldState<T> extends FormFieldState<T> {
   }
 
   void _onSelected(int? index) {
-    if (index != null) _pickedSinceOpen = true;
     // Null is "nothing matched what was typed", never a choice: entries are
     // addressed by position, so a null value is an index like any other.
     if (index == null) {
@@ -718,9 +700,38 @@ class _AppDropdownFieldState<T> extends FormFieldState<T> {
       child: Actions(
         actions: {
           GoBackIntent: CallbackAction<GoBackIntent>(onInvoke: _goBack),
+          EditableTextTapOutsideIntent: _tapOutside,
         },
         child: field,
       ),
     );
+  }
+}
+
+/// Keeps the text field's focus for a press inside its own open menu.
+///
+/// A text field drops its focus on a press outside itself: any press on a
+/// desktop, a mouse or stylus press on a phone or tablet. [DropdownMenu]'s
+/// menu is outside its text field, so a mouse click on an entry would take
+/// the field's focus, the field would close its menu on that blur
+/// ([_AppDropdownFieldState._onFocusChange]), and the release would find
+/// nothing to pick (#2292). A press in the menu that picks nothing (its
+/// padding, a right-click) must not strand the focus on the page either,
+/// out of reach of Esc and Tab while the menu is still open. So a press in
+/// the menu leaves the focus where it is; any other press is the text
+/// field's own, as before.
+class _KeepFocusForMenuPress
+    extends ContextAction<EditableTextTapOutsideIntent> {
+  _KeepFocusForMenuPress(this.inMenu);
+
+  final bool Function(PointerDownEvent event) inMenu;
+
+  @override
+  Object? invoke(EditableTextTapOutsideIntent intent, [BuildContext? context]) {
+    if (inMenu(intent.pointerDownEvent)) return null;
+    final standard = callingAction;
+    return standard is ContextAction<EditableTextTapOutsideIntent>
+        ? standard.invoke(intent, context)
+        : standard?.invoke(intent);
   }
 }
