@@ -18,9 +18,15 @@ import '../support/test_repositories.dart';
 /// Each test runs the whole sequence the issue names, on two real databases
 /// syncing through an in-memory store with real coordinators: import, a pass
 /// that publishes the imported records (the pass inside the undo window), undo,
-/// then the passes after it. The repository-level cases (`delete(permanent:
-/// true)` and `hardDelete` tombstone a published row) and the coordinator's
-/// marker race are tested elsewhere; this is the one that runs them together.
+/// then the passes after it. These are characterization tests of enforcement
+/// that already exists: they pass on the code as it stood before they were
+/// written. Each marker check they depend on was removed in turn to show they
+/// can fail: the dance, program and venue `hardDelete` checks and the pass's
+/// own marker write are caught here. The choreographer's own marker check is
+/// NOT: in this scenario the published dance survives as a tombstone, whose
+/// credit row downgrades the choreographer's erase to a tombstone regardless,
+/// so that branch is pinned by `choreographer_repository_test.dart` instead.
+/// The coordinator's marker race is tested in `sync_coordinator_test.dart`.
 void main() {
   // Two databases in one isolate is the point of these tests.
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
@@ -179,7 +185,9 @@ void main() {
 
       await pipeline.undo(session);
 
-      // Not erased: a peer holds them, so deletion evidence must stay.
+      // Not erased: a peer holds them, so deletion evidence must stay. (For the
+      // choreographer this holds because its tombstoned dance still credits it;
+      // see the file header.)
       final dance = await a.repositories.dances.getById(
         danceId,
         includeDeleted: true,

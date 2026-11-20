@@ -166,8 +166,8 @@ pass taking the "absent from baseline, present remotely → download" path
 (§6.3) and restoring it, reversing the deletion on every pass.
 
 That condition is enforced where the hard delete happens, not assumed of each
-caller. Every hard-delete path reads the durable marker (§3.2, written at §6.3
-step 7) and **tombstones a marked record instead of erasing it**:
+caller. The repositories' hard-delete paths read the durable marker (§3.2,
+written at §6.3 step 7) and **tombstone a marked record instead of erasing it**:
 `DanceRepository.hardDelete`, `ProgramRepository.hardDelete` and
 `VenueRepository.hardDelete`, `ChoreographerRepository.delete(permanent: true)`,
 and the permanent deletes of the other record kinds. A pass writes the markers
