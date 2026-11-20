@@ -154,6 +154,11 @@ names too: searching your name for a move finds every dance with that move.
 A name with `%S` in it is the exception; search for the move by its usual
 name instead.
 
+An English (ECD) dialect offers only English country dance moves in both
+sections. If one of your English dialects already rewords a contra move, that
+entry still shows, with **· Contra** after the move's name, so you can tell it
+from the English move of the same name.
+
 ### Move wording templates
 
 To reword the whole sentence around a move, not just its name, add a

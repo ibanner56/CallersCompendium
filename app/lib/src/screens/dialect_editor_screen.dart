@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
 import '../data/user_figures_scope.dart';
 import '../data/validation_issue_labels.dart';
-import '../search/facet_labels.dart' show humanizeToken;
+import '../search/facet_labels.dart' show danceFormLabel, humanizeToken;
 import '../theme/app_motion.dart';
 import '../theme/app_spacing.dart';
 import '../theme/destructive_button_style.dart';
@@ -1237,19 +1237,34 @@ String _entryLabel(
         ? l10n.dialectEditorUserFigureGone
         : renderer.renderFreeText(view.name, dialect);
   }
-  return renderer.taxonomy.moves[id]?.displayName ??
+  final name =
+      renderer.taxonomy.moves[id]?.displayName ??
       renderer.taxonomy.aliases[id]?.displayName ??
       id;
+  // An entry for another form's figure (a contra move an English dialect
+  // named before English had figures of its own) names that form, so it is
+  // never mistaken for the form's own figure of the same name.
+  final form = shippedTaxonomies.formOfMoveId(id);
+  return form == renderer.taxonomy.form
+      ? name
+      : '$name · ${danceFormLabel(l10n, form)}';
 }
 
-/// The ids a dialect can name or word: every move but `custom`, and every
-/// alias listed as a move ([MoveAlias.listedAsMove]), which a dialect names
-/// on its own: `long lines`, a move until taxonomy v39.
+/// The ids a dialect can be given a new name or wording for: every move of
+/// the dialect's own form but `custom`, and every alias of that form listed
+/// as a move ([MoveAlias.listedAsMove]), which a dialect names on its own
+/// (`long lines`, a move until taxonomy v39; `hand cast`). An English
+/// dialect's taxonomy lays English figures over contra's, but offers only
+/// English ones, as the English dance editor does (ADR-006 §12.2, S1); an
+/// entry it already holds for a contra move still shows, named as contra's.
 Iterable<String> _dialectNameableMoveIds(Taxonomy taxonomy) => [
   for (final m in taxonomy.moves.values)
-    if (m.id != customMoveId) m.id,
+    if (m.id != customMoveId &&
+        shippedTaxonomies.formOfMoveId(m.id) == taxonomy.form)
+      m.id,
   for (final a in taxonomy.aliases.values)
-    if (a.listedAsMove) a.id,
+    if (a.listedAsMove && shippedTaxonomies.formOfMoveId(a.id) == taxonomy.form)
+      a.id,
 ];
 
 String _branchLabel(String branch, AppLocalizations l10n) => switch (branch) {
