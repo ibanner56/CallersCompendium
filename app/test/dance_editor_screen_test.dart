@@ -23,6 +23,7 @@ import 'package:compendium_app/src/widgets/figure_list_editor.dart';
 import 'package:compendium_app/src/widgets/lingo_text_editing_controller.dart';
 import 'package:compendium_app/src/widgets/section_header.dart';
 
+import 'support/dropdown.dart';
 import 'support/test_repositories.dart';
 import 'support/new_dance_draft.dart';
 import 'support/l10n_harness.dart';
@@ -614,6 +615,24 @@ void main() {
     final saved = await repos.dances.getById('d1');
     expect(saved!.form, DanceForm.square);
   });
+
+  testWidgets('type: a mouse click on a desktop picks another type', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await _pumpEditor(tester, repos);
+    expect(_dropdownValue<DanceForm>(tester), DanceForm.contra);
+
+    // A press, a frame, a release: the menu once closed on the press, so no
+    // click picked anything (#2292).
+    await pickDropdownEntry(
+      tester,
+      find.byKey(const ValueKey('form-field')),
+      'Square',
+    );
+
+    expect(_dropdownValue<DanceForm>(tester), DanceForm.square);
+  }, variant: TargetPlatformVariant.desktop());
 
   testWidgets('selecting Unspecified clears an existing level', (tester) async {
     final repos = openTestRepositories();

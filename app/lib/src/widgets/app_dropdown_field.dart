@@ -292,6 +292,17 @@ class _AppDropdownFieldState<T> extends FormFieldState<T> {
       return;
     }
     _reopenAfterScroll = false;
+    // A mouse press anywhere outside the text field, the open menu included,
+    // drops the focus to the page's scope (a text field's tap-outside) before
+    // the release can pick. Leave an open menu to itself then: a press on an
+    // entry goes on to pick it, and [_reclaimFocus] gives the focus back; a
+    // press anywhere else closes the menu by itself. Closing it here, or
+    // putting the choice back over a typed filter, would take the entries out
+    // from under the pointer, and no click could pick.
+    final primary = FocusManager.instance.primaryFocus;
+    final dropped =
+        primary is FocusScopeNode && _ownFocus.ancestors.contains(primary);
+    if (dropped && _menu.isOpen) return;
     // Tabbing away leaves no menu open over the next field.
     if (_menu.isOpen) _menu.close();
     _showCurrent();

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:compendium_app/src/theme/app_theme.dart';
 import 'package:compendium_app/src/widgets/app_dropdown_field.dart';
 import 'package:compendium_app/src/widgets/app_shortcuts.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -401,6 +402,34 @@ void main() {
       expect(_shown(tester), 'Bravo');
     });
 
+    // On every platform a mouse press outside a focused text field takes its
+    // focus, so a filterable field (focused while it filters) loses it to the
+    // press on an entry even on a tablet with a mouse. The press must neither
+    // close the menu nor put the filter back, which would move the entries
+    // out from under the pointer.
+    testWidgets('a mouse click picks from the filtered menu', (tester) async {
+      String? picked = 'a';
+      await _pump(
+        tester,
+        value: 'a',
+        filterable: true,
+        onChanged: (v) => picked = v,
+      );
+      await press(tester, find.byKey(_fieldKey), kind: PointerDeviceKind.mouse);
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(_fieldKey), 'rav');
+      await tester.pumpAndSettle();
+      expect(find.text('None'), findsNothing, reason: 'the menu is filtered');
+      await press(
+        tester,
+        dropdownEntry('Bravo'),
+        kind: PointerDeviceKind.mouse,
+      );
+      await tester.pumpAndSettle();
+      expect(picked, 'b');
+      expect(_shown(tester), 'Bravo');
+    }, variant: TargetPlatformVariant.all());
+
     testWidgets('a scroll the user makes closes the menu for good', (
       tester,
     ) async {
@@ -577,6 +606,30 @@ void main() {
         ),
       );
       expect(field.focusNode.hasFocus, isFalse);
+    }, variant: TargetPlatformVariant.desktop());
+
+    // The mouse press on an entry takes the focus off the field before the
+    // release picks it (a text field drops its focus on a click anywhere
+    // outside itself, the menu included). A menu that closed on that blur
+    // was gone before the release, so no click picked anything (#2292).
+    testWidgets('a mouse click picks an entry, and the focus comes back to '
+        'the field', (tester) async {
+      String? picked = 'a';
+      await _pump(tester, value: 'a', onChanged: (v) => picked = v);
+      await press(tester, find.byKey(_fieldKey));
+      await tester.pumpAndSettle();
+      await press(tester, dropdownEntry('Bravo'));
+      await tester.pumpAndSettle();
+      expect(picked, 'b');
+      expect(_shown(tester), 'Bravo');
+      expect(find.byType(MenuItemButton), findsNothing);
+      final field = tester.widget<EditableText>(
+        find.descendant(
+          of: find.byKey(_fieldKey),
+          matching: find.byType(EditableText),
+        ),
+      );
+      expect(field.focusNode.hasFocus, isTrue);
     }, variant: TargetPlatformVariant.desktop());
 
     testWidgets('Tab away closes an open menu', (tester) async {
