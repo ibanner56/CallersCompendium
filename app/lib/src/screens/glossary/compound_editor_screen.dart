@@ -76,6 +76,7 @@ class CompoundEditorScreen extends StatefulWidget {
     this.figuresOnly = false,
     this.convertToFigure = false,
     this.copyOf,
+    this.initialForm,
   }) : assert(
          initial == null || copyOf == null,
          'a copy is a new entry, not an edit',
@@ -103,6 +104,12 @@ class CompoundEditorScreen extends StatefulWidget {
   /// own, [userFigureSeedFromMove]). Saved as a new entry, under a new id,
   /// with its `copiedFrom`; [copyOf]'s own id and creation time are not used.
   final UserGlossaryEntry? copyOf;
+
+  /// The dance form a new entry starts in: the one the Glossary was showing
+  /// when the user added it, so it is listed where they added it. `null`
+  /// starts in [defaultGlossaryEntryForm]. A stored entry or a copy keeps its
+  /// own.
+  final DanceForm? initialForm;
 
   @override
   State<CompoundEditorScreen> createState() => _CompoundEditorScreenState();
@@ -198,7 +205,7 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
         };
 
   /// The dance form the entry is offered in (#1023, maintainer decision 8).
-  String _form = defaultGlossaryEntryForm;
+  late String _form = widget.initialForm?.name ?? defaultGlossaryEntryForm;
 
   /// A new figure's wording template, shown in the active dialect, and its
   /// default beats.

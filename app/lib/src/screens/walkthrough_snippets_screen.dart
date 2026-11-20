@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
 import '../data/active_dialect_scope.dart';
 import '../data/walkthrough_snippet_library_scope.dart';
+import '../glossary/figure_titles.dart';
 import '../theme/app_motion.dart';
 import '../theme/app_spacing.dart';
 import '../utils/confirm_delete.dart';
@@ -25,7 +26,10 @@ class WalkthroughSnippetsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final controller = WalkthroughSnippetLibraryScope.of(context);
-    final dialect = ActiveDialectScope.contraOf(context);
+    final dialects = ActiveDialectScope.of(context);
+    // Each snippet is shown in the dialect of its figure's form (ADR-006 W5).
+    Dialect dialectOf(String signature) =>
+        dialects.forForm(walkthroughSnippetForm(signature));
     final renderer = FigureRenderer(shippedTaxonomies.anyForm);
     final l10n = AppLocalizations.of(context);
 
@@ -42,7 +46,7 @@ class WalkthroughSnippetsScreen extends StatelessWidget {
                   e.key,
                   shippedTaxonomies.anyForm,
                   renderer,
-                  dialect,
+                  dialectOf(e.key),
                 ),
               ),
             )
@@ -80,7 +84,10 @@ class WalkthroughSnippetsScreen extends StatelessWidget {
               _SnippetRow(
                 key: ValueKey('walkthrough-snippet-${entry.signature}'),
                 label: entry.label,
-                text: renderer.renderFreeText(entry.text, dialect),
+                text: renderer.renderFreeText(
+                  entry.text,
+                  dialectOf(entry.signature),
+                ),
                 onEdit: () => _edit(context, entry.signature, entry.text),
                 onDelete: () => _delete(context, entry.signature, entry.label),
               ),

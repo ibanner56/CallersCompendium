@@ -8,6 +8,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../data/active_dialect_scope.dart';
 import '../../data/capitalize_figures_scope.dart';
 import '../../data/decimal_turns_scope.dart';
+import '../../data/display_defaults.dart';
 import '../../data/dialect_library_scope.dart';
 import '../../data/repositories_scope.dart';
 import '../../data/shorthand_mappings_scope.dart';
@@ -42,9 +43,15 @@ import '../../theme/app_breakpoints.dart';
 /// this screen deliberately has no app-bar global-search action: its own
 /// search field is the glossary's search.
 class GlossaryScreen extends StatefulWidget {
-  const GlossaryScreen({super.key, this.entries});
+  const GlossaryScreen({super.key, this.entries, this.isActive = true});
 
-  /// The figures to list; defaults to the shipped glossary. A test seam.
+  /// Whether the Glossary is the destination on screen. The app shell keeps
+  /// it alive while another is shown; each time it is shown again, it opens
+  /// on the form a new dance now starts as, unless the user picked a form.
+  final bool isActive;
+
+  /// The figures to list; defaults to the shipped glossary of the form shown.
+  /// A test seam: with it, the Glossary offers no choice of form.
   @visibleForTesting
   final List<FigureGlossaryEntry>? entries;
 
@@ -52,8 +59,20 @@ class GlossaryScreen extends StatefulWidget {
   State<GlossaryScreen> createState() => _GlossaryScreenState();
 }
 
-final FigureRenderer _renderer = FigureRenderer(contraTaxonomy);
-final List<FigureGlossaryEntry> _shippedEntries = shippedFigureGlossaryEntries;
+/// The dialect the Glossary shows [form]'s figures in: that form's own
+/// (ADR-006 W4).
+Dialect _dialectFor(BuildContext context, DanceForm form) =>
+    ActiveDialectScope.of(context).forForm(form);
+
+/// The dialect the Glossary shows the user's own entries in, whatever form
+/// they were made for: contra's, as their detail, the Custom Figures screen
+/// and the editor show them, so each reads the same everywhere. Each moves to
+/// its own form's when those surfaces do (ADR-006 implementation plan, W7).
+Dialect _customDialect(BuildContext context) =>
+    _dialectFor(context, DanceForm.contra);
+
+/// Renders the user's own entries, with [_customDialect].
+final FigureRenderer _customRenderer = glossaryRenderer(DanceForm.contra);
 
 /// The name [entry] is listed and headed by under [dialect]
 /// ([glossaryFigureTitle]).
@@ -62,7 +81,8 @@ String _entryTitle(
   FigureGlossaryEntry entry,
   List<FigureGlossaryEntry> all,
   Dialect dialect,
-) => glossaryFigureTitle(l10n, entry.id, all, dialect);
+  DanceForm form,
+) => glossaryFigureTitle(l10n, entry.id, all, dialect, form: form);
 
 /// An entry resolved for display under one dialect: a shipped figure or one
 /// of the user's own.
@@ -123,15 +143,65 @@ class _GlossaryScreenState extends State<GlossaryScreen> {
   StreamSubscription<List<UserGlossaryEntry>>? _userEntriesSub;
   List<UserGlossaryEntry> _userEntries = const [];
 
+  /// The dance form whose figures are shown (ADR-006 W5). It opens on the
+  /// form a new dance starts as (S6), read again each time the Glossary is
+  /// shown ([GlossaryScreen.isActive]), until the user picks one.
+  DanceForm _form = DanceForm.contra;
+  bool _formPicked = false;
+
+  FigureRenderer get _renderer => glossaryRenderer(_form);
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     final repos = RepositoriesScope.maybeOf(context);
     if (identical(repos, _repos)) return;
     _repos = repos;
+    if (repos != null) unawaited(_openOnNewDanceForm(repos));
     unawaited(_userEntriesSub?.cancel());
     _userEntriesSub = repos?.userGlossary.watchAll().listen((entries) {
       if (mounted) setState(() => _userEntries = entries);
+    });
+  }
+
+  /// Shows the form a new dance starts as (S6): the default-form setting,
+  /// or the last form used. Contra if it can't be read, or for a form with
+  /// no figures of its own ([glossaryFormFor]).
+  Future<void> _openOnNewDanceForm(CompendiumRepositories repos) async {
+    DanceForm form;
+    try {
+      form = resolveNewDanceForm(
+        defaultFormStored: await repos.settings.get(kDefaultDanceFormKey),
+        lastUsedStored: await repos.settings.get(kLastUsedDanceFormKey),
+      );
+    } catch (_) {
+      // diagnostics: silent — the Glossary then opens on contra, as it did
+      // before it had a choice of form.
+      return;
+    }
+    final shown = glossaryFormFor(form);
+    if (!mounted || _formPicked || shown == _form) return;
+    setState(() {
+      _form = shown;
+      _selectedId = null;
+    });
+  }
+
+  @override
+  void didUpdateWidget(GlossaryScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final repos = _repos;
+    if (widget.isActive && !oldWidget.isActive && repos != null) {
+      unawaited(_openOnNewDanceForm(repos));
+    }
+  }
+
+  void _pickForm(DanceForm form) {
+    if (form == _form) return;
+    setState(() {
+      _form = form;
+      _formPicked = true;
+      _selectedId = null;
     });
   }
 
@@ -142,18 +212,20 @@ class _GlossaryScreenState extends State<GlossaryScreen> {
     super.dispose();
   }
 
-  List<FigureGlossaryEntry> get _entries => widget.entries ?? _shippedEntries;
+  List<FigureGlossaryEntry> get _entries =>
+      widget.entries ?? shippedFigureGlossaryEntriesFor(_form);
 
   List<_ShownEntry> _shown(
     AppLocalizations l10n,
     Dialect dialect,
     List<CustomGlossaryItem> custom,
+    Dialect customDialect,
   ) {
     final shown = [
       for (final e in _entries)
         _ShownEntry.shipped(
           e,
-          _entryTitle(l10n, e, _entries, dialect),
+          _entryTitle(l10n, e, _entries, dialect, _form),
           switch (e.definition) {
             final d? => _renderer.renderFreeText(d.definition, dialect),
             null => null,
@@ -162,11 +234,11 @@ class _GlossaryScreenState extends State<GlossaryScreen> {
       for (final c in custom)
         _ShownEntry.custom(
           c,
-          _renderer.renderFreeText(c.entry.name, dialect),
-          _renderer.renderFreeText(c.entry.definition, dialect),
+          _customRenderer.renderFreeText(c.entry.name, customDialect),
+          _customRenderer.renderFreeText(c.entry.definition, customDialect),
           keywords: [
             for (final k in c.entry.keywords)
-              _renderer.renderFreeText(k, dialect),
+              _customRenderer.renderFreeText(k, customDialect),
           ],
         ),
     ]..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
@@ -185,6 +257,8 @@ class _GlossaryScreenState extends State<GlossaryScreen> {
     final figuresShown = customFiguresShown(context);
     final all = resolveCustomGlossary(
       _userEntries,
+      // Checked against contra's figures, as the detail and the editor
+      // check them.
       taxonomy: contraTaxonomy,
       dialects: [
         dialect,
@@ -192,9 +266,21 @@ class _GlossaryScreenState extends State<GlossaryScreen> {
       ],
       shorthandTokens: ShorthandMappingsScope.tokensOf(context),
     );
+    // Each entry is listed under its own form, or contra's for one with no
+    // figures of its own, or one this build does not know.
+    DanceForm listedUnder(UserGlossaryEntry entry) {
+      final form = glossaryEntryForm(entry.payload);
+      for (final value in DanceForm.values) {
+        if (value.name == form) return glossaryFormFor(value);
+      }
+      return DanceForm.contra;
+    }
+
     return [
       for (final item in all)
-        if (figuresShown || item.isTerm) item,
+        if ((figuresShown || item.isTerm) &&
+            (widget.entries != null || listedUnder(item.entry) == _form))
+          item,
     ];
   }
 
@@ -212,6 +298,7 @@ class _GlossaryScreenState extends State<GlossaryScreen> {
       key: ValueKey('glossary-detail-${shown.id}'),
       entryId: entry.id,
       entries: _entries,
+      form: _form,
       showName: showName,
       // A figure of your own needs Custom Figures (maintainer decision 9),
       // and somewhere to be saved.
@@ -248,9 +335,12 @@ class _GlossaryScreenState extends State<GlossaryScreen> {
     FigureGlossaryEntry entry,
   ) async {
     final l10n = AppLocalizations.of(context);
-    final dialect = ActiveDialectScope.contraOf(context);
+    final form = _form;
+    // The copy is one of the user's own, so it is named in the dialect the
+    // editor shows those in.
+    final dialect = _customDialect(context);
     final seed = userFigureSeedFromMove(
-      contraTaxonomy,
+      shippedTaxonomies.forForm(form),
       entry.id,
       choiceLabel: (_, value) => humanizeToken(value),
       paramLabel: (key) => figureParamKeyLabel(l10n, key, moveId: entry.id),
@@ -266,7 +356,7 @@ class _GlossaryScreenState extends State<GlossaryScreen> {
     };
     if (!context.mounted) return;
     final base = l10n.commonDuplicateTitleSuffix(
-      _entryTitle(l10n, entry, _entries, dialect),
+      _entryTitle(l10n, entry, _entries, dialect, form),
     );
     var name = base;
     for (var n = 2; taken.contains(stored(name)); n++) {
@@ -284,7 +374,8 @@ class _GlossaryScreenState extends State<GlossaryScreen> {
             name: name,
             definition: definition?.definition ?? '',
             description: definition?.description ?? '',
-            payload: seed.toJson(),
+            // The copy is offered in the form it was copied from.
+            payload: {...seed.toJson(), 'form': form.name},
             createdAt: DateTime.now().toUtc(),
           ),
         ),
@@ -345,7 +436,11 @@ class _GlossaryScreenState extends State<GlossaryScreen> {
     final termsOnly = !customFiguresShown(context);
     final saved = await Navigator.of(context).push<UserGlossaryEntry>(
       MaterialPageRoute(
-        builder: (_) => CompoundEditorScreen(termsOnly: termsOnly),
+        builder: (_) => CompoundEditorScreen(
+          termsOnly: termsOnly,
+          // Listed under the form it was added on (ADR-006 W5).
+          initialForm: widget.entries == null ? _form : null,
+        ),
       ),
     );
     if (saved != null && mounted) {
@@ -356,9 +451,10 @@ class _GlossaryScreenState extends State<GlossaryScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final dialect = ActiveDialectScope.contraOf(context);
-    final custom = _custom(context, dialect);
-    final shown = _shown(l10n, dialect, custom);
+    final dialect = _dialectFor(context, _form);
+    final customDialect = _customDialect(context);
+    final custom = _custom(context, customDialect);
+    final shown = _shown(l10n, dialect, custom, customDialect);
     // A term needs only the Glossary, which this screen is; a figure of your
     // own needs Custom Figures on too (#1023, maintainer decision 9).
     final canAdd = _repos != null;
@@ -391,6 +487,9 @@ class _GlossaryScreenState extends State<GlossaryScreen> {
             query: _query,
             selectedId: wide ? _selectedId : null,
             onOpen: (s) => _open(context, s, wide: wide),
+            form: _form,
+            forms: widget.entries == null ? glossaryForms : const [],
+            onFormChanged: _pickForm,
           );
           if (!wide) return list;
           // A selection that is no longer listed — a custom entry deleted, or
@@ -431,7 +530,15 @@ class _GlossaryList extends StatelessWidget {
     required this.query,
     required this.selectedId,
     required this.onOpen,
+    required this.form,
+    required this.forms,
+    required this.onFormChanged,
   });
+
+  /// The dance form shown, one of [forms]; no choice when there is only one.
+  final DanceForm form;
+  final List<DanceForm> forms;
+  final ValueChanged<DanceForm> onFormChanged;
 
   final TextEditingController search;
   final ValueChanged<String> onQueryChanged;
@@ -446,6 +553,32 @@ class _GlossaryList extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        if (forms.length > 1)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.md,
+              AppSpacing.sm,
+              AppSpacing.md,
+              0,
+            ),
+            child: SegmentedButton<DanceForm>(
+              key: const ValueKey('glossary-form'),
+              showSelectedIcon: false,
+              segments: [
+                for (final f in forms)
+                  ButtonSegment(
+                    value: f,
+                    label: Text(
+                      danceFormLabel(l10n, f),
+                      key: ValueKey('glossary-form-${f.name}'),
+                    ),
+                  ),
+              ],
+              selected: {form},
+              onSelectionChanged: (selection) =>
+                  onFormChanged(selection.single),
+            ),
+          ),
         Padding(
           padding: const EdgeInsets.fromLTRB(
             AppSpacing.md,
@@ -513,9 +646,13 @@ class GlossaryFigureDetail extends StatelessWidget {
     super.key,
     required this.entryId,
     this.entries,
+    this.form = DanceForm.contra,
     this.showName = false,
     this.onCopy,
   });
+
+  /// The dance form whose figure this is, which sets its dialect.
+  final DanceForm form;
 
   /// Copies the figure as one of the user's own (#1023); no button without
   /// it.
@@ -536,25 +673,26 @@ class GlossaryFigureDetail extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final dialect = ActiveDialectScope.contraOf(context);
+    final dialect = _dialectFor(context, form);
+    final renderer = glossaryRenderer(form);
     final capitalize = CapitalizeFiguresScope.of(context);
     final decimals = DecimalTurnsScope.of(context);
     final verbose = VerboseFigureRenderingScope.of(context);
-    final all = entries ?? _shippedEntries;
+    final all = entries ?? shippedFigureGlossaryEntriesFor(form);
     final entry = all.firstWhere((e) => e.id == entryId);
-    final name = _entryTitle(l10n, entry, all, dialect);
+    final name = _entryTitle(l10n, entry, all, dialect, form);
     final definition = entry.definition;
 
     // Other names: the canonical name (when a custom dialect renames the
     // figure), the aliases of this move, then its search keywords — minus
     // anything that just repeats the name shown.
     final shownLower = {
-      _renderer.displayMoveName(entry.id, dialect).toLowerCase(),
+      renderer.displayMoveName(entry.id, dialect).toLowerCase(),
     };
     final otherNames = <String>[entry.canonicalName];
     for (final e in all) {
       if (e.isAlias && e.targetMoveId == entry.id) {
-        otherNames.add(_renderer.displayMoveName(e.id, dialect));
+        otherNames.add(renderer.displayMoveName(e.id, dialect));
       }
     }
     otherNames.addAll(entry.searchKeywords);
@@ -569,9 +707,9 @@ class GlossaryFigureDetail extends StatelessWidget {
     // (figure_table.dart): decimal turns, always-verbose, and capitalization;
     // a screen reader always gets the spoken-style rendering.
     final figure = Figure(move: entry.id);
-    final spoken = _renderer.renderVerbose(figure, dialect);
+    final spoken = renderer.renderVerbose(figure, dialect);
     final example = capitalizeFirstLetter(
-      verbose ? spoken : _renderer.render(figure, dialect, decimals: decimals),
+      verbose ? spoken : renderer.render(figure, dialect, decimals: decimals),
       capitalize: capitalize,
     );
 
@@ -597,7 +735,7 @@ class GlossaryFigureDetail extends StatelessWidget {
             padding: const EdgeInsets.only(top: AppSpacing.xs),
             child: Text(
               l10n.glossaryVariantOf(
-                _renderer.displayMoveName(entry.targetMoveId, dialect),
+                renderer.displayMoveName(entry.targetMoveId, dialect),
               ),
               key: const ValueKey('glossary-variant-of'),
               style: theme.textTheme.bodyMedium,
@@ -618,7 +756,7 @@ class GlossaryFigureDetail extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(top: AppSpacing.md),
             child: Text(
-              _renderer.renderFreeText(definition.definition, dialect),
+              renderer.renderFreeText(definition.definition, dialect),
               key: const ValueKey('glossary-definition'),
               style: theme.textTheme.bodyLarge,
             ),
@@ -626,7 +764,7 @@ class GlossaryFigureDetail extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(top: AppSpacing.sm),
             child: Text(
-              _renderer.renderFreeText(definition.description, dialect),
+              renderer.renderFreeText(definition.description, dialect),
               key: const ValueKey('glossary-description'),
             ),
           ),
@@ -677,7 +815,7 @@ class GlossaryFigureDetail extends StatelessWidget {
               ),
             ),
           ),
-        FigureNotesSection(figureId: entry.id),
+        FigureNotesSection(figureId: entry.id, form: form),
       ],
     );
   }
@@ -690,10 +828,18 @@ class GlossaryFigureDetail extends StatelessWidget {
 /// Stored canonically ([canonicalizeGlossaryText]) and read back in the
 /// active dialect, as the shipped definitions are.
 class FigureNotesSection extends StatefulWidget {
-  const FigureNotesSection({super.key, required this.figureId});
+  const FigureNotesSection({
+    super.key,
+    required this.figureId,
+    this.form = DanceForm.contra,
+  });
 
   /// The shipped move or alias id the notes are on.
   final String figureId;
+
+  /// The dance form of [figureId], whose dialect the notes are shown and
+  /// typed in.
+  final DanceForm form;
 
   @override
   State<FigureNotesSection> createState() => _FigureNotesSectionState();
@@ -739,7 +885,7 @@ class _FigureNotesSectionState extends State<FigureNotesSection> {
       builder: (_) => _NotesDialog(
         initial: _notes == null
             ? ''
-            : _renderer.renderFreeText(_notes!, dialect),
+            : glossaryRenderer(widget.form).renderFreeText(_notes!, dialect),
         // Empty text deletes the note.
         save: (text) async {
           try {
@@ -767,7 +913,7 @@ class _FigureNotesSectionState extends State<FigureNotesSection> {
     if (_repos == null) return const SizedBox.shrink();
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final dialect = ActiveDialectScope.contraOf(context);
+    final dialect = _dialectFor(context, widget.form);
     final notes = _notes;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -792,7 +938,7 @@ class _FigureNotesSectionState extends State<FigureNotesSection> {
           )
         else
           Text(
-            _renderer.renderFreeText(notes, dialect),
+            glossaryRenderer(widget.form).renderFreeText(notes, dialect),
             key: const ValueKey('glossary-notes'),
           ),
         Align(
