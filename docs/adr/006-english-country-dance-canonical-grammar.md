@@ -1280,11 +1280,13 @@ recommendation; the answer is quoted.
    separate field that could disagree with the numbers. A phrase played
    once is labeled by its name alone (`B`), one played twice `A1` and
    `A2`; a structure with no names keeps §5.5's paired labels.
-   **Older builds (open, put to the maintainer on 20 November 2026).** A
-   build from before named phrases can't parse `A:`: it skips such a dance
-   when it syncs or restores an archive, as point 1's answer accepted for a
-   new shape. Nothing gates it yet (no sync capability, no archive version,
-   no published-collection capability).
+   **Older builds** (decision card, 20 November 2026). A build from before
+   named phrases can't parse `A:`: it skips such a dance when it syncs or
+   restores an archive. Asked whether to gate it; answer: "Accept it, like
+   the new shapes" (point 1's cost), so nothing gates it (no sync
+   capability, no archive version, no published-collection capability).
+   Rejected: a sync capability that holds such dances back until every
+   attached device can read them.
 
 ### 9.3 Figures from a caller's notes
 
