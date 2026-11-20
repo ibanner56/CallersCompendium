@@ -168,4 +168,107 @@ void main() {
       'fourth lark gate third robin',
     );
   });
+
+  group('v40: the third and fourth couples as groups, and named dancers', () {
+    Figure tcb(String line) =>
+        parseFigureLines(line, beats: 4, frontEnd: tcbFigureFrontEnd).single;
+
+    test('threes and fours are dancer sets, with no other pair', () {
+      expect(ParamVocab.pairDancerSets, containsAll(['threes', 'fours']));
+      for (final kind in [ParamKind.dancerSet, ParamKind.dancerPair]) {
+        expect(ParamOpposites.of(kind, 'threes'), isNull);
+        expect(ParamOpposites.of(kind, 'fours'), isNull);
+      }
+    });
+
+    test("The Caller's Box's threes and fours read as those couples", () {
+      expect(tcb('Threes cast up').params['who'], 'threes');
+      expect(tcb('Fours swing').params['who'], 'fours');
+      expect(tcb('Twos cast down to bottom, following ones').isCustom, isTrue);
+    });
+
+    test('a role and a couple number name that couple\'s dancer', () {
+      // "Woman one" and "Man three" arrive from the import scrub as `role2
+      // one` and `role1 three`.
+      for (final (line, who) in [
+        ('Woman one cast off', 'onesRole2'),
+        ('Man one swing', 'onesRole1'),
+        ('Woman two cast up', 'twosRole2'),
+        ('Man three cast down', 'threesRole1'),
+        ('role2 four swing', 'foursRole2'),
+      ]) {
+        final figure = tcb(line);
+        expect(figure.isCustom, isFalse, reason: line);
+        expect(figure.params['who'], who, reason: line);
+      }
+      // It reads as the display's own name for that dancer.
+      expect(
+        renderer.renderSummary(tcb('Woman one cast off'), Dialect.presets[1]),
+        startsWith('first robin'),
+      );
+    });
+
+    test('a number after a group or after the move counts places', () {
+      // Only a singular role followed by a couple number names a dancer. These
+      // lines read the same before and after that reading was added.
+      for (final (line, who) in [
+        ('Women cast down one place', 'role2s'),
+        ('Ones cast down one place', 'ones'),
+        ('Threes cast down one place', 'threes'),
+      ]) {
+        expect(tcb(line).params, {
+          'who': who,
+          'direction': 'down',
+          'places': 1,
+          'beats': 4,
+        }, reason: line);
+      }
+    });
+
+    test('a hey led by threes or fours reads back, ricochets included', () {
+      for (final who in ['threes', 'fours']) {
+        for (final params in [
+          {'pass1': who, 'rico1': true},
+          {'pass1': who, 'rico2': true},
+          {'meetTarget': who, 'length': 'lessThanHalf'},
+        ]) {
+          final figure = testFigure(move: 'hey', params: params);
+          final text = renderer.renderSummary(figure, Dialect.presets[1]);
+          // Like the ones, they pass in the center.
+          if (params.containsKey('pass1')) {
+            expect(text, contains('rights in center'), reason: text);
+          }
+          final read = parseFreeTextFigureEntry(
+            text,
+            dialect: Dialect.presets[1],
+          );
+          expect(read, hasLength(1), reason: text);
+          expect(
+            renderer.renderSummary(read.single, Dialect.presets[1]),
+            text,
+            reason: text,
+          );
+          expect(read.single.note, isNull, reason: text);
+        }
+      }
+    });
+
+    test('their display lines read back, in every dialect', () {
+      for (final dialect in dialects) {
+        for (final (move, params) in [
+          ('swing', {'who': 'threes'}),
+          ('gate', {'who': 'fours'}),
+          ('arch_and_dive', {'who': 'threes'}),
+          ('cast', {'who': 'fours', 'direction': 'up'}),
+        ]) {
+          final figure = testFigure(move: move, params: params);
+          final text = renderer.renderSummary(figure, dialect);
+          final read = parseFreeTextFigureEntry(text, dialect: dialect);
+          expect(read, hasLength(1), reason: text);
+          expect(read.single.move, move, reason: text);
+          expect(read.single.params['who'], params['who'], reason: text);
+        }
+      }
+    });
+  });
 }

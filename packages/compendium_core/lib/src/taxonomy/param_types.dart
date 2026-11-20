@@ -81,6 +81,12 @@ abstract final class ParamVocab {
     'role2s',
     'ones',
     'twos',
+    // v40 (#770 follow-up, the maintainer's ruling): the third and fourth
+    // couples as groups, for triplets, triple minors and four-couple sets.
+    // The same tokens ECD's selectors use. Offered in every dance, as their
+    // single dancers (`threesRole1` …) already are.
+    'threes',
+    'fours',
     'partners',
     'neighbors',
     'sameRoles',

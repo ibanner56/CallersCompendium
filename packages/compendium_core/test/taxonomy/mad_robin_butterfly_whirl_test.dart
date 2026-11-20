@@ -52,6 +52,8 @@ void main() {
         'role2s',
         'ones',
         'twos',
+        'threes',
+        'fours',
         'partners',
         'neighbors',
         'sameRoles',

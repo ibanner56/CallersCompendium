@@ -25,6 +25,9 @@ const Map<String, String> dancerWords = {
   'everyone': 'everyone',
   'ones': 'ones',
   'twos': 'twos',
+  // v40: the third and fourth couples ("Threes cast up").
+  'threes': 'threes',
+  'fours': 'fours',
   // Tier B: TCB writes "Shadow allemande"; taxonomy supports `shadows`.
   'shadow': 'shadows',
   'shadows': 'shadows',
