@@ -982,6 +982,22 @@ void _formFilterTests() {
     expect(hidden, 0, reason: 'a chip does not close the open program');
   });
 
+  testWidgets('a filter left without a chip is dropped', (tester) async {
+    final repos = openTestRepositories();
+    await seed(repos);
+    await repos.programs.create(_program(id: 'p-none', title: 'Empty'));
+    await _pump(tester, repos);
+    await tester.tap(find.byKey(const ValueKey('programs-form-contra')));
+    await tester.pumpAndSettle();
+    expect(_titlesInOrder(tester), ['Contra night']);
+    // The English dance goes: every program with a dance is contra, so no
+    // chips are offered, and the program with no dances is listed again.
+    await repos.dances.softDelete('e', at: _now);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('programs-form-filter')), findsNothing);
+    expect(_titlesInOrder(tester), hasLength(4));
+  });
+
   testWidgets('a filter left with no programs is dropped, not revived', (
     tester,
   ) async {

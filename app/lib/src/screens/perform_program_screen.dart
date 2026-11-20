@@ -1925,7 +1925,8 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
           difficultyLevel: _difficultyLevelFor(dance),
           fitScaleCache: _fitScaleCache,
           scrollController: _cardScroll,
-          showForm: _mixesForms,
+          // A dance in Recently deleted names no form, as in the builder.
+          showForm: _mixesForms && !dance.isDeleted,
         );
       }
     }

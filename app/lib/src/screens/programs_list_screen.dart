@@ -184,11 +184,7 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
   /// Clears [_formFilter] once no listed program matches it, so it can't
   /// come back on its own when a later program does. Call within setState.
   void _dropStaleFormFilter() {
-    final filter = _formFilter;
-    if (filter == null) return;
-    if (!_unfilteredPrograms.any((p) => sameForms(_formsById[p.id], filter))) {
-      _formFilter = null;
-    }
+    if (_activeFormFilter == null) _formFilter = null;
   }
 
   /// Tells the host when the selected program is in the data but no longer
@@ -502,27 +498,39 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
   Iterable<Program> get _unfilteredPrograms => (_programs ?? const <Program>[])
       .where((p) => _showArchived || !p.isArchived);
 
-  /// [_formFilter] while some shown program still matches it; null once none
-  /// does (its last program changed, or was archived or deleted), so the
-  /// filter can never hide every program.
+  /// [_formFilter] while it is still one of the chips; null once it is not
+  /// (its last program changed, or was archived or deleted, or no second mix
+  /// is left to offer chips at all), so a filter is never on without a chip
+  /// to show it and clear it.
   Set<DanceForm>? get _activeFormFilter {
     final filter = _formFilter;
     if (filter == null) return null;
-    return _unfilteredPrograms.any((p) => sameForms(_formsById[p.id], filter))
+    final mixes = _distinctMixes();
+    return mixes.length >= 2 && mixes.any((m) => sameForms(m, filter))
         ? filter
         : null;
+  }
+
+  /// Each distinct set of forms among the programs shown with no type
+  /// filter, in no particular order.
+  List<Set<DanceForm>> _distinctMixes() {
+    final mixes = <String, Set<DanceForm>>{};
+    for (final program in _unfilteredPrograms) {
+      final forms = _formsById[program.id];
+      if (forms == null || forms.isEmpty) continue;
+      mixes[([for (final f in forms) f.name]..sort()).join('+')] = forms;
+    }
+    return mixes.values.toList();
   }
 
   /// The type filter's chips: each distinct set of forms among the programs
   /// shown with no type filter, in the order of their labels. Empty unless
   /// there are two to choose between.
   List<Set<DanceForm>> _formChoices(AppLocalizations l10n) {
-    final choices = <String, Set<DanceForm>>{};
-    for (final program in _unfilteredPrograms) {
-      final forms = _formsById[program.id];
-      final label = programFormsLabel(l10n, forms);
-      if (label != null) choices[label] = forms!;
-    }
+    final choices = <String, Set<DanceForm>>{
+      for (final forms in _distinctMixes())
+        programFormsLabel(l10n, forms)!: forms,
+    };
     if (choices.length < 2) return const [];
     final labels = choices.keys.toList()..sort();
     return [for (final label in labels) choices[label]!];

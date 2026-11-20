@@ -1734,8 +1734,9 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
       }
 
       // The dance's form, named only when the program mixes forms, as the
-      // builder names it (ADR-006 S5).
-      final formLabel = dance != null && _mixesForms
+      // builder and Perform name it (ADR-006 S5). A dance in Recently deleted
+      // names none, as it counts toward no mix.
+      final formLabel = dance != null && !dance.isDeleted && _mixesForms
           ? danceFormLabel(l10n, dance.form)
           : null;
       final secondaryParts = <String>[

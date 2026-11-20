@@ -144,6 +144,23 @@ void main() {
     expect(find.text('Contra · Improper'), findsNothing);
   });
 
+  testWidgets('a dance in Recently deleted names no form in a mixed program', (
+    tester,
+  ) async {
+    await _pumpSummary(
+      tester,
+      [
+        _dance('e', 'Hole in the Wall', DanceForm.ecd),
+        _dance('c', 'Contra One', DanceForm.contra),
+        _dance('gone', 'Gone Dance', DanceForm.ecd),
+      ],
+      deleted: {'gone'},
+    );
+    expect(find.text('Contra · Improper'), findsOneWidget);
+    // Only the live English dance's row names its form.
+    expect(find.text('English (ECD) · Duple minor'), findsOneWidget);
+  });
+
   testWidgets('a program with no dances names no form', (tester) async {
     await _pumpSummary(tester, const []);
     expect(find.byKey(const ValueKey('program-summary-forms')), findsNothing);
