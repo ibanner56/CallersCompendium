@@ -482,7 +482,7 @@ void main() {
     });
 
     test('every "Last used" entry is equal regardless of its fallback sort — '
-        'required for DropdownButton to highlight the right item by ==', () {
+        'required for the dropdown to find the chosen entry by ==', () {
       expect(
         const SortDefaultSetting.lastUsed(CollectionSort.title),
         const SortDefaultSetting.lastUsed(CollectionSort.author),

@@ -47,6 +47,7 @@ import '../published_collections/published_collection_service.dart';
 import '../theme/app_motion.dart';
 import '../theme/app_shapes.dart';
 import '../theme/destructive_button_style.dart';
+import '../widgets/app_dropdown_field.dart';
 
 /// Soft threshold (issue #432) on the number of entities in a **shared** bundle
 /// (dances + choreographers + programs + venues, via
@@ -2951,14 +2952,13 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: 4),
-          DropdownButton<ImportSource>(
+          AppDropdownField<ImportSource>(
             key: const ValueKey('import-source-select'),
-            isExpanded: true,
+            compact: true,
             value: _showPublishedCatalog ? _publishedCatalogSource : _selected,
             onChanged: busy
                 ? null
                 : (source) {
-                    if (source == null) return;
                     if (source == _publishedCatalogSource) {
                       setState(() {
                         _showPublishedCatalog = true;
@@ -2993,15 +2993,13 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
                       _titleListError = null;
                     });
                   },
-            items: [
+            entries: [
               for (final source in _sourcePickerSources)
-                DropdownMenuItem<ImportSource>(
+                AppDropdownEntry<ImportSource>(
                   value: source,
-                  child: Text(
-                    source == _publishedCatalogSource
-                        ? l10n.publishedCollectionsTitle
-                        : importSourceLabel(l10n, source.kind),
-                  ),
+                  label: source == _publishedCatalogSource
+                      ? l10n.publishedCollectionsTitle
+                      : importSourceLabel(l10n, source.kind),
                 ),
             ],
           ),

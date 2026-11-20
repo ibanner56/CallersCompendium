@@ -206,9 +206,9 @@ class _CollectionShellState extends State<CollectionShell> {
   /// The import sources, resolved once and cached for the lifetime of this
   /// state. [defaultImportSources] builds fresh [ImportSource] instances on
   /// every call and [ImportSource] uses identity equality, so rebuilding the
-  /// list on each access would make the embedded [ImportReviewScreen]'s
-  /// [DropdownButton] assert (its selected value would no longer match any item
-  /// instance in a freshly-built list).
+  /// list on each access would leave the embedded [ImportReviewScreen]'s
+  /// source dropdown showing nothing (its selected value would no longer match
+  /// any entry in a freshly-built list).
   late final List<ImportSource> _importSources =
       widget.importSources ?? defaultImportSources();
 

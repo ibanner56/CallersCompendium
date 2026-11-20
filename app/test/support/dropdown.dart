@@ -1,5 +1,6 @@
 import 'package:compendium_app/src/widgets/app_dropdown_field.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// Opens the dropdown [field] (an `AppDropdownField`, or anything that opens
@@ -51,3 +52,22 @@ Future<void> pickDropdownValue<T>(
 
 /// Finds the `AppDropdownField<T>`s whose type argument is exactly [T].
 Finder findDropdown<T>() => find.byType(AppDropdownField<T>);
+
+/// Fails if the closed dropdown [field] cuts its value off: the closed field
+/// cannot ellipsize, so a value wider than its text box is silently clipped.
+/// Meaningful only with the real fonts loaded (`loadBundledFonts`).
+void expectClosedValueFits(WidgetTester tester, Finder field) {
+  final editable = tester.renderObject<RenderEditable>(
+    find.descendant(
+      of: field,
+      matching: find.byWidgetPredicate(
+        (w) => w.runtimeType.toString() == '_Editable',
+      ),
+    ),
+  );
+  expect(
+    editable.size.width,
+    greaterThanOrEqualTo(editable.getMaxIntrinsicWidth(double.infinity)),
+    reason: dropdownShown(tester, field),
+  );
+}

@@ -138,24 +138,6 @@ void _expectMenuItemsUnclipped(WidgetTester tester) {
   }
 }
 
-/// Fails if the closed dropdown [field] cuts its value off: the closed field
-/// cannot ellipsize, so a value wider than its text box is silently clipped.
-void _expectClosedValueFits(WidgetTester tester, Finder field) {
-  final editable = tester.renderObject<RenderEditable>(
-    find.descendant(
-      of: field,
-      matching: find.byWidgetPredicate(
-        (w) => w.runtimeType.toString() == '_Editable',
-      ),
-    ),
-  );
-  expect(
-    editable.size.width,
-    greaterThanOrEqualTo(editable.getMaxIntrinsicWidth(double.infinity)),
-    reason: dropdownShown(tester, field),
-  );
-}
-
 Widget _scaffold(Widget body) => Scaffold(
   body: SingleChildScrollView(padding: const EdgeInsets.all(16), child: body),
 );
@@ -279,7 +261,7 @@ void main() {
           );
           _expectNoOverflow(tester);
           for (final draft in drafts) {
-            _expectClosedValueFits(
+            expectClosedValueFits(
               tester,
               find.byKey(ValueKey('link-kind-${draft.id}')),
             );
@@ -407,7 +389,7 @@ void main() {
           final currency = find.byKey(const ValueKey('program-pay-currency'));
           await tester.ensureVisible(currency);
           await tester.pumpAndSettle();
-          _expectClosedValueFits(tester, currency);
+          expectClosedValueFits(tester, currency);
           // Open the menu: every status label must show in full there.
           await tester.ensureVisible(status);
           await tester.pumpAndSettle();

@@ -73,8 +73,8 @@ const String kLastUsedProgramSortDirectionKey =
 ///
 /// Equality/hashCode deliberately ignore [sort] when [isLastUsed] is true, so
 /// every "Last used" entry compares equal regardless of its incidental
-/// fallback value — required for `DropdownButton<SortDefaultSetting<T>>` to
-/// highlight the right item by `==`, since the fallback passed to
+/// fallback value — required for the Settings ▸ Defaults sort dropdown to find
+/// the chosen entry by `==`, since the fallback passed to
 /// [SortDefaultSetting.lastUsed] need not be identical at every call site.
 class SortDefaultSetting<T> {
   const SortDefaultSetting.concrete(this.sort) : isLastUsed = false;

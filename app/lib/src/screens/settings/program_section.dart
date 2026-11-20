@@ -26,6 +26,7 @@ import '../../widgets/link_typed_venues_offer.dart';
 import '../../widgets/section_header.dart';
 import '../../widgets/settings_dropdown_row.dart';
 import '../venue_manager_screen.dart';
+import '../../widgets/app_dropdown_field.dart';
 
 /// The Program settings section: preferences that shape how programs are built,
 /// checked, and performed — the reusable-venues toggle plus the venue manager,
@@ -646,18 +647,17 @@ class _ProgramView extends StatelessWidget {
           title: Text(l10n.settingsProgramVenueCallCountTitle),
           subtitle: Text(l10n.settingsProgramVenueCallCountSubtitle),
           isThreeLine: true,
-          dropdownBuilder: (expanded) => DropdownButton<int>(
+          dropdownBuilder: (expanded) => AppDropdownField<int>(
             key: const ValueKey('program-venue-call-count'),
-            isExpanded: expanded,
+            compact: true,
+            fillWidth: expanded,
             value: venueCallCount,
-            onChanged: (value) {
-              if (value != null) onVenueCallCountChanged(value);
-            },
-            items: [
+            onChanged: onVenueCallCountChanged,
+            entries: [
               for (var count = 0; count <= kVenueCallCountMax; count++)
-                DropdownMenuItem(
+                AppDropdownEntry(
                   value: count,
-                  child: Text(l10n.settingsProgramVenueCallCountOption(count)),
+                  label: l10n.settingsProgramVenueCallCountOption(count),
                 ),
             ],
           ),

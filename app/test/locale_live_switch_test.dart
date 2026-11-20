@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/main.dart';
 import 'package:compendium_app/src/data/locale_scope.dart';
+import 'support/dropdown.dart';
 import 'support/full_app_harness.dart';
 
 Locale? _appLocale(WidgetTester tester) =>
@@ -44,7 +45,7 @@ void main() {
       // Select English from the language dropdown.
       await tester.tap(find.byKey(const ValueKey('regional-language')));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('English').last);
+      await tester.tap(dropdownEntry('English'));
       await tester.pumpAndSettle();
 
       // The ListenableBuilder rebuilds MaterialApp.locale live, and the choice
@@ -56,7 +57,7 @@ void main() {
       // persists the follow-system sentinel (empty tag).
       await tester.tap(find.byKey(const ValueKey('regional-language')));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('System default').last);
+      await tester.tap(dropdownEntry('System default'));
       await tester.pumpAndSettle();
 
       expect(_appLocale(tester), isNull);

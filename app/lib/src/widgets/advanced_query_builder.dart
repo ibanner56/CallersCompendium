@@ -114,20 +114,20 @@ class _GroupView extends StatelessWidget {
                     children: [
                       Semantics(
                         label: l10n.collectionQueryMatchLabel,
-                        child: DropdownButton<GroupKind>(
+                        child: AppDropdownField<GroupKind>(
                           key: ValueKey('group-kind-${group.id}'),
+                          compact: true,
+                          fillWidth: false,
                           value: group.kind,
                           onChanged: (kind) {
-                            if (kind != null) {
-                              group.kind = kind;
-                              onChanged();
-                            }
+                            group.kind = kind;
+                            onChanged();
                           },
-                          items: [
+                          entries: [
                             for (final kind in GroupKind.values)
-                              DropdownMenuItem(
+                              AppDropdownEntry(
                                 value: kind,
-                                child: Text(groupKindLabel(l10n, kind)),
+                                label: groupKindLabel(l10n, kind),
                               ),
                           ],
                         ),
@@ -410,8 +410,8 @@ class _TagRow extends StatelessWidget {
     final stored = node.tagId;
     // [tags] is the set of tags carried by a LIVE dance, so a picked tag can
     // drop out of it while the row is open (its last dance is deleted or
-    // untagged). A `DropdownButton` asserts when its value is not among its
-    // items, so a value that is gone is shown as unpicked.
+    // untagged). A value that is gone is shown as unpicked, as the dropdown
+    // would show it anyway (an empty field, a value not among its entries).
     final value = tags.any((t) => t.id == stored) ? stored : null;
     // Showing "unpicked" is not enough on its own: `BuilderTag.toFilter` would
     // still emit the gone tag, a filter the user can neither see nor clear
@@ -668,20 +668,20 @@ class _FigureGroupEditor extends StatelessWidget {
           children: [
             Semantics(
               label: l10n.collectionQueryFigureGroupMatch,
-              child: DropdownButton<GroupKind>(
+              child: AppDropdownField<GroupKind>(
                 key: ValueKey('fig-group-kind-${group.id}'),
+                compact: true,
+                fillWidth: false,
                 value: group.kind,
                 onChanged: (kind) {
-                  if (kind != null) {
-                    group.kind = kind;
-                    onChanged();
-                  }
+                  group.kind = kind;
+                  onChanged();
                 },
-                items: [
+                entries: [
                   for (final kind in GroupKind.values)
-                    DropdownMenuItem(
+                    AppDropdownEntry(
                       value: kind,
-                      child: Text(groupKindLabel(l10n, kind)),
+                      label: groupKindLabel(l10n, kind),
                     ),
                 ],
               ),
@@ -1102,35 +1102,23 @@ class _SectionDropdown extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     return Semantics(
       label: l10n.collectionQuerySectionLabel,
-      // Capped, and expanded within the cap, so a long section label is
-      // ellipsized rather than widening the row past a narrow screen. The
-      // enclosing Wrap bounds the cap by the line, so it also shrinks there.
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 240),
-        child: DropdownButton<String?>(
-          key: ValueKey('section-${figure.id}'),
-          isExpanded: true,
-          value: figure.section,
-          hint: Text(l10n.collectionQueryAnySection),
-          onChanged: (value) {
-            figure.section = value;
-            onChanged();
-          },
-          items: [
-            DropdownMenuItem(
-              value: null,
-              child: Text(
-                l10n.collectionQueryAnySection,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            for (final label in sectionLabels)
-              DropdownMenuItem(
-                value: label,
-                child: Text(label, overflow: TextOverflow.ellipsis),
-              ),
-          ],
-        ),
+      // As wide as its longest entry, so a value is shown whole (the closed
+      // field cannot ellipsize); the enclosing Wrap bounds it by the line, so
+      // on a narrow screen it takes the line instead of widening the row.
+      child: AppDropdownField<String?>(
+        key: ValueKey('section-${figure.id}'),
+        compact: true,
+        fillWidth: false,
+        value: figure.section,
+        onChanged: (value) {
+          figure.section = value;
+          onChanged();
+        },
+        entries: [
+          AppDropdownEntry(value: null, label: l10n.collectionQueryAnySection),
+          for (final label in sectionLabels)
+            AppDropdownEntry(value: label, label: label),
+        ],
       ),
     );
   }
@@ -1180,9 +1168,9 @@ class _ParamDropdown extends StatelessWidget {
     if (selectable.isEmpty) return const SizedBox.shrink();
     final label = figureParamKeyLabel(l10n, paramKey, moveId: figure.move);
     final stored = figure.params[paramKey] as String?;
-    // Defensive: a value outside the selectable list would trip
-    // `DropdownButton`'s single-match assertion. Unreachable through the UI —
-    // the only writer is this dropdown — but cheap next to a crash.
+    // Defensive: a value outside the selectable list would show as an empty
+    // field rather than "Any <param>". Unreachable through the UI — the only
+    // writer is this dropdown — but cheap next to a blank control.
     final value = selectable.contains(stored) ? stored : null;
     // Coercing the DISPLAY to "Any" is not enough on its own: `_cleanParams`
     // forwards every non-null param into the compiled `FigureLeaf`, so a stored
@@ -1207,42 +1195,29 @@ class _ParamDropdown extends StatelessWidget {
     }
     return Semantics(
       label: label,
-      // Capped like the section dropdown, so a long label cannot widen the row
-      // past a narrow screen.
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 240),
-        child: DropdownButton<String?>(
-          key: ValueKey('param-${figure.id}-$paramKey'),
-          isExpanded: true,
-          value: value,
-          hint: Text(
-            l10n.collectionQueryAnyParam(label),
-            overflow: TextOverflow.ellipsis,
+      // Sized like the section dropdown, and bounded by the line the same way.
+      child: AppDropdownField<String?>(
+        key: ValueKey('param-${figure.id}-$paramKey'),
+        compact: true,
+        fillWidth: false,
+        value: value,
+        onChanged: (v) {
+          v == null
+              ? figure.params.remove(paramKey)
+              : figure.params[paramKey] = v;
+          onChanged();
+        },
+        entries: [
+          AppDropdownEntry(
+            value: null,
+            label: l10n.collectionQueryAnyParam(label),
           ),
-          onChanged: (v) {
-            v == null
-                ? figure.params.remove(paramKey)
-                : figure.params[paramKey] = v;
-            onChanged();
-          },
-          items: [
-            DropdownMenuItem(
-              value: null,
-              child: Text(
-                l10n.collectionQueryAnyParam(label),
-                overflow: TextOverflow.ellipsis,
-              ),
+          for (final choice in selectable)
+            AppDropdownEntry(
+              value: choice,
+              label: figureParamChoiceLabel(l10n, spec, dialect, choice),
             ),
-            for (final choice in selectable)
-              DropdownMenuItem(
-                value: choice,
-                child: Text(
-                  figureParamChoiceLabel(l10n, spec, dialect, choice),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-          ],
-        ),
+        ],
       ),
     );
   }
