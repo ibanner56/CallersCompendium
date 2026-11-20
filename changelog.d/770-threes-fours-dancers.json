@@ -1,0 +1,14 @@
+{
+  "id": "770-threes-fours-dancers",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "Contra figures can name the threes and fours as their dancers, for triplets, triple minors and four-couple dances. Dances you import from The Caller's Box read \"Threes\" and \"Fours\" as those couples, and a single dancer such as \"Woman one\" as the first robin (in your own dialect's words)."
+    ]
+  },
+  "core": {
+    "added": [
+      "Add the `threes` and `fours` dancer sets to the contra vocabulary (taxonomy v40), and read The Caller's Box's `role2 one`-style dancer names as the single-dancer tokens."
+    ]
+  }
+}

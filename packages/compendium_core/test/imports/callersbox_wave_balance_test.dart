@@ -467,6 +467,21 @@ void main() {
     });
 
     test(
+      'a threes- or fours-qualified balance folds too (taxonomy v40)',
+      () async {
+        for (final couple in ['Threes', 'Fours']) {
+          final figures = await _figuresFor([
+            '(4) Pass the ocean',
+            '(4) $couple balance wave of four',
+          ]);
+          expect(figures, hasLength(1), reason: couple);
+          expect(figures.single.move, 'pass_the_ocean', reason: couple);
+          expect(figures.single.params['balance'], isTrue, reason: couple);
+        }
+      },
+    );
+
+    test(
       'a dancer-qualified balance folds when the wave has no who (null waveWho)',
       () async {
         // pass_the_ocean has no `who` param (waveWho is null), so the mismatch

@@ -1026,8 +1026,16 @@ class CallersBoxAdapter implements SourceAdapter {
 
   /// Dancer-set words that [scrubFigureText] produces for role/couple prefixes
   /// in TCB figure lines (`Men` → `role1s`, `Women` → `role2s`, `Ones` →
-  /// `ones`, `Twos` → `twos`).
-  static const _tcbDancerPrefixes = {'role1s', 'role2s', 'ones', 'twos'};
+  /// `ones`, `Twos` → `twos`), and since taxonomy v40 the third and fourth
+  /// couples (`Threes`, `Fours`).
+  static const _tcbDancerPrefixes = {
+    'role1s',
+    'role2s',
+    'ones',
+    'twos',
+    'threes',
+    'fours',
+  };
 
   /// A bend-the-line line: a custom figure whose scrubbed text is "bend the
   /// line" (or the bare "bend" / "bend line" shorthands). Bend never recognises

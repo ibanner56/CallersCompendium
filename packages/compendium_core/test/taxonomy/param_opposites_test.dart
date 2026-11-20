@@ -47,6 +47,9 @@ void main() {
           'role2s': 'role1s',
           'ones': 'twos',
           'twos': 'ones',
+          // v40: the third and fourth couples have no "other pair".
+          'threes': null,
+          'fours': null,
           'firstCorners': 'secondCorners',
           'secondCorners': 'firstCorners',
           'partners': 'neighbors',

@@ -1713,7 +1713,11 @@ has to be judged in its own context.
   N-suffix (`with/to neighbor N2`, in either word order), explicit dancer codes
   (M1/W1/M2/W2 →
   ones/twos single-dancer identities, and since taxonomy v39 M3/W3/M4/W4 →
-  threes/fours), same-role neighbor subjects
+  the threes'/fours' single dancers `threesRole1` … `foursRole2`), the same
+  dancers named by role and couple number (since taxonomy v40: `Woman one` →
+  `onesRole2`, `Man three` → `threesRole1`; a digit, `Woman 1`, stays
+  custom), the third and fourth couples as groups (since v40: `Threes` →
+  `threes`, `Fours` → `fours`), same-role neighbor subjects
   (`Same-role neighbor swing` → `who: sameRoles`; maintainer ruling that
   same-sex = same-role; `N2 same-role neighbor` has no ordinal token and stays
   custom), S-prefix shadow subjects (`S1`/`S-1 shadow` → `shadows`, `S-1` by
@@ -1880,7 +1884,8 @@ has to be judged in its own context.
   free-text entry leave it unstated, so on those lines a re-check of an older
   import differs from a fresh one. A bare `Hand cast` is the `hand_cast` alias of `gate`. Over
   the 1,563 public dances whose figures mention a cast, the `custom` cast
-  lines fell from 2,060 to 469. See the v40 entry in
+  lines fell from 2,060 to 443 (469 before the v40 `threes`/`fours` and
+  role-number dancers). See the v40 entry in
   [figure-taxonomy.md](figure-taxonomy.md#taxonomy-version-history) for what
   stays custom and why.
   *Secondary effect:* a `;` line whose only unstructurable clause was a cast
