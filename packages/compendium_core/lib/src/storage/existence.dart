@@ -98,8 +98,7 @@ const int _tickSeconds = 1;
 /// This is the *local decision* form of the rule. Sync-apply paths must not use
 /// it: applying a peer's blob copies that peer's value verbatim, and quarantine
 /// repair derives its value from a peer without reading a clock at all, because
-/// a repairing device's clock is by definition untrusted. Neither path exists
-/// yet — this migration ships no sync client.
+/// a repairing device's clock is by definition untrusted.
 DateTime nextExistenceStamp({required DateTime now, DateTime? current}) {
   assertUtc(now, 'now');
   final localNow = asUtc(now);

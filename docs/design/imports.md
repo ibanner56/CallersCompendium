@@ -146,7 +146,12 @@ still overlaps across sources on the named authors.
   hard-deletes inserted dances (cascading away their `dance_authors` rows) and
   restores updated dances, then removes each created choreographer — but only those
   no surviving dance still references (the repository's referenced-guard is
-  respected). Pre-existing choreographers are never touched.
+  respected). Pre-existing choreographers are never touched. A record a Device
+  Sync pass has already published (the undo window can outlast one) is
+  tombstoned instead of erased, so peers receive the deletion
+  (`sync-spec.md` §3.1); unpublished records are still erased. A venue a
+  surviving program row still names, the tombstoned import program included,
+  is kept live either way.
 - **`callingNotes` behavior change.** Author names are **no longer folded** into
   `Dance.callingNotes` (except the Caller's Companion `Choreography: … and
   others` line, above, which records a credit no choreographer row can hold;
