@@ -314,6 +314,7 @@ void _screen(
   String name,
   Future<void> Function(WidgetTester tester) navigate, {
   required Finder landedOn,
+  List<String> mustStopAt = const [],
 }) {
   testWidgets(name, (tester) async {
     await loadBundledFonts();
@@ -379,6 +380,16 @@ void _screen(
             '$name: Shift+Tab visited ${reversed.length} distinct stops where '
             'Tab visited ${real.length}',
       );
+
+      // Controls a lazy list never scrolls to are never on screen to be judged
+      // below, so a screen can name the ones that must be Tab stops.
+      for (final key in mustStopAt) {
+        expect(
+          real.any((s) => s.describe.contains('key=$key')),
+          isTrue,
+          reason: '$name: no Tab stop on $key',
+        );
+      }
 
       // 2. Everything tappable is reachable.
       expect(
@@ -475,10 +486,15 @@ void main() {
   // so it is walked open as well: its fields must join the focus order then, and
   // its dropdowns must take focus (they read their node's focusability when
   // built).
-  _screen('Dance editor, More details open', (tester) async {
-    await _tapKey(tester, 'new-dance');
-    await _openTile(tester, 'more-details-tile', field: 'mixed-level-field');
-  }, landedOn: find.byType(DanceEditorScreen));
+  _screen(
+    'Dance editor, More details open',
+    (tester) async {
+      await _tapKey(tester, 'new-dance');
+      await _openTile(tester, 'more-details-tile', field: 'mixed-level-field');
+    },
+    landedOn: find.byType(DanceEditorScreen),
+    mustStopAt: ['status-field', 'mixed-level-field'],
+  );
 
   _screen('Programs list', (tester) async {
     await tester.tap(find.text('Programs').last);
@@ -497,11 +513,20 @@ void main() {
     await _tapKey(tester, 'open-builder');
   }, landedOn: find.byType(ProgramEditorScreen));
 
-  _screen('Program builder, More details open', (tester) async {
-    await _openProgramSummary(tester);
-    await _tapKey(tester, 'open-builder');
-    await _openTile(tester, 'program-more-details-tile', field: 'program-band');
-  }, landedOn: find.byType(ProgramEditorScreen));
+  _screen(
+    'Program builder, More details open',
+    (tester) async {
+      await _openProgramSummary(tester);
+      await _tapKey(tester, 'open-builder');
+      await _openTile(
+        tester,
+        'program-more-details-tile',
+        field: 'program-band',
+      );
+    },
+    landedOn: find.byType(ProgramEditorScreen),
+    mustStopAt: ['program-band'],
+  );
 
   _screen('Perform', (tester) async {
     await _openProgramSummary(tester);
