@@ -211,8 +211,13 @@ def check_core_version_recorded(root: Path, fragments: list[Fragment]) -> None:
     except OSError as error:
         raise FragmentError(f"could not read {CORE_PATH}: {error}") from error
     if _section_bounds(changelog, version) is None:
+        suffix_hint = (
+            ""
+            if VERSION.fullmatch(version)
+            else " (core's pubspec version must be a bare X.Y.Z, with no prerelease suffix or build metadata)"
+        )
         raise FragmentError(
-            f"{CORE_PUBSPEC_PATH} is {version} but {CORE_PATH} has no [{version}] "
+            f"{CORE_PUBSPEC_PATH} is {version}{suffix_hint} but {CORE_PATH} has no [{version}] "
             "section and no pending fragment has a core entry: a core version "
             "bump needs a core entry to record. Revert the bump, or add the "
             "core entry that justifies it (the version number is the "

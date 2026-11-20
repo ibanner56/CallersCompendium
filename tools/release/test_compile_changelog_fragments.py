@@ -479,6 +479,13 @@ def core_version_cases() -> None:
     finally:
         temporary.cleanup()
 
+    # A suffixed version can never have a section; the message says why.
+    temporary, root = fixture_repo(core_version="0.2.0-dev")
+    try:
+        expect_error(lambda: compiler.check_core_version_recorded(root, []), "bare X.Y.Z", "suffixed core version")
+    finally:
+        temporary.cleanup()
+
     # An unreadable core pubspec is an error, not a pass.
     temporary, root = fixture_repo(core_version="0.1.0")
     try:
