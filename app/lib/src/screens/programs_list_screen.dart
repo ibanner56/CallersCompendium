@@ -517,9 +517,11 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
   /// The sets of forms the type filter offers as chips, in no particular
   /// order; empty unless there are at least two mixes among the programs
   /// shown with no type filter. With [FormMatch.only], each mix is a chip.
-  /// With [FormMatch.includes], each form in any of them is one, so Contra
-  /// can list every program with a contra dance even when none is contra
-  /// only.
+  /// With [FormMatch.includes], each form in some of them but not all is
+  /// one, so Contra can list every program with a contra dance even when
+  /// none is contra only; a form every program with dances has would hide
+  /// nothing, so it gets no chip. Two different mixes always differ by a
+  /// form, so there is at least one.
   List<Set<DanceForm>> _formChoiceSets() {
     final mixes = _distinctMixes();
     if (mixes.length < 2) return const [];
@@ -527,7 +529,9 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
       FormMatch.only => mixes,
       FormMatch.includes => [
         for (final form in DanceForm.values)
-          if (mixes.any((m) => m.contains(form))) {form},
+          if (mixes.any((m) => m.contains(form)) &&
+              !mixes.every((m) => m.contains(form)))
+            {form},
       ],
     };
   }
@@ -571,28 +575,32 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
             runSpacing: AppSpacing.xxs,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              SegmentedButton<FormMatch>(
-                key: const ValueKey('programs-form-match'),
-                segments: [
-                  ButtonSegment(
-                    value: FormMatch.only,
-                    label: Text(l10n.programsFormMatchOnly),
-                    tooltip: l10n.programsFormMatchOnlyTooltip,
-                  ),
-                  ButtonSegment(
-                    value: FormMatch.includes,
-                    label: Text(l10n.programsFormMatchIncludes),
-                    tooltip: l10n.programsFormMatchIncludesTooltip,
-                  ),
-                ],
-                selected: {_formMatch},
-                showSelectedIcon: false,
-                onSelectionChanged: (selection) => setState(() {
-                  _formMatch = selection.single;
-                  // A chip that the other mode doesn't offer is dropped,
-                  // such as Contra + English (ECD) under Includes.
-                  _dropStaleFormFilter();
-                }),
+              Semantics(
+                container: true,
+                label: l10n.programsFormMatchLabel,
+                child: SegmentedButton<FormMatch>(
+                  key: const ValueKey('programs-form-match'),
+                  segments: [
+                    ButtonSegment(
+                      value: FormMatch.only,
+                      label: Text(l10n.programsFormMatchOnly),
+                      tooltip: l10n.programsFormMatchOnlyTooltip,
+                    ),
+                    ButtonSegment(
+                      value: FormMatch.includes,
+                      label: Text(l10n.programsFormMatchIncludes),
+                      tooltip: l10n.programsFormMatchIncludesTooltip,
+                    ),
+                  ],
+                  selected: {_formMatch},
+                  showSelectedIcon: false,
+                  onSelectionChanged: (selection) => setState(() {
+                    _formMatch = selection.single;
+                    // A chip that the other mode doesn't offer is dropped,
+                    // such as Contra + English (ECD) under Includes.
+                    _dropStaleFormFilter();
+                  }),
+                ),
               ),
               for (final forms in choices)
                 FilterChip(

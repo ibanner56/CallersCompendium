@@ -5168,6 +5168,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get programsMoreActions => 'Weitere Aktionen';
 
   @override
+  String get programsFormMatchLabel => 'Typ-Übereinstimmung';
+
+  @override
   String get programsFormMatchOnly => 'Nur';
 
   @override

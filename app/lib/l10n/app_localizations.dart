@@ -7856,6 +7856,12 @@ abstract class AppLocalizations {
   /// **'More actions'**
   String get programsMoreActions;
 
+  /// Screen-reader label for the Only / Includes choice beside the programs list's type chips: whether a chip keeps programs of only that type mix, or every program that includes that type.
+  ///
+  /// In en, this message translates to:
+  /// **'Match types'**
+  String get programsFormMatchLabel;
+
   /// Programs list type filter: segment that keeps only programs whose dances are of exactly the chosen type(s), e.g. Contra leaves out a program that also has English dances. Keep very short; it sits beside the type chips.
   ///
   /// In en, this message translates to:

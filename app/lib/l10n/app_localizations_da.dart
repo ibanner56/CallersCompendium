@@ -5123,6 +5123,9 @@ class AppLocalizationsDa extends AppLocalizations {
   String get programsMoreActions => 'Flere handlinger';
 
   @override
+  String get programsFormMatchLabel => 'Krav til typer';
+
+  @override
   String get programsFormMatchOnly => 'Kun';
 
   @override

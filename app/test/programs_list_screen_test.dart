@@ -1026,6 +1026,53 @@ void _formFilterTests() {
     await tester.tap(contraChip);
     await tester.pumpAndSettle();
     expect(_titlesInOrder(tester), ['Mixed night']);
+    // Every program with dances has an English one, so an English chip would
+    // hide nothing: Includes offers none.
+    expect(find.byKey(const ValueKey('programs-form-ecd')), findsNothing);
+  });
+
+  testWidgets('an Includes filter left without a chip is dropped, not '
+      'revived', (tester) async {
+    final repos = openTestRepositories();
+    await seed(repos);
+    await _pump(tester, repos);
+    await tester.tap(
+      find.descendant(
+        of: find.byKey(const ValueKey('programs-form-match')),
+        matching: find.text('Includes'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('programs-form-contra')));
+    await tester.pumpAndSettle();
+    expect(_titlesInOrder(tester), ['Contra night', 'Mixed night']);
+
+    // The English program gains a contra dance: every program now has
+    // contra, so the Contra chip goes and every program is listed.
+    final english = (await repos.programs.getById('p-ecd'))!;
+    await repos.programs.update(
+      english.copyWith(
+        slots: [
+          ...english.slots,
+          ProgramSlot(id: 's5', position: 1, danceId: 'c'),
+        ],
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('programs-form-contra')), findsNothing);
+    expect(_titlesInOrder(tester), hasLength(3));
+
+    // A new English-only program brings the chip back, but not the filter.
+    await repos.programs.create(
+      _program(
+        id: 'p-ecd2',
+        title: 'Another English night',
+        slots: [ProgramSlot(id: 's6', position: 0, danceId: 'e')],
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('programs-form-contra')), findsOneWidget);
+    expect(_titlesInOrder(tester), hasLength(4));
   });
 
   testWidgets('a deleted dance stops counting at once', (tester) async {
