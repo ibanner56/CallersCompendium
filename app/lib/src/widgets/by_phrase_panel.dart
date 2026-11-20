@@ -8,8 +8,9 @@ import 'advanced_query_builder.dart' show MoveTypeAheadField;
 import 'move_autocomplete.dart' show moveLabelWithForm;
 
 /// A Caller's Box-style "search by phrase" panel
-/// (https://www.ibiblio.org/contradance/thecallersbox/). For each phrase of the
-/// dance (the standard four — A1, A2, B1, B2 — via [sectionLabels]) the caller
+/// (https://www.ibiblio.org/contradance/thecallersbox/). For each phrase in
+/// [sectionLabels] (the standard A1, A2, B1, B2, plus any label an English
+/// dance's named phrases give, from `sectionLabelsFor`) the caller
 /// lists figures that MUST occur in that phrase ("figures match") and figures
 /// that must NOT ("but do not match").
 ///

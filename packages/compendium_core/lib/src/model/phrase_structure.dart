@@ -67,11 +67,15 @@ class PhraseStructure {
   /// Parses a phrase-structure string.
   ///
   /// Accepts `""` (standard), a `phrases*bars*beatsPerBar` component, or
-  /// ordered components separated by `+`. Component numbers must be positive
-  /// integers no larger than [maxComponentNumber]; there may be at most
-  /// [maxComponents] components, [maxPhraseCount] phrases and [maxTotalBeats]
-  /// beats in all. Whitespace is allowed around, but not inside, a component.
-  /// Throws [FormatException] otherwise.
+  /// ordered components separated by `+`. A component may be named by an
+  /// `A:`, `B:` or `C:` prefix (`A:2*4*2 + B:1*8*2`): then every component is
+  /// named, each name is used once, and each named phrase plays at most
+  /// [maxNamedPlays] times. Component numbers must be positive integers no
+  /// larger than [maxComponentNumber]; there may be at most [maxComponents]
+  /// components, [maxPhraseCount] phrases and [maxTotalBeats] beats in all.
+  /// Whitespace is allowed around a component and around a name's colon,
+  /// but not inside `phrases*bars*beatsPerBar`; [raw] keeps the trimmed
+  /// text as given, spaces included. Throws [FormatException] otherwise.
   factory PhraseStructure.parse(String raw) {
     final trimmed = raw.trim();
     if (trimmed.isEmpty) return standard;
