@@ -731,10 +731,11 @@ class FilterCompiler {
     if (!_letterOrDigit.hasMatch(raw)) return '0';
     // Not lowercased: `LIKE` folds ASCII case itself, and lowering "É" to
     // "é" would stop it matching the stored "É". A short word has the same
-    // separators made spaces as the value it must start a word of.
+    // separators made spaces as the value it must start a word of, then
+    // trimmed, so "/8" starts a word as "8" does.
     final word = raw.trim();
     final pattern = prefix
-        ? '% ${escapeLikePattern(word.replaceAll(_wordSeparators, ' '))}%'
+        ? '% ${escapeLikePattern(word.replaceAll(_wordSeparators, ' ').trim())}%'
         : '%${escapeLikePattern(word)}%';
     String value(String column) => prefix ? _wordStarts(column) : column;
     binds

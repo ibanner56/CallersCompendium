@@ -833,8 +833,8 @@ are ([dialect.md](dialect.md) "Canonicalization on input"):
   `benchmark/search_benchmark.dart` (20,000 dances, none with a meter), a bare
   search's median rose from 0.47 ms to 2.5 ms, well inside the 50 ms target.
   A word of one or two characters must start a word of the value, where a word
-  starts after a space, `/`, `-` or `(` ("D" finds "D minor", "8" and "6/"
-  find "6/8"), close to what the prefix index does (it splits on every
+  starts after a space, `/`, `-` or `(` ("D" finds "D minor", "8", "6/" and
+  "/8" find "6/8"; a separator the word starts or ends with is dropped), close to what the prefix index does (it splits on every
   punctuation mark); a longer one may sit anywhere. A word with no letter or
   digit matches none of them. `LIKE` folds ASCII case only, so a letter
   outside ASCII ("É") must be typed as stored, capital included. The Title,

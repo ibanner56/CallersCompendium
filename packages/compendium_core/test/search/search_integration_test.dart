@@ -3662,6 +3662,16 @@ FROM seq
         expect(await dances.search(const FullTextFilter('6/')), ['other']);
       });
 
+      test('a short word may start with a separator', () async {
+        await seed();
+        // "/8" names the 8 of "6/8"; "(D" the D of "D minor".
+        expect(await dances.search(const FullTextFilter('/8')), ['other']);
+        expect(
+          await dances.search(const FullTextFilter('(D')),
+          contains('hole'),
+        );
+      });
+
       test('a word of punctuation alone matches no meter', () async {
         await seed();
         expect(await dances.search(const FullTextFilter('/')), isEmpty);

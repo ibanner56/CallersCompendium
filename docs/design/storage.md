@@ -837,8 +837,9 @@ steps that can still fire are v40 onward.
   meter or key, as before. The ECD formation shapes are new values of the
   existing `formation_shape` text, which needs no DDL. Run in the `from < 42`
   step, each column added only if absent. No data rewritten; no derived
-  index reads the columns, so no rebuild. Search over meter and key is still
-  to come (ADR-006 W7).
+  index reads the columns, so no rebuild. All fields search reads meter and
+  key from these rows with `LIKE`, not from the text index
+  ([search.md](search.md), "Meter, key and interpreters").
 
   Also in v42, before it shipped (ADR-006 §9.2): the interpreter credits.
   `dances.interpreted_on` is the partial date the dance was interpreted
@@ -850,8 +851,10 @@ steps that can still fire are v40 onward.
   credit as a citation of a person treats an interpreter credit the same way:
   the delete guards, the live-dance counts, merge and its Undo, natural-key
   adoption, and the purge's collection of people nobody credits. The step
-  creates the table only if absent; it starts empty. Search by interpreter is
-  still to come (ADR-006 W7).
+  creates the table only if absent; it starts empty. All fields search
+  matches the live interpreters' names through this join with `LIKE`, not
+  through the text index ([search.md](search.md), "Meter, key and
+  interpreters").
 
   Also in v42, before it shipped: program archiving (#2218). Adds the
   nullable `programs.archived_at` column
