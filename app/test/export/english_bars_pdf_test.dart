@@ -79,6 +79,25 @@ void main() {
     expect(await _card(_contra()), contains('12'));
   });
 
+  test('a card whose counts are not all whole half bars stays in beats', () {
+    // 3/4: 21 beats is 7 bars, but 8 beats is no whole number of bars, so
+    // the bare numbers of the column all stay in beats.
+    return _card(
+      _english().copyWith(
+        meter: '3/4',
+        phraseStructure: '2*24*3',
+        figures: [
+          Figure(move: 'ecd_siding', params: const {'beats': 21}),
+          Figure(move: 'ecd_turn_single', params: const {'beats': 8}),
+        ],
+      ),
+    ).then((text) {
+      expect(text, contains('21'));
+      expect(text, contains('8'));
+      expect(text, isNot(contains('7')));
+    });
+  });
+
   test('the dance PDF counts an English dance in bars', () async {
     final text = pdfText(
       await buildDancePdf(

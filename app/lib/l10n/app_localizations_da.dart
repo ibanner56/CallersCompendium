@@ -12288,7 +12288,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get callingCardHelpBlockFigures =>
-      'Figurerne, grupperet efter frase (A1, A2, B1, B2), med deres slag.';
+      'Figurerne, grupperet efter frase (A1, A2, B1, B2), med deres længde: slag, eller takter for en engelsk dans.';
 
   @override
   String get callingCardHelpBlockNotes => 'Dine kaldsnotes.';
@@ -12354,7 +12354,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get callingCardHelpOptionFigures =>
-      'For figures: udelad slagene, figurernes egne noter, frasenavnene eller stregerne mellem fraserne.';
+      'For figures: udelad længderne, figurernes egne noter, frasenavnene eller stregerne mellem fraserne.';
 
   @override
   String get callingCardHelpOptionThickness =>

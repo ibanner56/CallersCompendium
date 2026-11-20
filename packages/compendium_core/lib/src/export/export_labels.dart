@@ -25,7 +25,7 @@ import '../model/bar_count.dart';
 String _englishBeats(int beats) => '$beats ${beats == 1 ? 'beat' : 'beats'}';
 
 String _englishBars(String bars, int halfBars) =>
-    '$bars ${halfBars <= 2 ? 'bar' : 'bars'}';
+    '$bars ${halfBars == 1 || halfBars == 2 ? 'bar' : 'bars'}';
 
 String _englishMinutes(int minutes) => '$minutes min';
 

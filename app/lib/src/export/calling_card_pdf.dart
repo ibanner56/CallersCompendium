@@ -599,13 +599,22 @@ class _CardBuilder {
     }
     final s = b.size;
     // An English dance's count column is in bars, as on screen (ADR-006
-    // §5.5); a count that is no whole number of half bars stays in beats.
+    // §5.5). The column prints bare numbers, so one card never mixes units:
+    // if any count is no whole number of half bars, the whole card stays in
+    // beats.
     final dance = entry.dance;
-    final beatsPerBar = danceBeatsPerBar(
+    final perBar = danceBeatsPerBar(
       dance.form,
       dance.phraseStructure,
       meter: dance.meter,
     );
+    final beatsPerBar =
+        perBar != null &&
+            content.figures.every(
+              (f) => f.beats <= 0 || barsText(f.beats, perBar) != null,
+            )
+        ? perBar
+        : null;
     final rows = <pw.Widget>[];
     for (var i = 0; i < sections.length; i++) {
       if (i > 0 && b.dividers) {
@@ -656,7 +665,7 @@ class _CardBuilder {
   }
 
   /// A figure's count as the card's count column shows it: its bars where
-  /// the dance is timed in bars of [beatsPerBar] beats, else its beats, and
+  /// the card is counted in bars of [beatsPerBar] beats, else its beats, and
   /// nothing for a figure with no count.
   static String _countText(Figure figure, int? beatsPerBar) {
     if (figure.beats <= 0) return '';

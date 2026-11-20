@@ -543,6 +543,7 @@ void main() {
     const labels = DanceExportLabels();
     test('bars with a bar, beats without one', () {
       expect(labels.count(8, 2), '4 bars');
+      expect(labels.count(0, 2), '0 bars');
       expect(labels.count(2, 2), '1 bar');
       expect(labels.count(1, 2), '½ bar');
       expect(labels.count(3, 2), '1½ bars');

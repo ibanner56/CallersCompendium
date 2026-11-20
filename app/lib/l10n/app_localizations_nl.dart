@@ -12360,7 +12360,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get callingCardHelpBlockFigures =>
-      'De figuren, gegroepeerd per frase (A1, A2, B1, B2), met hun tellen.';
+      'De figuren, gegroepeerd per frase (A1, A2, B1, B2), met hun lengte: in tellen, of in maten voor een Engelse dans.';
 
   @override
   String get callingCardHelpBlockNotes => 'Je callnotities.';
@@ -12427,7 +12427,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get callingCardHelpOptionFigures =>
-      'Voor figures: laat de tellen, de eigen notities van de figuren, de frasenamen of de lijnen tussen de frasen weg.';
+      'Voor figures: laat de lengtes, de eigen notities van de figuren, de frasenamen of de lijnen tussen de frasen weg.';
 
   @override
   String get callingCardHelpOptionThickness =>

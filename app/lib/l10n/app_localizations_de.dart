@@ -8948,7 +8948,7 @@ class AppLocalizationsDe extends AppLocalizations {
     String actual,
     String expected,
   ) {
-    return 'Die Schritte mit Zeitangabe in der Sequenz in Figur $position dauern $actual, sodass von ihren $expected für die übrigen nichts bleibt.';
+    return 'Die Schritte mit Zeitangabe in der Sequenz in Figur $position dauern $actual, sodass von der Länge der Sequenz ($expected) für die übrigen nichts bleibt.';
   }
 
   @override
@@ -12403,7 +12403,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get callingCardHelpBlockFigures =>
-      'Die Figuren, nach Phrasen gruppiert (A1, A2, B1, B2), mit ihren Takten.';
+      'Die Figuren, nach Phrasen gruppiert (A1, A2, B1, B2), mit ihrer Länge: in Schlägen, bei einem englischen Tanz in Takten.';
 
   @override
   String get callingCardHelpBlockNotes => 'Deine Calling-Notizen.';
@@ -12469,7 +12469,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get callingCardHelpOptionFigures =>
-      'Für figures: die Takte, die eigenen Notizen der Figuren, die Phrasennamen oder die Linien zwischen den Phrasen weglassen.';
+      'Für figures: die Längen, die eigenen Notizen der Figuren, die Phrasennamen oder die Linien zwischen den Phrasen weglassen.';
 
   @override
   String get callingCardHelpOptionThickness =>

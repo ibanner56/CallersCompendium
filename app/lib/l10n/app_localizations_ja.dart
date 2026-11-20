@@ -11801,7 +11801,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get callingCardHelpBlockFigures =>
-      'フレーズ（A1、A2、B1、B2）ごとにまとめたフィギュアと、その拍数。';
+      'フレーズ（A1、A2、B1、B2）ごとにまとめたフィギュアと、その長さ（拍数。イングリッシュのダンスでは小節数）。';
 
   @override
   String get callingCardHelpBlockNotes => 'コーリングノート。';
@@ -11861,7 +11861,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get callingCardHelpOptionFigures =>
-      'figures 用：拍数、フィギュアごとのメモ、フレーズ名、フレーズ間の線を省きます。';
+      'figures 用：長さ、フィギュアごとのメモ、フレーズ名、フレーズ間の線を省きます。';
 
   @override
   String get callingCardHelpOptionThickness => '線の太さ（ポイント単位）。';

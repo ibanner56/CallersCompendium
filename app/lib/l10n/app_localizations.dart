@@ -17962,7 +17962,7 @@ abstract class AppLocalizations {
   /// Help: what the figures block prints.
   ///
   /// In en, this message translates to:
-  /// **'The figures, grouped by phrase (A1, A2, B1, B2), with their beats.'**
+  /// **'The figures, grouped by phrase (A1, A2, B1, B2), with their counts: beats, or bars for an English dance.'**
   String get callingCardHelpBlockFigures;
 
   /// Help: what the notes block prints.
@@ -18076,7 +18076,7 @@ abstract class AppLocalizations {
   /// Help: the figures block's on/off options.
   ///
   /// In en, this message translates to:
-  /// **'For figures: leave out the beats, the figures\' own notes, the phrase names, or the lines between phrases.'**
+  /// **'For figures: leave out the counts, the figures\' own notes, the phrase names, or the lines between phrases.'**
   String get callingCardHelpOptionFigures;
 
   /// Help: the thickness option.
