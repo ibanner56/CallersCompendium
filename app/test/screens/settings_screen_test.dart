@@ -5,10 +5,12 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart' as drift;
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart' show SystemChannels;
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/l10n/app_localizations_en.dart';
+import 'package:compendium_app/src/data/confirm_before_delete_scope.dart';
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/backup_document.dart'
     show
@@ -60,6 +62,7 @@ import '../support/noop_sync_transport.dart';
 import '../support/fail_once_interceptor.dart';
 import '../support/test_repositories.dart';
 import '../support/l10n_harness.dart';
+import 'package:compendium_app/src/theme/app_breakpoints.dart';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -110,6 +113,7 @@ Future<
     _ControllableSyncSettings syncSettings,
     ValueNotifier<Dialect> notifier,
     DialectLibraryController dialectLibrary,
+    DialectLibraries dialectLibraries,
     ValueNotifier<AppThemeSelection> themeNotifier,
     CustomThemesController customThemes,
     ValueNotifier<bool> requirePerformedNotifier,
@@ -127,6 +131,10 @@ _pumpSettings(
   Size surfaceSize = const Size(1000, 2600),
   BackupSaver? backupSaver,
 
+  /// The sidebar section to open once pumped (side-by-side layout), such as
+  /// `'appearance'`. Settings opens on General.
+  String? section,
+
   /// Replaces the sync-local repository the controller writes through, so a
   /// test can make the local half of a wipe fail after the server half has
   /// already succeeded.
@@ -138,6 +146,9 @@ _pumpSettings(
 
   /// Wires a [ShowGlossaryScope] around the screen when given.
   ValueNotifier<bool>? showGlossary,
+
+  /// Turns "Confirm before delete" on for the screen.
+  bool confirmBeforeDelete = false,
 
   /// Wires a [ShowCustomFiguresScope] around the screen when given.
   ValueNotifier<bool>? showCustomFigures,
@@ -173,6 +184,9 @@ _pumpSettings(
   final notifier = ValueNotifier<Dialect>(dialectLibrary.active);
   void syncDialect() => notifier.value = dialectLibrary.active;
   dialectLibrary.addListener(syncDialect);
+  final dialectLibraries = DialectLibraries.withContra(dialectLibrary);
+  await dialectLibraries.forForm(DanceForm.ecd).load();
+  await dialectLibraries.forForm(DanceForm.square).load();
 
   final themeNotifier = ValueNotifier<AppThemeSelection>(
     initialTheme ?? AppThemeSelection.system,
@@ -193,6 +207,8 @@ _pumpSettings(
     initialTrackHistoryForAllCallers,
   );
   final canonicalDiscouragedTermsNotifier = ValueNotifier<bool>(true);
+  final confirmBeforeDeleteNotifier = ValueNotifier<bool>(confirmBeforeDelete);
+  addTearDown(confirmBeforeDeleteNotifier.dispose);
   final updateController = UpdateController(repos.settings);
   await updateController.load();
   final syncSettings = _ControllableSyncSettings(repos.db)
@@ -218,6 +234,7 @@ _pumpSettings(
   addTearDown(notifier.dispose);
   addTearDown(() {
     dialectLibrary.removeListener(syncDialect);
+    dialectLibraries.dispose();
     dialectLibrary.dispose();
   });
   addTearDown(themeNotifier.dispose);
@@ -250,7 +267,7 @@ _pumpSettings(
               child: CustomThemesScope(
                 controller: customThemes,
                 child: DialectLibraryScope(
-                  controller: dialectLibrary,
+                  libraries: dialectLibraries,
                   child: ActiveDialectScope(
                     notifier: notifier,
                     child: RequirePerformedForHistoryScope(
@@ -269,17 +286,21 @@ _pumpSettings(
                                   controller: shorthandMappings,
                                   child: WalkthroughSnippetLibraryScope(
                                     controller: walkthroughSnippets,
-                                    child: showGlossary == null
-                                        ? child!
-                                        : ShowGlossaryScope(
-                                            notifier: showGlossary,
-                                            child: showCustomFigures == null
-                                                ? child!
-                                                : ShowCustomFiguresScope(
-                                                    notifier: showCustomFigures,
-                                                    child: child!,
-                                                  ),
-                                          ),
+                                    child: ConfirmBeforeDeleteScope(
+                                      notifier: confirmBeforeDeleteNotifier,
+                                      child: showGlossary == null
+                                          ? child!
+                                          : ShowGlossaryScope(
+                                              notifier: showGlossary,
+                                              child: showCustomFigures == null
+                                                  ? child!
+                                                  : ShowCustomFiguresScope(
+                                                      notifier:
+                                                          showCustomFigures,
+                                                      child: child!,
+                                                    ),
+                                            ),
+                                    ),
                                   ),
                                 ),
                               ),
@@ -299,11 +320,16 @@ _pumpSettings(
     ),
   );
   await tester.pumpAndSettle();
+  if (section != null) {
+    await tester.tap(find.byKey(ValueKey('settings-nav-$section')));
+    await tester.pumpAndSettle();
+  }
   return (
     repos: repos,
     syncSettings: syncSettings,
     notifier: notifier,
     dialectLibrary: dialectLibrary,
+    dialectLibraries: dialectLibraries,
     themeNotifier: themeNotifier,
     customThemes: customThemes,
     requirePerformedNotifier: requirePerformedNotifier,
@@ -753,6 +779,57 @@ void main() {
       );
     });
 
+    testWidgets('each dance type has its own active dialect', (tester) async {
+      final ctx = await _pumpSettings(tester);
+      await openDialect(tester);
+
+      final english = find.byKey(const ValueKey('dialect-form-ecd'));
+      await tester.ensureVisible(english);
+      await tester.tap(english);
+      await tester.pumpAndSettle();
+      final tile = find.byKey(
+        ValueKey('dialect-tile-${Dialect.leadsFollows.name}'),
+      );
+      await tester.ensureVisible(tile);
+      await tester.tap(tile);
+      await tester.pumpAndSettle();
+
+      expect(
+        ctx.dialectLibraries.forForm(DanceForm.ecd).activeName,
+        Dialect.leadsFollows.name,
+      );
+      expect(
+        await ctx.repos.settings.get(kActiveDialectRefEcdKey),
+        Dialect.leadsFollows.name,
+      );
+      expect(ctx.dialectLibrary.active, Dialect.larksRobins);
+      expect(await ctx.repos.settings.get(kActiveDialectRefKey), isNull);
+    });
+
+    testWidgets('a dialect name with a gendered word is refused', (
+      tester,
+    ) async {
+      final ctx = await _pumpSettings(tester);
+      await openDialect(tester);
+
+      await tester.tap(find.byKey(const ValueKey('new-dialect')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('dialect-name-field')),
+        'Gents & Ladies',
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(AppLocalizationsEn().validationGenderedRoleTerm('gents')),
+        findsOneWidget,
+      );
+      await tester.tap(find.byKey(const ValueKey('dialect-name-confirm')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('dialect-editor-save')), findsNothing);
+      expect(ctx.dialectLibrary.customDialects, isEmpty);
+    });
+
     testWidgets('a canceled New dialect leaves nothing behind', (tester) async {
       final ctx = await _pumpSettings(tester);
       await openDialect(tester);
@@ -805,6 +882,37 @@ void main() {
       expect(find.text('Edit terms'), findsNothing);
     });
 
+    testWidgets('a tap outside keeps a dialect name once it is edited', (
+      tester,
+    ) async {
+      final ctx = await _pumpSettings(tester);
+      await ctx.dialectLibrary.upsert(Dialect(name: 'Old name'));
+      await openDialect(tester);
+      await tester.pumpAndSettle();
+      const field = ValueKey('dialect-name-field');
+
+      await tester.tap(find.byKey(const ValueKey('dialect-menu-Old name')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Rename'));
+      await tester.pumpAndSettle();
+
+      // Untouched, the barrier still closes it.
+      await tester.tapAt(const Offset(4, 4));
+      await tester.pumpAndSettle();
+      expect(find.byKey(field), findsNothing);
+
+      await tester.tap(find.byKey(const ValueKey('dialect-menu-Old name')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Rename'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(field), 'New name');
+      await tester.pump();
+      await tester.tapAt(const Offset(4, 4));
+      await tester.pumpAndSettle();
+      expect(find.byKey(field), findsOneWidget);
+      expect(find.text('New name'), findsOneWidget);
+    });
+
     testWidgets('renaming a custom dialect updates the list + active pointer', (
       tester,
     ) async {
@@ -835,7 +943,7 @@ void main() {
       );
     });
 
-    testWidgets('deleting a custom dialect removes it after confirming', (
+    testWidgets('deleting a custom dialect removes it at once, with Undo', (
       tester,
     ) async {
       final ctx = await _pumpSettings(tester);
@@ -848,9 +956,8 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('Delete'));
       await tester.pumpAndSettle();
-      // Confirm.
-      await tester.tap(find.widgetWithText(FilledButton, 'Delete'));
-      await tester.pumpAndSettle();
+      // No dialog: "Confirm before delete" is off by default.
+      expect(find.byType(AlertDialog), findsNothing);
 
       expect(ctx.dialectLibrary.customByName('Doomed'), isNull);
       expect(find.byKey(const ValueKey('dialect-tile-Doomed')), findsNothing);
@@ -858,12 +965,19 @@ void main() {
       expect(ctx.dialectLibrary.active, equals(Dialect.larksRobins));
       // The delete is acknowledged by name (B10).
       expect(find.text('"Doomed" deleted.'), findsOneWidget);
+
+      // Undo brings it back, active again.
+      await tester.tap(find.byKey(const ValueKey('dialect-delete-undo')));
+      await tester.pumpAndSettle();
+      expect(ctx.dialectLibrary.customByName('Doomed'), isNotNull);
+      expect(ctx.dialectLibrary.activeName, 'Doomed');
+      expect(find.byKey(const ValueKey('dialect-tile-Doomed')), findsOneWidget);
     });
 
-    testWidgets('cancelling the delete keeps the dialect and says nothing', (
+    testWidgets('with Confirm before delete on, Cancel keeps the dialect', (
       tester,
     ) async {
-      final ctx = await _pumpSettings(tester);
+      final ctx = await _pumpSettings(tester, confirmBeforeDelete: true);
       await ctx.dialectLibrary.upsert(Dialect(name: 'Keeper'));
       await openDialect(tester);
       await tester.pumpAndSettle();
@@ -872,7 +986,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('Delete'));
       await tester.pumpAndSettle();
-      await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
+      await tester.tap(find.byKey(const ValueKey('confirm-delete-cancel')));
       await tester.pumpAndSettle();
 
       expect(ctx.dialectLibrary.customByName('Keeper'), isNotNull);
@@ -895,16 +1009,45 @@ void main() {
 
       await tester.enterText(
         find.byKey(const ValueKey('dialect-role1-singular')),
-        'Gent',
+        'Jay',
       );
       await tester.tap(find.byKey(const ValueKey('dialect-editor-save')));
       await tester.pumpAndSettle();
 
       final saved = ctx.dialectLibrary.customByName('Mine');
       expect(saved, isNotNull);
-      expect(saved!.roles['role1']!.singular, equals('Gent'));
+      expect(saved!.roles['role1']!.singular, equals('Jay'));
       // The name is preserved (edit terms never renames).
       expect(saved.name, equals('Mine'));
+    });
+
+    testWidgets('the editor will not save a gendered role term', (
+      tester,
+    ) async {
+      final ctx = await _pumpSettings(tester);
+      await ctx.dialectLibrary.upsert(Dialect(name: 'Mine'));
+      await openDialect(tester);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('dialect-menu-Mine')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Edit terms'));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('dialect-role1-singular')),
+        'Gent',
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('dialect-editor-save')));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.textContaining(
+          AppLocalizationsEn().validationGenderedRoleTerm('gent'),
+        ),
+        findsWidgets,
+      );
+      expect(ctx.dialectLibrary.customByName('Mine')!.roles['role1'], isNull);
     });
 
     Future<void> openEditorWithEdit(WidgetTester tester, String name) async {
@@ -914,7 +1057,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.enterText(
         find.byKey(const ValueKey('dialect-role1-singular')),
-        'Gent',
+        'Jay',
       );
     }
 
@@ -1008,7 +1151,7 @@ void main() {
     testWidgets('renders a preview card for every theme option', (
       tester,
     ) async {
-      await _pumpSettings(tester);
+      await _pumpSettings(tester, section: 'appearance');
 
       for (final option in AppThemeSelection.values) {
         final card = find.byKey(ValueKey('theme-${option.name}'));
@@ -1026,10 +1169,83 @@ void main() {
       }
     });
 
+    testWidgets('phone width: built-in cards sit in two columns', (
+      tester,
+    ) async {
+      await _pumpSettings(tester, surfaceSize: const Size(390, 9000));
+      await tester.tap(find.byKey(const ValueKey('settings-nav-appearance')));
+      await tester.pumpAndSettle();
+
+      Rect rect(AppThemeSelection o) =>
+          tester.getRect(find.byKey(ValueKey('theme-${o.name}')));
+      final light = rect(AppThemeSelection.light);
+      final dark = rect(AppThemeSelection.dark);
+      final soft = rect(AppThemeSelection.softDark);
+      final contrast = rect(AppThemeSelection.highContrast);
+
+      // Light and Dark share a row, Soft dark and High contrast the next.
+      expect(light.top, dark.top);
+      expect(light.left, lessThan(dark.left));
+      expect(soft.top, contrast.top);
+      expect(soft.top, greaterThan(light.top));
+      // Two columns use the row: the pair spans most of the 390 pt screen,
+      // not the ~60% a single 220 pt card leaves.
+      expect(dark.right - light.left, greaterThan(390 * 0.8));
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('a 360 pt phone also gets two columns', (tester) async {
+      await _pumpSettings(tester, surfaceSize: const Size(360, 9000));
+      await tester.tap(find.byKey(const ValueKey('settings-nav-appearance')));
+      await tester.pumpAndSettle();
+
+      final light = tester.getRect(
+        find.byKey(ValueKey('theme-${AppThemeSelection.light.name}')),
+      );
+      final dark = tester.getRect(
+        find.byKey(ValueKey('theme-${AppThemeSelection.dark.name}')),
+      );
+      expect(light.top, dark.top);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('large text on a phone: cards go full width, no overflow', (
+      tester,
+    ) async {
+      tester.platformDispatcher.textScaleFactorTestValue = 2.0;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      await _pumpSettings(tester, surfaceSize: const Size(390, 20000));
+      await tester.tap(find.byKey(const ValueKey('settings-nav-appearance')));
+      await tester.pumpAndSettle();
+
+      final light = tester.getRect(
+        find.byKey(ValueKey('theme-${AppThemeSelection.light.name}')),
+      );
+      final dark = tester.getRect(
+        find.byKey(ValueKey('theme-${AppThemeSelection.dark.name}')),
+      );
+      expect(dark.top, greaterThan(light.top));
+      expect(light.width, greaterThan(390 * 0.8));
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('wide pane keeps the 220 pt cards', (tester) async {
+      await _pumpSettings(tester, section: 'appearance');
+
+      final light = tester.getRect(
+        find.byKey(ValueKey('theme-${AppThemeSelection.light.name}')),
+      );
+      expect(light.width, 220);
+    });
+
     testWidgets('the active option shows a non-color-only selected state', (
       tester,
     ) async {
-      await _pumpSettings(tester, initialTheme: AppThemeSelection.dark);
+      await _pumpSettings(
+        tester,
+        section: 'appearance',
+        initialTheme: AppThemeSelection.dark,
+      );
 
       // Selection must not rely on color alone: the active card also renders a
       // check icon and a "Selected" label.
@@ -1064,6 +1280,7 @@ void main() {
     testWidgets('selecting a theme updates the notifier live', (tester) async {
       final ctx = await _pumpSettings(
         tester,
+        section: 'appearance',
         initialTheme: AppThemeSelection.system,
       );
 
@@ -1082,6 +1299,7 @@ void main() {
     ) async {
       final ctx = await _pumpSettings(
         tester,
+        section: 'appearance',
         initialTheme: AppThemeSelection.system,
       );
 
@@ -1149,14 +1367,13 @@ void main() {
             reason: '${group.label} gallery section should be alphabetical',
           );
         }
-        // The Default group uses a curated order (Dark, Soft dark, High
-        // contrast, Light) rather than alphabetical, which reads more
-        // intuitively in the Settings pane.
+        // The Default group uses a curated order (Light, Dark, Soft dark, High
+        // contrast) rather than alphabetical.
         expect(
           AppThemeSelection.inGroup(
             AppThemeGroup.defaultHearth,
           ).map((s) => s.label),
-          equals(['Dark', 'Soft dark', 'High contrast', 'Light']),
+          equals(['Light', 'Dark', 'Soft dark', 'High contrast']),
         );
       },
     );
@@ -1176,6 +1393,7 @@ void main() {
     ) async {
       final ctx = await _pumpSettings(
         tester,
+        section: 'appearance',
         initialTheme: AppThemeSelection.system,
       );
 
@@ -1192,7 +1410,7 @@ void main() {
     });
 
     testWidgets('gallery renders labeled group headings', (tester) async {
-      await _pumpSettings(tester);
+      await _pumpSettings(tester, section: 'appearance');
       for (final group in AppThemeGroup.values) {
         expect(
           find.text(group.label),
@@ -1221,7 +1439,7 @@ void main() {
     testWidgets('shows an empty-state hint and a New custom theme button', (
       tester,
     ) async {
-      await _pumpSettings(tester);
+      await _pumpSettings(tester, section: 'appearance');
       await revealInAppearance(
         tester,
         find.byKey(const ValueKey('new-custom-theme')),
@@ -1231,7 +1449,7 @@ void main() {
     });
 
     testWidgets('renders a card for each saved custom theme', (tester) async {
-      final ctx = await _pumpSettings(tester);
+      final ctx = await _pumpSettings(tester, section: 'appearance');
       final created = await ctx.customThemes.duplicate(
         name: 'Test Theme',
         brightness: Brightness.dark,
@@ -1252,6 +1470,7 @@ void main() {
     ) async {
       final ctx = await _pumpSettings(
         tester,
+        section: 'appearance',
         initialTheme: AppThemeSelection.monokai,
       );
       final created = await ctx.customThemes.duplicate(
@@ -1276,7 +1495,7 @@ void main() {
     testWidgets('selecting a built-in theme clears the active custom theme', (
       tester,
     ) async {
-      final ctx = await _pumpSettings(tester);
+      final ctx = await _pumpSettings(tester, section: 'appearance');
       final created = await ctx.customThemes.duplicate(
         name: 'Test Theme',
         brightness: Brightness.dark,
@@ -1306,10 +1525,9 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    testWidgets('deleting a custom theme removes it and says so by name', (
-      tester,
-    ) async {
-      final ctx = await _pumpSettings(tester);
+    testWidgets('deleting a custom theme removes it, says so by name, and '
+        'Undo brings it back', (tester) async {
+      final ctx = await _pumpSettings(tester, section: 'appearance');
       final created = await ctx.customThemes.duplicate(
         name: 'Doomed Theme',
         brightness: Brightness.dark,
@@ -1318,18 +1536,79 @@ void main() {
       await tester.pumpAndSettle();
 
       await chooseDelete(tester, created.id);
-      await tester.tap(find.widgetWithText(FilledButton, 'Delete'));
-      await tester.pumpAndSettle();
+      // No dialog: "Confirm before delete" is off by default.
+      expect(find.byType(AlertDialog), findsNothing);
 
       expect(ctx.customThemes.byId(created.id), isNull);
       expect(find.byKey(ValueKey('custom-${created.id}')), findsNothing);
       expect(find.text('"Doomed Theme" deleted.'), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('custom-theme-delete-undo')));
+      await tester.pumpAndSettle();
+      expect(ctx.customThemes.byId(created.id), isNotNull);
+      expect(find.byKey(ValueKey('custom-${created.id}')), findsOneWidget);
     });
 
-    testWidgets('cancelling the delete keeps the theme and says nothing', (
+    testWidgets('Undo keeps a built-in theme chosen after the delete', (
       tester,
     ) async {
-      final ctx = await _pumpSettings(tester);
+      final ctx = await _pumpSettings(tester, section: 'appearance');
+      final created = await ctx.customThemes.duplicate(
+        name: 'Doomed Theme',
+        brightness: Brightness.dark,
+        roles: CustomTheme.rolesFromScheme(const ColorScheme.dark()),
+      );
+      await ctx.customThemes.setActive(created.id);
+      await tester.pumpAndSettle();
+
+      final before = ctx.themeNotifier.value;
+      await chooseDelete(tester, created.id);
+      expect(ctx.customThemes.activeId, isNull);
+      // While the Undo prompt is up, the user picks High contrast in the
+      // gallery and then goes back to the theme they had: a choice all the
+      // same, though the selection ends where it started.
+      for (final pick in [AppThemeSelection.highContrast, before]) {
+        final card = find.byKey(ValueKey('theme-${pick.name}'));
+        await revealInAppearance(tester, card);
+        await tester.tap(card);
+        await tester.pumpAndSettle();
+      }
+      expect(ctx.themeNotifier.value, before);
+
+      await tester.tap(find.byKey(const ValueKey('custom-theme-delete-undo')));
+      await tester.pumpAndSettle();
+
+      expect(ctx.customThemes.byId(created.id), isNotNull);
+      expect(ctx.customThemes.activeId, isNull);
+    });
+
+    testWidgets('Undo makes a deleted active theme active again', (
+      tester,
+    ) async {
+      final ctx = await _pumpSettings(tester, section: 'appearance');
+      final created = await ctx.customThemes.duplicate(
+        name: 'Doomed Theme',
+        brightness: Brightness.dark,
+        roles: CustomTheme.rolesFromScheme(const ColorScheme.dark()),
+      );
+      await ctx.customThemes.setActive(created.id);
+      await tester.pumpAndSettle();
+
+      await chooseDelete(tester, created.id);
+      await tester.tap(find.byKey(const ValueKey('custom-theme-delete-undo')));
+      await tester.pumpAndSettle();
+
+      expect(ctx.customThemes.activeId, created.id);
+    });
+
+    testWidgets('with Confirm before delete on, Cancel keeps the theme', (
+      tester,
+    ) async {
+      final ctx = await _pumpSettings(
+        tester,
+        section: 'appearance',
+        confirmBeforeDelete: true,
+      );
       final created = await ctx.customThemes.duplicate(
         name: 'Keeper Theme',
         brightness: Brightness.dark,
@@ -1338,7 +1617,7 @@ void main() {
       await tester.pumpAndSettle();
 
       await chooseDelete(tester, created.id);
-      await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
+      await tester.tap(find.byKey(const ValueKey('confirm-delete-cancel')));
       await tester.pumpAndSettle();
 
       expect(ctx.customThemes.byId(created.id), isNotNull);
@@ -1444,20 +1723,143 @@ void main() {
       );
     });
 
-    testWidgets('appearance is shown by default and dialect is hidden', (
+    testWidgets('General, first in the sidebar, is shown by default', (
       tester,
     ) async {
       await _pumpSettings(tester);
-      // Appearance content: the theme gallery is present.
+      // General is selected in the sidebar and its content is mounted.
       expect(
-        find.byKey(ValueKey('theme-${AppThemeSelection.system.name}')),
+        tester
+            .widget<ListTile>(
+              find.byKey(const ValueKey('settings-nav-general')),
+            )
+            .selected,
+        isTrue,
+      );
+      expect(
+        find.byKey(const ValueKey('general-sort-ignore-articles')),
         findsOneWidget,
       );
-      // Dialect content is not mounted until its section is selected.
+      // No other section is selected, and Appearance's theme gallery is not
+      // mounted until its section is chosen.
+      for (final tile in tester.widgetList<ListTile>(
+        find.byWidgetPredicate(
+          (w) =>
+              w is ListTile &&
+              w.key is ValueKey<String> &&
+              (w.key! as ValueKey<String>).value.startsWith('settings-nav-'),
+        ),
+      )) {
+        expect(
+          tile.selected,
+          tile.key == const ValueKey('settings-nav-general'),
+          reason: '${tile.key}',
+        );
+      }
       expect(
-        find.byKey(ValueKey('dialect-tile-${Dialect.larksRobins.name}')),
+        find.byKey(ValueKey('theme-${AppThemeSelection.system.name}')),
         findsNothing,
       );
+    });
+
+    for (final (width, sideBySide) in [
+      (AppBreakpoints.split - 1, false),
+      (AppBreakpoints.split, true),
+    ]) {
+      testWidgets('shown on its own, ${width.toInt()} px wide, side by side: '
+          '$sideBySide', (tester) async {
+        await _pumpSettings(tester, surfaceSize: Size(width, 1400));
+        expect(
+          find.byKey(const ValueKey('general-sort-ignore-articles')),
+          sideBySide ? findsOneWidget : findsNothing,
+        );
+        expect(
+          find.descendant(
+            of: find.byKey(const ValueKey('settings-nav-general')),
+            matching: find.byIcon(Icons.chevron_right),
+          ),
+          sideBySide ? findsNothing : findsOneWidget,
+        );
+      });
+    }
+
+    for (final scale in [1.0, 2.0]) {
+      testWidgets('no sidebar label breaks inside a word at ${scale}x text', (
+        tester,
+      ) async {
+        tester.platformDispatcher.textScaleFactorTestValue = scale;
+        addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+        await _pumpSettings(tester);
+
+        final tiles = find.byWidgetPredicate(
+          (w) =>
+              w is ListTile &&
+              w.key is ValueKey<String> &&
+              (w.key! as ValueKey<String>).value.startsWith('settings-nav-'),
+        );
+        final sideBySide = find
+            .byKey(const ValueKey('general-sort-ignore-articles'))
+            .evaluate()
+            .isNotEmpty;
+        if (scale == 2.0) {
+          // The longest word cannot fit the widest sidebar: one pane instead.
+          expect(sideBySide, isFalse);
+        }
+        for (final tile in tiles.evaluate()) {
+          final paragraph = tester.renderObject<RenderParagraph>(
+            find.descendant(
+              of: find.byWidget(tile.widget),
+              matching: find.byType(Text),
+            ),
+          );
+          final label = paragraph.text.toPlainText();
+          for (final word in label.split(' ')) {
+            final painter = TextPainter(
+              text: TextSpan(text: word, style: paragraph.text.style),
+              textDirection: TextDirection.ltr,
+              textScaler: paragraph.textScaler,
+            )..layout();
+            expect(
+              paragraph.constraints.maxWidth,
+              greaterThanOrEqualTo(painter.width),
+              reason: '"$word" of "$label" must fit on its line',
+            );
+            painter.dispose();
+          }
+        }
+      });
+    }
+
+    testWidgets('every sidebar label fits on one line', (tester) async {
+      // The test font draws every glyph as wide as the font size, so text is
+      // scaled down until "Language & region" fits within the sidebar's cap;
+      // a fixed 180 px sidebar still wraps it.
+      tester.platformDispatcher.textScaleFactorTestValue = 0.5;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      await _pumpSettings(tester);
+
+      double labelHeight(String section) => tester
+          .getSize(
+            find.descendant(
+              of: find.byKey(ValueKey('settings-nav-$section')),
+              matching: find.byType(Text),
+            ),
+          )
+          .height;
+      final oneLine = labelHeight('general');
+      for (final section in [
+        'program',
+        'appearance',
+        'dialect',
+        'regional',
+        'defaults',
+        'updates',
+        'diagnostics',
+        'experimental',
+        'about',
+      ]) {
+        expect(labelHeight(section), oneLine, reason: section);
+      }
     });
 
     testWidgets('selecting Dialect swaps the content pane', (tester) async {
@@ -1512,9 +1914,9 @@ void main() {
     testWidgets('settings sections render via the shared SectionHeader', (
       tester,
     ) async {
-      await _pumpSettings(tester);
+      await _pumpSettings(tester, section: 'appearance');
 
-      // The Appearance section is shown by default; its headers are rendered
+      // The Appearance section's headers are rendered
       // by the shared SectionHeader (extracted from this screen so the dance
       // editor can reuse the identical style).
       expect(find.widgetWithText(SectionHeader, 'Theme'), findsOneWidget);
@@ -6209,7 +6611,10 @@ void main() {
         find.byKey(const ValueKey('custom-figures-empty')),
         findsOneWidget,
       );
-      expect(find.byKey(const ValueKey('custom-figures-add')), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('custom-figures-empty-add')),
+        findsOneWidget,
+      );
     });
 
     testWidgets('turning Custom Figures off updates the live setting and '

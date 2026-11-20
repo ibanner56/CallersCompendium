@@ -2,6 +2,9 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../theme/app_motion.dart';
+import '../theme/app_spacing.dart';
+import 'dirty_dialog_guard.dart';
 
 /// Which batch operation the dialog is picking tags for.
 enum BatchTagMode { add, remove }
@@ -39,6 +42,7 @@ Future<BatchTagSelection?> showBatchTagDialog(
   return showDialog<BatchTagSelection>(
     context: context,
     builder: (_) => _BatchTagDialog(mode: mode, initialTags: visible),
+    animationStyle: AppMotion.styleFor(context),
   );
 }
 
@@ -110,105 +114,113 @@ class _BatchTagDialogState extends State<_BatchTagDialog> {
   Widget build(BuildContext context) {
     final isAdd = widget.mode == BatchTagMode.add;
     final l10n = AppLocalizations.of(context);
-    return AlertDialog(
-      key: const ValueKey('batch-tag-dialog'),
-      title: Text(isAdd ? l10n.collectionAddTags : l10n.collectionRemoveTags),
-      content: SizedBox(
-        width: 360,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (_tags.isEmpty)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: Text(
-                  isAdd
-                      ? l10n.collectionBatchTagEmptyAdd
-                      : l10n.collectionBatchTagEmptyRemove,
-                ),
-              )
-            else
-              Flexible(
-                child: ListView(
-                  shrinkWrap: true,
-                  children: [
-                    for (final tag in _tags)
-                      CheckboxListTile(
-                        key: ValueKey('batch-tag-option-${tag.id}'),
-                        dense: true,
-                        contentPadding: EdgeInsets.zero,
-                        controlAffinity: ListTileControlAffinity.leading,
-                        value: _selected.contains(tag.id),
-                        onChanged: (checked) => setState(() {
-                          if (checked ?? false) {
-                            _selected.add(tag.id);
-                          } else {
-                            _selected.remove(tag.id);
-                          }
-                        }),
-                        secondary: const Icon(Icons.label_outline),
-                        title: Text(tag.name),
-                      ),
-                  ],
-                ),
-              ),
-            if (isAdd) ...[
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      key: const ValueKey('batch-new-tag-field'),
-                      controller: _newTagController,
-                      textInputAction: TextInputAction.done,
-                      decoration: InputDecoration(
-                        labelText: l10n.collectionCreateTagLabel,
-                        isDense: true,
-                        border: const OutlineInputBorder(),
-                      ),
-                      onSubmitted: (_) => _createTag(),
-                    ),
+    // Typed work: text in the new-tag field, or a tag already staged from it.
+    // Ticking existing tags is a cheap pick, not typed input, so it does not
+    // hold the dialog open.
+    return DirtyDialogGuard(
+      listenable: _newTagController,
+      isDirty: () =>
+          _newTagController.text.isNotEmpty || _stagedTags.isNotEmpty,
+      child: AlertDialog(
+        key: const ValueKey('batch-tag-dialog'),
+        title: Text(isAdd ? l10n.collectionAddTags : l10n.collectionRemoveTags),
+        content: SizedBox(
+          width: 360,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (_tags.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
+                  child: Text(
+                    isAdd
+                        ? l10n.collectionBatchTagEmptyAdd
+                        : l10n.collectionBatchTagEmptyRemove,
                   ),
-                  const SizedBox(width: 8),
-                  IconButton(
-                    key: const ValueKey('batch-create-tag'),
-                    tooltip: l10n.collectionCreateTagButton,
-                    icon: const Icon(Icons.add),
-                    onPressed: _creating ? null : _createTag,
-                  ),
-                ],
-              ),
-            ],
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          key: const ValueKey('batch-tag-cancel'),
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(l10n.commonCancel),
-        ),
-        FilledButton(
-          key: const ValueKey('batch-tag-confirm'),
-          onPressed: _selected.isEmpty
-              ? null
-              : () => Navigator.of(context).pop(
-                  BatchTagSelection(
-                    tagIds: Set<String>.of(_selected),
-                    stagedTags: [
-                      for (final tag in _stagedTags.values)
-                        if (_selected.contains(tag.id)) tag,
+                )
+              else
+                Flexible(
+                  child: ListView(
+                    shrinkWrap: true,
+                    children: [
+                      for (final tag in _tags)
+                        CheckboxListTile(
+                          key: ValueKey('batch-tag-option-${tag.id}'),
+                          dense: true,
+                          contentPadding: EdgeInsets.zero,
+                          controlAffinity: ListTileControlAffinity.leading,
+                          value: _selected.contains(tag.id),
+                          onChanged: (checked) => setState(() {
+                            if (checked ?? false) {
+                              _selected.add(tag.id);
+                            } else {
+                              _selected.remove(tag.id);
+                            }
+                          }),
+                          secondary: const Icon(Icons.label_outline),
+                          title: Text(tag.name),
+                        ),
                     ],
                   ),
                 ),
-          child: Text(
-            isAdd
-                ? l10n.collectionBatchTagAddConfirm
-                : l10n.collectionBatchTagRemoveConfirm,
+              if (isAdd) ...[
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        key: const ValueKey('batch-new-tag-field'),
+                        controller: _newTagController,
+                        textInputAction: TextInputAction.done,
+                        decoration: InputDecoration(
+                          labelText: l10n.collectionCreateTagLabel,
+                          isDense: true,
+                          border: const OutlineInputBorder(),
+                        ),
+                        onSubmitted: (_) => _createTag(),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    IconButton(
+                      key: const ValueKey('batch-create-tag'),
+                      tooltip: l10n.collectionCreateTagButton,
+                      icon: const Icon(Icons.add),
+                      onPressed: _creating ? null : _createTag,
+                    ),
+                  ],
+                ),
+              ],
+            ],
           ),
         ),
-      ],
+        actions: [
+          TextButton(
+            key: const ValueKey('batch-tag-cancel'),
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(l10n.commonCancel),
+          ),
+          FilledButton(
+            key: const ValueKey('batch-tag-confirm'),
+            onPressed: _selected.isEmpty
+                ? null
+                : () => Navigator.of(context).pop(
+                    BatchTagSelection(
+                      tagIds: Set<String>.of(_selected),
+                      stagedTags: [
+                        for (final tag in _stagedTags.values)
+                          if (_selected.contains(tag.id)) tag,
+                      ],
+                    ),
+                  ),
+            child: Text(
+              isAdd
+                  ? l10n.collectionBatchTagAddConfirm
+                  : l10n.collectionBatchTagRemoveConfirm,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

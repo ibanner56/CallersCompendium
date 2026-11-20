@@ -456,6 +456,28 @@ void main() {
         },
       );
 
+      test('classifies progressed improper exactly', () async {
+        final draft = await _importOne(
+          jsonEncode(
+            _dance(
+              formationBase: 'Duple Minor - Progressed improper',
+              formationDetail: 'chestnut',
+            ),
+          ),
+        );
+        expect(draft.dance.formation.shape, FormationShape.progressedImproper);
+        expect(draft.dance.formation.detail, 'chestnut');
+      });
+
+      test('does not broaden progressed improper matching', () async {
+        final draft = await _importOne(
+          jsonEncode(
+            _dance(formationBase: 'Duple Minor - Progressed improper variant'),
+          ),
+        );
+        expect(draft.dance.formation.shape, FormationShape.dupleImproper);
+      });
+
       test('classifies reverse progression improper exactly', () async {
         final draft = await _importOne(
           jsonEncode(
@@ -1244,6 +1266,22 @@ void main() {
       );
 
       test(
+        'a setup cast that travels down the set is not the meltdown setup',
+        () async {
+          // v40 (#770): the setup is a cast BACK; a cast down is a figure of
+          // its own and stays one.
+          final figures = await figuresFor([
+            '(2) Women cast down || Men go forward',
+            '(6) N2 neighbor right shoulder round',
+            '(8) N2 neighbor swing',
+          ]);
+          expect(figures, hasLength(2));
+          expect(figures.first.isMeanwhile, isTrue);
+          expect(figures.last.params['beats'], 14);
+        },
+      );
+
+      test(
         'a shoulder-round subject mismatch blocks the meltdown fold',
         () async {
           final figures = await figuresFor([
@@ -1751,6 +1789,46 @@ void main() {
       final draft = await _importOne(payload);
       final modifier = figuresOf(draft.dance).singleWhere((f) => f.isModifier);
       expect(figureFromJson(figureToJson(modifier)), modifier);
+    });
+  });
+
+  // FODA vol. 2: Thatcher Pass is "Proper Triplet (231)", Chris' Crossing
+  // is "Improper Quadruplet (2341)". The set shape wins over the
+  // proper/improper word, which is kept as the formation detail.
+  group('formation names that carry a set shape and a start word', () {
+    Future<Formation> read(String base, {String? detail}) async {
+      final draft = await _importOne(
+        jsonEncode(_dance(formationBase: base, formationDetail: detail)),
+      );
+      return draft.dance.formation;
+    }
+
+    const cases = <(String, FormationShape, String?)>[
+      ('Proper Triplet (231)', FormationShape.triplet, 'Proper'),
+      ('Improper Triplet', FormationShape.triplet, 'Improper'),
+      ('Indecent Triplet', FormationShape.triplet, 'Indecent'),
+      ('Improper (triple progression)', FormationShape.dupleImproper, null),
+      ('Triplet', FormationShape.triplet, null),
+      ('Improper Quadruplet (2341)', FormationShape.quadruplet, 'Improper'),
+      ('Quadruplet', FormationShape.quadruplet, null),
+      ('Triple Minor', FormationShape.tripleMinor, null),
+      ('Triple Minor - Improper', FormationShape.tripleMinor, 'Improper'),
+      ('Triple Minor - Proper', FormationShape.tripleMinor, 'Proper'),
+      ('Duple Minor - Proper', FormationShape.dupleProper, null),
+      ('Improper', FormationShape.dupleImproper, null),
+    ];
+    for (final (name, shape, detail) in cases) {
+      test('"$name"', () async {
+        final f = await read(name);
+        expect(f.shape, shape);
+        expect(f.detail, detail);
+      });
+    }
+
+    test('keeps the start word ahead of a separate FormationDetail', () async {
+      final f = await read('Proper Triplet (231)', detail: 'chestnut');
+      expect(f.shape, FormationShape.triplet);
+      expect(f.detail, 'Proper; chestnut');
     });
   });
 }

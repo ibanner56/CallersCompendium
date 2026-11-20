@@ -9,12 +9,16 @@ import '../data/figure_summary.dart';
 import '../data/repositories_scope.dart';
 import '../data/show_custom_figures_scope.dart';
 import '../editor/figure_draft.dart';
-import '../theme/destructive_button_style.dart';
+import '../theme/app_spacing.dart';
+import '../utils/confirm_delete.dart';
+import '../utils/undo_snack_bar.dart';
 import '../widgets/compound_argument_editor.dart';
+import '../widgets/empty_state.dart';
 import 'compound_shorthand_editor_screen.dart';
 import '../data/shorthand_mappings_controller.dart';
 import '../data/shorthand_mappings_scope.dart';
 import 'shorthand_mapping_editor_screen.dart';
+import '../widgets/adaptive_fab.dart';
 
 /// Manager for the user's shorthand → figure(s) mappings (issue #420), reached
 /// from the "Free-text entry" area of Settings. Mirrors the dialect library
@@ -32,41 +36,59 @@ class ShorthandMappingsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final controller = ShorthandMappingsScope.of(context);
-    final dialect = ActiveDialectScope.of(context);
+    final dialect = ActiveDialectScope.contraOf(context);
     final renderer = FigureRenderer(contraTaxonomy);
     final mappings = controller.mappings;
     final l10n = AppLocalizations.of(context);
+    final newShorthand = mappings.isEmpty
+        ? null
+        : adaptiveExtendedFab(
+            context,
+            key: const ValueKey('new-shorthand'),
+            heroTag: 'new-shorthand',
+            onPressed: () => _createNew(context, controller),
+            icon: const Icon(Icons.add),
+            label: l10n.shorthandMappingsNew,
+          );
     return Scaffold(
       appBar: AppBar(title: Text(l10n.shorthandMappingsTitle)),
+      // A full-screen manager creates with the floating button once it has a
+      // list; until then the button sits with the empty message. The compound
+      // shorthands below are a section of their own and keep theirs inline.
+      floatingActionButton: newShorthand,
       body: ListView(
+        // Lets the last row scroll clear of the floating button.
+        padding: EdgeInsets.only(
+          bottom: newShorthand == null ? 0 : AppSpacing.fabClearance,
+        ),
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.md,
+              AppSpacing.md,
+              AppSpacing.md,
+              AppSpacing.xs,
+            ),
             child: Text(
               l10n.shorthandMappingsIntro,
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: OutlinedButton.icon(
-                key: const ValueKey('new-shorthand'),
-                onPressed: () => _createNew(context, controller),
-                icon: const Icon(Icons.add),
-                label: Text(l10n.shorthandMappingsNew),
-              ),
-            ),
-          ),
-          const SizedBox(height: 8),
           if (mappings.isEmpty)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-              child: Text(
-                l10n.shorthandMappingsEmpty,
-                key: const ValueKey('shorthand-empty'),
-              ),
+            EmptyState(
+              key: const ValueKey('shorthand-empty'),
+              inline: true,
+              icon: EmptyState.glyph(context, Icons.short_text),
+              title: l10n.shorthandMappingsEmptyTitle,
+              body: l10n.shorthandMappingsEmptyBody,
+              actions: [
+                FilledButton.icon(
+                  key: const ValueKey('new-shorthand'),
+                  onPressed: () => _createNew(context, controller),
+                  icon: const Icon(Icons.add),
+                  label: Text(l10n.shorthandMappingsNew),
+                ),
+              ],
             )
           else
             for (var i = 0; i < mappings.length; i++)
@@ -185,6 +207,8 @@ class ShorthandMappingsScreen extends StatelessWidget {
           for (final u in controller.userFigureShorthands) u.normalizedToken,
         };
 
+  /// Deletes the figure shorthand at [index] at once and offers Undo, asking
+  /// first only when "Confirm before delete" is on (see `confirm_delete.dart`).
   Future<void> _confirmDelete(
     BuildContext context,
     ShorthandMappingsController controller,
@@ -192,31 +216,26 @@ class ShorthandMappingsScreen extends StatelessWidget {
   ) async {
     final mappings = controller.mappings;
     if (index < 0 || index >= mappings.length) return;
-    final token = mappings[index].token;
+    final removed = mappings[index];
+    final token = removed.token;
+    if (!await confirmDeleteIfEnabled(context, itemLabel: token)) return;
+    if (!context.mounted) return;
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.maybeOf(context);
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.shorthandMappingsDeleteTitle),
-        content: Text(l10n.shorthandMappingsDeleteBody(token)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text(l10n.commonCancel),
-          ),
-          FilledButton(
-            style: destructiveFilledButtonStyle(Theme.of(ctx).colorScheme),
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text(l10n.commonDelete),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true) return;
-    await controller.removeAt(index);
-    messenger?.showSnackBar(
-      SnackBar(content: Text(l10n.commonDeletedSnack(token))),
+    final accessibleNavigation = MediaQuery.accessibleNavigationOf(context);
+    // The list may have changed while the confirmation was open.
+    final at = controller.mappings.indexOf(removed);
+    if (at < 0) return;
+    await controller.removeAt(at);
+    if (messenger == null) return;
+    showUndoSnackBar(
+      messenger,
+      actionKey: const ValueKey('shorthand-delete-undo'),
+      message: l10n.commonDeletedSnack(token),
+      undoLabel: l10n.commonUndo,
+      undoFailedMessage: l10n.commonUndoFailed,
+      accessibleNavigation: accessibleNavigation,
+      onUndo: () => controller.restoreAt(at, removed),
     );
   }
 }
@@ -368,44 +387,49 @@ class _CompoundShorthandsSectionState
     }
   }
 
+  /// Deletes a compound shorthand or a shorthand for a figure of your own at
+  /// once and offers Undo, asking first only when "Confirm before delete" is
+  /// on (see `confirm_delete.dart`).
   Future<void> _confirmDelete(
     BuildContext context, {
     int? compoundIndex,
     int? userFigureIndex,
   }) async {
+    final controller = widget.controller;
+    final compound = compoundIndex != null
+        ? controller.compoundShorthands[compoundIndex]
+        : null;
+    final userFigure = compoundIndex == null
+        ? controller.userFigureShorthands[userFigureIndex!]
+        : null;
+    final token = compound?.token ?? userFigure!.token;
+    if (!await confirmDeleteIfEnabled(context, itemLabel: token)) return;
+    if (!context.mounted) return;
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.maybeOf(context);
-    final controller = widget.controller;
-    final token = compoundIndex != null
-        ? controller.compoundShorthands[compoundIndex].token
-        : controller.userFigureShorthands[userFigureIndex!].token;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.shorthandMappingsDeleteTitle),
-        content: Text(l10n.shorthandMappingsDeleteBody(token)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text(l10n.commonCancel),
-          ),
-          FilledButton(
-            style: destructiveFilledButtonStyle(Theme.of(ctx).colorScheme),
-            key: const ValueKey('compound-shorthand-delete-confirm'),
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text(l10n.commonDelete),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true) return;
-    if (compoundIndex != null) {
-      await controller.removeCompoundAt(compoundIndex);
+    final accessibleNavigation = MediaQuery.accessibleNavigationOf(context);
+    // The lists may have changed while the confirmation was open.
+    final FutureOr<void> Function() undo;
+    if (compound != null) {
+      final at = controller.compoundShorthands.indexOf(compound);
+      if (at < 0) return;
+      await controller.removeCompoundAt(at);
+      undo = () => controller.restoreCompoundAt(at, compound);
     } else {
-      await controller.removeUserFigureAt(userFigureIndex!);
+      final at = controller.userFigureShorthands.indexOf(userFigure!);
+      if (at < 0) return;
+      await controller.removeUserFigureAt(at);
+      undo = () => controller.restoreUserFigureAt(at, userFigure);
     }
-    messenger?.showSnackBar(
-      SnackBar(content: Text(l10n.commonDeletedSnack(token))),
+    if (messenger == null) return;
+    showUndoSnackBar(
+      messenger,
+      actionKey: const ValueKey('compound-shorthand-delete-undo'),
+      message: l10n.commonDeletedSnack(token),
+      undoLabel: l10n.commonUndo,
+      undoFailedMessage: l10n.commonUndoFailed,
+      accessibleNavigation: accessibleNavigation,
+      onUndo: undo,
     );
   }
 
@@ -413,7 +437,7 @@ class _CompoundShorthandsSectionState
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
-    final dialect = ActiveDialectScope.of(context);
+    final dialect = ActiveDialectScope.contraOf(context);
     final shorthands = widget.controller.compoundShorthands;
     final userFigureShorthands = widget.controller.userFigureShorthands;
     final figureTokens = {
@@ -423,7 +447,12 @@ class _CompoundShorthandsSectionState
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 24, 16, 4),
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.md,
+            AppSpacing.lg,
+            AppSpacing.md,
+            AppSpacing.xxs,
+          ),
           child: Semantics(
             header: true,
             child: Text(
@@ -433,14 +462,19 @@ class _CompoundShorthandsSectionState
           ),
         ),
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.md,
+            0,
+            AppSpacing.md,
+            AppSpacing.xs,
+          ),
           child: Text(
             l10n.shorthandsCompoundIntro,
             style: theme.textTheme.bodySmall,
           ),
         ),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
           child: OutlinedButton.icon(
             key: const ValueKey('new-compound-shorthand'),
             onPressed: () => _open(context),
@@ -449,12 +483,11 @@ class _CompoundShorthandsSectionState
           ),
         ),
         if (shorthands.isEmpty && userFigureShorthands.isEmpty)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-            child: Text(
-              l10n.shorthandsCompoundEmpty,
-              key: const ValueKey('compound-shorthand-empty'),
-            ),
+          EmptyState(
+            key: const ValueKey('compound-shorthand-empty'),
+            inline: true,
+            icon: EmptyState.glyph(context, Icons.short_text),
+            title: l10n.shorthandsCompoundEmpty,
           ),
         for (var i = 0; i < shorthands.length; i++)
           _row(context, l10n, dialect, shorthands[i], i, figureTokens),

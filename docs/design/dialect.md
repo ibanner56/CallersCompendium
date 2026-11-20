@@ -75,7 +75,12 @@ built figure.
   except slide along set: it reads "slide left along set" by default, spelling
   its name around the side, but starts a wording from `{move} {slide}`, so a
   dialect's own name for it still shows. Saved unchanged, that wording reads
-  "slide along set left"; `slide {slide} along set` keeps the default order. Imported
+  "slide along set left"; `slide {slide} along set` keeps the default order. An
+English country dance movement starts from its display template rewritten as
+a wording that saves: each `[{?flag}…]` group becomes `[if flag then …]`, and
+the template's own choices (a run of changes with no count, a hey with no
+`who`, a forward and back with no direction) become conditions too, so the
+wording, saved unchanged, reads as the default line. Imported
   templates are sanitized, capped at 512 UTF-16 code units
   each as stored, conditions included, and limited to 256 entries per dialect.
 - `moveWordingBranches` stores fixed branch-specific templates for
@@ -92,14 +97,50 @@ built figure.
   single-file template. Branch templates are display-only and share the
   512-code-unit/256-entry limits, and may hold conditions too.
 - Shipped presets are **role-neutral only**: **Larks/Robins (default)** and
-  Leads/Follows (plus Canonical). Gendered role terms are **not** baked in as
-  presets — a user who wants them enters them through the custom role-terms
-  editor. Everything a dialect can set is editable in Settings → Dialect:
+  Leads/Follows (plus Canonical). No dialect may show a gendered role word
+  (`genderedRoleWords`: gent(s), gentleman/men, man/men, lady/ladies,
+  woman/women; Hudson's rule, 2026-11-18). "man" and "men" count only as a
+  role term or a dancer substitution: in a wording, move substitution or
+  dialect name they are
+  also the impersonal pronoun of shipped locales (German and Danish "man",
+  Dutch "men"), so they are not refused or dropped there (implementer's call;
+  refusing them everywhere would delete those users' wordings). `Dialect.validate` reports
+  `gendered_role_term` for one in a role term, a move or dancer substitution, a
+  move wording or a branch entry, and the Settings name dialog refuses a
+  dialect name holding one. Data that already holds one (an older build, a
+  backup, another device) is repaired on read rather than rejected:
+  `Dialect.fromJson` puts the Larks/Robins term in place of a gendered role term
+  and drops gendered substitutions and wordings, and
+  `DialectLibraryController.load` renames a custom dialect whose name holds one
+  to a fresh `Dialect.customName`, carrying the new name to programs like any
+  rename. Until then, the sync conflict review shows such a dialect as the
+  app reads it (`Dialect.fromJson`) and masks its name (`shownDialectName`),
+  as does the program editor's "unavailable" dialect item. Everything a dialect can set is editable in Settings → Dialect:
   role terms, per-move substitutions, dancer-term substitutions, and the
   discouraged-terms list. Users may
   keep a custom dialect and switch instantly (e.g. per-gig) — this generalizes
   CC's binary "on the fly gendered↔gender-free switch". The active dialect
   (including a full custom one) is persisted as JSON.
+
+  **One dialect library per dance form** (ADR-006 §9.1, Hudson 2026-11-18;
+  storage chosen by Hudson on 2026-11-19). Each `DanceForm` has its own custom
+  dialects and its own active dialect. Contra keeps the keys it always had
+  (`custom_dialects`, `active_dialect_ref`, and the legacy `active_dialect`
+  blob); English country dance and square use `custom_dialects_ecd` /
+  `active_dialect_ref_ecd` and `custom_dialects_square` /
+  `active_dialect_ref_square`. The presets are the same for every form.
+  `DialectLibraries` holds one `DialectLibraryController` per form, and
+  `DialectsByForm` carries the active dialect of each form; a dance renders in
+  `DialectsByForm.forDance(dance)`. All the custom-dialect keys are
+  whole-collection sync settings (conflicts go to review). Contra's library
+  travels in the backup's `app.dialects` section and the other forms' as plain
+  `app.settings` entries; older builds keep the unknown keys whole (ADR-004).
+  Surfaces that do not yet have a taxonomy per form (glossary, shorthands,
+  walkthrough snippets, the dialect editor's preview samples) stay on contra's
+  dialect until W5/W6. Program-wide text (notes, set lists, matrix columns) is
+  rendered in contra's dialect, while each dance in a program renders in its
+  own form's (implementer's call; the alternative, rendering program text in
+  the form of most of its dances, was rejected as unpredictable).
 
   A program may also name its own dialect (`Program.dialectName`, issue #1554),
   which only that program's Perform view uses; the editor, summary and exports
@@ -107,7 +148,17 @@ built figure.
   program stores only the dialect's **name**, resolved when Perform opens
   (`resolveProgramDialect`, comparing names after `normalizeShareableText`): a
   name that no longer resolves — deleted, or not yet synced to this device —
-  silently falls back to the active dialect. Delete never writes to programs.
+  silently falls back to the active dialect. With a library per form, Perform
+  looks the name up among the dialects of the form of the dance on screen, and a
+  form with no dialect of that name uses its own active dialect; the presets
+  share names across forms (implementer's call, ADR-006 §12.2 S3 left this open).
+  Because names are unique only within a form, a rename is carried to
+  programs only while no other form still has a dialect of the old name;
+  otherwise programs keep the old name, which that other form still answers
+  to (implementer's call; recording the form beside the name was rejected as
+  a persisted-format change). A name the app picks itself, such as the
+  rename of a gendered name on load, avoids every form's names. Delete never
+  writes to programs.
   Rename does (amended 2026-10-29, @ibanner56's ruling on PRES-11/LIFE-11):
   `DialectLibraryController.rename` saves the library, then
   `ProgramRepository.renameDialect` gives every program naming the old dialect
@@ -124,6 +175,44 @@ built figure.
   nor revive a deleted one; the screen says the changes were not saved. A
   dialect has no id, so a deleted name that a new dialect has since taken cannot
   be told apart from the original. Inside Perform the quick-switch is then session-local.
+
+  **Choreographer exception: larks and robins only.** Rachel ("Rae") Fifer has
+  asked the dance community at large that her dances only ever be called with
+  the role terms "larks" and "robins". This is the one place the reader's
+  dialect does not win. `dialectForDance` (`dialect/author_role_terms.dart`)
+  takes the reader's dialect for the dance's form (`DialectsByForm.forDance`)
+  and the dance's title and author names, and when `requiresLarksRobins`
+  returns a copy with `lark`/`robin` role terms. It also
+  drops the reader's single-dancer substitutions (`onesRole1` …, which usually
+  spell a role) and stops flagging lark and robin as discouraged. Move
+  substitutions and wordings stay the reader's. A dance requires it when any
+  author's name has Rachel or Rae as its first word and Fifer as its last.
+  "Renewed Joy" and "If I Was Dead and It Wouldn't Go To Waste" also require it
+  when no author is named (none, or only Unknown/Traditional), so a dance
+  imported without its author is still caught. The request that added this
+  rule named those two dances and said she would probably prefer the rule to
+  cover all her dances, so it does. The rest was decided while implementing it,
+  not by the request: the title fallback, keeping the reader's move wording
+  (rather than switching the whole dialect to the Larks/Robins preset, which
+  would discard choices that have nothing to do with roles), and dropping
+  single-dancer substitutions (which would otherwise leak a role word such as
+  "first gent").
+
+  Every surface that shows one dance resolves its dialect through
+  `dialectForDance`: the dance page (which notes the override when it sets the
+  reader's role terms aside, `overridesRoleTerms`), the editor (whose controller
+  resolves its form's dialect through it, and converts its drafts as the
+  title or authors start or stop requiring it), Perform (single dance and
+  each program slot), the Collection list tile, the program summary row, the
+  program editor's slot row, the import review preview, and every export
+  built on `DanceCardContent`, which carries the dialect it rendered in
+  (`DanceCardContent.dialect`) for its consumers' figure rendering. Program-level
+  text keeps the reader's dialect: slot notes (Perform renders a slot's caller
+  note in the reader's dialect beside the dance's own, `PerformCard.
+  callerNoteDialect`), and the program matrix's column labels, which span
+  several dances. The sync-conflict comparison renders each
+  field without the dance's authors, so it also keeps the reader's dialect.
+  Storage is unaffected: the dance stays canonical.
 
 ## Conditional wording
 

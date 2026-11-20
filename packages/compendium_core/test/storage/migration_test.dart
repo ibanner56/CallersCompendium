@@ -201,6 +201,7 @@ void main() {
           taxonomyV37CanonicalRebuildDoneKey,
           taxonomyV38CanonicalRebuildDoneKey,
           taxonomyV39CanonicalRebuildDoneKey,
+          ecdTaxonomyCanonicalRebuildDoneKey,
           chainHandBackfillDoneKey,
         ]) {
           await repos.settings.set(key, 'done');
@@ -852,6 +853,67 @@ void main() {
     });
   });
 
+  group('ECD taxonomy canonical rebuild (ADR-006)', () {
+    test(
+      'an ecd_ figure indexed while unknown re-derives as a movement',
+      () async {
+        final db = CompendiumDatabase(NativeDatabase.memory());
+        final repos = _CountingRepositories(db, shippedTaxonomies.anyForm);
+        addTearDown(db.close);
+
+        await repos.dances.create(
+          Dance(
+            id: 'ecd-known',
+            title: 'An English dance',
+            form: DanceForm.ecd,
+            figures: [
+              Figure(
+                move: 'ecd_cast',
+                params: {
+                  'who': ['ones'],
+                  'direction': 'down',
+                  'beats': 8,
+                },
+              ),
+            ],
+            createdAt: DateTime.utc(2026),
+            updatedAt: DateTime.utc(2026),
+          ),
+        );
+        await _markPre1192SweepsComplete(repos);
+        await repos.settings.remove(ecdTaxonomyCanonicalRebuildDoneKey);
+        // What a build without the ECD taxonomy derived: the bare move ID.
+        await db.customUpdate(
+          'UPDATE dance_figures SET canonical_text = ? WHERE dance_id = ?',
+          variables: [
+            Variable<String>('ecd_cast'),
+            Variable<String>('ecd-known'),
+          ],
+        );
+
+        await repos.ensureMigrated();
+
+        final indexed = await db
+            .customSelect(
+              'SELECT canonical_text FROM dance_figures WHERE dance_id = ?',
+              variables: [Variable<String>('ecd-known')],
+            )
+            .get();
+        expect(indexed.map((row) => row.read<String>('canonical_text')), [
+          'ones cast down',
+        ]);
+        expect(
+          repos.oneTimeRepairMarkers,
+          contains(ecdTaxonomyCanonicalRebuildDoneKey),
+        );
+
+        final rebuilds = repos.rebuildAttempts;
+        await repos.ensureMigrated();
+        expect(repos.rebuildAttempts, rebuilds, reason: 'runs once');
+      },
+    );
+  });
+
   group('taxonomy v35 figure normalization', () {
     // invalid-fixture: these figures deliberately use the pre-v35 persisted vocabulary
     test('rewrites legacy keys and nested structural figures', () async {
@@ -1426,6 +1488,203 @@ void main() {
     );
   });
 
+  group('v41 -> v42 upgrade (ECD meter, key, improper and interpreters, '
+      'ADR-006)', () {
+    Future<Set<String>> danceColumns(DatabaseConnectionUser db) async => {
+      for (final row
+          in await db
+              .customSelect("SELECT name FROM pragma_table_info('dances')")
+              .get())
+        row.read<String>('name'),
+    };
+
+    const added = {
+      'formation_improper',
+      'meter',
+      'musical_key',
+      'interpreted_on',
+    };
+
+    Future<Set<String>> schemaNames(DatabaseConnectionUser db) async => {
+      for (final row
+          in await db
+              .customSelect(
+                "SELECT name FROM sqlite_master "
+                "WHERE name LIKE 'dance_interpreters%'",
+              )
+              .get())
+        row.read<String>('name'),
+    };
+
+    test('adds the four columns and the interpreters table, and an existing '
+        'dance reads as proper with no meter, key or interpreters', () async {
+      final raw = sqlite3.sqlite3.openInMemory();
+      final historical = GeneratedHelper().databaseForVersion(
+        NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+        41,
+      );
+      await historical.customSelect('SELECT 1').get();
+      expect(
+        (await danceColumns(historical)).intersection(added),
+        isEmpty,
+        reason: 'a v41 database has none of them',
+      );
+      expect(await schemaNames(historical), isEmpty);
+      await historical.customStatement(
+        "INSERT INTO dances (id, title, form, formation_shape, "
+        "formation_detail, progression, status, created_at, updated_at) "
+        "VALUES ('d1', 'Keep', 'ecd', 'tripleMinor', 'as many as will', "
+        "'single', 'active', 0, 0)",
+      );
+      await historical.close();
+
+      final db = CompendiumDatabase(
+        NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+      );
+      addTearDown(() async {
+        await db.close();
+        raw.close();
+      });
+      await db.customSelect('SELECT 1').get();
+
+      expect(await danceColumns(db), containsAll(added));
+      expect(
+        await schemaNames(db),
+        containsAll([
+          'dance_interpreters',
+          'dance_interpreters_choreographer_id',
+        ]),
+      );
+      final dance = await CompendiumRepositories(
+        db,
+        contraTaxonomy,
+      ).dances.getById('d1');
+      expect(dance, isNotNull);
+      expect(dance!.title, 'Keep');
+      expect(dance.form, DanceForm.ecd);
+      expect(
+        dance.formation,
+        const Formation(FormationShape.tripleMinor, detail: 'as many as will'),
+      );
+      expect(dance.formation.improper, isFalse);
+      expect(dance.meter, '');
+      expect(dance.musicalKey, '');
+      expect(dance.interpreterIds, isEmpty);
+      expect(dance.interpretedOn, isNull);
+      final version = await db.customSelect('PRAGMA user_version').getSingle();
+      expect(version.read<int>('user_version'), 42);
+    });
+
+    test(
+      'is idempotent over a column and a table that already exist',
+      () async {
+        final raw = sqlite3.sqlite3.openInMemory();
+        final historical = GeneratedHelper().databaseForVersion(
+          NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+          41,
+        );
+        await historical.customSelect('SELECT 1').get();
+        await historical.close();
+        raw.execute(
+          "ALTER TABLE dances ADD COLUMN meter TEXT NOT NULL DEFAULT ''",
+        );
+        raw.execute(
+          'CREATE TABLE dance_interpreters (dance_id TEXT NOT NULL, '
+          'choreographer_id TEXT NOT NULL, position INTEGER NOT NULL, '
+          'PRIMARY KEY (dance_id, choreographer_id))',
+        );
+
+        final db = CompendiumDatabase(
+          NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+        );
+        addTearDown(() async {
+          await db.close();
+          raw.close();
+        });
+        await db.customSelect('SELECT 1').get();
+
+        expect(await danceColumns(db), containsAll(added));
+      },
+    );
+  });
+
+  group('v41 -> v42 upgrade (programs.archived_at, #2218)', () {
+    Future<Set<String>> programColumns(DatabaseConnectionUser db) async => {
+      for (final row
+          in await db
+              .customSelect("SELECT name FROM pragma_table_info('programs')")
+              .get())
+        row.read<String>('name'),
+    };
+
+    test('adds archived_at as NULL and keeps every program', () async {
+      final raw = sqlite3.sqlite3.openInMemory();
+      final historical = GeneratedHelper().databaseForVersion(
+        NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+        41,
+      );
+      await historical.customSelect('SELECT 1').get();
+      expect(
+        await programColumns(historical),
+        isNot(contains('archived_at')),
+        reason: 'a v41 database has no archived_at column',
+      );
+      await historical.customStatement(
+        "INSERT INTO programs (id, title, notes, status, hide_alternates, "
+        "created_at, updated_at) "
+        "VALUES ('p1', 'Keep', 'n', 'performed', 0, 1700000000, 1700000100)",
+      );
+      await historical.close();
+
+      final db = CompendiumDatabase(
+        NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+      );
+      addTearDown(() async {
+        await db.close();
+        raw.close();
+      });
+      await db.customSelect('SELECT 1').get();
+
+      expect(await programColumns(db), contains('archived_at'));
+      final program = await ProgramRepository(db).getById('p1');
+      expect(program, isNotNull);
+      expect(program!.title, 'Keep');
+      expect(program.status, ProgramStatus.performed);
+      expect(program.archivedAt, isNull);
+      expect(
+        program.updatedAt,
+        DateTime.fromMillisecondsSinceEpoch(1700000100 * 1000, isUtc: true),
+        reason:
+            'the migration must not touch updated_at, or sync would '
+            'republish every program',
+      );
+      final version = await db.customSelect('PRAGMA user_version').getSingle();
+      expect(version.read<int>('user_version'), 42);
+    });
+
+    test('is idempotent over a column that already exists', () async {
+      final raw = sqlite3.sqlite3.openInMemory();
+      final historical = GeneratedHelper().databaseForVersion(
+        NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+        41,
+      );
+      await historical.customSelect('SELECT 1').get();
+      await historical.close();
+      raw.execute('ALTER TABLE programs ADD COLUMN archived_at INTEGER NULL');
+
+      final db = CompendiumDatabase(
+        NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+      );
+      addTearDown(() async {
+        await db.close();
+        raw.close();
+      });
+      await db.customSelect('SELECT 1').get();
+
+      expect(await programColumns(db), contains('archived_at'));
+    });
+  });
+
   group('v40 -> v41 upgrade (cited-id lookup indexes, #1935)', () {
     const indexes = {
       'dance_authors_choreographer_id',
@@ -1477,7 +1736,7 @@ void main() {
           .getSingle();
       expect(kept.read<String>('name'), 'Keep');
       final version = await db.customSelect('PRAGMA user_version').getSingle();
-      expect(version.read<int>('user_version'), 41);
+      expect(version.read<int>('user_version'), kCompendiumSchemaVersion);
     });
 
     test('is idempotent over an index that already exists', () async {
@@ -1675,6 +1934,7 @@ Future<void> _markPre1192SweepsComplete(CompendiumRepositories repos) async {
     taxonomyV37CanonicalRebuildDoneKey,
     taxonomyV38CanonicalRebuildDoneKey,
     taxonomyV39CanonicalRebuildDoneKey,
+    ecdTaxonomyCanonicalRebuildDoneKey,
     chainHandBackfillDoneKey,
   ]) {
     await repos.settings.set(key, 'done');

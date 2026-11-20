@@ -2,7 +2,9 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../theme/touch_density.dart';
 import '../search/facet_labels.dart';
+import 'bar_timing.dart';
 
 // `humanizeToken` moved to `search/facet_labels.dart` (issue #741) so the dance
 // editor and the Advanced-search facet share one labelling primitive. Re-exported
@@ -87,7 +89,7 @@ class FigureParamEditor extends StatelessWidget {
   /// Whether [moveId] is a shipped move with a fraction amount (#2120).
   bool get _moveHasFractionAmount =>
       moveId != null &&
-      (contraTaxonomy
+      (shippedTaxonomies.anyForm
               .resolve(moveId!)
               ?.params
               .containsKey(fractionAmountParam) ??
@@ -108,6 +110,26 @@ class FigureParamEditor extends StatelessWidget {
         return _dropdown(
           context,
           offerableDancerSets(rawDomain, mixer: mixer, currentValue: value),
+        );
+      case ParamKind.dancerList:
+        return _DancerListChips(
+          fieldKey: _key,
+          label: figureParamKeyLabel(l10n, paramKey, moveId: moveId),
+          domain: [
+            for (final token in figureParamSelectableChoices(
+              spec.choices ?? ParamVocab.dancerSets,
+            ))
+              // A mixer's partner series only in a mixer, or when the list
+              // already holds it.
+              if (mixer ||
+                  !ParamVocab.mixerPartnerSeries.contains(token) ||
+                  (value is List && (value! as List).contains(token)))
+                token,
+          ],
+          value: value,
+          labelOf: (token) =>
+              figureParamChoiceLabel(l10n, spec, dialect, token),
+          onChanged: onChanged,
         );
       case ParamKind.handedness:
       case ParamKind.shoulder:
@@ -166,6 +188,17 @@ class FigureParamEditor extends StatelessWidget {
           onChanged: onChanged,
         );
       case ParamKind.beats:
+        // An English dance is timed in bars (ADR-006 §5.5).
+        if (BarTimingScope.maybeOf(context) case final bars?) {
+          return BarsField(
+            fieldKey: _key,
+            label: l10n.danceEditorBarsLabel,
+            beats: value is int ? value! as int : null,
+            beatsPerBar: bars.beatsPerBar,
+            allowsUntimed: bars.allowsUntimed,
+            onChanged: onChanged,
+          );
+        }
         return _IntField(
           fieldKey: _key,
           label: figureParamKeyLabel(l10n, paramKey, moveId: moveId),
@@ -186,14 +219,24 @@ class FigureParamEditor extends StatelessWidget {
           onChanged: onChanged,
         );
       case ParamKind.places:
+        // A places spec may opt into the `unspecified` sentinel by listing it
+        // in `choices` (taxonomy v39: `circle.places`, `star.places`). For
+        // those an empty field is "not stated", not an error, and stores the
+        // sentinel; showing the default instead would claim a distance the
+        // dance never gave.
+        final placesUnset =
+            spec.choices?.contains(ParamVocab.unspecified) ?? false;
         return _IntField(
           fieldKey: _key,
           label: figureParamKeyLabel(l10n, paramKey, moveId: moveId),
           value: value is int
               ? value! as int
+              : (placesUnset && value == ParamVocab.unspecified)
+              ? null
               : (spec.defaultValue is int ? spec.defaultValue! as int : 1),
           min: 1,
           max: 10,
+          allowsUnset: placesUnset,
           onChanged: onChanged,
         );
       case ParamKind.text:
@@ -304,7 +347,7 @@ class FigureParamEditor extends StatelessWidget {
         key: ValueKey(_key),
         initialValue: current,
         isExpanded: true,
-        isDense: true,
+        isDense: denseControls(context),
         // Shown only when there is no selection: the unstated state, or a
         // value left as it is that must be replaced. Supplying a hint also
         // keeps `InputDecorator.isEmpty` false, so the floating label behaves
@@ -328,7 +371,7 @@ class FigureParamEditor extends StatelessWidget {
             : null,
         decoration: InputDecoration(
           labelText: figureParamKeyLabel(l10n, paramKey, moveId: moveId),
-          isDense: true,
+          isDense: denseControls(context),
         ),
         items: [
           for (final choice in selectable)
@@ -367,7 +410,6 @@ class FigureParamEditor extends StatelessWidget {
             key: ValueKey('$_key-clear'),
             tooltip: l10n.danceEditorParamClearTooltip,
             icon: const Icon(Icons.backspace_outlined),
-            visualDensity: VisualDensity.compact,
             onPressed: () => onChanged(ParamVocab.unspecified),
           ),
       ],
@@ -450,7 +492,6 @@ class _RotationStepper extends StatelessWidget {
               key: ValueKey('$fieldKey-dec'),
               tooltip: l10n.danceEditorLessTooltip,
               icon: const Icon(Icons.remove),
-              visualDensity: VisualDensity.compact,
               // Disabled while unset: there is nothing to decrement, and
               // stepping DOWN into a value would read as "the app picked one".
               onPressed: (current != null && current > min)
@@ -479,7 +520,6 @@ class _RotationStepper extends StatelessWidget {
               key: ValueKey('$fieldKey-inc'),
               tooltip: l10n.danceEditorMoreTooltip,
               icon: const Icon(Icons.add),
-              visualDensity: VisualDensity.compact,
               // From the unset state the first nudge ADOPTS a value — an
               // explicit user action, never an implicit default.
               onPressed: current == null
@@ -498,7 +538,6 @@ class _RotationStepper extends StatelessWidget {
                 key: ValueKey('$fieldKey-clear'),
                 tooltip: l10n.danceEditorParamClearTooltip,
                 icon: const Icon(Icons.backspace_outlined),
-                visualDensity: VisualDensity.compact,
                 onPressed: () => onChanged(ParamVocab.unspecified),
               ),
           ],
@@ -516,14 +555,22 @@ class _IntField extends StatefulWidget {
     required this.min,
     required this.max,
     required this.onChanged,
+    this.allowsUnset = false,
   });
 
   final String fieldKey;
   final String label;
-  final int value;
+
+  /// The stored number, or `null` for "not stated" (only with [allowsUnset]),
+  /// which shows as an empty field.
+  final int? value;
   final int min;
   final int max;
   final ValueChanged<Object?> onChanged;
+
+  /// Whether the param admits [ParamVocab.unspecified]: an empty field then
+  /// reports the sentinel and is not an error.
+  final bool allowsUnset;
 
   @override
   State<_IntField> createState() => _IntFieldState();
@@ -541,7 +588,7 @@ class _IntFieldState extends State<_IntField> {
   @override
   void initState() {
     super.initState();
-    _controller = TextEditingController(text: widget.value.toString());
+    _controller = TextEditingController(text: widget.value?.toString() ?? '');
   }
 
   @override
@@ -552,7 +599,7 @@ class _IntFieldState extends State<_IntField> {
     // differs from what the user is looking at, to avoid fighting the cursor.
     if (widget.value != old.value &&
         int.tryParse(_controller.text.trim()) != widget.value) {
-      _controller.text = widget.value.toString();
+      _controller.text = widget.value?.toString() ?? '';
       _invalid = false;
     }
   }
@@ -566,6 +613,7 @@ class _IntFieldState extends State<_IntField> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
     return SizedBox(
       width: 96,
       child: TextField(
@@ -575,12 +623,30 @@ class _IntFieldState extends State<_IntField> {
         decoration: InputDecoration(
           labelText: widget.label,
           isDense: true,
+          // The label floats while the field is empty so this hint shows,
+          // as the dropdowns show "not stated" for the same sentinel.
+          floatingLabelBehavior: widget.allowsUnset
+              ? FloatingLabelBehavior.always
+              : null,
+          hintText: widget.allowsUnset ? l10n.danceEditorParamNotStated : null,
+          hintStyle: widget.allowsUnset
+              ? theme.textTheme.bodyMedium?.copyWith(
+                  fontStyle: FontStyle.italic,
+                  color: theme.colorScheme.onSurfaceVariant,
+                )
+              : null,
           errorText: _invalid
               ? l10n.danceEditorIntParamRangeError(widget.min, widget.max)
               : null,
         ),
         onChanged: (text) {
-          final n = int.tryParse(text.trim());
+          final trimmed = text.trim();
+          if (widget.allowsUnset && trimmed.isEmpty) {
+            widget.onChanged(ParamVocab.unspecified);
+            if (_invalid) setState(() => _invalid = false);
+            return;
+          }
+          final n = int.tryParse(trimmed);
           final valid = n != null && n >= widget.min && n <= widget.max;
           if (valid) widget.onChanged(n);
           if (_invalid == valid) setState(() => _invalid = !valid);
@@ -642,6 +708,81 @@ class _TextParamFieldState extends State<_TextParamField> {
         decoration: InputDecoration(labelText: widget.label, isDense: true),
         onChanged: widget.onChanged,
       ),
+    );
+  }
+}
+
+/// The editor of a [ParamKind.dancerList] (ECD's `who`, ADR-006 §5.2): one
+/// chip per selector, any number picked, in the order picked. `everyone`
+/// stands alone, so picking it clears the others and picking another clears
+/// it; clearing the last chip leaves the list as "not stated"
+/// (`["unspecified"]`).
+class _DancerListChips extends StatelessWidget {
+  const _DancerListChips({
+    required this.fieldKey,
+    required this.label,
+    required this.domain,
+    required this.value,
+    required this.labelOf,
+    required this.onChanged,
+  });
+
+  final String fieldKey;
+  final String label;
+  final List<String> domain;
+  final Object? value;
+  final String Function(String token) labelOf;
+  final ValueChanged<Object?> onChanged;
+
+  List<String> get _picked => [
+    if (value case final List<Object?> list)
+      for (final token in list)
+        if (token is String && token != ParamVocab.unspecified) token,
+  ];
+
+  void _toggle(String token, bool selected) {
+    final picked = _picked;
+    final List<String> next;
+    if (!selected) {
+      next = [
+        for (final t in picked)
+          if (t != token) t,
+      ];
+    } else if (ParamVocab.soloDancerTokens.contains(token)) {
+      next = [token];
+    } else {
+      next = [
+        for (final t in picked)
+          if (!ParamVocab.soloDancerTokens.contains(t)) t,
+        token,
+      ];
+    }
+    onChanged(next.isEmpty ? const [ParamVocab.unspecified] : next);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final picked = _picked;
+    return Column(
+      key: ValueKey(fieldKey),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(label, style: Theme.of(context).textTheme.labelMedium),
+        Wrap(
+          spacing: 4,
+          runSpacing: 4,
+          children: [
+            for (final token in domain)
+              FilterChip(
+                key: ValueKey('$fieldKey-$token'),
+                label: Text(labelOf(token)),
+                selected: picked.contains(token),
+                onSelected: (selected) => _toggle(token, selected),
+              ),
+          ],
+        ),
+      ],
     );
   }
 }

@@ -53,9 +53,9 @@ const Map<String, int> _allowed = {
   'lib/src/widgets/compound_argument_editor.dart': 1,
   'lib/src/widgets/user_figure_argument_editor.dart': 1,
   'lib/src/screens/settings/defaults_section.dart': 1,
-  // Dialect templates, walkthrough snippet signatures and figure shorthands:
-  // built-in moves, not a dance.
-  'lib/src/screens/dialect_editor_screen.dart': 3,
+  // Dialect templates (one renderer for the dialect's own form), walkthrough
+  // snippet signatures and figure shorthands: built-in moves, not a dance.
+  'lib/src/screens/dialect_editor_screen.dart': 1,
   'lib/src/screens/walkthrough_snippets_screen.dart': 1,
   'lib/src/screens/shorthand_mappings_screen.dart': 2,
   'lib/src/screens/import_shorthand_seed_screen.dart': 1,

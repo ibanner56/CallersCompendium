@@ -608,6 +608,9 @@ void main() {
 
     await tester.pageBack();
     await tester.pumpAndSettle();
+    // Backing out with a pasted list asks first.
+    await tester.tap(find.byKey(const ValueKey('discard-confirm')));
+    await tester.pumpAndSettle();
 
     expect(find.text('open'), findsOneWidget);
     expect(await repos.programs.listAll(), isEmpty);
@@ -639,6 +642,11 @@ void main() {
     await tester.pump();
 
     await tester.pageBack();
+    // The lookup's progress indicator never settles, so pump by hand.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    // Backing out with a pasted list asks first.
+    await tester.tap(find.byKey(const ValueKey('discard-confirm')));
     await tester.pumpAndSettle();
     expect(find.text('open'), findsOneWidget);
 
@@ -762,5 +770,55 @@ void main() {
     expect(find.byKey(const ValueKey('import-review-list')), findsNothing);
     expect(find.text('Stopped looking up titles.'), findsOneWidget);
     expect(await repos.dances.listAll(), isEmpty);
+  });
+
+  group('leaving with input', () {
+    Future<void> back(WidgetTester tester) async {
+      await tester
+          .state<NavigatorState>(find.byType(Navigator).first)
+          .maybePop();
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('back with a pasted list asks first and can keep editing', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await _pump(tester, repos);
+      await tester.enterText(
+        find.byKey(const ValueKey('plaintext-import-paste')),
+        'Money Musk',
+      );
+      await tester.pumpAndSettle();
+
+      await back(tester);
+      expect(find.byKey(const ValueKey('discard-cancel')), findsOneWidget);
+      expect(find.byKey(const ValueKey('plaintext-import-paste')), findsOne);
+
+      await tester.tap(find.byKey(const ValueKey('discard-cancel')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('plaintext-import-paste')), findsOne);
+
+      await back(tester);
+      await tester.tap(find.byKey(const ValueKey('discard-confirm')));
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('plaintext-import-paste')),
+        findsNothing,
+      );
+    });
+
+    testWidgets('back with nothing entered leaves without asking', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await _pump(tester, repos);
+      await back(tester);
+      expect(find.byKey(const ValueKey('discard-cancel')), findsNothing);
+      expect(
+        find.byKey(const ValueKey('plaintext-import-paste')),
+        findsNothing,
+      );
+    });
   });
 }

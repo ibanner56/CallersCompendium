@@ -10,8 +10,10 @@ import '../../widgets/empty_state.dart';
 import '../../data/repositories_scope.dart';
 import '../../data/shorthand_mappings_scope.dart';
 import '../../glossary/custom_figures.dart';
+import '../../theme/app_spacing.dart';
 import 'compound_editor_screen.dart';
 import 'custom_figure_detail.dart';
+import '../../widgets/adaptive_fab.dart';
 
 final FigureRenderer _renderer = FigureRenderer(contraTaxonomy);
 
@@ -80,14 +82,14 @@ class _CustomFiguresScreenState extends State<CustomFiguresScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final dialect = ActiveDialectScope.of(context);
+    final dialect = ActiveDialectScope.contraOf(context);
     // Each is checked for a rename against every entry, terms included.
     final all = resolveCustomGlossary(
       _entries,
       taxonomy: contraTaxonomy,
       dialects: [
         dialect,
-        ...?DialectLibraryScope.maybeOf(context)?.customDialects,
+        ...?DialectLibraryScope.maybeOf(context)?.allCustomDialects,
       ],
       shorthandTokens: ShorthandMappingsScope.tokensOf(context),
     );
@@ -97,18 +99,20 @@ class _CustomFiguresScreenState extends State<CustomFiguresScreen> {
           (item, _renderer.renderFreeText(item.entry.name, dialect)),
     ]..sort((a, b) => a.$2.toLowerCase().compareTo(b.$2.toLowerCase()));
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.customFiguresTitle),
-        actions: [
-          if (_repos != null)
-            IconButton(
+      appBar: AppBar(title: Text(l10n.customFiguresTitle)),
+      // A full-screen manager creates with the floating button, as the venue
+      // and custom field managers do. The empty state carries its own button,
+      // so it waits until there is a figure.
+      floatingActionButton: _repos == null || shown.isEmpty
+          ? null
+          : adaptiveExtendedFab(
+              context,
               key: const ValueKey('custom-figures-add'),
-              icon: const Icon(Icons.add),
-              tooltip: l10n.glossaryAddCustomFigure,
+              heroTag: 'custom-figures-add',
               onPressed: () => _add(context),
+              icon: const Icon(Icons.add),
+              label: l10n.customFiguresNewFigure,
             ),
-        ],
-      ),
       body: shown.isEmpty
           ? EmptyState(
               key: const ValueKey('custom-figures-empty'),
@@ -126,6 +130,8 @@ class _CustomFiguresScreenState extends State<CustomFiguresScreen> {
               ],
             )
           : ListView(
+              // Lets the last figure scroll clear of the floating button.
+              padding: const EdgeInsets.only(bottom: AppSpacing.fabClearance),
               children: [
                 for (final (item, name) in shown)
                   ListTile(

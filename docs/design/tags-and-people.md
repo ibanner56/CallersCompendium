@@ -425,8 +425,9 @@ offers **Merge into…** instead.
 
 **The count and the Undo.** The manager shows each row's count of live
 dances before the user acts, and the delete reports it afterwards: "Deleted
-'Bouncey' from 12 dances. **Undo**". There is no confirm, following
-`ux.md:201-202`, because Undo exists. Dances in Recently deleted are not
+'Bouncey' from 12 dances. **Undo**". There is no confirm unless *Confirm
+before delete* is on, following `ux.md`'s cross-cutting rules, because Undo
+exists. Dances in Recently deleted are not
 counted: they don't protect the row (trash-policy (b)), and they lose the tag
 too.
 

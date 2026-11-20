@@ -13,6 +13,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
 
 import 'package:compendium_app/l10n/app_localizations.dart';
+import 'package:compendium_app/l10n/app_localizations_en.dart';
 import 'package:compendium_app/src/data/user_figures_scope.dart';
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/dance_reimport.dart';
@@ -35,11 +36,13 @@ import 'package:compendium_app/src/widgets/dance_export_menu.dart'
     show PdfLayouter, ShareInvoker;
 import 'package:compendium_app/src/widgets/figure_table.dart';
 import 'package:compendium_app/src/widgets/program_status_chip.dart';
-import 'package:compendium_app/src/widgets/readable_width.dart';
 
+import 'support/dance_detail_actions.dart';
 import 'support/fake_url_launcher.dart';
 import 'support/pdf_probe.dart';
 import 'support/test_repositories.dart';
+import 'support/fab_clearance.dart';
+import 'support/real_fonts.dart';
 import 'support/l10n_harness.dart';
 import 'figures_support.dart';
 
@@ -91,6 +94,7 @@ Future<ValueNotifier<bool>> _pumpDetail(
   Future<void> Function(DanceDetailData detail)? onReimport,
   Set<DanceShareField>? shareFields,
   UserFiguresController? userFigures,
+  bool pushed = false,
 }) async {
   if (canonicalFigureText != null) {
     await repos.settings.set(kCanonicalFigureTextKey, canonicalFigureText);
@@ -108,7 +112,10 @@ Future<ValueNotifier<bool>> _pumpDetail(
       : UserFiguresScope(controller: userFigures, child: child);
   Widget withLibrary(Widget child) => dialectLibrary == null
       ? child
-      : DialectLibraryScope(controller: dialectLibrary, child: child);
+      : DialectLibraryScope(
+          libraries: DialectLibraries.withContra(dialectLibrary),
+          child: child,
+        );
   // Issue #1434 review finding: without mounting this scope explicitly, every
   // test in this file exercises only DanceShareFieldsScope's *default*
   // value — indistinguishable from the wiring being absent entirely. Callers
@@ -139,17 +146,35 @@ Future<ValueNotifier<bool>> _pumpDetail(
           ),
         ),
       ),
-      home: DanceDetailScreen(
-        danceId: danceId,
-        jsonExportDelivery: jsonExportDelivery,
-        shareInvoker: shareInvoker,
-        pdfLayouter: pdfLayouter,
-        readOnly: readOnly,
-        onReimport: onReimport,
-      ),
+      home: pushed
+          ? Builder(
+              builder: (context) => Scaffold(
+                body: TextButton(
+                  key: const ValueKey('open-detail'),
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => DanceDetailScreen(danceId: danceId),
+                    ),
+                  ),
+                  child: const Text('open'),
+                ),
+              ),
+            )
+          : DanceDetailScreen(
+              danceId: danceId,
+              jsonExportDelivery: jsonExportDelivery,
+              shareInvoker: shareInvoker,
+              pdfLayouter: pdfLayouter,
+              readOnly: readOnly,
+              onReimport: onReimport,
+            ),
     ),
   );
   await tester.pumpAndSettle();
+  if (pushed) {
+    await tester.tap(find.byKey(const ValueKey('open-detail')));
+    await tester.pumpAndSettle();
+  }
   return requirePerformedNotifier;
 }
 
@@ -189,22 +214,6 @@ void main() {
     expect(find.text('Gene Hubert'), findsOneWidget);
     expect(find.text('a lovely hook'), findsOneWidget);
     expect(find.text('smooth'), findsOneWidget);
-  });
-
-  testWidgets('keeps its content to the readable width on a wide window', (
-    tester,
-  ) async {
-    final repos = openTestRepositories();
-    await repos.dances.create(_dance(id: 'd1', title: 'Midwest Folklore'));
-
-    await _pumpDetail(tester, repos, 'd1', surfaceSize: const Size(1600, 1200));
-
-    final card = find.byType(Card).first;
-    expect(
-      tester.getSize(card).width,
-      lessThanOrEqualTo(kReadableContentWidth),
-    );
-    expect(tester.getCenter(card).dx, 800);
   });
 
   testWidgets('a use of a figure of your own shows its figure\'s current '
@@ -333,6 +342,7 @@ void main() {
     expect(find.byKey(const ValueKey('delete-dance')), findsNothing);
 
     await tester.tap(find.byKey(const ValueKey('reimport-dance')));
+    await tester.pumpAndSettle();
     expect(reimported, isTrue);
   });
 
@@ -420,6 +430,65 @@ void main() {
     expect(find.text('role1s and role2s balance the ring'), findsNothing);
   });
 
+  group("Rachel Fifer's dances keep larks and robins", () {
+    const note = ValueKey('role-terms-override-note');
+
+    Future<void> pump(
+      WidgetTester tester, {
+      required String author,
+      required Dialect dialect,
+    }) async {
+      final repos = openTestRepositories();
+      // ignore: unused_result
+      await repos.choreographers.upsert(Choreographer(id: 'c1', name: author));
+      await repos.dances.create(
+        _dance(
+          id: 'd1',
+          title: 'Renewed Joy',
+          authorIds: ['c1'],
+          hook: 'role1s and role2s balance the ring',
+          figures: [
+            Figure(move: 'allemande', params: const {'who': 'role1s'}),
+          ],
+        ),
+      );
+      await _pumpDetail(tester, repos, 'd1', activeDialect: dialect);
+    }
+
+    testWidgets('under another dialect, with a note saying why', (
+      tester,
+    ) async {
+      await pump(tester, author: 'Rae Fifer', dialect: Dialect.leadsFollows);
+
+      expect(find.text('larks and robins balance the ring'), findsOneWidget);
+      expect(find.textContaining('leads'), findsNothing);
+      expect(find.textContaining('follows'), findsNothing);
+      expect(find.byKey(note), findsOneWidget);
+      expect(
+        find.text(AppLocalizationsEn().danceRoleTermsOverrideNote),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('no note when the dialect already says larks and robins', (
+      tester,
+    ) async {
+      await pump(tester, author: 'Rachel Fifer', dialect: Dialect.larksRobins);
+
+      expect(find.text('larks and robins balance the ring'), findsOneWidget);
+      expect(find.byKey(note), findsNothing);
+    });
+
+    testWidgets("another choreographer's dance follows the dialect", (
+      tester,
+    ) async {
+      await pump(tester, author: 'Gene Hubert', dialect: Dialect.leadsFollows);
+
+      expect(find.text('leads and follows balance the ring'), findsOneWidget);
+      expect(find.byKey(note), findsNothing);
+    });
+  });
+
   testWidgets('exposes a reachable export/share control on the app bar', (
     tester,
   ) async {
@@ -503,6 +572,71 @@ void main() {
       );
     },
   );
+
+  group('wide app bar', () {
+    testWidgets(
+      'keeps Perform (labelled), Share and Add to program visible and moves '
+      'the rest into the overflow menu with Delete last',
+      (tester) async {
+        final repos = openTestRepositories();
+        await repos.dances.create(_dance(id: 'd1', title: 'Wide Dance'));
+
+        await _pumpDetail(tester, repos, 'd1', onReimport: (_) async {});
+
+        // Perform is a labelled button, not an icon-only action.
+        final perform = find.byKey(const ValueKey('perform-dance'));
+        expect(perform, findsOneWidget);
+        expect(
+          find.descendant(of: perform, matching: find.text('Perform')),
+          findsOneWidget,
+        );
+        expect(find.byKey(const ValueKey('dance-export-menu')), findsOneWidget);
+        expect(
+          find.byKey(const ValueKey('add-dance-to-program')),
+          findsOneWidget,
+        );
+
+        // Duplicate, Re-import and Delete are not bar actions.
+        for (final key in ['duplicate-dance', 'delete-dance']) {
+          expect(find.byKey(ValueKey(key)), findsNothing, reason: key);
+        }
+
+        await tester.tap(find.byKey(const ValueKey('dance-actions-overflow')));
+        await tester.pumpAndSettle();
+        final duplicate = tester.getTopLeft(
+          find.byKey(const ValueKey('duplicate-dance')),
+        );
+        final delete = tester.getTopLeft(
+          find.byKey(const ValueKey('delete-dance')),
+        );
+        final reimport = tester.getTopLeft(
+          find.byKey(const ValueKey('reimport-dance')),
+        );
+        // Delete is the last entry, below Re-import and Duplicate.
+        expect(delete.dy, greaterThan(duplicate.dy));
+        expect(delete.dy, greaterThan(reimport.dy));
+        // Share items are not duplicated into the menu on a wide bar.
+        expect(
+          find.byKey(const ValueKey('overflow-share-dance')),
+          findsNothing,
+        );
+      },
+    );
+  });
+
+  testWidgets('wide app bar does not overflow at 2x text on a 600 px pane', (
+    tester,
+  ) async {
+    tester.platformDispatcher.textScaleFactorTestValue = 2.0;
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Wide Dance'));
+
+    await _pumpDetail(tester, repos, 'd1', surfaceSize: const Size(600, 900));
+
+    expect(tester.takeException(), isNull);
+    expect(find.byKey(const ValueKey('perform-dance')), findsOneWidget);
+  });
 
   group('narrow app bar', () {
     Future<DialectLibraryController> buildLibrary(
@@ -1310,6 +1444,47 @@ void main() {
     final repos = openTestRepositories();
     await _pumpDetail(tester, repos, 'nope');
     expect(find.text('Dance not found.'), findsOneWidget);
+    // Nowhere to go back to (the wide Collection pane is like this): the
+    // message stands alone, with no disabled button implying a retry.
+    expect(find.byType(FilledButton), findsNothing);
+    expect(find.byKey(const ValueKey('load-error-back')), findsNothing);
+  });
+
+  testWidgets('a missing dance with a close callback offers Back', (
+    tester,
+  ) async {
+    var closed = false;
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        builder: (context, child) => RepositoriesScope(
+          repositories: openTestRepositories(),
+          child: ActiveDialectScope(
+            notifier: ValueNotifier(Dialect.larksRobins),
+            child: child!,
+          ),
+        ),
+        home: DanceDetailScreen(danceId: 'nope', onClose: () => closed = true),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('load-error-back')));
+    expect(closed, isTrue);
+  });
+
+  testWidgets('a pushed missing dance offers Back, and Back leaves', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await _pumpDetail(tester, repos, 'nope', pushed: true);
+    expect(find.text('Dance not found.'), findsOneWidget);
+    // Gone, so nothing to retry; Back is the way forward.
+    expect(find.byKey(const ValueKey('load-error-retry')), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('load-error-back')));
+    await tester.pumpAndSettle();
+    expect(find.text('Dance not found.'), findsNothing);
+    expect(find.byKey(const ValueKey('open-detail')), findsOneWidget);
   });
 
   // ── Duplicate ──────────────────────────────────────────────────────────────
@@ -1323,8 +1498,7 @@ void main() {
 
       await _pumpDetail(tester, repos, 'd1');
 
-      await tester.tap(find.byKey(const ValueKey('duplicate-dance')));
-      await tester.pumpAndSettle();
+      await tapDanceOverflowAction(tester, 'duplicate-dance');
 
       // We are now on the detail screen for the copy.
       expect(find.text('River Run (copy)'), findsOneWidget);
@@ -1363,8 +1537,7 @@ void main() {
     );
 
     await _pumpDetail(tester, repos, 'd1');
-    await tester.tap(find.byKey(const ValueKey('duplicate-dance')));
-    await tester.pumpAndSettle();
+    await tapDanceOverflowAction(tester, 'duplicate-dance');
 
     // The copy's detail screen shows the same hook/figures.
     expect(find.text('A great hook'), findsOneWidget);
@@ -1430,8 +1603,7 @@ void main() {
     );
 
     await _pumpDetail(tester, repos, 'd1');
-    await tester.tap(find.byKey(const ValueKey('duplicate-dance')));
-    await tester.pumpAndSettle();
+    await tapDanceOverflowAction(tester, 'duplicate-dance');
 
     expect(find.text('Linked Dance (copy)'), findsOneWidget);
     final copy = (await repos.dances.listAll()).firstWhere(
@@ -1479,8 +1651,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Doomed Dance'), findsOneWidget);
-    await tester.tap(find.byKey(const ValueKey('delete-dance')));
-    await tester.pumpAndSettle();
+    await tapDanceOverflowAction(tester, 'delete-dance');
 
     // Popped back to the previous screen.
     expect(find.text('open'), findsOneWidget);
@@ -1534,8 +1705,7 @@ void main() {
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const ValueKey('delete-dance')));
-    await tester.pumpAndSettle();
+    await tapDanceOverflowAction(tester, 'delete-dance');
 
     // Tap Undo.
     await tester.tap(find.text('Undo'));
@@ -1592,13 +1762,23 @@ void main() {
       await tester.tap(find.text('open'));
       await tester.pumpAndSettle();
 
+      final overflow = find.byKey(const ValueKey('dance-actions-overflow'));
       final delete = find.byKey(const ValueKey('delete-dance'));
+      await tester.tap(overflow);
+      await tester.pumpAndSettle();
       await tester.tap(delete);
       await tester.pump();
       expect(dances.softDeleteCalls, 1);
       // Second tap lands while the first soft-delete is still awaiting.
+      await tester.pumpAndSettle();
+      await tester.tap(overflow);
+      await tester.pumpAndSettle();
       await tester.tap(delete, warnIfMissed: false);
       await tester.pump();
+      // The in-flight delete disables the entry, so the menu is still open;
+      // close it so the pop that follows the delete lands on the detail route.
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pumpAndSettle();
 
       dances.release();
       await tester.pumpAndSettle();
@@ -3433,6 +3613,45 @@ void main() {
       expect(find.textContaining("can't be read"), findsNothing);
       expect(find.byType(FigureTable), findsOneWidget);
     });
+  });
+  group('the floating Edit', () {
+    // Not the 320 dp case: there, at 2× text, a row on this page overflows by
+    // a few pixels on `main` too, a large-text bug of its own. This group is
+    // about the floating button's clearance.
+    for (final c in fabClearanceCases.where((c) => c.width >= 390)) {
+      testWidgets('never covers the end of the page (${c.name})', (
+        tester,
+      ) async {
+        // Real glyph widths: under the full-em test font, large text overflows
+        // rows that fit with the bundled fonts.
+        await loadBundledFonts();
+        final repos = openTestRepositories();
+        await repos.dances.create(
+          _dance(
+            id: 'd1',
+            title: 'Long Dance',
+            figures: [for (var i = 0; i < 16; i++) Figure(move: 'swing')],
+          ),
+        );
+        await _pumpDetail(tester, repos, 'd1', surfaceSize: Size(c.width, 844));
+        await atPhoneSize(
+          tester,
+          width: c.width,
+          scale: c.scale,
+          keyboard: c.keyboard,
+        );
+        await tester.pumpAndSettle();
+
+        // The calling history is the page's last section.
+        await expectFabClearsLastRow(
+          tester,
+          list: find.byType(ListView).first,
+          lastRow: find.byWidgetPredicate(
+            (w) => w.runtimeType.toString() == 'CallingHistorySection',
+          ),
+        );
+      });
+    }
   });
 }
 

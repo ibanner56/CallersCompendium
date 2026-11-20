@@ -11,6 +11,7 @@ import 'package:compendium_app/src/screens/dance_reimport_flow.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:compendium_core/testing.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../support/l10n_harness.dart';
@@ -420,6 +421,39 @@ void main() {
           ),
         ),
       );
+    });
+  });
+
+  group('link dialog guards typed input', () {
+    const field = ValueKey('reimport-link-field');
+
+    testWidgets('typed text survives tap outside, Esc and Back', (
+      tester,
+    ) async {
+      await pumpHost(tester);
+      await openLinkDialog(tester);
+      await tester.enterText(find.byKey(field), 'https://half-typed');
+      await tester.pump();
+
+      await tester.tapAt(const Offset(4, 4));
+      await tester.pumpAndSettle();
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pumpAndSettle();
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(field), findsOneWidget);
+      expect(find.text('https://half-typed'), findsOneWidget);
+    });
+
+    testWidgets('an empty dialog still closes on a tap outside', (
+      tester,
+    ) async {
+      await pumpHost(tester);
+      await openLinkDialog(tester);
+      await tester.tapAt(const Offset(4, 4));
+      await tester.pumpAndSettle();
+      expect(find.byKey(field), findsNothing);
     });
   });
 }

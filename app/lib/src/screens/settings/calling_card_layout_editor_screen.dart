@@ -20,10 +20,14 @@ import '../../export/calling_card_pdf.dart';
 import '../../export/calling_card_sample.dart';
 import '../../export/export_labels_l10n.dart';
 import '../../search/facet_labels.dart';
+import '../../theme/app_motion.dart';
 import '../../theme/app_shapes.dart';
 import '../../theme/app_spacing.dart';
 import '../../widgets/app_bar_text_action.dart';
+import '../../theme/destructive_button_style.dart';
+import '../../utils/undo_snack_bar.dart';
 import 'calling_card_labels.dart';
+import '../../theme/app_breakpoints.dart';
 
 /// Turns a one-page PDF into a PNG of its first page at [dpi]. Defaults to
 /// [rasterizeCallingCard]; tests replace it, since the platform rasterizer is
@@ -157,7 +161,7 @@ class _CallingCardLayoutEditorScreenState
     final settings = _notifier!.value;
     final layout = _layout;
     final rasterize = widget.rasterizer ?? rasterizeCallingCard;
-    final dialect = ActiveDialectScope.of(context);
+    final dialect = ActiveDialectScope.contraOf(context);
     final renderer = UserFiguresScope.rendererOf(context);
     final fields = DanceShareFieldsScope.of(context);
     final canonical = CanonicalDiscouragedTermsScope.of(context);
@@ -190,7 +194,7 @@ class _CallingCardLayoutEditorScreenState
         [entry],
         layout: layout,
         size: settings.size,
-        dialect: dialect,
+        dialects: DialectsByForm.all(dialect),
         fields: fields,
         renderer: renderer,
         labels: labels,
@@ -225,12 +229,14 @@ class _CallingCardLayoutEditorScreenState
             child: Text(l10n.commonCancel),
           ),
           FilledButton(
+            style: destructiveFilledButtonStyle(Theme.of(context).colorScheme),
             key: const ValueKey('calling-card-reset-confirm'),
             onPressed: () => Navigator.of(context).pop(true),
             child: Text(l10n.callingCardEditorReset),
           ),
         ],
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
     if (ok == true && mounted) _replaceText(kDefaultCallingCardLayout);
   }
@@ -240,19 +246,18 @@ class _CallingCardLayoutEditorScreenState
     final previous = _controller.text;
     if (previous == source) return;
     _replaceText(source);
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: Text(l10n.callingCardEditorReplaced),
-          action: SnackBarAction(
-            label: l10n.commonUndo,
-            onPressed: () {
-              if (mounted) _replaceText(previous);
-            },
-          ),
-        ),
-      );
+    // Through the shared helper, so it times out (a bare SnackBar with an
+    // action persists) and follows the Undo prompt setting.
+    showUndoSnackBar(
+      ScaffoldMessenger.of(context),
+      message: l10n.callingCardEditorReplaced,
+      undoLabel: l10n.commonUndo,
+      undoFailedMessage: l10n.commonUndoFailed,
+      accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
+      onUndo: () {
+        if (mounted) _replaceText(previous);
+      },
+    );
   }
 
   /// Inserts [snippet] where the cursor is; see [insertCallingCardSnippet].
@@ -293,7 +298,8 @@ class _CallingCardLayoutEditorScreenState
       ),
       body: LayoutBuilder(
         builder: (context, constraints) {
-          if (constraints.maxWidth < 840) {
+          // A pushed full-screen route, so its own width is the window's.
+          if (constraints.maxWidth < AppBreakpoints.split) {
             return ListView(
               padding: const EdgeInsets.all(AppSpacing.md),
               children: [...editor, ...aside],
@@ -475,7 +481,10 @@ class _CallingCardLayoutEditorScreenState
               children: [for (final c in codes) _code(c, block: block)],
             ),
             Padding(
-              padding: const EdgeInsets.only(left: AppSpacing.xs, top: 2),
+              padding: const EdgeInsets.only(
+                left: AppSpacing.xs,
+                top: AppSpacing.xxxs,
+              ),
               child: Text(text),
             ),
           ],

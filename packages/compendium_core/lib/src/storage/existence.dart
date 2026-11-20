@@ -441,8 +441,9 @@ Future<void> raiseExistenceAbove(
 /// not changed is that neither is absorbed. Only the genuinely new case
 /// (create an entity whose natural key a tombstone holds) is reconciled.
 ///
-/// **Adoption clears the adopted row's join rows** ([joinTable] /
-/// [joinColumn]), and that is the difference between adoption and revival. A
+/// **Adoption clears the adopted row's join rows** ([joinTable] and any
+/// [moreJoinTables], each keyed by [joinColumn]; a choreographer has two,
+/// `dance_authors` and `dance_interpreters`), and that is the difference between adoption and revival. A
 /// revival — the same id written again — is "this record is back", and keeps
 /// its associations. Adoption is not: the caller minted a fresh UUID, so the
 /// user is creating a *new* entity that happens to want a name a deleted one
@@ -470,6 +471,7 @@ Future<String?> adoptTombstonedNaturalKey(
   required String incomingId,
   required TableInfo<Table, dynamic> joinTable,
   required String joinColumn,
+  List<TableInfo<Table, dynamic>> moreJoinTables = const [],
 }) async {
   final tableName = table.actualTableName;
   final rows = await db
@@ -490,12 +492,14 @@ Future<String?> adoptTombstonedNaturalKey(
       .get();
   if (rows.isEmpty) return null;
   final adopted = rows.single.read<String>('adopted');
-  await db.customUpdate(
-    'DELETE FROM ${joinTable.actualTableName} WHERE $joinColumn = ?',
-    variables: [Variable<String>(adopted)],
-    updates: {joinTable},
-    updateKind: UpdateKind.delete,
-  );
+  for (final join in [joinTable, ...moreJoinTables]) {
+    await db.customUpdate(
+      'DELETE FROM ${join.actualTableName} WHERE $joinColumn = ?',
+      variables: [Variable<String>(adopted)],
+      updates: {join},
+      updateKind: UpdateKind.delete,
+    );
+  }
   return adopted;
 }
 

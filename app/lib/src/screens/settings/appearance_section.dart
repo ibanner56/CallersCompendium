@@ -1,8 +1,12 @@
 // Part of the Settings screen, split by section (Stage-7 item 7.2).
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
-import '../../theme/destructive_button_style.dart';
+import '../../theme/app_shapes.dart';
+import '../../utils/confirm_delete.dart';
+import '../../utils/undo_snack_bar.dart';
 import 'settings_keys.dart';
 import '../../data/app_theme_labels_l10n.dart';
 import '../../data/app_theme_scope.dart';
@@ -16,7 +20,6 @@ import '../../data/repositories_scope.dart';
 import '../../data/set_list_color_coding_scope.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/color_schemes.dart';
-import '../../widgets/readable_width.dart';
 import '../../widgets/section_header.dart';
 import '../formation_colors_screen.dart';
 import '../tag_manager_screen.dart';
@@ -111,7 +114,7 @@ class _AppearanceView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return ReadableListView(
+    return ListView(
       children: [
         SectionHeader(title: l10n.settingsAppearanceThemeHeader),
         Padding(
@@ -223,18 +226,27 @@ class _ThemeGallery extends StatelessWidget {
         ),
       );
       groups.add(
-        Wrap(
-          spacing: 12,
-          runSpacing: 12,
-          children: [
-            for (final option in options)
-              _ThemePreviewCard(
-                key: ValueKey('theme-${option.name}'),
-                option: option,
-                selected: option == selected,
-                onTap: () => onSelected(option),
-              ),
-          ],
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final width = themeCardWidth(
+              constraints.maxWidth,
+              MediaQuery.textScalerOf(context).scale(1),
+            );
+            return Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: [
+                for (final option in options)
+                  _ThemePreviewCard(
+                    key: ValueKey('theme-${option.name}'),
+                    option: option,
+                    width: width,
+                    selected: option == selected,
+                    onTap: () => onSelected(option),
+                  ),
+              ],
+            );
+          },
         ),
       );
     }
@@ -246,6 +258,36 @@ class _ThemeGallery extends StatelessWidget {
   }
 }
 
+/// Narrowest sample width that fits the focus-ring demo beside the three chips
+/// (3 x 26 + 2 x 8 + 22 = 116 points, plus a gap before the demo).
+const double _focusDemoMinWidth = 124;
+
+/// Narrowest card that still holds the swatch's three chips (94 points) inside
+/// the card's padding. 150 keeps two columns on a 360-point phone, where each
+/// column is 158.
+const double _minTwoColumnCardWidth = 150;
+
+/// Width of one theme card in a gallery row [available] points wide.
+///
+/// Wide panes keep the fixed 220-point cards in a wrapping row. Narrower panes
+/// (a phone) use two equal columns, or a single full-width column when two
+/// would be too tight for the card's own contents: below [_minTwoColumnCardWidth] a card, or
+/// at larger text sizes, where the label and "Selected" badge need the room.
+double themeCardWidth(
+  double available,
+  double textScale, {
+  bool allowTwoColumns = true,
+}) {
+  const fixed = 220.0;
+  const gap = 12.0;
+  if (available >= 2 * fixed + gap) return fixed;
+  final half = ((available - gap) / 2).floorToDouble();
+  if (allowTwoColumns && textScale <= 1.3 && half >= _minTwoColumnCardWidth) {
+    return half;
+  }
+  return available;
+}
+
 /// A single selectable palette swatch showing a miniature live sample: a
 /// surface tile, a Fraunces heading + Atkinson body line, three accent chips,
 /// and a focus-ring demo, all drawn in that palette's colors.
@@ -253,11 +295,13 @@ class _ThemePreviewCard extends StatelessWidget {
   const _ThemePreviewCard({
     super.key,
     required this.option,
+    required this.width,
     required this.selected,
     required this.onTap,
   });
 
   final AppThemeSelection option;
+  final double width;
   final bool selected;
   final VoidCallback onTap;
 
@@ -287,16 +331,16 @@ class _ThemePreviewCard extends StatelessWidget {
           '${appThemeLabel(l10n, option)}. '
           '${appThemeDescription(l10n, option)}',
       child: SizedBox(
-        width: 220,
+        width: width,
         child: Material(
           color: Colors.transparent,
           child: InkWell(
             onTap: onTap,
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(AppShapes.radiusLarge),
             child: Ink(
               decoration: BoxDecoration(
                 color: appTheme.colorScheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(AppShapes.radiusLarge),
                 border: Border.all(
                   color: borderColor,
                   width: selected ? 2.5 : 1,
@@ -350,7 +394,7 @@ class _ThemePreviewCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: scheme.surface,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(AppShapes.radiusMedium),
         border: Border.all(color: scheme.outlineVariant),
       ),
       padding: const EdgeInsets.all(AppSpacing.sm),
@@ -369,25 +413,33 @@ class _ThemePreviewCard extends StatelessWidget {
             style: fonts.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
           ),
           const SizedBox(height: AppSpacing.xs),
-          Row(
-            children: [
-              _chip(context, scheme.primary, scheme.onPrimary),
-              const SizedBox(width: AppSpacing.xs),
-              _chip(context, scheme.secondary, scheme.onSecondary),
-              const SizedBox(width: AppSpacing.xs),
-              _chip(context, scheme.tertiary, scheme.onTertiary),
-              const Spacer(),
-              // Focus-ring demo: a control with the palette's focus outline.
-              Container(
-                width: 22,
-                height: 22,
-                decoration: BoxDecoration(
-                  color: scheme.surface,
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: scheme.primary, width: 2),
-                ),
-              ),
-            ],
+          LayoutBuilder(
+            builder: (context, constraints) => Row(
+              children: [
+                _chip(context, scheme.primary, scheme.onPrimary),
+                const SizedBox(width: AppSpacing.xs),
+                _chip(context, scheme.secondary, scheme.onSecondary),
+                const SizedBox(width: AppSpacing.xs),
+                _chip(context, scheme.tertiary, scheme.onTertiary),
+                // Focus-ring demo: a control with the palette's focus outline.
+                // Dropped when the card is too narrow to hold it beside the
+                // three chips (two phone columns).
+                if (constraints.maxWidth >= _focusDemoMinWidth) ...[
+                  const Spacer(),
+                  Container(
+                    width: 22,
+                    height: 22,
+                    decoration: BoxDecoration(
+                      color: scheme.surface,
+                      borderRadius: BorderRadius.circular(
+                        AppShapes.radiusSmall,
+                      ),
+                      border: Border.all(color: scheme.primary, width: 2),
+                    ),
+                  ),
+                ],
+              ],
+            ),
           ),
         ],
       ),
@@ -401,7 +453,7 @@ class _ThemePreviewCard extends StatelessWidget {
       alignment: Alignment.center,
       decoration: BoxDecoration(
         color: bg,
-        borderRadius: BorderRadius.circular(5),
+        borderRadius: BorderRadius.circular(AppShapes.radiusSmall),
       ),
       child: Text(
         'A', // i18n-ignore: single-glyph font specimen, not translatable
@@ -462,32 +514,59 @@ class _CustomThemesSection extends StatelessWidget {
     );
   }
 
+  /// Deletes the custom [theme] at once and offers Undo, asking first only
+  /// when "Confirm before delete" is on (see `confirm_delete.dart`).
   Future<void> _confirmDelete(BuildContext context, CustomTheme theme) async {
+    if (!await confirmDeleteIfEnabled(context, itemLabel: theme.name)) return;
+    if (!context.mounted) return;
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.maybeOf(context);
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.settingsAppearanceDeleteThemeTitle),
-        content: Text(l10n.settingsAppearanceDeleteThemeBody(theme.name)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text(l10n.commonCancel),
-          ),
-          FilledButton(
-            style: destructiveFilledButtonStyle(Theme.of(ctx).colorScheme),
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text(l10n.commonDelete),
-          ),
-        ],
-      ),
+    final accessibleNavigation = MediaQuery.accessibleNavigationOf(context);
+    // Read after the confirmation, so Undo puts back what was removed.
+    final removed = controller.byId(theme.id);
+    if (removed == null) return;
+    final index = controller.themes.indexOf(removed);
+    final wasActive = controller.activeId == removed.id;
+    // Choosing a built-in theme also leaves no custom theme active, so the
+    // controller alone cannot tell it from no choice: Undo makes the theme
+    // active again only if the built-in selection has not changed since,
+    // even if it has changed back. (Tapping the built-in theme already
+    // selected changes nothing, so it does not count.) The listener goes when
+    // Undo runs or the prompt closes; a prompt cleared from the queue before
+    // it ever showed never closes, and then leaves this listener behind.
+    final selection = AppThemeScope.notifierOf(context);
+    var chosenSince = false;
+    void onChosen() => chosenSince = true;
+    selection.addListener(onChosen);
+    var deleted = false;
+    try {
+      await controller.delete(removed.id);
+      deleted = true;
+    } finally {
+      // A failed delete offers no Undo, so nothing will remove it later.
+      if (!deleted) selection.removeListener(onChosen);
+    }
+    if (messenger == null) {
+      selection.removeListener(onChosen);
+      return;
+    }
+    final prompt = showUndoSnackBar(
+      messenger,
+      actionKey: const ValueKey('custom-theme-delete-undo'),
+      message: l10n.commonDeletedSnack(removed.name),
+      undoLabel: l10n.commonUndo,
+      undoFailedMessage: l10n.commonUndoFailed,
+      accessibleNavigation: accessibleNavigation,
+      onUndo: () {
+        selection.removeListener(onChosen);
+        return controller.restoreDeleted(
+          removed,
+          index: index,
+          wasActive: wasActive && !chosenSince,
+        );
+      },
     );
-    if (confirmed != true) return;
-    await controller.delete(theme.id);
-    messenger?.showSnackBar(
-      SnackBar(content: Text(l10n.commonDeletedSnack(theme.name))),
-    );
+    unawaited(prompt.closed.then((_) => selection.removeListener(onChosen)));
   }
 
   @override
@@ -519,24 +598,31 @@ class _CustomThemesSection extends StatelessWidget {
         else
           Padding(
             padding: const EdgeInsets.only(top: AppSpacing.sm),
-            child: Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              children: [
-                for (final theme in themes)
-                  _CustomThemeCard(
-                    key: ValueKey('custom-${theme.id}'),
-                    theme: theme,
-                    selected: controller.activeId == theme.id,
-                    onTap: () async => controller.setActive(theme.id),
-                    onEdit: () async => _edit(context, theme),
-                    onDuplicate: () async => _duplicate(
-                      theme,
-                      l10n.commonDuplicateTitleSuffix(theme.name),
+            child: LayoutBuilder(
+              builder: (context, constraints) => Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: [
+                  for (final theme in themes)
+                    _CustomThemeCard(
+                      key: ValueKey('custom-${theme.id}'),
+                      width: themeCardWidth(
+                        constraints.maxWidth,
+                        MediaQuery.textScalerOf(context).scale(1),
+                        allowTwoColumns: false,
+                      ),
+                      theme: theme,
+                      selected: controller.activeId == theme.id,
+                      onTap: () async => controller.setActive(theme.id),
+                      onEdit: () async => _edit(context, theme),
+                      onDuplicate: () async => _duplicate(
+                        theme,
+                        l10n.commonDuplicateTitleSuffix(theme.name),
+                      ),
+                      onDelete: () async => _confirmDelete(context, theme),
                     ),
-                    onDelete: () async => _confirmDelete(context, theme),
-                  ),
-              ],
+                ],
+              ),
             ),
           ),
       ],
@@ -551,6 +637,7 @@ class _CustomThemesSection extends StatelessWidget {
 class _CustomThemeCard extends StatelessWidget {
   const _CustomThemeCard({
     super.key,
+    required this.width,
     required this.theme,
     required this.selected,
     required this.onTap,
@@ -559,6 +646,7 @@ class _CustomThemeCard extends StatelessWidget {
     required this.onDelete,
   });
 
+  final double width;
   final CustomTheme theme;
   final bool selected;
   final VoidCallback onTap;
@@ -582,16 +670,16 @@ class _CustomThemeCard extends StatelessWidget {
       selected: selected,
       label: l10n.settingsAppearanceCustomThemeSemantic(theme.name),
       child: SizedBox(
-        width: 220,
+        width: width,
         child: Material(
           color: Colors.transparent,
           child: InkWell(
             onTap: onTap,
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(AppShapes.radiusLarge),
             child: Ink(
               decoration: BoxDecoration(
                 color: appTheme.colorScheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(AppShapes.radiusLarge),
                 border: Border.all(
                   color: borderColor,
                   width: selected ? 2.5 : 1,
@@ -665,7 +753,7 @@ class _CustomThemeCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: scheme.surface,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(AppShapes.radiusMedium),
         border: Border.all(color: scheme.outlineVariant),
       ),
       padding: const EdgeInsets.all(AppSpacing.sm),
@@ -705,7 +793,7 @@ class _CustomThemeCard extends StatelessWidget {
       alignment: Alignment.center,
       decoration: BoxDecoration(
         color: bg,
-        borderRadius: BorderRadius.circular(5),
+        borderRadius: BorderRadius.circular(AppShapes.radiusSmall),
       ),
       child: Text(
         'A', // i18n-ignore: single-glyph font specimen, not translatable

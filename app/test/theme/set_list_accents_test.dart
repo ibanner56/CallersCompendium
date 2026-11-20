@@ -1,6 +1,8 @@
 import 'package:compendium_core/compendium_core.dart';
-import 'package:flutter/painting.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:compendium_app/src/theme/palette_schemes.dart';
+import 'package:compendium_app/src/theme/app_theme.dart';
+import 'package:flutter/material.dart';
 
 import 'package:compendium_app/src/theme/set_list_accents.dart';
 import 'package:compendium_app/src/theme/wcag.dart';
@@ -17,6 +19,10 @@ void main() {
     test('groups shapes into the expected families', () {
       expect(
         formationFamilyOf(FormationShape.dupleImproper),
+        FormationFamily.contraLongways,
+      );
+      expect(
+        formationFamilyOf(FormationShape.progressedImproper),
         FormationFamily.contraLongways,
       );
       expect(
@@ -60,37 +66,37 @@ void main() {
     test('resolves a colour for every family in both themes', () {
       for (final family in FormationFamily.values) {
         expect(
-          setListAccent(family, highContrast: false),
+          setListAccent(family, brightPalette: false),
           isNotNull,
           reason: 'light accent missing for $family',
         );
         expect(
-          setListAccent(family, highContrast: true),
+          setListAccent(family, brightPalette: true),
           isNotNull,
-          reason: 'high-contrast accent missing for $family',
+          reason: 'bright accent missing for $family',
         );
       }
     });
 
     test('families are mutually distinguishable within a theme', () {
-      for (final highContrast in [false, true]) {
+      for (final bright in [false, true]) {
         final colours = FormationFamily.values
-            .map((f) => setListAccent(f, highContrast: highContrast))
+            .map((f) => setListAccent(f, brightPalette: bright))
             .toList();
         expect(
           colours.toSet().length,
           colours.length,
-          reason: 'duplicate accent colours (highContrast=$highContrast)',
+          reason: 'duplicate accent colours (bright=$bright)',
         );
       }
     });
 
-    test('high-contrast palette differs from the light palette', () {
+    test('bright palette differs from the light palette', () {
       for (final family in FormationFamily.values) {
         expect(
-          setListAccent(family, highContrast: true),
-          isNot(setListAccent(family, highContrast: false)),
-          reason: 'high-contrast accent equals light accent for $family',
+          setListAccent(family, brightPalette: true),
+          isNot(setListAccent(family, brightPalette: false)),
+          reason: 'bright accent equals light accent for $family',
         );
       }
     });
@@ -99,9 +105,9 @@ void main() {
       expect(
         setListAccentForShape(
           FormationShape.dupleImproper,
-          highContrast: false,
+          brightPalette: false,
         ),
-        setListAccent(FormationFamily.contraLongways, highContrast: false),
+        setListAccent(FormationFamily.contraLongways, brightPalette: false),
       );
     });
   });
@@ -114,9 +120,9 @@ void main() {
           setListAccentForShapeAndMixer(
             FormationShape.dupleImproper,
             false,
-            highContrast: false,
+            brightPalette: false,
           ),
-          setListAccent(FormationFamily.contraLongways, highContrast: false),
+          setListAccent(FormationFamily.contraLongways, brightPalette: false),
         );
       },
     );
@@ -127,9 +133,9 @@ void main() {
         setListAccentForShapeAndMixer(
           FormationShape.dupleImproper,
           true,
-          highContrast: false,
+          brightPalette: false,
         ),
-        setListAccent(FormationFamily.mixer, highContrast: false),
+        setListAccent(FormationFamily.mixer, brightPalette: false),
       );
     });
 
@@ -147,9 +153,9 @@ void main() {
           setListAccentForShapeAndMixer(
             FormationShape.circleMixer,
             true,
-            highContrast: false,
+            brightPalette: false,
           ),
-          setListAccent(FormationFamily.mixer, highContrast: false),
+          setListAccent(FormationFamily.mixer, brightPalette: false),
         );
       },
     );
@@ -161,25 +167,25 @@ void main() {
         setListAccentForShapeAndMixer(
           FormationShape.sicilianCircle,
           false,
-          highContrast: false,
+          brightPalette: false,
         ),
-        setListAccent(FormationFamily.sicilianCircle, highContrast: false),
+        setListAccent(FormationFamily.sicilianCircle, brightPalette: false),
       );
       expect(
         setListAccentForShapeAndMixer(
           FormationShape.sicilianCircle,
           false,
-          highContrast: false,
+          brightPalette: false,
         ),
-        isNot(setListAccent(FormationFamily.mixer, highContrast: false)),
+        isNot(setListAccent(FormationFamily.mixer, brightPalette: false)),
       );
     });
 
     test('formationFamilyOf totality still holds after new functions', () {
       for (final shape in FormationShape.values) {
         expect(
-          setListAccentForShapeAndMixer(shape, false, highContrast: false),
-          setListAccentForShape(shape, highContrast: false),
+          setListAccentForShapeAndMixer(shape, false, brightPalette: false),
+          setListAccentForShape(shape, brightPalette: false),
         );
       }
     });
@@ -192,7 +198,7 @@ void main() {
         resolveFormationLabelColor(
           FormationShape.becketCw,
           overrides: const {FormationShape.becketCw: override},
-          highContrast: false,
+          brightPalette: false,
         ),
         override,
       );
@@ -203,9 +209,9 @@ void main() {
         resolveFormationLabelColor(
           FormationShape.becketCw,
           overrides: const {},
-          highContrast: false,
+          brightPalette: false,
         ),
-        setListAccentForShape(FormationShape.becketCw, highContrast: false),
+        setListAccentForShape(FormationShape.becketCw, brightPalette: false),
       );
     });
 
@@ -226,7 +232,7 @@ void main() {
         resolveFormationLabelColor(
           FormationShape.becketCw,
           overrides: overrides,
-          highContrast: false,
+          brightPalette: false,
         ),
         cw,
       );
@@ -234,7 +240,7 @@ void main() {
         resolveFormationLabelColor(
           FormationShape.becketCcw,
           overrides: overrides,
-          highContrast: false,
+          brightPalette: false,
         ),
         ccw,
       );
@@ -264,7 +270,7 @@ void main() {
           FormationShape.becketCcw,
           false,
           userColor: pink,
-          highContrast: false,
+          brightPalette: false,
         ),
         pink,
       );
@@ -277,9 +283,9 @@ void main() {
             FormationShape.becketCcw,
             false,
             userColor: null,
-            highContrast: hc,
+            brightPalette: hc,
           ),
-          setListAccent(FormationFamily.contraLongways, highContrast: hc),
+          setListAccent(FormationFamily.contraLongways, brightPalette: hc),
         );
       }
     });
@@ -291,9 +297,9 @@ void main() {
             FormationShape.dupleImproper,
             true,
             userColor: pink,
-            highContrast: hc,
+            brightPalette: hc,
           ),
-          setListAccent(FormationFamily.mixer, highContrast: hc),
+          setListAccent(FormationFamily.mixer, brightPalette: hc),
         );
       }
     });
@@ -306,11 +312,47 @@ void main() {
             FormationShape.becketCcw,
             false,
             userColor: pink,
-            highContrast: true,
+            brightPalette: true,
           ),
           pink,
         );
       },
     );
+  });
+
+  // Dark themes, not only high contrast, take the bright palette.
+  group('setListAccentsBright', () {
+    Future<bool> brightUnder(WidgetTester tester, ThemeData theme) async {
+      late bool bright;
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: theme,
+          home: Builder(
+            builder: (context) {
+              bright = setListAccentsBright(context);
+              return const SizedBox();
+            },
+          ),
+        ),
+      );
+      return bright;
+    }
+
+    testWidgets('light theme keeps the light palette', (tester) async {
+      expect(await brightUnder(tester, AppTheme.light), isFalse);
+    });
+
+    testWidgets('dark theme takes the bright palette', (tester) async {
+      expect(await brightUnder(tester, AppTheme.dark), isTrue);
+    });
+
+    testWidgets('a dark gallery palette takes the bright palette', (
+      tester,
+    ) async {
+      expect(
+        await brightUnder(tester, AppTheme.fromScheme(GalleryPalettes.nord)),
+        isTrue,
+      );
+    });
   });
 }

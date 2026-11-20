@@ -292,6 +292,10 @@
   "@confirmDeleteProgramHistoryBody": {
     "x-sourceSha256": "30fad0b16608ed5989e0126025b129fb748e6a345ffb2fa0fff3849c477de3d8"
   },
+  "colorEditHexInvalid": "Gib sechs Hex-Ziffern ein, z. B. #804020.",
+  "@colorEditHexInvalid": {
+    "x-sourceSha256": "10331b97b0923aec668883c1a724961814c5c7c9d9c8bedab9eb865012f38bff"
+  },
   "colorEditHexLabel": "Hex",
   "@colorEditHexLabel": {
     "x-sourceSha256": "69493e6f1a6957cad7e3ece5267a57e8a8ed035b5ea5fd7e360ce9eb2405c30b"
@@ -1280,9 +1284,13 @@
   "@settingsSyncDeviceWaiting": {
     "x-sourceSha256": "95b500fa9476a659caa02623419394239d7e50a8ff5311d7d9e7a355db42c042"
   },
-  "settingsSyncDevicesEmpty": "Mit diesem Speicher sind keine anderen Geräte verbunden.",
-  "@settingsSyncDevicesEmpty": {
-    "x-sourceSha256": "f56e6ab00b608c84434889f700c88b081f2e83a805da979cc33f524f9e2739d2"
+  "settingsSyncDevicesEmptyTitle": "Noch keine anderen Geräte",
+  "@settingsSyncDevicesEmptyTitle": {
+    "x-sourceSha256": "32006c475c7e11b413b568a603dbfa2ba47d52af540022e1174dfc99554a5879"
+  },
+  "settingsSyncDevicesEmptyBody": "Andere mit diesem Speicher verbundene Geräte erscheinen hier.",
+  "@settingsSyncDevicesEmptyBody": {
+    "x-sourceSha256": "4a236f6399c6d707a0fd7219f770c446e94d445c477612d97e7b67e1268b0ce9"
   },
   "settingsSyncDevicesFailed": "Die Geräteliste konnte nicht geladen werden. Prüfe deine Verbindung und versuche es erneut.",
   "@settingsSyncDevicesFailed": {
@@ -1668,9 +1676,9 @@
   "@settingsAboutLicenseHeader": {
     "x-sourceSha256": "c011d6097bfbc8e936280addcf2e3e7d06ea2223ffd596973191b800a7035c32"
   },
-  "settingsAboutLicenseBody": "Caller's Compendium ist freie Software, lizenziert unter der GNU Affero General Public License, Version 3 (AGPL-3.0). Sie dürfen es unter dieser Lizenz frei verwenden, studieren, teilen und modifizieren. Da die AGPL es vorschreibt, wird der vollständige entsprechende Quellcode jedem angeboten, der die App verwendet.",
+  "settingsAboutLicenseBody": "Caller's Compendium ist freie Software, lizenziert unter der GNU Affero General Public License, Version 3 (AGPL-3.0-only). Sie dürfen es unter dieser Lizenz frei verwenden, studieren, teilen und modifizieren. Da die AGPL es vorschreibt, wird der vollständige entsprechende Quellcode jedem angeboten, der die App verwendet.",
   "@settingsAboutLicenseBody": {
-    "x-sourceSha256": "7a39f225c21d8d53d985307708e02af9822329f77ab552941fa88ca412e49d5c"
+    "x-sourceSha256": "9fa6164da3b1321e88eef455f315af0b68837a3956b0fb7372dc8425399f0317"
   },
   "settingsAboutViewSourceTitle": "Quellcode auf GitHub ansehen",
   "@settingsAboutViewSourceTitle": {
@@ -1724,17 +1732,21 @@
   "@settingsAboutViewLicensesSubtitle": {
     "x-sourceSha256": "b51ca014dd24ebee0e49542abb6668cea7a4d4172f685b08cd2466c5c535f59a"
   },
-  "settingsAboutLegalese": "© Die Caller's Compendium-Mitwirkenden. Lizenziert unter AGPL-3.0.",
+  "settingsAboutLegalese": "© Die Caller's Compendium-Mitwirkenden. Lizenziert unter AGPL-3.0-only.",
   "@settingsAboutLegalese": {
-    "x-sourceSha256": "2ec5028215de5e8ca6715ed9932a7d7216128ae74290866e3c75cd90f4f82d53"
+    "x-sourceSha256": "e39c48759865f84cd54c945f5d5dbafde5ef2374714556eb8fd8e4255bf2f01b"
+  },
+  "settingsAboutTagline": "Deine Caller-Kiste in deiner Hand",
+  "@settingsAboutTagline": {
+    "x-sourceSha256": "ab464ac61f0cd45dd2c18f6dcb875ebe5f59de7fd7fbafccdcf9874dc2c4af54"
   },
   "settingsAboutVersion": "Version {version}, “{codename}”",
   "@settingsAboutVersion": {
     "x-sourceSha256": "d7f0eb30563030d3528997697d6a1e1a7b90be868efb52da1a13b7d1ee7f299a"
   },
-  "settingsAboutVersionLine": "{appName} · Version {version}, “{codename}” · {license}",
+  "settingsAboutVersionLine": "{appName} · “{codename}” · {license}",
   "@settingsAboutVersionLine": {
-    "x-sourceSha256": "07bec657a3205ab861607172d0d2a1c6b0b861e18a596d00dec835e9cd2511fd"
+    "x-sourceSha256": "060fed61c59a6d71fac50dbd4c83e2af6c684fbc164a2f1ae44638bc1a3d6018"
   },
   "settingsUpdatesHeader": "Updates",
   "@settingsUpdatesHeader": {
@@ -1880,6 +1892,10 @@
   "@settingsDialectHeader": {
     "x-sourceSha256": "f4792f7b616d4e24f07af28d2deea083621ce6a8e78fb83716e64c65078bc8d6"
   },
+  "settingsDialectFormHelper": "Jeder Tanztyp hat seine eigenen Dialekte. Wähle einen Typ, um seine Dialekte zu sehen und einzurichten.",
+  "@settingsDialectFormHelper": {
+    "x-sourceSha256": "3a17283d31ad2e485ab73c03de6827bedf5104f4480f39819d560d985a0db663"
+  },
   "settingsDialectDanceDetailsHeader": "Tanzdetails und Kurzformen",
   "@settingsDialectDanceDetailsHeader": {
     "x-sourceSha256": "e57fecfc79262b31fc400248ab3c80ea51fc859e4314166c868c38db46d472e0"
@@ -1931,14 +1947,6 @@
   "settingsDialectDuplicateToCustomize": "Duplizieren zum Anpassen",
   "@settingsDialectDuplicateToCustomize": {
     "x-sourceSha256": "38e6ec3ccb117e6f2219f9b5c797f817517cad4a8a49a62a7dc610800b7e3abd"
-  },
-  "settingsDialectDeleteTitle": "Dialekt löschen?",
-  "@settingsDialectDeleteTitle": {
-    "x-sourceSha256": "670220a9739cfe2072e0bece788c469adf6909434230eb4a194ce25b9338b023"
-  },
-  "settingsDialectDeleteConfirmBody": "„{name}“ wird dauerhaft entfernt.",
-  "@settingsDialectDeleteConfirmBody": {
-    "x-sourceSha256": "1d5d8e93bb74d70ab97fe737fb2069d9ebeed30d083e70526f4e3207b13941a2"
   },
   "settingsDialectEditConflictSnack": "\"{name}\" wurde umbenannt oder gelöscht, während du es bearbeitet hast. Deine Änderungen wurden nicht gespeichert.",
   "@settingsDialectEditConflictSnack": {
@@ -2404,14 +2412,6 @@
   "@settingsAppearanceCustomThemesEmpty": {
     "x-sourceSha256": "95b8a0f6f3b5190ec400652935ba9981213e44fc2eacb56637799159e84c7d3f"
   },
-  "settingsAppearanceDeleteThemeTitle": "Design löschen?",
-  "@settingsAppearanceDeleteThemeTitle": {
-    "x-sourceSha256": "25231c611da05d6c4d224219a2be27440a7eeda9d838586da123871a0ae8b8d7"
-  },
-  "settingsAppearanceDeleteThemeBody": "„{name}“ wird dauerhaft entfernt.",
-  "@settingsAppearanceDeleteThemeBody": {
-    "x-sourceSha256": "1d5d8e93bb74d70ab97fe737fb2069d9ebeed30d083e70526f4e3207b13941a2"
-  },
   "settingsAppearanceCustomThemeSemantic": "Benutzerdefiniertes Design {name}",
   "@settingsAppearanceCustomThemeSemantic": {
     "x-sourceSha256": "93b476ef432c71cde30039464f04a6d6b21347e18705a9ba8a8972807a0f8fb1"
@@ -2688,6 +2688,10 @@
   "@settingsDefaultsFormSubtitle": {
     "x-sourceSha256": "19397876123939e7698c88d2e13ec41cc9cb1d5ce9f7b1d0a7dda2b5e38ba298"
   },
+  "settingsDefaultsFormLastUsed": "Zuletzt verwendet",
+  "@settingsDefaultsFormLastUsed": {
+    "x-sourceSha256": "830ec7f812f9d862250b61add10f9a078de67a3282dd9e94f60d64cec58eefec"
+  },
   "settingsDefaultsFormationTitle": "Formation",
   "@settingsDefaultsFormationTitle": {
     "x-sourceSha256": "49a63d72be2fc0e6aa6de315ca626d27816fe9d584a01484daa694221f1ef7e1"
@@ -2788,9 +2792,13 @@
   "@settingsAppearanceTagColoursSubtitle": {
     "x-sourceSha256": "fac4e606137946a7de38fe329f99b3f8135962e61129f97c732a423a8e988cf4"
   },
-  "settingsTagColoursEmpty": "Sie haben noch keine Tags erstellt. Fügen Sie einem Tanz ein Tag hinzu, dann erscheint es hier.",
-  "@settingsTagColoursEmpty": {
-    "x-sourceSha256": "c7febc58f1c97ff80948a88429355a4030c37a0f3e9aba3f65b312652d0d2c61"
+  "settingsTagColoursEmptyTitle": "Noch keine Tags",
+  "@settingsTagColoursEmptyTitle": {
+    "x-sourceSha256": "b57d852b14d2e38612945e5dcf23300b0aa89204445807e5f383f4998583081c"
+  },
+  "settingsTagColoursEmptyBody": "Fügen Sie einem Tanz ein Tag hinzu, dann erscheint es hier.",
+  "@settingsTagColoursEmptyBody": {
+    "x-sourceSha256": "07ebb2bde2097613e4b8b97adf2fecc82040b392cc84919411f05e231260aaec"
   },
   "settingsTagColoursSaveError": "Die Farbe konnte nicht gespeichert werden. Bitte versuchen Sie es erneut.",
   "@settingsTagColoursSaveError": {
@@ -2852,9 +2860,13 @@
   "@authorManagerNameLabel": {
     "x-sourceSha256": "d685a2cb040ed21b08f567b677691f66b65360a21c726a75769adfc5003f5b11"
   },
-  "authorManagerEmpty": "Noch keine Autoren. Autoren, die Sie bei einem Tanz angeben, erscheinen hier.",
-  "@authorManagerEmpty": {
-    "x-sourceSha256": "f63be5621924387162fcb2f2337ab644b7e7a7513be0d62d84e67eb1850d91d7"
+  "authorManagerEmptyTitle": "Noch keine Autoren",
+  "@authorManagerEmptyTitle": {
+    "x-sourceSha256": "75d23d1484ae3f6d6e8ef8aaa5197b3620a19d4355875576269d85f13e06ddcd"
+  },
+  "authorManagerEmptyBody": "Autoren, die Sie bei einem Tanz angeben, erscheinen hier.",
+  "@authorManagerEmptyBody": {
+    "x-sourceSha256": "b34329476d24280955fe67598c1330188254c9fc523dcabc2453d2ac7ce26408"
   },
   "authorManagerLoadError": "Ihre Autoren konnten nicht geladen werden.",
   "@authorManagerLoadError": {
@@ -2876,9 +2888,13 @@
   "@sourceManagerTitleLabel": {
     "x-sourceSha256": "458fcd13ab87c5b272319876028d19b1f95c5b0ce0d741b4682b56b4b1073f9f"
   },
-  "sourceManagerEmpty": "Noch keine Quellen. Bücher und Websites, die Sie bei einem Tanz angeben, erscheinen hier.",
-  "@sourceManagerEmpty": {
-    "x-sourceSha256": "9a021b4606fe11125d54e533c8a0aa2558721897d2bf7677301767245b78071f"
+  "sourceManagerEmptyTitle": "Noch keine Quellen",
+  "@sourceManagerEmptyTitle": {
+    "x-sourceSha256": "95be0e356dd984c3062bb84ba3cd14473a8b66fd7326c60a635a536bb8461083"
+  },
+  "sourceManagerEmptyBody": "Bücher und Websites, die Sie bei einem Tanz zitieren, erscheinen hier.",
+  "@sourceManagerEmptyBody": {
+    "x-sourceSha256": "328d237e03df4619b321362a36c2cfecff063eef096fa50d41e791f8203b9943"
   },
   "sourceManagerLoadError": "Ihre Quellen konnten nicht geladen werden.",
   "@sourceManagerLoadError": {
@@ -3152,18 +3168,6 @@
   "@settingsMatrixColumnsParameterizedDelete": {
     "x-sourceSha256": "7994bc0925b189b9c13c938e0033b4e54116dfc13f0b1c2a3a3fe5200ac61c11"
   },
-  "settingsMatrixColumnsParameterizedDeleteTitle": "Parametrisierte Spalte löschen?",
-  "@settingsMatrixColumnsParameterizedDeleteTitle": {
-    "x-sourceSha256": "2b4e4e65aa54f6d0964fe893dc508a355149a0555a674e0cc83c813527a1a8fb"
-  },
-  "settingsMatrixColumnsParameterizedDeleteBody": "Dies entfernt die Spalte und ihre Abgleichregeln aus der Matrix. Dies kann nicht rückgängig gemacht werden.",
-  "@settingsMatrixColumnsParameterizedDeleteBody": {
-    "x-sourceSha256": "a8306396270aaffdc91b27aaaa13bcf8f059dba3cc0c00f72ca9baa6f8bac573"
-  },
-  "settingsMatrixColumnsParameterizedDeleteConfirm": "Spalte löschen",
-  "@settingsMatrixColumnsParameterizedDeleteConfirm": {
-    "x-sourceSha256": "837dbb2c66b1a90f46e7de1ea5b51e2da583a675dd6a3d4131dc2a7d44b0eaef"
-  },
   "settingsMatrixColumnsCompoundAdd": "Zusammengesetzte Spalte hinzufügen",
   "@settingsMatrixColumnsCompoundAdd": {
     "x-sourceSha256": "4d622803476d89e16f3fd2ff9833f4af49c048b9e9db21d1a7152ac5acb0f2bf"
@@ -3216,18 +3220,6 @@
   "@settingsMatrixColumnsCompoundDelete": {
     "x-sourceSha256": "5b58577782347f9594b07fb21cbdc6e9e8bb760cfb40940c20b31c86df9cfb11"
   },
-  "settingsMatrixColumnsCompoundDeleteTitle": "Zusammengesetzte Spalte löschen?",
-  "@settingsMatrixColumnsCompoundDeleteTitle": {
-    "x-sourceSha256": "98831941b3740465659d3cc8318d4bdd24f9288e858ec211f9cf69cccf7def38"
-  },
-  "settingsMatrixColumnsCompoundDeleteBody": "Dadurch werden die Spalte und ihre passende Sequenz aus der Matrix entfernt. Dies kann nicht rückgängig gemacht werden.",
-  "@settingsMatrixColumnsCompoundDeleteBody": {
-    "x-sourceSha256": "b1e004080248e7e1e2d07c1add004fd0dc616326cf6479d4557902be999c16d1"
-  },
-  "settingsMatrixColumnsCompoundDeleteConfirm": "Spalte löschen",
-  "@settingsMatrixColumnsCompoundDeleteConfirm": {
-    "x-sourceSha256": "837dbb2c66b1a90f46e7de1ea5b51e2da583a675dd6a3d4131dc2a7d44b0eaef"
-  },
   "settingsGeneralPerformanceHeader": "Perform-Modus",
   "@settingsGeneralPerformanceHeader": {
     "x-sourceSha256": "442aded87a55aa8c8f7d5ff0c30228150d4b1cb8756e4be138d615ca4708fc26"
@@ -3236,9 +3228,9 @@
   "@settingsGeneralAutoSizePerformTitle": {
     "x-sourceSha256": "c0bfd33d0a019dedc10bf06f44fe22d10462da2a9e4e1412d8167e5c8bfcb664"
   },
-  "settingsGeneralAutoSizePerformSubtitle": "Jede Karte so skalieren, dass der vollständige Tanz oder Slot ohne Scrollen auf den Bildschirm passt. Deaktivieren, um die Größe selbst mit A− / A+ einzustellen.",
+  "settingsGeneralAutoSizePerformSubtitle": "Jede Karte so skalieren, dass sie auf den Bildschirm passt, aber nie kleiner als deine übliche Textgröße: Ein längerer Tanz oder Slot wird stattdessen gescrollt. Deaktivieren, um die Größe selbst mit A− / A+ einzustellen.",
   "@settingsGeneralAutoSizePerformSubtitle": {
-    "x-sourceSha256": "5fc58c7fdd31965d66905ccee7c0b386915c511918a7c617de33fdd92c66d0f0"
+    "x-sourceSha256": "374076544dee2c6b2dd1d60aa28c5ffa118b3d3d09d76c614a6649fa0cf89970"
   },
   "settingsShowIndividualPerformTimerTitle": "Timer für einzelne Perform-Ansicht anzeigen",
   "@settingsShowIndividualPerformTimerTitle": {
@@ -3247,6 +3239,14 @@
   "settingsShowIndividualPerformTimerSubtitle": "Verstrichene Zeit beim Ausführen eines einzelnen Tanzes anzeigen. Der Timer startet, sobald er angezeigt wird, und kann pausiert werden.",
   "@settingsShowIndividualPerformTimerSubtitle": {
     "x-sourceSha256": "c3f8f61c6df18fe8d4ce2b3aa7fd6b904e66b2f7874e047dee26af2c2ed7f46f"
+  },
+  "settingsConfirmPerformExitTitle": "Vor dem Verlassen von Perform bestätigen",
+  "@settingsConfirmPerformExitTitle": {
+    "x-sourceSha256": "51ffa9c62cf3c22d19a567ff271ae0a951733c579d3f370c4e9187bc1ccfd553"
+  },
+  "settingsConfirmPerformExitSubtitle": "Nachfragen, bevor die Schließen-Schaltfläche oder Zurück dich aus Perform führt. Deaktivieren, um mit einem Tippen zu verlassen; die Programm-Perform-Ansicht behält deine Position in jedem Fall.",
+  "@settingsConfirmPerformExitSubtitle": {
+    "x-sourceSha256": "f026552392de593fd9a91c80a6eca88d57fa984ead2bf47f6f57d40afe17e90f"
   },
   "settingsShowProgramSlotCallerNotesTitle": "Caller-Notizen in der Programm-Perform-Ansicht anzeigen",
   "@settingsShowProgramSlotCallerNotesTitle": {
@@ -3412,9 +3412,25 @@
   "@settingsGeneralConfirmBeforeDeleteTitle": {
     "x-sourceSha256": "e50478c6b6675dce9d50140c6e80675ac0ea226e32ec85afc5f9de7dfe2c8b1f"
   },
-  "settingsGeneralConfirmBeforeDeleteSubtitle": "Vor dem Löschen eines Tanzes oder Programms um Bestätigung bitten. Löschvorgänge können noch rückgängig gemacht werden; dies fügt nur eine explizite Abfrage vorweg hinzu.",
+  "settingsGeneralConfirmBeforeDeleteSubtitle": "Vor dem Löschen von allem nachfragen, was sich rückgängig machen lässt. Löschvorgänge, die sich nicht rückgängig machen lassen, fragen immer vorher nach.",
   "@settingsGeneralConfirmBeforeDeleteSubtitle": {
-    "x-sourceSha256": "419e365a3cf53bc03a9f35dc1356ceef19d6904929d93ec0de5321c44bde3b6b"
+    "x-sourceSha256": "4eb85e1611e5dad6ee02310dffdc2920b14bc3a7ef89408aefd1d5129a8e219f"
+  },
+  "settingsGeneralUndoPromptTitle": "Rückgängig-Hinweis",
+  "@settingsGeneralUndoPromptTitle": {
+    "x-sourceSha256": "7f397daeec86ec261af3848f27c9d22fc72ea50ce0fd8e0569b97f7b18f8279b"
+  },
+  "settingsGeneralUndoPromptSubtitle": "Wie lange der Hinweis „Rückgängig“ nach dem Löschen oder Ändern sichtbar bleibt. Er bleibt auch, solange Sie mit dem Zeiger darauf zeigen oder ihn mit der Tastatur ansteuern.",
+  "@settingsGeneralUndoPromptSubtitle": {
+    "x-sourceSha256": "a7413035c721cf3d6997e91ef4a1752303c1a97eed468990f59020ff3b97686b"
+  },
+  "settingsGeneralUndoPromptSeconds": "{seconds, plural, =1{1 Sekunde} other{{seconds} Sekunden}}",
+  "@settingsGeneralUndoPromptSeconds": {
+    "x-sourceSha256": "d8a703be939152a8a89055024319ae900c7817591652a4c19725dc4cd28b77a6"
+  },
+  "settingsGeneralUndoPromptUntilClosed": "Bis ich ihn schließe",
+  "@settingsGeneralUndoPromptUntilClosed": {
+    "x-sourceSha256": "3376640f07a8541c7288aac8d12fded80dd6c059a28849adebc5cb43bc48c8ef"
   },
   "settingsGeneralDeletedItemsHeader": "Zuletzt gelöscht",
   "@settingsGeneralDeletedItemsHeader": {
@@ -3623,6 +3639,18 @@
   "settingsGeneralReparseCustomFiguresAction": "Erneut prüfen…",
   "@settingsGeneralReparseCustomFiguresAction": {
     "x-sourceSha256": "de83abe7f98be6f87d01a5e0ba9d06a5ebada86926d134c77a03a0a2dc433cf9"
+  },
+  "settingsGeneralEcdMigrationTitle": "Englische Tänze umwandeln",
+  "@settingsGeneralEcdMigrationTitle": {
+    "x-sourceSha256": "d9775b54e95a37e98b9294d1d74a61f4f6323b05b6981526d9a9ff3970a6de1b"
+  },
+  "settingsGeneralEcdMigrationSubtitle": "Englische Country Dances, die gespeichert wurden, bevor die App englische Figuren kannte, verwenden noch Contra-Bewegungen. Wandeln Sie die Bewegungen um, die im englischen Tanz dasselbe bedeuten, lesen Sie nicht erkannte Figuren erneut und geben Sie jedem Tanz seine englische Formation. Sie wählen die Tänze aus und bestätigen, bevor sich etwas ändert.",
+  "@settingsGeneralEcdMigrationSubtitle": {
+    "x-sourceSha256": "dece8f801d5b40c99ab8f8f8af2f13b8a277d070785b61f212600abea783899b"
+  },
+  "settingsGeneralEcdMigrationAction": "Umwandeln…",
+  "@settingsGeneralEcdMigrationAction": {
+    "x-sourceSha256": "de8857f730a950aba93c66095558bf630553c17212351e5655c50df1d21b3293"
   },
   "settingsGeneralBackupRestoreHeader": "Sicherung & Wiederherstellung",
   "@settingsGeneralBackupRestoreHeader": {
@@ -4060,6 +4088,10 @@
   "@commonFormationDupleImproper": {
     "x-sourceSha256": "808a0c372428e6e217915030f238b73e494ec4fbb18e8fd5ec2004b7237e2031"
   },
+  "commonFormationProgressedImproper": "Improper, bereits weitergerückt",
+  "@commonFormationProgressedImproper": {
+    "x-sourceSha256": "acd6b205deeb0da526a85ebf3ef8a12fd2eca062ef472de6e93b31ace24d4541"
+  },
   "commonFormationReverseProgressionImproper": "Improper mit umgekehrter Progression",
   "@commonFormationReverseProgressionImproper": {
     "x-sourceSha256": "9883e2a8bdb86a8f098ec334a376e1ab4a57617832057c384fd3e423d8b7dabb"
@@ -4128,6 +4160,58 @@
   "@commonFormationWithDetail": {
     "x-sourceSha256": "bd226738c03b5e1c1c546a7565e9d079875131e876c6c7de0b0c6d67bdc57fa6"
   },
+  "commonFormationDupleMinor": "Duple minor",
+  "@commonFormationDupleMinor": {
+    "x-sourceSha256": "ec819f10cae723dd71ea55af698cfc71d956c1ebdf3366074eeb97395eb29bd7"
+  },
+  "commonFormationThreeCoupleLongways": "Three-couple longways",
+  "@commonFormationThreeCoupleLongways": {
+    "x-sourceSha256": "7cf89ccb33a012ebb203315e428f03d695c9fd50c69c134b4ee3bc976a9f4e46"
+  },
+  "commonFormationFourCoupleLongways": "Four-couple longways",
+  "@commonFormationFourCoupleLongways": {
+    "x-sourceSha256": "b174a3f077161d4410854293557a85c3f7aca4a0cf3c89506f3cb304e9def87e"
+  },
+  "commonFormationFiveCoupleLongways": "Five-couple longways",
+  "@commonFormationFiveCoupleLongways": {
+    "x-sourceSha256": "861fb99a820b955b25722bf403a5cb2c200280930900bb3d976ca2db14027f3a"
+  },
+  "commonFormationSixCoupleLongways": "Six-couple longways",
+  "@commonFormationSixCoupleLongways": {
+    "x-sourceSha256": "c3982210cc39cec1bc80c2dcdfe172ed07f2387594c3153029da7822b3f8b427"
+  },
+  "commonFormationCircle": "Kreis",
+  "@commonFormationCircle": {
+    "x-sourceSha256": "b93d3bcecff5d7493a58a41ea44f7196a46295f6512ebc06940510676a666384"
+  },
+  "commonFormationSquare": "Square",
+  "@commonFormationSquare": {
+    "x-sourceSha256": "c11092bc0861591e9ce5d9a97e83d4fae3c6954a318977865fa85f5b3eeafda8"
+  },
+  "commonFormationTwoCoupleSet": "Two-couple set",
+  "@commonFormationTwoCoupleSet": {
+    "x-sourceSha256": "6d447cfe75bf374cb8a1389a9df7a5156f54ebd30d3030bfb9cfa4eefc54a5d3"
+  },
+  "commonFormationImproperFlag": "{shape}, improper",
+  "@commonFormationImproperFlag": {
+    "x-sourceSha256": "8443520175c0e36958b3b0f7bbd2bfe374413c858a8a764014039e233c897bc0"
+  },
+  "danceEditorMeterLabel": "Taktart",
+  "@danceEditorMeterLabel": {
+    "x-sourceSha256": "2293b30e539a68427851a623737eb92b4dd7ecdc432f67e62dc2f550dd33a907"
+  },
+  "danceEditorMusicalKeyLabel": "Tonart",
+  "@danceEditorMusicalKeyLabel": {
+    "x-sourceSha256": "99a52df3ff3d499488e2fa28150c4106a2cb5e928891a830a9aa3922b2d32160"
+  },
+  "danceEditorMeterHint": "z. B. 3/2",
+  "@danceEditorMeterHint": {
+    "x-sourceSha256": "53662a34cb9af557331fdc752bf105c4a9059577f1a97bfca4188f3ca6bf9c83"
+  },
+  "danceEditorMusicalKeyHint": "z. B. g-Moll",
+  "@danceEditorMusicalKeyHint": {
+    "x-sourceSha256": "f4b6292e746248db6dcdf014a506b1ebbdfa323e4761c71b7eeda3e64eb5166b"
+  },
   "commonMixedLevel": "Gemischtes Niveau",
   "@commonMixedLevel": {
     "x-sourceSha256": "c76f62265cdc2f4c343ae17292b236551fe66a38bb839fec2218e365ca293316"
@@ -4143,6 +4227,10 @@
   "commonDeletedSnack": "„{title}“ gelöscht.",
   "@commonDeletedSnack": {
     "x-sourceSha256": "5f38a45b4a00f67a9d235d7065a8b3d2ecda59f0802d76dccfd504692fc36adb"
+  },
+  "commonCantBeUndone": "Das lässt sich nicht rückgängig machen.",
+  "@commonCantBeUndone": {
+    "x-sourceSha256": "17ad35c384c68419f9fee9cc08687c47e418a995a1f9fd03ae2b2e71136c6f31"
   },
   "importGapMessage": "Dieser Aufruf wurde nicht erkannt – genau wie geschrieben als nicht erkannte Figur gespeichert.",
   "@importGapMessage": {
@@ -4163,10 +4251,6 @@
   "collectionNewDance": "Neuer Tanz",
   "@collectionNewDance": {
     "x-sourceSha256": "c1e50f8630ba63be7971930aab740a917fb1fb614e5cfb1ca8e06fe390cb15d2"
-  },
-  "collectionSearchTooltip": "{platform, select, apple{Suchen (⌘K)} other{Suchen (Strg+K)}}",
-  "@collectionSearchTooltip": {
-    "x-sourceSha256": "900e726652ea89b7d8abaf9b217c45c7336101cde2a7182b4b94448318375296"
   },
   "collectionSelectDancesTooltip": "Tänze auswählen",
   "@collectionSelectDancesTooltip": {
@@ -4976,6 +5060,50 @@
   "@danceFigureBeats": {
     "x-sourceSha256": "b1c2cd5ecb9cd06da41bcdc00cc188ef57533504a89a622f5a0146c65ac22144"
   },
+  "danceFigureBars": "{halfBars, plural, =1{{bars} Takt} =2{{bars} Takt} other{{bars} Takte}}",
+  "@danceFigureBars": {
+    "x-sourceSha256": "032e08ee5ee7e58a2100ce26ef840a137682a824c2dcbe8f36fefbae76971c86"
+  },
+  "danceEditorBarsLabel": "Takte",
+  "@danceEditorBarsLabel": {
+    "x-sourceSha256": "f2c3526915d35ece0e07e451c134a880a4d39a09ffacde637d69831115fb92bd"
+  },
+  "danceEditorStepUntimed": "Ohne eigene Taktangabe",
+  "@danceEditorStepUntimed": {
+    "x-sourceSha256": "1362a25d689a8f29594b4451226fdca286ca6f4c9686f906f6e8297e41d554c1"
+  },
+  "danceEditorBarsRangeError": "Ganze oder halbe Takte eingeben, bis {max}",
+  "@danceEditorBarsRangeError": {
+    "x-sourceSha256": "c1d6b8e804fee78f756507d4d4d8b7bc40c25df7ac2a78e4f5f4dfdf3f2209de"
+  },
+  "danceEditorHalfBarRefused": "Nur ganze Takte bei {beatsPerBar} Schlägen pro Takt",
+  "@danceEditorHalfBarRefused": {
+    "x-sourceSha256": "93140ef37e7658ae19604224df5f4f69822740dcf1121a0648c365663385774b"
+  },
+  "danceEditorSequenceSpanLabel": "Takte für alle",
+  "@danceEditorSequenceSpanLabel": {
+    "x-sourceSha256": "8fe969410459de862aea4879d9ebbdd6588698d681056570bff0f861cd4776ff"
+  },
+  "danceEditorSequenceSpanEmptyHelp": "Leer lassen, um die Takte der Schritte zu addieren, oder die Takte der ganzen Sequenz angeben, etwa „A, B und C in Takt 1–4“.",
+  "@danceEditorSequenceSpanEmptyHelp": {
+    "x-sourceSha256": "d5a200e6405d4fc80bd01e9255209ba4ff0e262aae458721d5366870e7e7bd80"
+  },
+  "danceEditorSequenceSpanHelp": "Die Schritte teilen sich diese Takte, und jeder darf seine eigenen Takte leer lassen.",
+  "@danceEditorSequenceSpanHelp": {
+    "x-sourceSha256": "ae520fdb2996e5323bd3d4615a67922c7a8805eaf4662fe00aafd607fcbc36ac"
+  },
+  "danceEditorSequenceSpanMismatch": "Die Schritte dauern {steps}, die Sequenz aber {span}.",
+  "@danceEditorSequenceSpanMismatch": {
+    "x-sourceSha256": "08125fe84162f64c2fd482d5d4fd915d6c3054c36e4332e6e3f63bd2af67a357"
+  },
+  "danceEditorSequenceSpanNoRoom": "Die Schritte mit eigenen Takten dauern {steps} der {span} der Sequenz, sodass für die übrigen nichts bleibt.",
+  "@danceEditorSequenceSpanNoRoom": {
+    "x-sourceSha256": "197cb3c426f6d770e42563bec39b40266f6eb1dbb4b22ea913e9c467d50088ce"
+  },
+  "danceEditorSequenceOverPhraseTimed": "Diese Sequenz dauert {length}, länger als eine Phrase ({limit}).",
+  "@danceEditorSequenceOverPhraseTimed": {
+    "x-sourceSha256": "e0c6028e36e38a6357c326de3d2c4b9898039706cdf8bfd6fe49d185fc52762b"
+  },
   "danceFigureProgressionSemantic": "Progression",
   "@danceFigureProgressionSemantic": {
     "x-sourceSha256": "0fa9dcf7d979be46947d2c7e82c397b1657e67b8fc794fd741897eb913db8b79"
@@ -5095,6 +5223,10 @@
   "danceCanonicalToggleLabel": "Kanonisch",
   "@danceCanonicalToggleLabel": {
     "x-sourceSha256": "782621d03699b3741c7977a212b58f042e8bf0120a560e33307698c566e24e89"
+  },
+  "danceRoleTermsOverrideNote": "Mit larks und robins angezeigt: Der Autor bzw. die Autorin hat darum gebeten, diesen Tanz nur mit diesen Rollenbezeichnungen anzusagen, daher werden die Rollenbezeichnungen deines Dialekts hier nicht verwendet.",
+  "@danceRoleTermsOverrideNote": {
+    "x-sourceSha256": "17d9d6af6c1bb038aca866cee669d6c0fbfe0a07693f3e78c7f4e05742e43f19"
   },
   "danceProvenanceVia": "via {source}",
   "@danceProvenanceVia": {
@@ -5264,10 +5396,6 @@
   "@programsNoLongerExists": {
     "x-sourceSha256": "653f7a4535912169dd16e30532e2a248cbf249eb88ff18a03d9fcf154dd98686"
   },
-  "programsFallbackTitle": "Programm",
-  "@programsFallbackTitle": {
-    "x-sourceSha256": "90920d93e2c7e6323a947c6edb0e31a9702002e329af32a67fea53f221983cb0"
-  },
   "programsUntitledDanceFallback": "Tanz",
   "@programsUntitledDanceFallback": {
     "x-sourceSha256": "2c371c2ada73a02e26e14416800e8a49f875d27b8b5ff31f1dbe37bdaa6d7faa"
@@ -5327,6 +5455,42 @@
   "programsDeletedSnack": "„{title}“ gelöscht.",
   "@programsDeletedSnack": {
     "x-sourceSha256": "5f38a45b4a00f67a9d235d7065a8b3d2ecda59f0802d76dccfd504692fc36adb"
+  },
+  "programsArchive": "Archivieren",
+  "@programsArchive": {
+    "x-sourceSha256": "66f4804ee23ddc092d1bae43cb88186aa541187fff7c1cc8a4aa17e59a9f4123"
+  },
+  "programsUnarchive": "Aus dem Archiv holen",
+  "@programsUnarchive": {
+    "x-sourceSha256": "f565318d124534cfe0a7630d518f548cd339e464f48d50eda453abd3728ac2a7"
+  },
+  "programsArchivedSnack": "„{title}“ archiviert.",
+  "@programsArchivedSnack": {
+    "x-sourceSha256": "10d1026a09a93b4b257dcf87e484cff1a190846f070953b3331f70186e8be952"
+  },
+  "programsUnarchivedSnack": "„{title}“ aus dem Archiv geholt.",
+  "@programsUnarchivedSnack": {
+    "x-sourceSha256": "a0f18460a0a741fff4fa8e9cde16deaf1d264cbb8fc4727e8abe63beaea5f3bf"
+  },
+  "programsArchivedLabel": "Archiviert",
+  "@programsArchivedLabel": {
+    "x-sourceSha256": "bdb86505f8062d15f152cef71dd4ca89609d5bf8e98771dcd2c9f70d247403da"
+  },
+  "programsShowArchived": "Archivierte anzeigen",
+  "@programsShowArchived": {
+    "x-sourceSha256": "e9de9f2f7a8547e2be68a608f71e3245cb176fcb03dfdff55060e0f25f387975"
+  },
+  "programsHideArchived": "Archivierte ausblenden",
+  "@programsHideArchived": {
+    "x-sourceSha256": "dd1c79324e411c473dc6e8ad9506ce890e8acdfcc5d8bd17ff030d1c85d0d727"
+  },
+  "programsAllArchivedTitle": "Keine Programme anzuzeigen",
+  "@programsAllArchivedTitle": {
+    "x-sourceSha256": "d9e9534fad259921b9f41b1b2f58e2cef9f7a593bf73e95f5e87c518d82f3432"
+  },
+  "programsAllArchivedBody": "Alle deine Programme sind archiviert.",
+  "@programsAllArchivedBody": {
+    "x-sourceSha256": "0953af5dd67c8604868ac7a95548a9e36f1c67d7fb84d2fe8acc55842a6bf821"
   },
   "programsDiscardTitle": "Änderungen verwerfen?",
   "@programsDiscardTitle": {
@@ -5610,6 +5774,14 @@
   "@programsTitle": {
     "x-sourceSha256": "b6747064b2a6dd95ce21899cbfa4a60ed8980b4819014b7a4fce0d849a599fb2"
   },
+  "programsSearchTooltip": "Programme suchen",
+  "@programsSearchTooltip": {
+    "x-sourceSha256": "23e28334e250895890d982583ab65c644fafa5634d066af9952a9ef9bedbad91"
+  },
+  "programsSearchHint": "Programme suchen…",
+  "@programsSearchHint": {
+    "x-sourceSha256": "22f0776e955586107dc0faa3f05b8ae6f047580df4cb7a1418a78690a58dff3d"
+  },
   "programsSortTitle": "Titel",
   "@programsSortTitle": {
     "x-sourceSha256": "7e8cd2056da73a7fefb6cd91f4e5d199d08d9058c517b9a2476b1b520324d674"
@@ -5714,9 +5886,13 @@
   "@programsSlotNoteFallback": {
     "x-sourceSha256": "d8da2c49df39d91df7ecd199b92da7bf264f026242ccc69b08daeadfe587c45b"
   },
-  "programsSlotEditorEmpty": "Noch keine Slots. Fügen Sie einen Tanz oder eine Notiz hinzu, um loszulegen.",
-  "@programsSlotEditorEmpty": {
-    "x-sourceSha256": "1591a8eb737e1ae69093f4aed66693852377cc2692dd1e41d74a84d8520ca821"
+  "programsSlotEditorEmptyTitle": "Noch keine Slots",
+  "@programsSlotEditorEmptyTitle": {
+    "x-sourceSha256": "05c8dfd4d97ab5937e7b58dcd79b3fd9824cd8c95b6d8bdbaac0878835012af4"
+  },
+  "programsSlotEditorEmptyBody": "Fügen Sie einen Tanz oder eine Notiz hinzu, um loszulegen.",
+  "@programsSlotEditorEmptyBody": {
+    "x-sourceSha256": "12ebd0ccad6baf42b8ddf27f8bbf1cb345e7fdb180053039140046b22d801a20"
   },
   "programsSlotMovedUp": "Slot nach oben verschoben.",
   "@programsSlotMovedUp": {
@@ -6165,6 +6341,14 @@
   "performSlotPosition": "Slot {current} von {total}",
   "@performSlotPosition": {
     "x-sourceSha256": "28323c1441741396297f14b41af654cd27b5734ce4d41f3096bfe1a572d972eb"
+  },
+  "performProgramClockLabel": "Programm",
+  "@performProgramClockLabel": {
+    "x-sourceSha256": "90920d93e2c7e6323a947c6edb0e31a9702002e329af32a67fea53f221983cb0"
+  },
+  "performSlotClockLabel": "Slot",
+  "@performSlotClockLabel": {
+    "x-sourceSha256": "79689782061dec13dc61a80c224f96c6443d61cdd6e50f7c8cace113ba74f761"
   },
   "performShowingSlot": "{label} wird angezeigt",
   "@performShowingSlot": {
@@ -7962,6 +8146,10 @@
   "@importReviewEditOverwriteBody": {
     "x-sourceSha256": "87c2b58d9ba05743231066492919a0091c15c3aabceb593e3d6a6f78624b81b4"
   },
+  "importReviewEditOverwriteConfirm": "Ersetzen",
+  "@importReviewEditOverwriteConfirm": {
+    "x-sourceSha256": "95e154398a4bc0091aa4d6b607472ac5a89e41fbc84a3a49f823314d6de9eebc"
+  },
   "importReviewEditReimportTitle": "Jetzt auf den vorhandenen Tanz neu importieren?",
   "@importReviewEditReimportTitle": {
     "x-sourceSha256": "0ef9a017ae65f8bd0f7ca657bfb1ea8e3bae8ca0a57b4a9cfe4c4e142e01467d"
@@ -8182,21 +8370,17 @@
   "@settingsWalkthroughSnippetsDescription": {
     "x-sourceSha256": "a1649fa079a4a43041ca0a7ae4925476439d16feeec25c98aa730527b12abc3b"
   },
-  "settingsWalkthroughSnippetsEmpty": "Noch keine gespeicherten Ausschnitte. Füge Ablaufschritt-Beschreibungen hinzu, während du die Figuren eines Tanzes bearbeitest.",
-  "@settingsWalkthroughSnippetsEmpty": {
-    "x-sourceSha256": "7048ea1a9940833a750759b0db497d4b18c2bac3f4b1af28b9976e4ee36d6bf5"
+  "settingsWalkthroughSnippetsEmptyTitle": "Noch keine gespeicherten Ausschnitte",
+  "@settingsWalkthroughSnippetsEmptyTitle": {
+    "x-sourceSha256": "2eaca46bb56a9a6e7160dc7c94814016d56ee4b524dfcc989ae6a3c23176a34b"
+  },
+  "settingsWalkthroughSnippetsEmptyBody": "Fügen Sie Beschreibungen für Ablaufschritte hinzu, während Sie die Figuren eines Tanzes bearbeiten.",
+  "@settingsWalkthroughSnippetsEmptyBody": {
+    "x-sourceSha256": "3c5ac18eb708b647a15b8448fd0d681ea743f557bf1abb49724a0ce43e6685ee"
   },
   "settingsWalkthroughSnippetsCount": "{count, plural, =1{1 Ausschnitt} other{{count} Ausschnitte}}",
   "@settingsWalkthroughSnippetsCount": {
     "x-sourceSha256": "69ad021cf25f5c7b69ff8a939a4181e955ddf77b53fc3c7ceb4d17e4ca12d9ab"
-  },
-  "settingsWalkthroughSnippetDeleteTitle": "Ausschnitt löschen?",
-  "@settingsWalkthroughSnippetDeleteTitle": {
-    "x-sourceSha256": "a67de31046b0930bc0d1b5bd0cd5b98486e3a344dd9a86398c8e5aa70d9e56eb"
-  },
-  "settingsWalkthroughSnippetDeleteBody": "Dies entfernt den gespeicherten Standard für diese Figur. Tänze behalten jeden bereits geschriebenen Ablauftext.",
-  "@settingsWalkthroughSnippetDeleteBody": {
-    "x-sourceSha256": "e6e2bf4fd7f431e6f777bd2b70f68a9b5dbf63d55a891af49515eca79799a234"
   },
   "settingsWalkthroughSnippetEditTitle": "Ausschnitt bearbeiten",
   "@settingsWalkthroughSnippetEditTitle": {
@@ -8218,6 +8402,14 @@
   "@danceEditorMixerSubtitle": {
     "x-sourceSha256": "7938ac9f04ea2f20e30bd38c78e049679f3020e643e9ee1e6f46c03b756014b8"
   },
+  "danceEditorImproperLabel": "Beginnt improper",
+  "@danceEditorImproperLabel": {
+    "x-sourceSha256": "e4dd5166a2d36d72d17f292c5f3b00bbb89544e0a94b5c9658d538d2c89e159e"
+  },
+  "danceEditorImproperSubtitle": "Leer lassen für einen Tanz, der proper beginnt.",
+  "@danceEditorImproperSubtitle": {
+    "x-sourceSha256": "55e6931dac76da40b06ac10ab8416ab58539aa4e3cdfb25881f38341ec846e37"
+  },
   "danceEditorComposedLabel": "Komponiert",
   "@danceEditorComposedLabel": {
     "x-sourceSha256": "48f8b936056c4a698e3bde4460b37d246596eda04eabdde954820dbd0bc877b2"
@@ -8225,6 +8417,18 @@
   "danceEditorComposedHelper": "Wann der Tanz komponiert wurde (Jahr oder Monat/Tag hinzufügen)",
   "@danceEditorComposedHelper": {
     "x-sourceSha256": "82d4988c39428b943b94b1ae4d50e3cb362e7a44bc722a61bf5198fd8a3411dc"
+  },
+  "danceEditorInterpretedByLabel": "Interpretiert von",
+  "@danceEditorInterpretedByLabel": {
+    "x-sourceSha256": "7a3eef2a0a39813c78bae859524207a201116b461ca4bb4157637f384b1af050"
+  },
+  "danceEditorInterpretedOnLabel": "Interpretiert",
+  "@danceEditorInterpretedOnLabel": {
+    "x-sourceSha256": "83512bf0aa63b8443c4367033657fdd3212ff4116b4d28bf73b6ad6d93d5f706"
+  },
+  "danceEditorInterpretedOnHelper": "Wann der Tanz interpretiert wurde (Jahr oder Monat/Tag hinzufügen)",
+  "@danceEditorInterpretedOnHelper": {
+    "x-sourceSha256": "7c2e7fb3012e2e8f557ae3c9b372cc5a3a8a3b66d0a7e30e852f607d41c8ab2e"
   },
   "danceEditorRevisedLabel": "Überarbeitet",
   "@danceEditorRevisedLabel": {
@@ -8422,6 +8626,18 @@
   "@validationSequenceExceedsPhrase": {
     "x-sourceSha256": "5b58ba736707956d7a8b673a407e805314dbb8f6ba5091fc18c1fbf777a85366"
   },
+  "validationSequenceSpanMismatch": "Die Schritte der Sequenz in Figur {position} dauern {actual} Schläge; die Sequenz dauert {expected}.",
+  "@validationSequenceSpanMismatch": {
+    "x-sourceSha256": "427e750a1e703341b792f9be009cf9daebbe04105d73c0b8adacd90815d84d34"
+  },
+  "validationSequenceSpanNoRoom": "Die Schritte mit Zeitangabe in der Sequenz in Figur {position} dauern {actual} Schläge, sodass von ihren {expected} für die übrigen nichts bleibt.",
+  "@validationSequenceSpanNoRoom": {
+    "x-sourceSha256": "97810e6b9ede26094cde824e19231d33c0149ab076d3f9157c2025a6a594fae9"
+  },
+  "validationOtherFormFigures": "Dies ist ein Tanz der Art {danceForm}, aber {count, plural, =1{1 Figur stammt} other{{count} Figuren stammen}} aus {figureForm}. Sie bleiben, wie sie sind, aber die Figurenauswahl bietet nur Figuren der Art {pickerForm} an.",
+  "@validationOtherFormFigures": {
+    "x-sourceSha256": "c9ecc275ac684f779261f8efede22076a2dd84f87b5d8b0f4ec812630fbc8e77"
+  },
   "validationIncompleteFigure": "Figur {position} ist nicht vollständig, daher lässt Speichern sie weg.",
   "@validationIncompleteFigure": {
     "x-sourceSha256": "3c52fdb408c5114d40e661e2abc28520d0663fd0e7ff50a1096a901c31915a3a"
@@ -8445,6 +8661,10 @@
   "validationDialectCollision": "„{source}“ und „{existing}“ werden beide auf „{substitution}“ abgebildet – die Umkehrung wäre mehrdeutig.",
   "@validationDialectCollision": {
     "x-sourceSha256": "dee51ecec06a3f41cec908aa62b70496bc898557a127384eaed31fec2ae72dd1"
+  },
+  "validationGenderedRoleTerm": "„{word}“ ist ein geschlechtsbezogenes Rollenwort, das die App nie anzeigt. Verwende stattdessen ein rollenneutrales Wort.",
+  "@validationGenderedRoleTerm": {
+    "x-sourceSha256": "c7ffdeeeab5f91ad261dc69b0d4a0f97b03e085db30fbda8ddeeb12ed445e47a"
   },
   "validationGeneric": "Dieses Element hat ein Validierungsproblem.",
   "@validationGeneric": {
@@ -8853,6 +9073,22 @@
   "danceEditorMoveDown": "Nach unten",
   "@danceEditorMoveDown": {
     "x-sourceSha256": "40bb50da160cdc21d6029a927b68f92b07fd450688e609826cbc70d202db96da"
+  },
+  "commonMoveItemUp": "{name} nach oben verschieben",
+  "@commonMoveItemUp": {
+    "x-sourceSha256": "d1332175b89d6672fce08fbdddd7eacb769c89694afbb1c7260c08c1182f0f43"
+  },
+  "commonMoveItemDown": "{name} nach unten verschieben",
+  "@commonMoveItemDown": {
+    "x-sourceSha256": "1e94688825c76d7fa4426844a1adbeca4bbcb22c33c1e053d51714f3f518526e"
+  },
+  "commonMovedItemPosition": "{name} an Position {position} von {count} verschoben",
+  "@commonMovedItemPosition": {
+    "x-sourceSha256": "ebf9180932c3b44b43c8fa1109d208cdd186b739a667ff7e72f1ca19387ca72d"
+  },
+  "danceEditorFigureCutState": "Ausgeschnitten",
+  "@danceEditorFigureCutState": {
+    "x-sourceSha256": "1f45f02561f41db9483cfc00675900237967b8e382b9750d33f677812fe70842"
   },
   "danceEditorCut": "Ausschneiden",
   "@danceEditorCut": {
@@ -9334,9 +9570,9 @@
   "@commandPaletteResultCountCapped": {
     "x-sourceSha256": "14ea6b93b4b0c29e4d91800e6d55d1758ba8389ad2bb221f8acc2ad15e8c88f2"
   },
-  "collectionPickerSearchLabel": "Tanz zum Hinzufügen suchen",
+  "collectionPickerSearchLabel": "Tanz suchen",
   "@collectionPickerSearchLabel": {
-    "x-sourceSha256": "09d2178b66d28a396be9e47c2b10bfa5cf871ccece9b1673be6209b6429ec7b0"
+    "x-sourceSha256": "e563b579c655782eaa592634c60ad40da9b7b2c3b9c5f70cadd21878421b0e88"
   },
   "collectionPickerFilters": "{count, plural, =0{Filter} other{Filter ({count} aktiv)}}",
   "@collectionPickerFilters": {
@@ -9410,21 +9646,17 @@
   "@shorthandMappingsNew": {
     "x-sourceSha256": "bcb70a5881650d222f46a45b002a5e5d5af4760fe5f046123ce0f9e05100c220"
   },
-  "shorthandMappingsEmpty": "Noch keine Abkürzungen.",
-  "@shorthandMappingsEmpty": {
-    "x-sourceSha256": "2033070fb18827ce55f5388e79eded465e61704e0c52fb4554f84f313c53f01f"
+  "shorthandMappingsEmptyTitle": "Noch keine Abkürzungen",
+  "@shorthandMappingsEmptyTitle": {
+    "x-sourceSha256": "c298e5dd6190ec4a26aa33f7fa693fee0fc7e01bba0fb8102b9c6869c2c2d304"
+  },
+  "shorthandMappingsEmptyBody": "Wählen Sie „Neue Abkürzung“, um eine hinzuzufügen.",
+  "@shorthandMappingsEmptyBody": {
+    "x-sourceSha256": "bb5b8084f4ddeb2a166b5941dcb7ae94af674e0e09030fe50be364b84a5daaa1"
   },
   "shorthandMappingsLimitReached": "Du hast das Limit von {max} Abkürzungen erreicht. Lösche eine, um eine weitere hinzuzufügen.",
   "@shorthandMappingsLimitReached": {
     "x-sourceSha256": "3f8a40d5253e3d42f05fd74e05353a6ffb21fb6de2fd6f6e22da50300ff01c23"
-  },
-  "shorthandMappingsDeleteTitle": "Abkürzung löschen?",
-  "@shorthandMappingsDeleteTitle": {
-    "x-sourceSha256": "a8a818eba0a742b81c447939890409c3772364a3796479a44fe26309d848b01b"
-  },
-  "shorthandMappingsDeleteBody": "„{token}“ wird dauerhaft entfernt.",
-  "@shorthandMappingsDeleteBody": {
-    "x-sourceSha256": "fa03940830f67880e7d42db7656abd65366f1b73949bb6ff5e7e0e877c58a79d"
   },
   "shorthandMappingsActionsTooltip": "Abkürzungs-Aktionen",
   "@shorthandMappingsActionsTooltip": {
@@ -9734,13 +9966,65 @@
   "@reparseErrorBody": {
     "x-sourceSha256": "58f0ccd25734c5c644ebc925bc1e88cf98be542eb894f5e7c529377380b94acd"
   },
-  "customFieldsDeleteTitle": "Benutzerdefiniertes Feld löschen",
-  "@customFieldsDeleteTitle": {
-    "x-sourceSha256": "daf3f4f83f61c995c5026363e1ac97ecff288404e66c85724d8f6740eb3c2b2a"
+  "ecdMigrationScreenTitle": "Englische Tänze umwandeln",
+  "@ecdMigrationScreenTitle": {
+    "x-sourceSha256": "d9775b54e95a37e98b9294d1d74a61f4f6323b05b6981526d9a9ff3970a6de1b"
   },
-  "customFieldsDeleteBody": "„{label}“ löschen? Dies kann nicht rückgängig gemacht werden.",
-  "@customFieldsDeleteBody": {
-    "x-sourceSha256": "8d391116314a182474453cdaa2cddb85d34c674df8e042b6602660ad1c18d8f5"
+  "ecdMigrationIntro": "{danceCount, plural, =1{1 englischer Tanz verwendet} other{{danceCount} englische Tänze verwenden}} noch Contra-Bewegungen, nicht erkannte Figuren oder eine Contra-Formation. Wählen Sie die Tänze zum Umwandeln aus und bestätigen Sie dann. Eine Bewegung ohne klare englische Entsprechung bleibt, wie sie ist.",
+  "@ecdMigrationIntro": {
+    "x-sourceSha256": "6f23acc161ddf9f456a5ec4b1019189fe79399382860a9d48e41118c5ea70325"
+  },
+  "ecdMigrationPreviewMoves": "{count, plural, =1{1 Bewegung umzuwandeln} other{{count} Bewegungen umzuwandeln}}",
+  "@ecdMigrationPreviewMoves": {
+    "x-sourceSha256": "0f8ff9a408e38cc9f1500e27e949c83c3c8f6963cf8e6b78cb79fb06706a5e29"
+  },
+  "ecdMigrationPreviewLines": "{count, plural, =1{1 nicht erkannte Figur jetzt gelesen} other{{count} nicht erkannte Figuren jetzt gelesen}}",
+  "@ecdMigrationPreviewLines": {
+    "x-sourceSha256": "fbe73fbaf73be4a53f71d06e5a43b9a94f8b0ced16824bc4465ca1cc5c54b94f"
+  },
+  "ecdMigrationPreviewShape": "Englische Formation",
+  "@ecdMigrationPreviewShape": {
+    "x-sourceSha256": "bb61ce45b99ce5325dd4fd39541815b8e3ff4ca0a5dac0ca5d333d789622684e"
+  },
+  "ecdMigrationConvertButton": "{danceCount, plural, =1{1 Tanz umwandeln} other{{danceCount} Tänze umwandeln}}",
+  "@ecdMigrationConvertButton": {
+    "x-sourceSha256": "47cb97b506b6a165b9f9684beb34b846f018bdc09b14a13d1f8581ddf47ae377"
+  },
+  "ecdMigrationConfirmTitle": "Diese englischen Tänze umwandeln?",
+  "@ecdMigrationConfirmTitle": {
+    "x-sourceSha256": "d521ef97fc49216d751ebb1e92a36235526ba4266712d8adf5c4ece626205271"
+  },
+  "ecdMigrationConfirmBody": "Dies ändert die Figuren und die Formation von {danceCount, plural, =1{1 Tanz} other{{danceCount} Tänzen}}. Tags, Bewertungen, Notizen und alles andere bleiben erhalten. Dies kann nicht rückgängig gemacht werden, daher sollten Sie vorher eine Sicherung erstellen.",
+  "@ecdMigrationConfirmBody": {
+    "x-sourceSha256": "9ddc48f2bad456b7159fee8e61bed0d76513bd74b92d3c91f13bc509e3165a4f"
+  },
+  "ecdMigrationConfirmAction": "Umwandeln",
+  "@ecdMigrationConfirmAction": {
+    "x-sourceSha256": "5cd425f518c2e59a42b8b70008e62212d41060cc25916cfc47ad64383f9be745"
+  },
+  "ecdMigrationDoneSnack": "{danceCount, plural, =1{1 Tanz umgewandelt.} other{{danceCount} Tänze umgewandelt.}}",
+  "@ecdMigrationDoneSnack": {
+    "x-sourceSha256": "c93d396cef0ea9615f2b7ad0395c6fa5a3c94392f39eeedb4b268f76ecb431a3"
+  },
+  "ecdMigrationNothingSnack": "Nichts umzuwandeln.",
+  "@ecdMigrationNothingSnack": {
+    "x-sourceSha256": "927c132a0a923e4b2a5d79a46f3510b2b3a357d280cd9ffbc6ec628ff83b6057"
+  },
+  "ecdMigrationFailed": "Die Tänze konnten nicht umgewandelt werden. Es wurde nichts geändert. Bitte versuchen Sie es erneut.",
+  "@ecdMigrationFailed": {
+    "x-sourceSha256": "2b57f3969cad7e30b3b0ee1f143d1baa513fb5d2df1877119cb56c6a39adc556"
+  },
+  "ecdMigrationEmptyTitle": "Nichts umzuwandeln",
+  "@ecdMigrationEmptyTitle": {
+    "x-sourceSha256": "b7c23f259a172035b76ed38b0e714919ae88cad43edf86eb78f5924518dbfd92"
+  },
+  "ecdMigrationEmptyBody": "Keiner Ihrer englischen Country Dances enthält etwas, das sich umwandeln lässt. Eine Figur ohne klare englische Bedeutung bleibt, wie sie ist.",
+  "@ecdMigrationEmptyBody": {
+    "x-sourceSha256": "b99c1dcb3eed2321fe2e92547b49b61af21d454dea9df1c96927105a3c2b91f4"
+  },
+  "ecdMigrationErrorTitle": "Ihre englischen Tänze konnten nicht geprüft werden",
+  "@ecdMigrationErrorTitle": {
+    "x-sourceSha256": "a5463d18d95a7b1f629edcf1c73792d077681156c7326da88199e723fc4a4ee5"
   },
   "customFieldsDeleteInUse": "„{label}“ kann nicht gelöscht werden: noch in {count, plural, =1{1 Tanz} other{{count} Tänzen}} verwendet. Entfernen Sie zuerst den Wert aus allen Tänzen.",
   "@customFieldsDeleteInUse": {
@@ -9770,9 +10054,13 @@
   "@customFieldsLoadError": {
     "x-sourceSha256": "9392bd4d3cf2aaea10cdc1cd1d4c68cf98ee6e03c52fd75e05d67a348ab138f6"
   },
-  "customFieldsEmpty": "Noch keine benutzerdefinierten Felder.\nTippen Sie auf +, um eines zu definieren.",
-  "@customFieldsEmpty": {
-    "x-sourceSha256": "96b8857829561e6006e3f6561d54998e454c1e1223bbc981f5c6d9d81d814f51"
+  "customFieldsEmptyTitle": "Noch keine benutzerdefinierten Felder",
+  "@customFieldsEmptyTitle": {
+    "x-sourceSha256": "eb0a32b078be55d376bfd04a93ef16a0d09af2870d60cc67cc2fb73624ffe142"
+  },
+  "customFieldsEmptyBody": "Wählen Sie „Neues Feld“, um eines hinzuzufügen.",
+  "@customFieldsEmptyBody": {
+    "x-sourceSha256": "13e90aa1be43a16a07cc2efda674430838dad199d222b6d48f1181f21d655948"
   },
   "customFieldsFlagInList": "In Liste",
   "@customFieldsFlagInList": {
@@ -10038,9 +10326,9 @@
   "@recentlyDeletedDeleteTitle": {
     "x-sourceSha256": "c1b15a3712482b377f34d95ca8c2fc0d47ca1b9e64fd614367c2ee8c06ca5419"
   },
-  "recentlyDeletedDeleteBody": "„{title}“ wird sofort gelöscht und kann nicht wiederhergestellt werden.",
+  "recentlyDeletedDeleteBody": "„{title}“ wird jetzt gelöscht.",
   "@recentlyDeletedDeleteBody": {
-    "x-sourceSha256": "28b125de466af8a2e8a3b47dbd79e1d6e625c2f4ea34f0f2b8a1d96fd6d191a7"
+    "x-sourceSha256": "60f16c333e309afe0e749d16b239738039756b07999073957303adf7452fd575"
   },
   "recentlyDeletedDeleteConfirm": "Dauerhaft löschen",
   "@recentlyDeletedDeleteConfirm": {
@@ -10161,18 +10449,6 @@
   "venueLinkOfferDone": "{count, plural, =1{1 Programm verknüpft.} other{{count} Programme verknüpft.}}",
   "@venueLinkOfferDone": {
     "x-sourceSha256": "431a1aa3f4e20271f7a7aece28cd1fb67ebe75cda7f2b539844ec62712c7a0bb"
-  },
-  "venueManagerDeleteTitle": "Veranstaltungsort löschen?",
-  "@venueManagerDeleteTitle": {
-    "x-sourceSha256": "a9aed6966427e7a9a7a69cb29965442d52da1a8627dfaf18e03624e6f4283efa"
-  },
-  "venueManagerDeleteBody": "„{name}“ dauerhaft löschen? Dies kann nicht rückgängig gemacht werden.",
-  "@venueManagerDeleteBody": {
-    "x-sourceSha256": "833e71d14c9c6ff7b7e3a1472580b40266265e9d4ce80eecaebb6802a20687f4"
-  },
-  "venueManagerDeletedSnack": "„{name}“ gelöscht",
-  "@venueManagerDeletedSnack": {
-    "x-sourceSha256": "c01d33e1bbf843edb8f635f4bc33095283004bceeac7fd456d43b330d8a904d4"
   },
   "venueManagerDeleteBlocked": "„{name}“ kann nicht gelöscht werden, solange er noch mit einem Programm verknüpft ist. Ändern oder entfernen Sie zuerst den Veranstaltungsort bei diesen Programmen.",
   "@venueManagerDeleteBlocked": {
@@ -10394,6 +10670,10 @@
   "@publishedCollectionsUnavailable": {
     "x-sourceSha256": "286ca7d1f2dfaf05d973b18f9d8167ca700dd94c02afc27cd91e74f85abbd35f"
   },
+  "publishedCollectionsUnverified": "Veröffentlichte Sammlungen konnten nicht überprüft werden, daher wurde nichts geladen. Aktualisieren Sie die App, wenn das weiterhin passiert.",
+  "@publishedCollectionsUnverified": {
+    "x-sourceSha256": "0fd4b1c6ff67d093225db9044263a0966296ef759e8fae1cc0db6e0bde414593"
+  },
   "publishedCollectionsOffline": "Veröffentlichte Sammlungen konnten nicht erreicht werden. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut.",
   "@publishedCollectionsOffline": {
     "x-sourceSha256": "9d5685db1bd84a665edf1099bdca7fbbe48285bd68a1426598c99ee55c348fa5"
@@ -10585,6 +10865,10 @@
   "glossaryAddCustomFigure": "Eigene Figur hinzufügen",
   "@glossaryAddCustomFigure": {
     "x-sourceSha256": "33ad8774d841771938cf8bc5e3d181ad4c97607dc8ced2808127cca8410e91c5"
+  },
+  "customFiguresNewFigure": "Neue Figur",
+  "@customFiguresNewFigure": {
+    "x-sourceSha256": "3bd330f1f22470db1387c962d78ceea1c7f302fd57729577ba2ee6cb9e9d3326"
   },
   "glossaryCustomMarker": "Eigene",
   "@glossaryCustomMarker": {

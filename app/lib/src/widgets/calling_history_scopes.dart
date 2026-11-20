@@ -9,7 +9,9 @@ import '../data/regional_formats.dart';
 import '../diagnostics/error_log.dart';
 import '../search/called_venue_choices.dart';
 import '../search/collection_query.dart';
-import '../theme/app_shapes.dart';
+import '../theme/app_motion.dart';
+import '../theme/app_spacing.dart';
+import 'app_date_picker.dart';
 
 /// The two controls under the Filters panel's Called / Not called chips:
 /// **At venue** and **Within** (`docs/design/history-filters.md`, N1-H2).
@@ -88,14 +90,13 @@ class _CallingHistoryScopesState extends State<CallingHistoryScopes> {
   Future<void> _pickSince() async {
     final now = DateTime.now();
     final current = widget.facets.historySince;
-    final picked = await showDatePicker(
+    final picked = await showAppDatePicker(
       context: context,
       initialDate: current == null
           ? now
           : DateTime(current.year, current.month, current.day),
       firstDate: DateTime(now.year - 30),
       lastDate: DateTime(now.year + 10),
-      builder: uncappedDialogBuilder,
     );
     if (picked == null || !mounted) return;
     widget.facets.setHistorySince(picked);
@@ -111,6 +112,7 @@ class _CallingHistoryScopesState extends State<CallingHistoryScopes> {
         choices: _choices ?? const [],
         selected: widget.facets.historyVenue,
       ),
+      sheetAnimationStyle: AppMotion.styleFor(context),
     );
     if (chosen == null || !mounted) return;
     widget.facets.setHistoryVenue(
@@ -146,7 +148,7 @@ class _CallingHistoryScopesState extends State<CallingHistoryScopes> {
       children: [
         if (!facets.scopesApply)
           Padding(
-            padding: const EdgeInsets.only(bottom: 4),
+            padding: const EdgeInsets.only(bottom: AppSpacing.xxs),
             child: Text(
               l10n.collectionFacetHistoryInert,
               key: const ValueKey('facet-history-inert-hint'),
@@ -255,7 +257,12 @@ class _VenueSheet extends StatelessWidget {
         shrinkWrap: true,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.md,
+              0,
+              AppSpacing.md,
+              AppSpacing.xs,
+            ),
             child: Text(
               l10n.collectionFacetVenueSheetTitle,
               style: Theme.of(context).textTheme.titleMedium,

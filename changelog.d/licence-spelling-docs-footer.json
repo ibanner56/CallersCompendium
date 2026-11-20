@@ -1,0 +1,9 @@
+{
+  "id": "licence-spelling-docs-footer",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "The user guide's footer link to the licence now reads \"License (AGPL-3.0-only)\", matching how the app names it."
+    ]
+  }
+}

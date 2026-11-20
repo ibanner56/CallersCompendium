@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../data/reduce_motion_scope.dart';
+import '../theme/app_motion.dart';
+
+import '../theme/app_spacing.dart';
 
 /// A self-contained, opt-in **tap-tempo visual metronome** for Perform mode
 /// (issue #366, PM-scoped slice). The caller taps out the beat on a large
@@ -61,7 +64,7 @@ class _TapTempoMetronomeState extends State<TapTempoMetronome>
   /// controller repeats; it is never recreated on tempo change.
   late final AnimationController _pulse = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 500),
+    duration: AppMotion.long,
   );
 
   @override
@@ -184,7 +187,12 @@ class _TapTempoMetronomeState extends State<TapTempoMetronome>
     // content's ~390px, and a bare Column overflows even at default text. The
     // scroll view is shrink-wrapped, so a roomy sheet still sizes to content.
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.lg,
+        AppSpacing.sm,
+        AppSpacing.lg,
+        AppSpacing.lg,
+      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [

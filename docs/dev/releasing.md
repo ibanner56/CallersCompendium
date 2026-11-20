@@ -9,8 +9,8 @@ This is the operator runbook for cutting a desktop release. It documents the
 > the App Privacy / Data safety / content-rating forms — lives in
 > [`store-submission/`](store-submission/README.md).
 
-> **Scope of this wave.** Desktop builds are **free** — no paid accounts. The
-> **Linux** (`tar.gz`/AppImage) artifacts are **UNSIGNED**. Windows
+> **Scope of this wave.** The **Linux** (`tar.gz`/AppImage) artifacts are
+> **UNSIGNED**. Windows
 > (installer/`zip`) artifacts use Azure Trusted Signing when the five
 > `AZURE_*` repository variables are configured; otherwise Windows users bypass
 > the SmartScreen prompt manually ("More info → Run anyway"). **macOS is the
@@ -40,6 +40,7 @@ This is the operator runbook for cutting a desktop release. It documents the
 - [Software Bill of Materials (SBOM)](#software-bill-of-materials-sbom) — 93 lines
 - [Publishing the update manifest (GitHub Pages)](#publishing-the-update-manifest-github-pages) — 124 lines
 - [Signing the update manifest (Ed25519, issue #431)](#signing-the-update-manifest-ed25519-issue-431) — 96 lines
+- [Signing the published-collection catalog (Ed25519, issue #2161)](#signing-the-published-collection-catalog-ed25519-issue-2161) — 84 lines
 - [Landing page and user guides (GitHub Pages)](#landing-page-and-user-guides-github-pages) — 74 lines
 - [Dry run (no release created)](#dry-run-no-release-created) — 36 lines
 - [macOS (Developer ID signed + notarized)](#macos-developer-id-signed--notarized) — 85 lines
@@ -933,6 +934,90 @@ exposed. That trade-off is the maintainer's call at the time. Keeping a next key
 pinned at all times — so that cohort is as small as possible — is what makes
 the response available at all.
 
+## Signing the published-collection catalog (Ed25519, issue #2161)
+
+The published-collection catalog
+(`https://analect.callerscompendium.com/collections/manifest.json`) is signed
+by the **Compendium Analect** repository, not by this one, with a key that is
+deliberately **separate from the update-manifest key** above: a compromise of
+collection publishing must never become a way to sign app installers. The app
+verifies the catalog's detached `manifest.json.sig` against the pinned set
+`kPublishedCollectionPublicKeys` in
+`app/lib/src/published_collections/published_collection_config.dart`; the
+catalog carries a SHA-256 and byte count for each archive, so that one
+signature covers every archive. Analect's `docs/publishing.md` describes the
+publishing side.
+
+### Custody
+
+- The private key is held by the maintainer. Analect's Pages workflow reads it
+  from the `ANALECT_SIGNING_KEY_B64` Actions secret, which only the protected
+  `signing` environment supplies. It is never committed, printed or shared with
+  this repository's CI.
+- Analect's publisher also pins the public key (`PINNED_PUBLIC_KEY` in
+  `tools/publish_collections.py`) and refuses to sign with any key that does not
+  derive it, so a mistyped or swapped secret fails the publish instead of
+  shipping a catalog every install rejects.
+- Keep an offline backup of every pinned private key (current and next) the way
+  the update key is kept. A lost private key cannot be recovered; installs that
+  pin only that key can then verify nothing new until they update by hand.
+- **Where the next key is (recorded 2026-11-17).** The private half of the
+  pinned *next* key (`LJiuOr9D…DnE=`) is the Azure Key Vault secret
+  `analect-signing-knext` in the maintainer's `protege` vault (resource group
+  `callerscompendium`). Its value is the single-line base64 of the PEM, which
+  is the form `ANALECT_SIGNING_KEY_B64` takes. Before relying on it, check it:
+  base64-decode it, and `openssl pkey -pubout -outform DER | tail -c 32 |
+  base64` must print the next key pinned in `kPublishedCollectionPublicKeys`.
+  Update this entry whenever the key moves or a rotation retires it.
+
+### Published-collection key rotation
+
+The procedure mirrors [Key rotation](#key-rotation) for the update key, except
+that the signer lives in Analect. At every step every supported install must
+trust the key Analect is signing with:
+
+1. **Generate the next keypair offline** (the same `openssl genpkey` commands as
+   [Maintainer ops: enabling signed updates](#maintainer-ops-enabling-signed-updates)
+   step 1, with a different file name). Store the private key with the current
+   one; do not put it in Analect's secrets yet, and never commit it.
+2. **Pin it as "next" in an app release**: add its public key to
+   `kPublishedCollectionPublicKeys` *after* the current key, and ship a release.
+   Analect keeps signing with the current key, so every install still verifies.
+3. **Wait until that release is widespread.** Installs that predate it trust
+   only the old key and will reject the catalog after step 4 until they update.
+   They see "Published collections could not be verified… update the app" on
+   the **Published collections** screen; only builds that contain #2161 say so,
+   and older ones say "temporarily unavailable".
+4. **Switch Analect's signer** in one Analect change: replace the
+   `ANALECT_SIGNING_KEY_B64` secret with the next private key, **base64
+   encoded** (`base64 < analect_next_signing_key.pem | tr -d '\n'`; unlike
+   `UPDATE_SIGNING_KEY`, a pasted PEM fails as "not valid base64"), and update
+   Analect's `PINNED_PUBLIC_KEY` to the next public key, then re-run its Pages
+   workflow so the live catalog is re-signed. Changing only one of the two makes
+   the publish fail rather than ship a bad signature.
+5. **Retire the old key in a later app release**: remove it from
+   `kPublishedCollectionPublicKeys` and pin a freshly generated next key
+   (step 1), so the set is again *current + next*. The test
+   `app/test/published_collection_service_test.dart` pins the current key by
+   value as a tripwire against removing it early; update it in the same change.
+
+Never sign the catalog with a key that is not already pinned in a widely
+installed release. A release that pins *only* the replacement key does not
+work either: it rejects the live catalog until Analect switches.
+
+**Compromise.** Pinning has no revocation, as for the update key: an install
+keeps trusting every key it shipped with until it updates, so a leaked
+collection key can sign catalogs those installs accept. The catalog names the
+archives and their digests, so a forged catalog can point those installs at
+attacker-chosen dance data (it cannot sign installers, because the keys are
+separate). If a next key is already pinned, steps 4 and 5 move every install
+that has the next key onto it; they cannot remove trust in the leaked key from
+installs that have not yet taken the step-5 release. Installs that predate the
+release that pinned the next key trust only the leaked key: switching strands
+them (the catalog will not verify until they update) and not switching leaves
+them exposed. That trade-off is the maintainer's call at the time. Keeping a
+next key pinned at all times is what keeps that cohort small.
+
 ## Landing page and user guides (GitHub Pages)
 
 The public site at <https://ibanner56.github.io/CallersCompendium/> has two
@@ -1211,7 +1296,7 @@ or PRs.
 
 ## Android (signed APK)
 
-Unlike the desktop artifacts (which are **unsigned** this wave), Android's first
+Unlike the Linux desktop artifacts (always **unsigned**), Android's first
 beta ships as a **self-signed** sideload APK. Android refuses to install an
 unsigned APK, so the `release` build type is wired to a real upload keystore via
 the canonical Flutter `key.properties` pattern in `app/android/app/build.gradle.kts`.
@@ -1485,7 +1570,7 @@ in-place update.
 
 ### Sideload install note (for release notes / users)
 
-The Android APK is **self-signed**, *not* "unsigned" like the desktop builds — it
+The Android APK is **self-signed**, *not* "unsigned" like the Linux desktop builds — it
 carries a valid signature, just not one from Google Play. To sideload it a user
 enables **"install unknown apps"** for their browser/file manager, then opens the
 downloaded APK. Verify the download against `SHA256SUMS` as with every artifact.

@@ -87,12 +87,17 @@ Color danceStatusColor(DanceStatus status, ThemeData theme) {
 }
 
 /// Shared status-chip construction (icon + text) tinted with a semantic
-/// [color] using the §2 treatment: a 10% [color] fill, a 50% [color] border,
-/// and a [color]-tinted icon. The label text uses the theme's `onSurface` so it
-/// always clears WCAG AA (≥4.5:1) against the tinted fill in every bundled
-/// theme, including high-contrast. Both [ProgramStatusChip] and
-/// [DanceStatusChip] delegate here so program and dance status render
-/// identically.
+/// [color] using the §2 treatment: a [AppThemeExtension.statusTintAlpha]
+/// [color] fill, a full-alpha [color] border, and an icon in [color] moved
+/// only as far as it needs to clear 3:1 on the fill
+/// ([AppThemeExtension.statusIconColor]). The
+/// label text uses the theme's `onSurface`, which clears WCAG AA (≥4.5:1)
+/// against the tinted fill in every bundled theme, including high contrast,
+/// when the chip sits on the canvas or on a card or sheet
+/// (`surfaceContainerLow`); `palette_contrast_test.dart` checks both. On the
+/// higher tiers (menus, dialogs) it is not guaranteed. Both
+/// [ProgramStatusChip] and [DanceStatusChip] delegate here so program and
+/// dance status render identically.
 class StatusChip extends StatelessWidget {
   const StatusChip({
     super.key,
@@ -109,10 +114,18 @@ class StatusChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Chip(
-      avatar: Icon(icon, size: 16, color: color),
+      avatar: Icon(
+        icon,
+        size: 16,
+        color: AppThemeExtension.statusIconColor(color, theme.colorScheme),
+      ),
       label: Text(label, style: TextStyle(color: theme.colorScheme.onSurface)),
-      backgroundColor: color.withValues(alpha: 0.10),
-      side: BorderSide(color: color.withValues(alpha: 0.5)),
+      backgroundColor: color.withValues(
+        alpha: AppThemeExtension.statusTintAlpha,
+      ),
+      // Full alpha: at 50% the border fell below the 3:1 a component boundary
+      // needs. The token itself clears 3:1 on the surface.
+      side: BorderSide(color: color),
       visualDensity: VisualDensity.compact,
       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
     );
@@ -136,6 +149,24 @@ class ProgramStatusChip extends StatelessWidget {
       color: programStatusColor(status, theme),
     );
   }
+}
+
+/// Compact chip marking an archived program (icon + text), shown beside its
+/// [ProgramStatusChip] on the Programs list row and the summary. Neutral
+/// colour: archiving is not a status, and the label carries the meaning. It
+/// uses the scheme's `outline`, which clears the chip's label and border
+/// contrast in every bundled theme; `onSurfaceVariant` fell short of 4.5:1
+/// for the label in Everforest Light (`palette_contrast_test.dart`).
+class ProgramArchivedChip extends StatelessWidget {
+  const ProgramArchivedChip({super.key});
+
+  @override
+  Widget build(BuildContext context) => StatusChip(
+    key: const ValueKey('program-archived-chip'),
+    icon: Icons.archive_outlined,
+    label: AppLocalizations.of(context).programsArchivedLabel,
+    color: Theme.of(context).colorScheme.outline,
+  );
 }
 
 /// Compact status chip for a dance's non-active [DanceStatus] (Deprecated /

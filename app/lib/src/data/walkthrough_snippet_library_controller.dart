@@ -60,6 +60,23 @@ class WalkthroughSnippetLibraryController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Puts back the snippet [text] for [signature]: Undo of [removeSnippet].
+  /// Throws [StateError] when [signature] has a snippet again (one written
+  /// since would be overwritten) or the library would not keep it, rather
+  /// than report an Undo that did not happen.
+  Future<void> restoreSnippet(String signature, String text) async {
+    if (_library.snippets.containsKey(signature)) {
+      throw StateError('a snippet for this figure exists again');
+    }
+    final next = _library.withSnippet(signature, text);
+    if (!next.snippets.containsKey(signature)) {
+      throw StateError('the snippet library would not keep it');
+    }
+    _library = next;
+    await _persist();
+    notifyListeners();
+  }
+
   /// Replaces the whole library (used by backup restore). Persists and notifies.
   Future<void> replaceAll(WalkthroughSnippetLibrary library) async {
     if (library == _library) return;

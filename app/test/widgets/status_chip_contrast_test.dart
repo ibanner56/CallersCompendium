@@ -9,14 +9,16 @@ import 'package:compendium_app/src/theme/wcag.dart';
 import 'package:compendium_app/src/widgets/program_status_chip.dart';
 import '../support/l10n_harness.dart';
 
-/// The status tokens shared by [StatusChip] (both program and dance status),
-/// keyed by a human-readable role for failure messages.
-Map<String, Color> _statusTokens(AppThemeExtension ext) => {
+/// The tokens [StatusChip] is drawn with (program and dance status, and the
+/// neutral "Archived" chip), keyed by a human-readable role for failure
+/// messages.
+Map<String, Color> _statusTokens(AppThemeExtension ext, ColorScheme scheme) => {
   'statusDraft': ext.statusDraft,
   'statusFinalized': ext.statusFinalized,
   'statusPerformed': ext.statusPerformed,
   'statusDeprecated': ext.statusDeprecated,
   'statusBroken': ext.statusBroken,
+  'archived (outline)': scheme.outline,
 };
 
 void main() {
@@ -29,12 +31,12 @@ void main() {
 
       test('${selection.name}: label clears 4.5:1 against the tinted fill', () {
         final ext = AppThemeExtension.fromColorScheme(scheme);
-        // StatusChip draws its label in onSurface over a 10% color fill that
-        // composites over the surface behind the chip.
+        // StatusChip draws its label in onSurface over a statusTintAlpha
+        // color fill that composites over the surface behind the chip.
         final textColor = scheme.onSurface;
-        _statusTokens(ext).forEach((role, token) {
+        _statusTokens(ext, scheme).forEach((role, token) {
           final fill = Color.alphaBlend(
-            token.withValues(alpha: 0.10),
+            token.withValues(alpha: AppThemeExtension.statusTintAlpha),
             scheme.surface,
           );
           final ratio = Wcag.contrastRatio(textColor, fill);
@@ -83,13 +85,17 @@ void main() {
     }
   });
 
-  Future<void> pumpDanceChip(WidgetTester tester, DanceStatus status) async {
+  Future<void> pumpDanceChip(
+    WidgetTester tester,
+    DanceStatus status, {
+    ThemeData? theme,
+  }) async {
     await tester.pumpWidget(
       MaterialApp(
         localizationsDelegates: testLocalizationsDelegates,
         supportedLocales: testSupportedLocales,
 
-        theme: AppTheme.light,
+        theme: theme ?? AppTheme.light,
         home: Scaffold(
           body: Center(child: DanceStatusChip(status: status)),
         ),
@@ -123,6 +129,59 @@ void main() {
       expected,
       isNot(theme.extension<AppThemeExtension>()!.statusDeprecated),
     );
+  });
+
+  testWidgets('the chip draws its icon in a colour that clears 3:1 on the '
+      'fill, even where the token alone does not', (tester) async {
+    // Everforest Light's Broken token measures about 2.9:1 on its own tint:
+    // easing it far enough for the label leaves the icon short.
+    final scheme = AppThemeSelection.everforestLight.scheme!;
+    await pumpDanceChip(
+      tester,
+      DanceStatus.broken,
+      theme: AppTheme.fromScheme(scheme),
+    );
+    final ext = Theme.of(
+      tester.element(find.byType(DanceStatusChip)),
+    ).extension<AppThemeExtension>()!;
+    final fill = Color.alphaBlend(
+      ext.statusBroken.withValues(alpha: AppThemeExtension.statusTintAlpha),
+      scheme.surface,
+    );
+    expect(
+      Wcag.contrastRatio(ext.statusBroken, fill),
+      lessThan(Wcag.aaNonText),
+      reason: 'precondition: the token alone falls short in this palette',
+    );
+    final icon = tester.widget<Icon>(
+      find.byIcon(Icons.report_problem_outlined),
+    );
+    expect(
+      Wcag.contrastRatio(icon.color!, fill),
+      greaterThanOrEqualTo(Wcag.aaNonText),
+    );
+    // The tint and border keep the token, so the label guarantee holds.
+    final chip = tester.widget<Chip>(find.byType(Chip));
+    expect(chip.side?.color, ext.statusBroken);
+  });
+
+  testWidgets('StatusChip fills at statusTintAlpha with a full-alpha border', (
+    tester,
+  ) async {
+    await pumpDanceChip(tester, DanceStatus.broken);
+    final context = tester.element(find.byType(DanceStatusChip));
+    final token = Theme.of(
+      context,
+    ).extension<AppThemeExtension>()!.statusBroken;
+    final chip = tester.widget<Chip>(find.byType(Chip));
+    // The label's AA guarantee is computed at this alpha; a stronger fill
+    // would void it.
+    expect(
+      chip.backgroundColor,
+      token.withValues(alpha: AppThemeExtension.statusTintAlpha),
+    );
+    // A half-alpha border fell below the 3:1 a component boundary needs.
+    expect(chip.side?.color, token);
   });
 
   testWidgets('new dance statuses render distinct icon and text pairs', (

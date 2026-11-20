@@ -1,5 +1,6 @@
 import '../model/enums.dart';
 import '../model/figure.dart' show customMoveId;
+import 'cast_vocabulary.dart';
 import 'gate_facing.dart';
 import 'move_def.dart';
 import 'param_types.dart';
@@ -23,7 +24,7 @@ import 'taxonomy.dart';
 /// Bump only when the current value has shipped in a release. While it has
 /// not, a taxonomy change joins that version and amends its entry instead
 /// (CONTRIBUTING.md, "Versioned formats").
-const int contraTaxonomyVersion = 39;
+const int contraTaxonomyVersion = 40;
 
 // Shared parameter specs.
 const _beats4 = ParamSpec(ParamKind.beats, defaultValue: 4);
@@ -804,6 +805,62 @@ final Taxonomy contraTaxonomy = Taxonomy(
       renderTemplate: '{who} {move}',
       goodBeats: [4],
     ),
+    // v40 (issue #770): a dancer turns out of the set and travels on the
+    // outside. Every param admits the `unspecified` sentinel and defaults to
+    // it, because The Caller's Box writes casts with every part optional
+    // ("Cast back", "Ones cast down", "Men cast clockwise behind partner"),
+    // and a default would claim a direction, distance or endpoint the source
+    // did not state. The maintainer decided (2026-11-19) that this shape and
+    // ECD's `ecd_cast` be one; `ecd_cast` takes this shape (ADR-006 §9.4),
+    // and `cast_test.dart` pins that the two agree.
+    //
+    // "Cast off" is `down` with `places` 1 unless the line states a number:
+    // the maintainer could see no difference between The Caller's Box's
+    // "Cast off" ("ones peel down the outside into second place") and "cast
+    // down one place". Whether the cast is assisted is deliberately NOT a
+    // param: the glossary says it "depends on your community".
+    const MoveDef(
+      id: 'cast',
+      displayName: 'cast',
+      params: {
+        'who': ParamSpec(
+          ParamKind.dancerSet,
+          defaultValue: ParamVocab.unspecified,
+          choices: _dancerOrUnspecified,
+        ),
+        'direction': ParamSpec(
+          ParamKind.choice,
+          defaultValue: ParamVocab.unspecified,
+          choices: [...castDirections, ParamVocab.unspecified],
+        ),
+        'places': ParamSpec(
+          ParamKind.places,
+          defaultValue: ParamVocab.unspecified,
+          choices: [ParamVocab.unspecified],
+        ),
+        // Who the cast goes around ("cast around neighbor").
+        'whom': ParamSpec(
+          ParamKind.dancerSet,
+          defaultValue: ParamVocab.unspecified,
+          choices: _dancerOrUnspecified,
+        ),
+        'destination': ParamSpec(
+          ParamKind.choice,
+          defaultValue: ParamVocab.unspecified,
+          choices: [...castDestinations, ParamVocab.unspecified],
+        ),
+        'beats': _beats4,
+      },
+      // Canonical (search and dedupe) line. Every unstated slot renders empty.
+      // The display wording ("cast back", "cast back right", "around …",
+      // "to …") is the renderer's.
+      renderTemplate: '{who} {move} {direction} {places} {whom} {destination}',
+      searchKeywords: ['cast off', 'cast down', 'cast up', 'cast back'],
+      // The beats of the 1,455 casts read from the 1,563 public Caller's Box
+      // dances that mention one (2026-11-19): 4 on 1,006, 8 on 178, 2 on 128,
+      // 3 on 75, 6 on 46, and no other count above 3.
+      goodBeats: [2, 3, 4, 6, 8],
+    ),
     const MoveDef(
       id: 'stand_still',
       displayName: 'stand still',
@@ -1397,7 +1454,8 @@ final Taxonomy contraTaxonomy = Taxonomy(
     ),
     // --- Roadmap 2.4a: places family (PR4) ---
     // Moves whose travel is measured in "places" around a ring/star
-    // (ParamKind.places, int 1..10). Each move keeps a simple typical-beats
+    // (ParamKind.places, int 1..10; circle and star may also leave it
+    // unstated, v39). Each move keeps a simple typical-beats
     // list in goodBeats, but ContraDB's *conditional* rules — square through's
     // 2-4 place restriction and the moves' param-dependent places/beats ratios
     // — are intentionally not encoded/enforced (they can't be captured by the
@@ -1421,7 +1479,14 @@ final Taxonomy contraTaxonomy = Taxonomy(
           defaultValue: 'left',
           choices: ['left', 'right'],
         ),
-        'places': ParamSpec(ParamKind.places, defaultValue: 3),
+        // v39: a dance may leave the distance unstated (the sentinel renders
+        // as nothing: "circle left"). The default stays 3, so a figure that
+        // omits the param, and a new one in the editor, still read 3 places.
+        'places': ParamSpec(
+          ParamKind.places,
+          defaultValue: 3,
+          choices: [ParamVocab.unspecified],
+        ),
         // Issue #634: ContraDB free text occasionally renders a single-file
         // circulation around the ring as "promenade single file around the
         // circle N places" (real render: Travels with Rick and Kim #455) — a
@@ -1458,11 +1523,18 @@ final Taxonomy contraTaxonomy = Taxonomy(
         // ContraDB forces a hand selection (no default); the
         // editor offers 'left'.
         'hand': ParamSpec(ParamKind.handedness, defaultValue: 'left'),
-        'places': ParamSpec(ParamKind.places, defaultValue: 4),
+        // v39: may be left unstated, as `circle.places` may.
+        'places': ParamSpec(
+          ParamKind.places,
+          defaultValue: 4,
+          choices: [ParamVocab.unspecified],
+        ),
         // grip is a canonical render token since taxonomy v27 (issue #749):
         // emitted in ALL render paths (render / renderVerbose / renderSummary /
         // renderCanonical) as a " - wrist grip - " / " - hands across - " clause
-        // (ContraDB `starWords` parity). 'none' is the unspecified value — no
+        // (ContraDB `starWords` parity); with no count to lead into (places
+        // unstated, v39) the closing dash is dropped. 'none' is the unspecified
+        // value — no
         // clause in any render path. The FTS inclusion makes stars searchable
         // by "wrist grip" or "hands across".
         'grip': ParamSpec(
@@ -1645,6 +1717,33 @@ final Taxonomy contraTaxonomy = Taxonomy(
       params: {
         'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'ones'),
         // The lead (dolphin) dancer — a single-dancer identity.
+        'whom': ParamSpec(
+          ParamKind.dancerSet,
+          defaultValue: 'onesRole1',
+          choices: _singleDancers,
+        ),
+        'shoulder': ParamSpec(ParamKind.shoulder, defaultValue: 'right'),
+        'beats': ParamSpec(ParamKind.beats, defaultValue: 16),
+      },
+      renderTemplate: '{who} {move} {shoulder}',
+      goodBeats: [16],
+    ),
+    // v39: a hey for three, added at the maintainer's request with
+    // `dolphin_hey`'s params, beats and wording, except that `who` (the dancer
+    // who starts) is one dancer, offering the single-dancer list `whom` offers,
+    // where `dolphin_hey.who` takes any dancers. Its default is the author's:
+    // `dolphin_hey`'s `ones` is not one dancer, so `who` takes `twosRole2`,
+    // keeping `whom`'s default and so not starting the hey by passing
+    // themselves. Not in ContraDB or The Caller's Box's grammar.
+    const MoveDef(
+      id: 'hey_for_three',
+      displayName: 'hey for three',
+      params: {
+        'who': ParamSpec(
+          ParamKind.dancerSet,
+          defaultValue: 'twosRole2',
+          choices: _singleDancers,
+        ),
         'whom': ParamSpec(
           ParamKind.dancerSet,
           defaultValue: 'onesRole1',
@@ -1891,6 +1990,23 @@ final Taxonomy contraTaxonomy = Taxonomy(
       inversePairId: 'forward_and_back',
       // Dialects hold names and wordings keyed on it from when it was a move,
       // and its name is the formation where its target's is the direction.
+      listedAsMove: true,
+    ),
+    // v40 (issue #770): The Caller's Box's "Hand cast" is a gate. Its glossary
+    // calls it "a cast off figure done with hands… very similar to a gate",
+    // and its Gate entry says the reverse; the maintainer ruled (2026-11-19)
+    // that it is an alias of `gate`, with `gate` the primary figure. Nothing is
+    // pinned: a hand cast states none of a gate's params, so it is stored under
+    // its own id (and shown under its own name) with every gate param at the
+    // gate's own `unspecified` default.
+    //
+    // Listed as a move for the reasons `long_lines` is: its figures are stored
+    // under its own id, so a search must be able to name it, and a dialect's
+    // name or wording for `gate` must not turn a hand cast into a gate.
+    const MoveAlias(
+      id: 'hand_cast',
+      displayName: 'hand cast',
+      targetMove: 'gate',
       listedAsMove: true,
     ),
     const MoveAlias(

@@ -356,12 +356,15 @@ final Map<String, DataClassification> fieldClassifications = {
   'dances.form': _choreography,
   'dances.formation_shape': _choreography,
   'dances.formation_detail': _choreography,
+  'dances.formation_improper': _choreography,
   'dances.progression': _choreography,
   'dances.phrase_structure': _choreography,
   'dances.figures_json': _choreography,
   'dances.hook': _choreography,
   'dances.calling_notes': _choreography,
   'dances.walkthrough': _choreography,
+  'dances.meter': _choreography,
+  'dances.musical_key': _choreography,
   'dances.status': _choreography,
   'dances.level_id': _key,
   'dances.mixed_level': _choreography,
@@ -385,6 +388,7 @@ final Map<String, DataClassification> fieldClassifications = {
   ),
   'dances.tunes_json': _choreography,
   'dances.composed_on': _choreography,
+  'dances.interpreted_on': _choreography,
   'dances.revised_on': _choreography,
   'dances.created_at': _recordStamp,
   'dances.updated_at': _recordStamp,
@@ -628,6 +632,21 @@ final Map<String, DataClassification> fieldClassifications = {
     note: 'Soft-delete tombstone; see dances.deleted_at.',
   ),
   'programs.existence_at': _existenceStamp,
+  'programs.archived_at': const DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.none,
+    egress: EgressClass.shareable,
+    note:
+        'When the caller archived the program (schema v42); NULL means not '
+        'archived. A lifecycle stamp like programs.deleted_at, classified the '
+        'same way: it says when the program left the list, not anything about '
+        'a person. Egress: own devices and backups yes, share files no (the '
+        'maintainer chose "sync and backups keep it, share files drop it" '
+        'when archiving was added, 2026-11-18, recorded in #2218; '
+        'sanitizeProgramForShare), so a '
+        'recipient always gets an unarchived program. Kept shareable because '
+        'deviceLocal would stop sync.',
+  ),
 
   // --------------------------------------------------------- program_slots --
   'program_slots.id': _key,
@@ -666,6 +685,9 @@ final Map<String, DataClassification> fieldClassifications = {
   'dance_authors.dance_id': _key,
   'dance_authors.choreographer_id': _key,
   'dance_authors.position': _choreography,
+  'dance_interpreters.dance_id': _key,
+  'dance_interpreters.choreographer_id': _key,
+  'dance_interpreters.position': _choreography,
   'dance_tags.dance_id': _key,
   'dance_tags.tag_id': _key,
   'tags.id': _key,

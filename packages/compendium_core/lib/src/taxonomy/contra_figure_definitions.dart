@@ -251,6 +251,25 @@ const Map<String, FigureDefinition> contraFigureDefinitions = {
     description:
         'The pair rotates around the point between them. The figure can name the pair, the direction (including a mirror gate, where two pairs turn opposite ways), how far, and which way they end up facing. It often turns dancers to face up or down the set; 8 beats is typical, though shorter gates are common.',
   ),
+  // TCB "Hand cast" and "Gate", each of which calls the other very similar;
+  // contra_taxonomy.dart alias `hand_cast` -> gate (v40, #770), the
+  // maintainer's ruling of 2026-11-19.
+  'hand_cast': FigureDefinition(
+    definition:
+        'A gate with hands joined, usually the way a line of four turns to face the other way.',
+    description:
+        'From a line of four, the two middle dancers let go of each other. Each pair keeps near hands and pivots, the middle dancers walking forward while the end dancers back up, until the line has turned around, usually finishing facing across. It usually takes 4 beats.',
+  ),
+  // TCB "Cast", "Cast off" and "Cast down"; contra_taxonomy.dart `cast` (v40,
+  // #770). "Cast off" as a cast down one place, the shoulder reading of
+  // left/right and the "cast back" wording are the maintainer's rulings of
+  // 2026-11-19.
+  'cast': FigureDefinition(
+    definition:
+        'A dancer turns out, away from the middle of the set, and travels around the outside to a new place.',
+    description:
+        'The figure can say which way the dancer goes: up or down the set, or back the way they came, turning over the left or right shoulder. It can also say how many places, whom the dancer goes around, and where they finish. A cast off is a cast down one place, the traditional ending of a trip down the middle and back; in some communities the couple being passed helps the casting dancers around, in others they cast alone. It usually takes 4 beats.',
+  ),
   // TCB "Give and take"; Jennings "GIVE-AND-TAKE" (default side);
   // contra_taxonomy.dart `give_and_take` (who = the role the pair ends beside,
   // default role1s; give flag; 8 beats). The 4-8 beat range, depending on
@@ -412,6 +431,22 @@ const Map<String, FigureDefinition> contraFigureDefinitions = {
         'A hey with three positions, one filled by two dancers, one close behind the other, who weave as a unit.',
     description:
         'The pair trades places each time it loops around an end: the front dancer swings wide and the one behind cuts inside to take the front. It is usually danced across the set, starting with the couple in the middle. The figure names who starts it and by which shoulder. A full dolphin hey usually takes 16 beats.',
+  ),
+  // TCB "Hey for three" (as the maintainer supplied it, 2026-11-15: a hey for
+  // four less one dancer and one loop, a figure 8 traced by three dancers each
+  // weaving alone, with variants in which a couple is one of the three, and
+  // borrowed from English country dance). TCB names none of the couple
+  // variants; that the app's `dolphin_hey` is one of them is the author's
+  // reading of its definition. "A hey for four with one fewer dancer and one
+  // fewer loop" is the maintainer's wording (2026-11-15). This move's `who`
+  // and `whom` are single dancers
+  // (taxonomy v39). The beat count is the taxonomy's default, not TCB's,
+  // which states none.
+  'hey_for_three': FigureDefinition(
+    definition:
+        'Three dancers weave past one another along a figure-eight path, alternating shoulders.',
+    description:
+        'A call borrowed from English country dance: a hey for four with one fewer dancer and one fewer loop, each of the three weaving alone. The dancer who starts passes the named dancer by the named shoulder, then each dancer passes the next by the other shoulder, looping around the ends until all three are home. The figure names who starts it, whom they pass first, and by which shoulder. In some variants a couple weaves together as one of the three; the dolphin hey is one of these. A full hey for three usually takes 16 beats.',
   ),
   // TCB "Long wave", "Balance wave".
   'form_long_waves': FigureDefinition(

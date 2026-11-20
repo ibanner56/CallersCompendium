@@ -3,12 +3,13 @@
 /// program PDF's figure appendix).
 library;
 
+import '../dialect/author_role_terms.dart';
 import '../dialect/dialect.dart';
 import '../dialect/renderer.dart';
 import '../model/dance.dart';
 import '../model/figure.dart';
 import '../model/figure_source.dart';
-import '../taxonomy/contra_taxonomy.dart';
+import '../taxonomy/taxonomy_registry.dart';
 import 'dance_card_fields.dart';
 import 'dance_share_fields.dart';
 import 'export_labels.dart';
@@ -25,6 +26,7 @@ import 'export_labels.dart';
 class DanceCardContent {
   const DanceCardContent({
     required this.title,
+    required this.dialect,
     required this.authorNames,
     required this.metaLines,
     required this.figures,
@@ -51,10 +53,17 @@ class DanceCardContent {
     Set<DanceShareField> fields = DanceShareField.allExceptTunes,
     List<String> sourceLines = const [],
   }) {
-    final fig = renderer ?? FigureRenderer(contraTaxonomy);
+    final fig = renderer ?? FigureRenderer(shippedTaxonomies.anyForm);
+    // From the author names before [fields] gates them: a dance whose authors
+    // are left off the card keeps its larks and robins all the same.
+    final cardDialect = dialectForDance(
+      dialect,
+      title: dance.title,
+      authorNames: authorNames,
+    );
     String renderText(String text) => canonicalizeDiscouragedTerms
-        ? fig.renderFreeTextWithCanonicalDiscouragedTerms(text, dialect)
-        : fig.renderFreeText(text, dialect);
+        ? fig.renderFreeTextWithCanonicalDiscouragedTerms(text, cardDialect)
+        : fig.renderFreeText(text, cardDialect);
     String? gated(DanceShareField field, String text) {
       if (!fields.contains(field) || text.trim().isEmpty) return null;
       return renderText(text.trim());
@@ -62,6 +71,7 @@ class DanceCardContent {
 
     return DanceCardContent(
       title: dance.title.trim(),
+      dialect: cardDialect,
       authorNames: danceCardAuthorNames(authorNames, fields),
       metaLines: danceCardMetaLines(
         dance,
@@ -109,6 +119,12 @@ class DanceCardContent {
 
   /// The trimmed dance title.
   final String title;
+
+  /// The dialect this card is shown in: the one [DanceCardContent.build] was
+  /// given, with lark and robin for the roles when the dance
+  /// [requiresLarksRobins] (see [dialectForDance]). The free text here is
+  /// already rendered in it; consumers render [figures] in it too.
+  final Dialect dialect;
 
   /// Resolved, non-blank author names; empty when the field is deselected.
   final List<String> authorNames;

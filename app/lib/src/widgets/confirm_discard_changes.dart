@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../theme/app_motion.dart';
 import '../theme/destructive_button_style.dart';
 
 /// What the user chose in [confirmDiscardChanges].
@@ -22,7 +23,8 @@ enum DiscardChangesChoice {
 /// Used by the dance, program, compound-figure and dialect editors, which pass
 /// the wording they had before this helper existed, and (through
 /// [DiscardChangesGuard], with the generic `common*` strings) by the shorthand,
-/// compound-shorthand and theme editors and the venue and custom-field sheets.
+/// compound-shorthand and theme editors, the venue and custom-field sheets, the
+/// two program import screens and the sync pairing screen.
 ///
 /// Passing [saveLabel] adds a third action that saves and leaves, as the
 /// dialect editor offers. The caller does the saving: this only reports the
@@ -90,6 +92,7 @@ Future<DiscardChangesChoice> confirmDiscardChanges(
         ],
       );
     },
+    animationStyle: AppMotion.styleFor(context),
   );
   return choice ?? DiscardChangesChoice.keepEditing;
 }

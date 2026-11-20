@@ -1,4 +1,6 @@
 import 'package:compendium_core/compendium_core.dart';
+import '../theme/app_spacing.dart';
+import 'dashed_border.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
@@ -15,6 +17,7 @@ import '../editor/pending_move_text_controller.dart';
 import '../editor/user_figure_draft.dart';
 import '../glossary/custom_figures.dart';
 import '../search/facet_labels.dart';
+import 'bar_timing.dart';
 import 'compound_argument_editor.dart';
 import 'container_title_length_limit.dart';
 import 'figure_param_editors.dart';
@@ -22,6 +25,7 @@ import 'import_gap_badge.dart';
 import 'lingo_text_editing_controller.dart';
 import 'move_autocomplete.dart';
 import 'user_figure_use_editor.dart';
+import '../theme/app_motion.dart';
 import '../theme/app_shapes.dart';
 
 /// Move id of the placeholder "stand still" figure that seeds new dances while
@@ -67,6 +71,7 @@ class FigureListEditor extends StatefulWidget {
     this.onDuplicate,
     this.dialect,
     this.mixer = false,
+    this.formationShape,
     this.moveParamDefaults,
     this.freeTextEntry = false,
     this.onAddFreeText,
@@ -107,6 +112,11 @@ class FigureListEditor extends StatefulWidget {
   final List<FigureDraft> drafts;
   final Taxonomy taxonomy;
   final PhraseStructure phraseStructure;
+
+  /// The dance's formation shape, which free-text entry reads a ring's size
+  /// from (an English "circle half way" is two places in a duple minor,
+  /// three in a triple minor; ADR-006 §7.3). Null where there is no dance.
+  final FormationShape? formationShape;
 
   /// Dialect used for lingo-line styling (discouraged + role terms).
   /// Defaults to [Dialect.larksRobins] when `null` (has the standard
@@ -497,9 +507,7 @@ class _FigureListEditorState extends State<FigureListEditor>
       if (ctx != null && ctx.mounted) {
         Scrollable.ensureVisible(
           ctx,
-          duration: reduceMotion
-              ? Duration.zero
-              : const Duration(milliseconds: 200),
+          duration: reduceMotion ? Duration.zero : AppMotion.short,
           alignment: 0.1,
         );
       }
@@ -784,6 +792,7 @@ class _FigureListEditorState extends State<FigureListEditor>
       taxonomy: widget.taxonomy,
       shorthands: widget.shorthandMappings,
       dialect: _dialect,
+      formationShape: widget.formationShape,
     );
     if (figures.isEmpty) return 0;
     final acceptedCount = onAddFreeText(figures);
@@ -854,6 +863,7 @@ class _FigureListEditorState extends State<FigureListEditor>
       taxonomy: widget.taxonomy,
       shorthands: widget.shorthandMappings,
       dialect: _dialect,
+      formationShape: widget.formationShape,
     );
     if (figures.isEmpty) return false;
     final acceptedCount = onReplace(draft, figures);
@@ -965,7 +975,7 @@ class _FigureListEditorState extends State<FigureListEditor>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
             child: Text(
               l10n.danceFiguresEmpty,
               style: theme.textTheme.bodyMedium,
@@ -1159,7 +1169,7 @@ class _FigureListEditorState extends State<FigureListEditor>
         // Cut-in-progress banner.
         if (_cutDraftId != null)
           Padding(
-            padding: const EdgeInsets.only(bottom: 4),
+            padding: const EdgeInsets.only(bottom: AppSpacing.xxs),
             child: Row(
               children: [
                 Icon(
@@ -1257,7 +1267,7 @@ class _FigureListEditorState extends State<FigureListEditor>
               _buildAddAffordance(context, empty: false),
               if (_cutDraftId != null)
                 Padding(
-                  padding: const EdgeInsets.only(left: 8),
+                  padding: const EdgeInsets.only(left: AppSpacing.xs),
                   child: _PasteButton(
                     key: const ValueKey('paste-end'),
                     semanticsLabel: l10n.danceEditorPasteAtEndOfFigureList,
@@ -1293,7 +1303,7 @@ class _FigureListEditorState extends State<FigureListEditor>
       container: true,
       explicitChildNodes: true,
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4),
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxs),
         child: Focus(
           // A key-handler wrapper only (Escape to cancel); it must not become a
           // tab stop of its own around the field.
@@ -1360,7 +1370,7 @@ class _FigureListEditorState extends State<FigureListEditor>
               // beside it they left the field too narrow for its help at phone
               // width, where the help was cut off mid-word (#1830).
               Padding(
-                padding: const EdgeInsets.only(top: 4),
+                padding: const EdgeInsets.only(top: AppSpacing.xxs),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
@@ -1384,7 +1394,7 @@ class _FigureListEditorState extends State<FigureListEditor>
               if (confirmation != null)
                 Padding(
                   key: _key('free-text-confirmation'),
-                  padding: const EdgeInsets.only(top: 4),
+                  padding: const EdgeInsets.only(top: AppSpacing.xxs),
                   // Spoken by [_announce]; a second, live-region copy would be
                   // read twice.
                   child: ExcludeSemantics(
@@ -1758,6 +1768,8 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
   /// sequence. Seed it here, before the first build, so the total already
   /// agrees; seeding is not an edit, so it reports nothing to the host.
   void _seedSequenceStepBeats() {
+    // A sequence with a span of its own lets its steps go untimed.
+    if (widget.draft.sequenceSpanStated) return;
     final beatsSpec = widget.taxonomy.resolve(customMove)?.params['beats'];
     if (beatsSpec == null) return;
     for (final step in widget.draft.sequenceFigures ?? const <FigureDraft>[]) {
@@ -1985,6 +1997,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     // The rules themselves are in core, shared with compound expansion (#709).
     // The aggressive-beats setting only matters for a manual override, so it is
     // read only then.
+    final keepUntimed = draft.untimed && draft.beatsTouched;
     draft.move = applyParamChange(
       widget.taxonomy,
       move: move,
@@ -1995,6 +2008,9 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
       aggressiveBeats:
           draft.beatsTouched && AggressiveBeatsUpdateScope.of(context),
     );
+    // A step left untimed under a span stays so (ADR-006 §5.5): no rule
+    // gives it a count the caller didn't.
+    if (keepUntimed) draft.params.remove('beats');
   }
 
   void _toggleProgression() {
@@ -2055,13 +2071,19 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
 
   @override
   Widget build(BuildContext context) {
-    return Opacity(
-      // Dim the card while it is in the "cut" state.
-      opacity: widget.isCut ? 0.45 : 1.0,
+    return DashedBorder(
+      // The "cut" state is shown by a dashed outline plus the Cut badge on the
+      // row, never by fading: dimming dropped the row's text below the
+      // contrast the rest of the app guarantees.
+      dashed: widget.isCut,
+      color: Theme.of(context).colorScheme.onSurface,
       child: Card(
-        margin: const EdgeInsets.symmetric(vertical: 4),
+        margin: const EdgeInsets.symmetric(vertical: AppSpacing.xxs),
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+          padding: const EdgeInsets.symmetric(
+            vertical: AppSpacing.xxs,
+            horizontal: AppSpacing.xs,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -2141,7 +2163,8 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
         : '';
     final noteDiscouraged =
         hasNote && canonicalize(note, widget.dialect).discouraged.isNotEmpty;
-    final beatsLabel = l10n.danceFigureBeats(draft.beats);
+    // In bars for an English dance (ADR-006 §5.5).
+    final beatsLabel = timingLabel(context, draft.beats);
     // Parser-gap custom (#398/#419): a *custom* figure the parser could not
     // map, whether from import or a locally-typed free-text line. Guarded on
     // the custom move (like figure_table.dart / perform_card.dart) so a
@@ -2170,9 +2193,12 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
       widget.index + 1,
       widget.totalCount,
     );
-    final composite = incomplete
+    final withIncomplete = incomplete
         ? '$summarySemantic ${l10n.danceEditorIncompleteFigure}'
         : summarySemantic;
+    final composite = widget.isCut
+        ? '$withIncomplete ${l10n.danceEditorFigureCutState}'
+        : withIncomplete;
 
     final summaryContent = Row(
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -2189,7 +2215,10 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
               onTap: widget.onActivate,
               borderRadius: AppShapes.borderRadiusSmall,
               child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                padding: const EdgeInsets.symmetric(
+                  vertical: AppSpacing.xs,
+                  horizontal: AppSpacing.xxs,
+                ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -2236,7 +2265,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                               children: [
                                 Padding(
                                   padding: const EdgeInsetsDirectional.only(
-                                    end: 4,
+                                    end: AppSpacing.xxs,
                                   ),
                                   child: Icon(
                                     Icons.person_outline,
@@ -2262,6 +2291,24 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                                       fontStyle: FontStyle.italic,
                                     ),
                             ),
+                          if (widget.isCut)
+                            Padding(
+                              padding: const EdgeInsets.only(
+                                top: AppSpacing.xxxs,
+                              ),
+                              child: Row(
+                                key: _key('cut-badge'),
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.content_cut, size: 14),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    l10n.danceEditorFigureCutState,
+                                    style: theme.textTheme.bodySmall,
+                                  ),
+                                ],
+                              ),
+                            ),
                           if (compoundUnavailable)
                             Text(
                               l10n.danceEditorCompoundUnavailable,
@@ -2280,7 +2327,9 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                             ),
                           if (hasNote)
                             Padding(
-                              padding: const EdgeInsets.only(top: 2),
+                              padding: const EdgeInsets.only(
+                                top: AppSpacing.xxxs,
+                              ),
                               child: Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
@@ -2315,14 +2364,14 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                     if (isImportGap) ...[
                       const SizedBox(width: 8),
                       const Padding(
-                        padding: EdgeInsets.only(top: 2),
+                        padding: EdgeInsets.only(top: AppSpacing.xxxs),
                         child: ImportGapBadge(),
                       ),
                     ],
                     if (hasMove) ...[
                       const SizedBox(width: 8),
                       Padding(
-                        padding: const EdgeInsets.only(top: 2),
+                        padding: const EdgeInsets.only(top: AppSpacing.xxxs),
                         child: Text(
                           beatsLabel,
                           textAlign: TextAlign.end,
@@ -2567,7 +2616,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     final theme = Theme.of(context);
     final draft = widget.draft;
     if (draft.isContainerDraft) {
-      return _buildContainerEditor(context);
+      return _withoutUntimed(context, _buildContainerEditor(context));
     }
     if (draft.isCompoundPlaceholder) {
       return _buildCompoundEditor(context);
@@ -2607,14 +2656,17 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
       canRequestFocus: false,
       onKeyEvent: _handleEditorKey,
       child: Padding(
-        padding: const EdgeInsets.only(top: 4, bottom: 4),
+        padding: const EdgeInsets.only(
+          top: AppSpacing.xxs,
+          bottom: AppSpacing.xxs,
+        ),
         child: Container(
           decoration: BoxDecoration(
             border: Border.all(color: theme.colorScheme.outlineVariant),
             borderRadius: AppShapes.borderRadiusSmall,
             color: theme.colorScheme.surfaceContainerLow,
           ),
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(AppSpacing.sm),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -2730,14 +2782,17 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
       canRequestFocus: false,
       onKeyEvent: _handleEditorKey,
       child: Padding(
-        padding: const EdgeInsets.only(top: 4, bottom: 4),
+        padding: const EdgeInsets.only(
+          top: AppSpacing.xxs,
+          bottom: AppSpacing.xxs,
+        ),
         child: Container(
           decoration: BoxDecoration(
             border: Border.all(color: theme.colorScheme.outlineVariant),
             borderRadius: AppShapes.borderRadiusSmall,
             color: theme.colorScheme.surfaceContainerLow,
           ),
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(AppSpacing.sm),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -2834,14 +2889,17 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
       canRequestFocus: false,
       onKeyEvent: _handleEditorKey,
       child: Padding(
-        padding: const EdgeInsets.only(top: 4, bottom: 4),
+        padding: const EdgeInsets.only(
+          top: AppSpacing.xxs,
+          bottom: AppSpacing.xxs,
+        ),
         child: Container(
           decoration: BoxDecoration(
             border: Border.all(color: theme.colorScheme.outlineVariant),
             borderRadius: AppShapes.borderRadiusSmall,
             color: theme.colorScheme.surfaceContainerLow,
           ),
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(AppSpacing.sm),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -2895,13 +2953,116 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     );
   }
 
+  // --- Timing in bars (ADR-006 §5.5) -----------------------------------------
+
+  /// [child], a step of this sequence when [isSequence], with its count
+  /// optional where the sequence states a span of its own
+  /// ([FigureDraft.sequenceSpanStated]). Unchanged outside bar timing.
+  Widget _withStepTiming(BuildContext context, bool isSequence, Widget child) {
+    final scope = BarTimingScope.maybeOf(context);
+    if (!isSequence || scope == null) return child;
+    return scope.withUntimed(widget.draft.sequenceSpanStated, child: child);
+  }
+
+  /// [child], a group's editor, where a count may not be left empty even
+  /// when the group is a step of a sequence with a span: the group's own
+  /// count is its timing, and only its own sequence steps
+  /// ([_withStepTiming]) may go untimed.
+  Widget _withoutUntimed(BuildContext context, Widget child) {
+    final scope = BarTimingScope.maybeOf(context);
+    if (scope == null || !scope.allowsUntimed) return child;
+    return scope.withUntimed(false, child: child);
+  }
+
+  /// An English dance's sequence ([BarTimingScope]): the bars it spans, which
+  /// may be left empty to count its steps, as a contra sequence does. With a
+  /// span, its steps may go untimed, and the steps that do carry timing are
+  /// checked against it (`ecdSequenceSpanIssue`).
+  Widget _buildSequenceSpan(
+    BuildContext context,
+    String keyPrefix,
+    int beatLimit,
+  ) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final scope = BarTimingScope.maybeOf(context)!;
+    final draft = widget.draft;
+    final steps = draft.sequenceFigures ?? const <FigureDraft>[];
+    final timed = steps.where((step) => !step.untimed).toList();
+    final stepsTotal = timed.fold(0, (sum, step) => sum + step.beats);
+    final spanStated = draft.sequenceSpanStated;
+    final allTimed = timed.length == steps.length;
+    final mismatch =
+        spanStated &&
+        timed.isNotEmpty &&
+        !(allTimed ? stepsTotal == draft.beats : stepsTotal < draft.beats);
+    final errorStyle = theme.textTheme.bodySmall?.copyWith(
+      color: theme.colorScheme.error,
+    );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        BarsField(
+          fieldKey: '$keyPrefix-sequence-span',
+          label: l10n.danceEditorSequenceSpanLabel,
+          beats: spanStated ? draft.beats : null,
+          beatsPerBar: scope.beatsPerBar,
+          allowsUntimed: true,
+          emptyHint: timingLabel(context, draft.beats),
+          onChanged: (beats) {
+            draft.setSequenceSpan(beats);
+            widget.onChanged();
+          },
+        ),
+        const SizedBox(height: 4),
+        Text(
+          spanStated
+              ? l10n.danceEditorSequenceSpanHelp
+              : l10n.danceEditorSequenceSpanEmptyHelp,
+          style: theme.textTheme.bodySmall,
+        ),
+        if (mismatch)
+          Padding(
+            padding: const EdgeInsets.only(top: AppSpacing.xxs),
+            child: Text(
+              allTimed
+                  ? l10n.danceEditorSequenceSpanMismatch(
+                      timingLabel(context, stepsTotal),
+                      timingLabel(context, draft.beats),
+                    )
+                  : l10n.danceEditorSequenceSpanNoRoom(
+                      timingLabel(context, stepsTotal),
+                      timingLabel(context, draft.beats),
+                    ),
+              key: ValueKey('$keyPrefix-sequence-span-mismatch'),
+              style: errorStyle,
+            ),
+          ),
+        if (draft.beats > beatLimit)
+          Padding(
+            padding: const EdgeInsets.only(top: AppSpacing.xxs),
+            child: Text(
+              l10n.danceEditorSequenceOverPhraseTimed(
+                timingLabel(context, draft.beats),
+                timingLabel(context, beatLimit),
+              ),
+              key: ValueKey('$keyPrefix-sequence-over-phrase'),
+              style: errorStyle,
+            ),
+          ),
+      ],
+    );
+  }
+
   // --- Structural container editor (#590/#593/#1198) ------------------------
 
   /// Expanded editor for a structural container draft. A meanwhile or
   /// modifier shows one shared Beats field (the container's single count —
   /// never per-child); a sequence instead shows its total, the sum of its
   /// steps' own Beats fields, and a warning once that total is longer than a
-  /// phrase of [_FigureDraftCard.phraseStructure]. Then come each ordered child
+  /// phrase of [_FigureDraftCard.phraseStructure]. An English sequence timed
+  /// in bars ([BarTimingScope]) shows its own span field instead
+  /// ([_buildSequenceSpan]). Then come each ordered child
   /// editor, an add-child control (capped at the kind's
   /// [maxContainerChildren], and for a sequence hidden once a phrase is full),
   /// and per-child move/remove controls. Ordinary children use
@@ -2918,7 +3079,14 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     final keyPrefix = '${widget.keyPrefix}-${widget.index}';
     final cap = maxContainerChildren(kind);
     final beatLimit = widget.phraseStructure.longestPhraseBeats;
-    final phraseFull = isSequence && draft.beats >= beatLimit;
+    // With a span of its own, a sequence may take another untimed step
+    // however much of the phrase the span fills: only its timed steps count.
+    final phraseFull =
+        isSequence &&
+        (draft.sequenceSpanStated
+                ? sides.fold(0, (sum, step) => sum + step.beats)
+                : draft.beats) >=
+            beatLimit;
     String childLabel(int i) => isModifier
         ? i == 0
               ? l10n.danceEditorModifierCoreLabel
@@ -2944,14 +3112,17 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
       canRequestFocus: false,
       onKeyEvent: _handleEditorKey,
       child: Padding(
-        padding: const EdgeInsets.only(top: 4, bottom: 4),
+        padding: const EdgeInsets.only(
+          top: AppSpacing.xxs,
+          bottom: AppSpacing.xxs,
+        ),
         child: Container(
           decoration: BoxDecoration(
             border: Border.all(color: theme.colorScheme.outlineVariant),
             borderRadius: AppShapes.borderRadiusSmall,
             color: theme.colorScheme.surfaceContainerLow,
           ),
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(AppSpacing.sm),
           child: Semantics(
             container: true,
             label: switch (kind) {
@@ -3011,7 +3182,9 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                   },
                 ),
                 const SizedBox(height: 8),
-                if (isSequence) ...[
+                if (isSequence && BarTimingScope.maybeOf(context) != null)
+                  _buildSequenceSpan(context, keyPrefix, beatLimit)
+                else if (isSequence) ...[
                   // A sequence's count is its steps' counts added up: each
                   // step edits its own, so there is no field here to edit.
                   Text(
@@ -3021,7 +3194,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                   ),
                   if (draft.beats > beatLimit)
                     Padding(
-                      padding: const EdgeInsets.only(top: 4),
+                      padding: const EdgeInsets.only(top: AppSpacing.xxs),
                       child: Text(
                         l10n.danceEditorSequenceOverPhrase(
                           draft.beats,
@@ -3055,151 +3228,152 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                 const SizedBox(height: 12),
                 if (widget.showWordingOverride) _buildWordingOverride(context),
                 for (var i = 0; i < sides.length; i++)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: sides[i].isContainerDraft
-                        ? Semantics(
-                            container: true,
-                            label: childSemantic(i),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        childLabel(i),
-                                        style: theme.textTheme.labelLarge,
+                  _withStepTiming(
+                    context,
+                    isSequence,
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: AppSpacing.xs),
+                      child: sides[i].isContainerDraft
+                          ? Semantics(
+                              container: true,
+                              label: childSemantic(i),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          childLabel(i),
+                                          style: theme.textTheme.labelLarge,
+                                        ),
                                       ),
-                                    ),
-                                    IconButton(
-                                      key: ValueKey(
-                                        '$keyPrefix-nested-$i-move-up',
+                                      IconButton(
+                                        key: ValueKey(
+                                          '$keyPrefix-nested-$i-move-up',
+                                        ),
+                                        tooltip: l10n.danceEditorMoveUp,
+                                        icon: const Icon(
+                                          Icons.arrow_upward,
+                                          size: 18,
+                                        ),
+                                        onPressed: i == 0
+                                            ? null
+                                            : () => _reorderSide(i, i - 1),
                                       ),
-                                      tooltip: l10n.danceEditorMoveUp,
-                                      icon: const Icon(
-                                        Icons.arrow_upward,
-                                        size: 18,
+                                      IconButton(
+                                        key: ValueKey(
+                                          '$keyPrefix-nested-$i-move-down',
+                                        ),
+                                        tooltip: l10n.danceEditorMoveDown,
+                                        icon: const Icon(
+                                          Icons.arrow_downward,
+                                          size: 18,
+                                        ),
+                                        onPressed: i == sides.length - 1
+                                            ? null
+                                            : () => _reorderSide(i, i + 1),
                                       ),
-                                      visualDensity: VisualDensity.compact,
-                                      onPressed: i == 0
-                                          ? null
-                                          : () => _reorderSide(i, i - 1),
-                                    ),
-                                    IconButton(
-                                      key: ValueKey(
-                                        '$keyPrefix-nested-$i-move-down',
+                                      IconButton(
+                                        key: ValueKey(
+                                          '$keyPrefix-nested-$i-remove',
+                                        ),
+                                        tooltip: removeTooltip(i),
+                                        icon: Icon(
+                                          Icons.remove_circle_outline,
+                                          size: 18,
+                                          color: theme.colorScheme.error,
+                                        ),
+                                        onPressed: () => _removeSide(i),
                                       ),
-                                      tooltip: l10n.danceEditorMoveDown,
-                                      icon: const Icon(
-                                        Icons.arrow_downward,
-                                        size: 18,
-                                      ),
-                                      visualDensity: VisualDensity.compact,
-                                      onPressed: i == sides.length - 1
-                                          ? null
-                                          : () => _reorderSide(i, i + 1),
-                                    ),
-                                    IconButton(
-                                      key: ValueKey(
-                                        '$keyPrefix-nested-$i-remove',
-                                      ),
-                                      tooltip: removeTooltip(i),
-                                      icon: Icon(
-                                        Icons.remove_circle_outline,
-                                        size: 18,
-                                        color: theme.colorScheme.error,
-                                      ),
-                                      visualDensity: VisualDensity.compact,
-                                      onPressed: () => _removeSide(i),
-                                    ),
-                                  ],
-                                ),
-                                FigureListEditor(
-                                  key: ValueKey(
-                                    'nested-container-${sides[i].id}',
+                                    ],
                                   ),
-                                  drafts: [sides[i]],
-                                  taxonomy: widget.taxonomy,
-                                  // Labels and totals are hidden below, but a
-                                  // nested sequence still fits one phrase of
-                                  // this dance.
-                                  phraseStructure: widget.phraseStructure,
-                                  dialect: widget.dialect,
-                                  mixer: widget.mixer,
-                                  moveParamDefaults: widget.moveParamDefaults,
-                                  showWordingOverride:
-                                      widget.showWordingOverride,
-                                  onChanged: _onSideChanged,
-                                  onAdd: () {},
-                                  onDelete: (_) => _removeSide(i),
-                                  onCollapseMeanwhileGroup:
-                                      (groupDraft, remainingSide) =>
-                                          _collapseNestedContainer(
+                                  FigureListEditor(
+                                    key: ValueKey(
+                                      'nested-container-${sides[i].id}',
+                                    ),
+                                    drafts: [sides[i]],
+                                    taxonomy: widget.taxonomy,
+                                    // Labels and totals are hidden below, but a
+                                    // nested sequence still fits one phrase of
+                                    // this dance.
+                                    phraseStructure: widget.phraseStructure,
+                                    dialect: widget.dialect,
+                                    mixer: widget.mixer,
+                                    moveParamDefaults: widget.moveParamDefaults,
+                                    showWordingOverride:
+                                        widget.showWordingOverride,
+                                    onChanged: _onSideChanged,
+                                    onAdd: () {},
+                                    onDelete: (_) => _removeSide(i),
+                                    onCollapseMeanwhileGroup:
+                                        (groupDraft, remainingSide) =>
+                                            _collapseNestedContainer(
+                                              sides,
+                                              i,
+                                              groupDraft,
+                                              remainingSide,
+                                            ),
+                                    // A nested container must remain another
+                                    // kind than its parent; converting it could
+                                    // create invalid same-kind nesting. Ungroup
+                                    // is the legal structural escape hatch for
+                                    // this menu.
+                                    onUngroupContainer:
+                                        _canUngroupNestedContainer(sides, i)
+                                        ? (nested) => _ungroupNestedContainer(
                                             sides,
                                             i,
-                                            groupDraft,
-                                            remainingSide,
-                                          ),
-                                  // A nested container must remain another
-                                  // kind than its parent; converting it could
-                                  // create invalid same-kind nesting. Ungroup
-                                  // is the legal structural escape hatch for
-                                  // this menu.
-                                  onUngroupContainer:
-                                      _canUngroupNestedContainer(sides, i)
-                                      ? (nested) => _ungroupNestedContainer(
-                                          sides,
-                                          i,
-                                          nested,
-                                        )
-                                      : null,
-                                  allowNestedContainerSelection: false,
-                                  allowAdding: false,
-                                  allowDuplicating: false,
-                                  showPhraseStructure: false,
-                                  userFigureOptions: widget.userFigureOptions,
-                                  keyPrefix: '$keyPrefix-nested-$i',
-                                ),
-                              ],
+                                            nested,
+                                          )
+                                        : null,
+                                    allowNestedContainerSelection: false,
+                                    allowAdding: false,
+                                    allowDuplicating: false,
+                                    showPhraseStructure: false,
+                                    userFigureOptions: widget.userFigureOptions,
+                                    keyPrefix: '$keyPrefix-nested-$i',
+                                  ),
+                                ],
+                              ),
+                            )
+                          : _MeanwhileSideEditor(
+                              key: ValueKey('meanwhile-side-${sides[i].id}'),
+                              keyPrefix: '$keyPrefix-side-$i',
+                              sideNumber: i + 1,
+                              totalSides: sides.length,
+                              role: isModifier
+                                  ? i == 0
+                                        ? _ChildRole.core
+                                        : _ChildRole.modifier
+                                  : isSequence
+                                  ? _ChildRole.step
+                                  : null,
+                              draft: sides[i],
+                              taxonomy: widget.taxonomy,
+                              dialect: widget.dialect,
+                              mixer: widget.mixer,
+                              moveParamDefaults: widget.moveParamDefaults,
+                              showWordingOverride: widget.showWordingOverride,
+                              userFigureOptions: widget.userFigureOptions,
+                              onChanged: _onSideChanged,
+                              includeModifier:
+                                  widget.allowModifierSelection &&
+                                  kind != modifierMove &&
+                                  widget.allowNestedContainerSelection,
+                              includeSequence:
+                                  widget.allowModifierSelection &&
+                                  kind != sequenceMove &&
+                                  widget.allowNestedContainerSelection,
+                              onMoveUp: i == 0
+                                  ? null
+                                  : () => _reorderSide(i, i - 1),
+                              onMoveDown: i == sides.length - 1
+                                  ? null
+                                  : () => _reorderSide(i, i + 1),
+                              onRemove: () => _removeSide(i),
                             ),
-                          )
-                        : _MeanwhileSideEditor(
-                            key: ValueKey('meanwhile-side-${sides[i].id}'),
-                            keyPrefix: '$keyPrefix-side-$i',
-                            sideNumber: i + 1,
-                            totalSides: sides.length,
-                            role: isModifier
-                                ? i == 0
-                                      ? _ChildRole.core
-                                      : _ChildRole.modifier
-                                : isSequence
-                                ? _ChildRole.step
-                                : null,
-                            draft: sides[i],
-                            taxonomy: widget.taxonomy,
-                            dialect: widget.dialect,
-                            mixer: widget.mixer,
-                            moveParamDefaults: widget.moveParamDefaults,
-                            showWordingOverride: widget.showWordingOverride,
-                            userFigureOptions: widget.userFigureOptions,
-                            onChanged: _onSideChanged,
-                            includeModifier:
-                                widget.allowModifierSelection &&
-                                kind != modifierMove &&
-                                widget.allowNestedContainerSelection,
-                            includeSequence:
-                                widget.allowModifierSelection &&
-                                kind != sequenceMove &&
-                                widget.allowNestedContainerSelection,
-                            onMoveUp: i == 0
-                                ? null
-                                : () => _reorderSide(i, i - 1),
-                            onMoveDown: i == sides.length - 1
-                                ? null
-                                : () => _reorderSide(i, i + 1),
-                            onRemove: () => _removeSide(i),
-                          ),
+                    ),
                   ),
                 if (sides.length < cap && !phraseFull)
                   Align(
@@ -3217,7 +3391,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                   )
                 else
                   Padding(
-                    padding: const EdgeInsets.only(top: 4),
+                    padding: const EdgeInsets.only(top: AppSpacing.xxs),
                     child: Text(
                       sides.length < cap
                           ? l10n.danceEditorSequencePhraseFull(beatLimit)
@@ -3285,6 +3459,8 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     if (index < 0 || index >= sides.length) return;
     if (sides.length <= 2) {
       final remaining = sides[index == 0 ? 1 : 0];
+      // A step that leaves a span takes its default count (ADR-006 §5.5).
+      remaining.timeIfUntimed();
       final onCollapse = widget.onCollapseMeanwhileGroup;
       if (onCollapse != null) {
         onCollapse(draft, remaining);
@@ -3397,14 +3573,17 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
       canRequestFocus: false,
       onKeyEvent: _handleEditorKey,
       child: Padding(
-        padding: const EdgeInsets.only(top: 4, bottom: 4),
+        padding: const EdgeInsets.only(
+          top: AppSpacing.xxs,
+          bottom: AppSpacing.xxs,
+        ),
         child: Container(
           decoration: BoxDecoration(
             border: Border.all(color: theme.colorScheme.outlineVariant),
             borderRadius: AppShapes.borderRadiusSmall,
             color: theme.colorScheme.surfaceContainerLow,
           ),
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(AppSpacing.sm),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -3582,7 +3761,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
         ),
         if (_showMoreOptions)
           Padding(
-            padding: const EdgeInsets.only(top: 4),
+            padding: const EdgeInsets.only(top: AppSpacing.xxs),
             child: paramWrap(extra),
           ),
       ],
@@ -4082,7 +4261,7 @@ class _MeanwhileSideEditorState extends State<_MeanwhileSideEditor> {
         ),
       },
       child: Container(
-        padding: const EdgeInsets.all(8),
+        padding: const EdgeInsets.all(AppSpacing.xs),
         decoration: BoxDecoration(
           border: Border.all(color: theme.colorScheme.outlineVariant),
           borderRadius: AppShapes.borderRadiusSmall,
@@ -4108,14 +4287,12 @@ class _MeanwhileSideEditorState extends State<_MeanwhileSideEditor> {
                   key: ValueKey('${widget.keyPrefix}-move-up'),
                   tooltip: l10n.danceEditorMoveUp,
                   icon: const Icon(Icons.arrow_upward, size: 18),
-                  visualDensity: VisualDensity.compact,
                   onPressed: widget.onMoveUp,
                 ),
                 IconButton(
                   key: ValueKey('${widget.keyPrefix}-move-down'),
                   tooltip: l10n.danceEditorMoveDown,
                   icon: const Icon(Icons.arrow_downward, size: 18),
-                  visualDensity: VisualDensity.compact,
                   onPressed: widget.onMoveDown,
                 ),
                 IconButton(
@@ -4131,7 +4308,6 @@ class _MeanwhileSideEditorState extends State<_MeanwhileSideEditor> {
                     size: 18,
                     color: theme.colorScheme.error,
                   ),
-                  visualDensity: VisualDensity.compact,
                   onPressed: widget.onRemove,
                 ),
               ],
@@ -4212,10 +4388,9 @@ class _MeanwhileSideEditorState extends State<_MeanwhileSideEditor> {
                     spec: beatsSpec,
                     dialect: widget.dialect,
                     mixer: widget.mixer,
-                    value: draft.params['beats'] ?? beatsSpec.defaultValue,
+                    value: _shownStepBeats(context, beatsSpec),
                     onChanged: (v) {
-                      draft.params['beats'] = v;
-                      draft.beatsTouched = true;
+                      _setStepBeats(v);
                       widget.onChanged();
                     },
                   ),
@@ -4229,6 +4404,31 @@ class _MeanwhileSideEditorState extends State<_MeanwhileSideEditor> {
         ),
       ),
     );
+  }
+
+  /// The count a sequence step's field shows: none for a step with no timing
+  /// of its own, where its sequence states a span ([BarTimingScope]), else
+  /// its own or [spec]'s default.
+  Object? _shownStepBeats(BuildContext context, ParamSpec spec) {
+    final draft = widget.draft;
+    if (draft.untimed &&
+        (BarTimingScope.maybeOf(context)?.allowsUntimed ?? false)) {
+      return null;
+    }
+    return draft.params['beats'] ?? spec.defaultValue;
+  }
+
+  /// Sets a sequence step's count to [value], a number of beats, or with
+  /// null leaves it with no timing of its own. Either is the caller's own,
+  /// so nothing fills it in afterwards.
+  void _setStepBeats(Object? value) {
+    final draft = widget.draft;
+    if (value is int) {
+      draft.params['beats'] = value;
+    } else {
+      draft.params.remove('beats');
+    }
+    draft.beatsTouched = true;
   }
 
   /// Same param editors as a top-level figure, EXCEPT `beats` for a meanwhile
@@ -4261,14 +4461,16 @@ class _MeanwhileSideEditorState extends State<_MeanwhileSideEditor> {
             mixer: widget.mixer,
             moveId: draft.move,
             fractionAmountFollows: true,
-            value: draft.params[entry.key] ?? entry.value.defaultValue,
+            value: isStep && entry.key == 'beats'
+                ? _shownStepBeats(context, entry.value)
+                : draft.params[entry.key] ?? entry.value.defaultValue,
             onChanged: (v) {
               if (entry.key == 'who') draft.assumedSubject = false;
               if (isStep) {
                 if (entry.key == 'beats') {
-                  draft.params['beats'] = v;
-                  draft.beatsTouched = true;
+                  _setStepBeats(v);
                 } else {
+                  final keepUntimed = draft.untimed && draft.beatsTouched;
                   draft.move = applyParamChange(
                     widget.taxonomy,
                     move: draft.move!,
@@ -4280,6 +4482,9 @@ class _MeanwhileSideEditorState extends State<_MeanwhileSideEditor> {
                         draft.beatsTouched &&
                         AggressiveBeatsUpdateScope.of(context),
                   );
+                  // As in [_applyNonBeatsParamChange]: an untimed step
+                  // stays untimed.
+                  if (keepUntimed) draft.params.remove('beats');
                 }
                 widget.onChanged();
                 return;
@@ -4369,8 +4574,6 @@ class _EmphasisToolbar extends StatelessWidget {
           onPressed: () => _apply('*'),
           icon: const Icon(Icons.format_bold, size: 18),
           tooltip: l10n.danceEditorBoldTooltip,
-          visualDensity: VisualDensity.compact,
-          constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
           padding: EdgeInsets.zero,
         ),
         IconButton(
@@ -4378,8 +4581,6 @@ class _EmphasisToolbar extends StatelessWidget {
           onPressed: () => _apply('_'),
           icon: const Icon(Icons.format_underlined, size: 18),
           tooltip: l10n.danceEditorUnderlineTooltip,
-          visualDensity: VisualDensity.compact,
-          constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
           padding: EdgeInsets.zero,
         ),
       ],
@@ -4485,7 +4686,7 @@ class _LingoCustomTextFieldState extends State<_LingoCustomTextField> {
         // WCAG requirement not to rely on visual styling alone.
         if (hint != null)
           Padding(
-            padding: const EdgeInsets.only(top: 2),
+            padding: const EdgeInsets.only(top: AppSpacing.xxxs),
             child: Row(
               children: [
                 Icon(
@@ -4864,7 +5065,7 @@ class _WordingOverrideFieldState extends State<_WordingOverrideField> {
         ),
         if (widget.preview.isNotEmpty)
           Padding(
-            padding: const EdgeInsets.only(top: 4),
+            padding: const EdgeInsets.only(top: AppSpacing.xxs),
             child: Text(
               l10n.danceEditorWordingOverridePreview(widget.preview),
               key: ValueKey('${widget.fieldKey}-preview'),
@@ -4897,7 +5098,7 @@ class _BeatSummary extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final mismatch = totalBeats != expectedBeats;
     return Padding(
-      padding: const EdgeInsets.only(top: 12),
+      padding: const EdgeInsets.only(top: AppSpacing.sm),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -4905,12 +5106,12 @@ class _BeatSummary extends StatelessWidget {
             l10n.danceEditorBeatTotal(totalBeats, expectedBeats),
             key: _key('beats-total'),
             style: theme.textTheme.bodyMedium?.copyWith(
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w700,
             ),
           ),
           if (mismatch)
             Padding(
-              padding: const EdgeInsets.only(top: 4),
+              padding: const EdgeInsets.only(top: AppSpacing.xxs),
               child: Row(
                 key: _key('beats-warning'),
                 children: [
@@ -4941,7 +5142,9 @@ class _BeatSummary extends StatelessWidget {
   }
 }
 
-final FigureRenderer _userEntryRenderer = FigureRenderer(contraTaxonomy);
+final FigureRenderer _userEntryRenderer = FigureRenderer(
+  shippedTaxonomies.anyForm,
+);
 
 /// The user's [entries] (compounds or new figures, by [kind]) as move-picker
 /// options, named and found by their keywords in [dialect].

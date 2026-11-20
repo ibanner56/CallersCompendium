@@ -14,9 +14,10 @@ import '../search/program_sort_labels.dart';
 import '../theme/app_spacing.dart';
 import '../utils/confirm_delete.dart';
 import '../utils/row_focus.dart';
-import '../utils/shortcut_platform.dart';
 import '../utils/undo_snack_bar.dart';
+import '../widgets/brand_mark.dart';
 import '../widgets/empty_state.dart';
+import '../widgets/load_error_view.dart';
 import '../widgets/program_list_tile.dart';
 import '../widgets/skeleton.dart';
 import '../widgets/sync_now_action.dart';
@@ -28,16 +29,30 @@ import 'program_editor_screen.dart';
 import 'perform_program_screen.dart' show PerformResumeStore;
 import 'program_summary_screen.dart';
 import 'recently_deleted_screen.dart';
+import '../widgets/adaptive_fab.dart';
 
 /// The program-import sources offered by the Programs list "Import" menu.
 enum _ProgramImportSource { plaintext, contraDb }
 
-enum _ProgramsCompactAction { importPlaintext, importContraDb, recentlyDeleted }
+enum _ProgramsCompactAction {
+  importPlaintext,
+  importContraDb,
+  toggleArchived,
+  recentlyDeleted,
+}
 
 /// Programs list (`docs/design/ux.md` §4): non-deleted programs with title,
 /// event date, venue, slot count and a status chip (icon+text). Sort by title /
 /// recently-updated / event date; swipe-to-delete with undo; empty state that
 /// teaches. Mirrors [DanceListScreen].
+///
+/// Archived programs are left out unless the ⋮ menu's "Show archived" is on,
+/// and then they are listed alongside the rest with an "Archived" chip. The
+/// choice lives in this [State], so it outlasts opening a program, the
+/// builder, a rotation across the split breakpoint (the shell's [GlobalKey]),
+/// and a trip to Recently deleted; it is cleared when [isActive] goes false,
+/// which the app shell does when another top-level destination is chosen, and
+/// it is never saved, so it starts off on every launch.
 ///
 /// [onSelectProgram] wires split-pane callers ([ProgramsShell]); when null the
 /// list uses push-navigation to the editor. [selectedProgramId] highlights the
@@ -54,9 +69,26 @@ class ProgramsListScreen extends StatefulWidget {
     this.onCreateProgram,
     this.selectedProgramId,
     this.performResumeStore,
+    this.isActive = true,
+    this.onSelectedProgramHidden,
   });
 
   final void Function(String programId)? onSelectProgram;
+
+  /// Called (split-pane mode) when the selected program ([selectedProgramId])
+  /// stops being listed while it still exists, for whatever reason: archived
+  /// from its row (or by a sync or import) while archived programs are hidden,
+  /// hidden by "Hide archived", or hidden when leaving the Programs tab turns
+  /// "Show archived" off. It is also checked when a rotation into the split
+  /// layout hands over a selection. The host closes it, as it does when the
+  /// program leaves through its own Archive or Delete (the maintainer's
+  /// decision on #2218; the tab-leave case is this list's own consequence of
+  /// it).
+  final VoidCallback? onSelectedProgramHidden;
+
+  /// Whether the Programs destination is the one showing. Leaving it (true to
+  /// false) hides archived programs again; see the class comment.
+  final bool isActive;
 
   /// Called (split-pane mode) when the user taps "New program" so the parent
   /// can host the create flow in a pane. When null, a route is pushed.
@@ -86,9 +118,11 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
   ///
   /// The subscription is opened exactly once per [State] — issue #768, so that
   /// a rebuild neither drops nor duplicates it. Issue #895 then gave
-  /// [ProgramsShell] a [GlobalKey] so this State *survives* being reparented
-  /// across the 900 px breakpoint (`programs_shell.dart:44`), which is what
-  /// preserves the sort and scroll position through a rotation.
+  /// this list a [GlobalKey] inside [ProgramsShell] so this State *survives* being reparented
+  /// across the 900 px split breakpoint (`programs_shell.dart`), and the app
+  /// shell's body key moves the whole page across the 720 px rail breakpoint
+  /// (`app_shell.dart`); together they preserve the sort and scroll position
+  /// through a rotation.
   ///
   /// Together those mean: **a rotation must not re-open the subscription.** It
   /// does not today, because a reparented Element is moved rather than
@@ -107,6 +141,46 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
   Object? _loadError;
   ProgramSort _sort = ProgramSort.title;
   SortDirection _sortDir = ProgramSort.title.defaultDirection;
+
+  /// Whether archived programs are listed too ("Show archived"). Session-only;
+  /// see the class comment for when it resets.
+  bool _showArchived = false;
+
+  @override
+  void didUpdateWidget(ProgramsListScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.isActive && !widget.isActive && _showArchived) {
+      setState(() => _showArchived = false);
+      _closeHiddenSelection();
+    } else if (oldWidget.selectedProgramId != widget.selectedProgramId ||
+        (oldWidget.onSelectedProgramHidden == null) !=
+            (widget.onSelectedProgramHidden == null)) {
+      // A rotation into the split layout hands this list a selection (and the
+      // callback) the narrow layout kept while the list could not report it:
+      // a program hidden while narrow must close now, not at the next write.
+      _closeHiddenSelection();
+    }
+  }
+
+  void _toggleShowArchived() {
+    setState(() => _showArchived = !_showArchived);
+    _closeHiddenSelection();
+  }
+
+  /// Tells the host when the selected program is in the data but no longer
+  /// listed, after the frame (the host's `setState` must not run mid-build).
+  void _closeHiddenSelection() {
+    final selected = widget.selectedProgramId;
+    final onHidden = widget.onSelectedProgramHidden;
+    if (selected == null || onHidden == null) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || widget.selectedProgramId != selected) return;
+      final all = _programs ?? const <Program>[];
+      final exists = all.any((p) => p.id == selected);
+      final listed = _visiblePrograms.any((p) => p.id == selected);
+      if (exists && !listed) onHidden();
+    });
+  }
 
   /// The live Programs list (issue #768).
   ///
@@ -328,6 +402,7 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
       _venuesById = snapshot.venuesById;
       _loadError = null;
     });
+    _closeHiddenSelection();
     final focusIds = _pendingFocusIds;
     if (focusIds.isEmpty) return;
     _pendingFocusIds = const [];
@@ -364,8 +439,15 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
         DateTime(date.year, date.month, date.day),
   };
 
+  /// The programs this list shows: all of them with "Show archived" on, else
+  /// the ones not archived.
+  List<Program> get _visiblePrograms => [
+    for (final program in _programs ?? const <Program>[])
+      if (_showArchived || !program.isArchived) program,
+  ];
+
   List<Program> _sortedPrograms({required bool ignoreLeadingArticles}) {
-    final programs = [...?_programs];
+    final programs = _visiblePrograms;
     final descending = _sortDir == SortDirection.descending;
     int flip(int cmp) => descending ? -cmp : cmp;
     switch (_sort) {
@@ -512,6 +594,53 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
     );
   }
 
+  /// Archives [program] from its row's ⋮ menu, with an Undo. Focus moves as for
+  /// a delete when the row leaves the list (archived programs hidden), and
+  /// stays on the row when it does not.
+  Future<void> _archive(Program program, List<String> focusAfter) async {
+    _pendingFocusIds = _showArchived ? [program.id] : focusAfter;
+    final archived = await _repos.programs.archive(
+      program.id,
+      at: DateTime.now().toUtc(),
+    );
+    // Only a write that happened is announced: `false` means the program was
+    // archived or deleted elsewhere meanwhile, and the stream shows that.
+    if (!archived) _pendingFocusIds = const [];
+    if (!archived || !mounted) return;
+    final l10n = AppLocalizations.of(context);
+    showUndoSnackBar(
+      ScaffoldMessenger.of(context),
+      key: const ValueKey('program-archived-snackbar'),
+      message: l10n.programsArchivedSnack(program.title),
+      undoLabel: l10n.commonUndo,
+      undoFailedMessage: l10n.commonUndoFailed,
+      accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
+      onUndo: () async {
+        // A write the stream carries, as for the delete's Undo above.
+        _pendingFocusIds = [program.id];
+        await _repos.programs.unarchive(program.id, at: DateTime.now().toUtc());
+      },
+    );
+  }
+
+  /// Unarchives [program] from its row's ⋮ menu (only offered while archived
+  /// programs are shown). The row stays where it is.
+  Future<void> _unarchive(Program program) async {
+    final unarchived = await _repos.programs.unarchive(
+      program.id,
+      at: DateTime.now().toUtc(),
+    );
+    if (!unarchived || !mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        key: const ValueKey('program-unarchived-snackbar'),
+        content: Text(
+          AppLocalizations.of(context).programsUnarchivedSnack(program.title),
+        ),
+      ),
+    );
+  }
+
   Future<void> _duplicateFromList(Program program) async {
     final l10n = AppLocalizations.of(context);
     final now = DateTime.now().toUtc();
@@ -534,27 +663,27 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final openSearch = AppShellSearchScope.of(context)?.openSearch;
+    final searchPrograms = AppShellSearchScope.of(context)?.searchPrograms;
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.programsTitle),
         actions: [
-          // Phone-only: search lives in the app bar (the bottom-right FAB slot
+          // Phone-only: a search of programs alone (the bottom-right FAB slot
           // is reserved for the "New program" FAB). On wide layouts the nav
           // rail owns search, so no scope is present and this action is omitted.
-          if (openSearch != null)
+          if (searchPrograms != null)
             IconButton(
               key: const ValueKey('programs-search'),
-              tooltip: l10n.collectionSearchTooltip(shortcutPlatform(context)),
+              tooltip: l10n.programsSearchTooltip,
               icon: const Icon(Icons.search),
-              onPressed: openSearch,
+              onPressed: searchPrograms,
             ),
           // Second entry to Settings ▸ Sync now; renders nothing unless Device
           // Sync is on and paired.
           const SyncNowAction(),
           if (_programs != null) ...[
             // Overflow ⋮ goes last, as on every other app bar.
-            if (openSearch == null)
+            if (searchPrograms == null)
               PopupMenuButton<_ProgramImportSource>(
                 key: const ValueKey('programs-import'),
                 tooltip: l10n.importProgramTooltip,
@@ -584,58 +713,66 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
                   ),
                 ],
               ),
-            PopupMenuButton<ProgramSort>(
-              key: const ValueKey('programs-sort'),
-              tooltip: l10n.programsSortByTooltip(
-                programSortLabel(l10n, _sort),
+            // Nothing to sort until there is a program.
+            if (_programs!.isNotEmpty) ...[
+              PopupMenuButton<ProgramSort>(
+                key: const ValueKey('programs-sort'),
+                tooltip: l10n.programsSortByTooltip(
+                  programSortLabel(l10n, _sort),
+                ),
+                initialValue: _sort,
+                icon: const Icon(Icons.sort),
+                onSelected: (value) {
+                  setState(() {
+                    _sortUserSet = true;
+                    _sort = value;
+                    _sortDir = value.defaultDirection;
+                  });
+                  _persistLastUsedSort();
+                },
+                itemBuilder: (context) => [
+                  for (final option in ProgramSort.values)
+                    PopupMenuItem(
+                      value: option,
+                      child: Text(programSortLabel(l10n, option)),
+                    ),
+                ],
               ),
-              initialValue: _sort,
-              icon: const Icon(Icons.sort),
-              onSelected: (value) {
-                setState(() {
-                  _sortUserSet = true;
-                  _sort = value;
-                  _sortDir = value.defaultDirection;
-                });
-                _persistLastUsedSort();
-              },
-              itemBuilder: (context) => [
-                for (final option in ProgramSort.values)
-                  PopupMenuItem(
-                    value: option,
-                    child: Text(programSortLabel(l10n, option)),
-                  ),
-              ],
-            ),
-            IconButton(
-              key: const ValueKey('programs-sort-direction'),
-              tooltip: _sortDir == SortDirection.ascending
-                  ? l10n.collectionSortAscendingTooltip
-                  : l10n.collectionSortDescendingTooltip,
-              icon: Icon(
-                _sortDir == SortDirection.ascending
-                    ? Icons.arrow_upward
-                    : Icons.arrow_downward,
+              IconButton(
+                key: const ValueKey('programs-sort-direction'),
+                tooltip: _sortDir == SortDirection.ascending
+                    ? l10n.collectionSortAscendingTooltip
+                    : l10n.collectionSortDescendingTooltip,
+                icon: Icon(
+                  _sortDir == SortDirection.ascending
+                      ? Icons.arrow_upward
+                      : Icons.arrow_downward,
+                ),
+                onPressed: () {
+                  setState(() {
+                    _sortUserSet = true;
+                    _sortDir = _sortDir == SortDirection.ascending
+                        ? SortDirection.descending
+                        : SortDirection.ascending;
+                  });
+                  _persistLastUsedSort();
+                },
               ),
-              onPressed: () {
-                setState(() {
-                  _sortUserSet = true;
-                  _sortDir = _sortDir == SortDirection.ascending
-                      ? SortDirection.descending
-                      : SortDirection.ascending;
-                });
-                _persistLastUsedSort();
-              },
-            ),
-            if (openSearch != null)
+            ],
+            if (searchPrograms != null)
               _buildCompactMoreActions(l10n)
             else
               PopupMenuButton<_ProgramsCompactAction>(
                 key: const ValueKey('programs-more-actions'),
                 tooltip: l10n.danceMoreActions,
                 icon: const Icon(Icons.more_vert),
-                onSelected: (_) => _openRecentlyDeleted(),
+                onSelected: (action) => switch (action) {
+                  _ProgramsCompactAction.toggleArchived =>
+                    _toggleShowArchived(),
+                  _ => _openRecentlyDeleted(),
+                },
                 itemBuilder: (context) => [
+                  _showArchivedMenuItem(l10n),
                   PopupMenuItem(
                     key: const ValueKey('programs-recently-deleted'),
                     value: _ProgramsCompactAction.recentlyDeleted,
@@ -647,17 +784,32 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
         ],
       ),
       body: _buildBody(),
-      floatingActionButton: _programs == null
+      // The floating New is for a list: the empty state carries its own New
+      // program button, so it waits until there is a program.
+      floatingActionButton: _programs?.isNotEmpty != true
           ? null
-          : FloatingActionButton.extended(
+          : adaptiveExtendedFab(
+              context,
               key: const ValueKey('new-program'),
               heroTag: 'new-program',
               onPressed: _openNewProgram,
               icon: const Icon(Icons.add),
-              label: Text(l10n.programsNewProgram),
+              label: l10n.programsNewProgram,
             ),
     );
   }
+
+  /// "Show archived" / "Hide archived", just above "Recently deleted" in the
+  /// ⋮ menu on every layout.
+  PopupMenuItem<_ProgramsCompactAction> _showArchivedMenuItem(
+    AppLocalizations l10n,
+  ) => PopupMenuItem(
+    key: const ValueKey('programs-toggle-archived'),
+    value: _ProgramsCompactAction.toggleArchived,
+    child: Text(
+      _showArchived ? l10n.programsHideArchived : l10n.programsShowArchived,
+    ),
+  );
 
   Widget _buildCompactMoreActions(AppLocalizations l10n) {
     return PopupMenuButton<_ProgramsCompactAction>(
@@ -670,6 +822,8 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
             _openPlaintextImport();
           case _ProgramsCompactAction.importContraDb:
             _openContraDbImport();
+          case _ProgramsCompactAction.toggleArchived:
+            _toggleShowArchived();
           case _ProgramsCompactAction.recentlyDeleted:
             _openRecentlyDeleted();
         }
@@ -683,7 +837,9 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
           value: _ProgramsCompactAction.importContraDb,
           child: Text(l10n.importProgramFromContraDb),
         ),
+        _showArchivedMenuItem(l10n),
         PopupMenuItem(
+          key: const ValueKey('programs-recently-deleted'),
           value: _ProgramsCompactAction.recentlyDeleted,
           child: Text(l10n.collectionRecentlyDeletedTooltip),
         ),
@@ -694,26 +850,16 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
   Widget _buildBody() {
     final l10n = AppLocalizations.of(context);
     if (_loadError != null) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.error_outline, size: 48),
-            const SizedBox(height: 8),
-            Text(l10n.programsListLoadError),
-            const SizedBox(height: 8),
-            FilledButton(
-              onPressed: () {
-                setState(() {
-                  _programs = null;
-                  _loadError = null;
-                });
-                _resubscribe();
-              },
-              child: Text(l10n.commonRetry),
-            ),
-          ],
-        ),
+      return LoadErrorView(
+        icon: LoadErrorView.errorGlyph(context),
+        message: l10n.programsListLoadError,
+        onRetry: () {
+          setState(() {
+            _programs = null;
+            _loadError = null;
+          });
+          _resubscribe();
+        },
       );
     }
 
@@ -725,7 +871,10 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
     if (programs.isEmpty) {
       return EmptyState(
         key: const ValueKey('empty-state'),
-        icon: EmptyState.glyph(context, Icons.event_note_outlined),
+        icon: BrandMark(
+          size: 64,
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
         title: l10n.programsEmptyTitle,
         body: l10n.programsListEmptyBody,
         actions: [
@@ -742,14 +891,47 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
     final sorted = _sortedPrograms(
       ignoreLeadingArticles: SortIgnoreArticlesScope.of(context),
     );
+    if (sorted.isEmpty) {
+      // Every program is archived, and archived programs are hidden.
+      return EmptyState(
+        key: const ValueKey('all-archived-state'),
+        icon: EmptyState.glyph(context, Icons.archive_outlined),
+        title: l10n.programsAllArchivedTitle,
+        body: l10n.programsAllArchivedBody,
+        actions: [
+          OutlinedButton.icon(
+            key: const ValueKey('empty-show-archived'),
+            onPressed: _toggleShowArchived,
+            icon: const Icon(Icons.visibility_outlined),
+            label: Text(l10n.programsShowArchived),
+          ),
+          FilledButton.icon(
+            key: const ValueKey('empty-new-program'),
+            onPressed: _openNewProgram,
+            icon: const Icon(Icons.add),
+            label: Text(l10n.programsNewProgram),
+          ),
+        ],
+      );
+    }
     return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-          child: WeekdayHeaderStrip(markedDates: _programEventDates(programs)),
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.md,
+            AppSpacing.xs,
+            AppSpacing.md,
+            0,
+          ),
+          child: WeekdayHeaderStrip(markedDates: _programEventDates(sorted)),
         ),
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.md,
+            AppSpacing.xs,
+            AppSpacing.md,
+            AppSpacing.xs,
+          ),
           child: Align(
             alignment: Alignment.centerLeft,
             child: Semantics(
@@ -764,7 +946,7 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
         const Divider(height: 1),
         Expanded(
           child: ListView.builder(
-            // Lets the last row scroll clear of the "New program" FAB.
+            // Lets the last row scroll clear of the floating New program.
             padding: const EdgeInsets.only(bottom: AppSpacing.fabClearance),
             itemCount: sorted.length,
             itemBuilder: (context, index) {
@@ -827,6 +1009,9 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
                     }
                   },
                   onDuplicate: () => _duplicateFromList(program),
+                  onArchive: () =>
+                      _archive(program, _neighbourIds(sorted, index)),
+                  onUnarchive: () => _unarchive(program),
                 ),
               );
             },

@@ -11,6 +11,17 @@
 - [ ] Unit/widget tests cover new logic (happy path, errors, edge cases)
 - [ ] Existing tests pass locally
 
+## Screenshots (UI changes)
+
+<!-- Required from external contributors when the PR changes anything a user can
+     see; PRs opened by the maintainer (@ibanner56), or by an agent session working for them under any account, are exempt. Before and after at
+     the same size, or a short recording for motion, attached here — a link to a
+     file on the branch stops resolving when the branch is deleted. Evidence
+     rules: CONTRIBUTING.md#screenshots-for-ui-changes -->
+
+- [ ] Screenshots attached for each surface whose appearance or wording changed
+- [ ] No user-visible change; screenshots not applicable
+
 ## Accessibility (UI changes)
 
 - [ ] Semantics/labels for new interactive elements

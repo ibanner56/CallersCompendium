@@ -116,10 +116,25 @@ String _customValueIndexText(Object? value) =>
 /// the sync apply reindexes the dances its batch affected itself afterwards
 /// ([reindexDerived], #1929).
 class DanceRepository {
-  DanceRepository(this._db, this._taxonomy);
+  /// [_taxonomy] resolves, renders and normalizes the stored figures of every
+  /// dance, whatever its form, so the app passes `shippedTaxonomies.anyForm`
+  /// (`TaxonomyRegistry`): a stored move ID's prefix names the form whose
+  /// taxonomy defines it (ADR-006 §5.1). It is also the vocabulary search
+  /// reads move names with, across dances of every form.
+  ///
+  /// [taxonomyForForm] gives the vocabulary a dance's own text is re-parsed
+  /// with (#417), so an import-gap line in a contra dance never becomes
+  /// another form's move; the app passes `shippedTaxonomies.forForm`. Without
+  /// it, every form re-parses with [_taxonomy].
+  DanceRepository(this._db, this._taxonomy, {this._taxonomyForForm});
 
   final CompendiumDatabase _db;
   final Taxonomy _taxonomy;
+  final Taxonomy Function(DanceForm form)? _taxonomyForForm;
+
+  /// The taxonomy a dance of [form]'s text is re-parsed with.
+  Taxonomy _parseTaxonomy(DanceForm form) =>
+      _taxonomyForForm?.call(form) ?? _taxonomy;
 
   /// Returns [dance] with every figure's move id normalised through
   /// [Taxonomy.resolvedMoveId]. Returns the original [dance] unchanged if no
@@ -658,6 +673,7 @@ class DanceRepository {
                     ? null
                     : normalizeShareableText(normalisedDance.formation.detail!),
               ),
+              formationImproper: Value(normalisedDance.formation.improper),
               progression: normalisedDance.progression,
               phraseStructure: Value(normalisedDance.phraseStructure.raw),
               // The single place a Dance's transcription becomes stored bytes.
@@ -680,12 +696,17 @@ class DanceRepository {
               walkthrough: Value(
                 normalizeShareableText(normalisedDance.walkthrough),
               ),
+              meter: Value(normalizeShareableText(normalisedDance.meter)),
+              musicalKey: Value(
+                normalizeShareableText(normalisedDance.musicalKey),
+              ),
               status: normalisedDance.status,
               levelId: Value(dance.difficultyLevelId),
               mixedLevel: Value(dance.mixedLevel),
               mixer: Value(dance.mixer),
               rating: Value(dance.rating),
               composedOn: Value(dance.composedOn?.serialize()),
+              interpretedOn: Value(dance.interpretedOn?.serialize()),
               revisedOn: Value(dance.revisedOn?.serialize()),
               // Re-emitted verbatim when it could not be decoded, and
               // deliberately not re-normalised either: normalising requires
@@ -732,6 +753,20 @@ class DanceRepository {
               DanceAuthorsCompanion.insert(
                 danceId: dance.id,
                 choreographerId: dance.authorIds[i],
+                position: i,
+              ),
+            );
+      }
+      await (_db.delete(
+        _db.danceInterpreters,
+      )..where((t) => t.danceId.equals(dance.id))).go();
+      for (var i = 0; i < dance.interpreterIds.length; i++) {
+        await _db
+            .into(_db.danceInterpreters)
+            .insert(
+              DanceInterpretersCompanion.insert(
+                danceId: dance.id,
+                choreographerId: dance.interpreterIds[i],
                 position: i,
               ),
             );
@@ -1825,6 +1860,7 @@ class DanceRepository {
   Future<List<Dance>> _hydrateRows(List<DanceRow> rows) async {
     final ids = [for (final row in rows) row.id];
     final authors = await _authorsForMany(ids);
+    final interpreters = await _interpretersForMany(ids);
     final tags = await _tagsForMany(ids);
     final links = await _linksForMany(ids);
     final sources = await _sourcesForMany(ids);
@@ -1835,6 +1871,7 @@ class DanceRepository {
         _buildDance(
           row,
           authorIds: authors[row.id] ?? const [],
+          interpreterIds: interpreters[row.id] ?? const [],
           tagIds: tags[row.id] ?? const [],
           links: links[row.id] ?? const [],
           sourceCitations: sources[row.id] ?? const [],
@@ -2378,7 +2415,7 @@ class DanceRepository {
   }
 
   /// Snapshots the reusable reference rows — `choreographers` (via
-  /// `dance_authors`), `published_sources` (via `dance_sources`), and tags (via
+  /// `dance_authors` and `dance_interpreters`), `published_sources` (via `dance_sources`), and tags (via
   /// `dance_tags`) — cited by [danceIds] **before** those dances are
   /// hard-deleted, so
   /// [_garbageCollectOrphanedRefs] knows exactly which rows might have just
@@ -2406,6 +2443,12 @@ class DanceRepository {
         _db.danceAuthors,
       )..where((t) => t.danceId.isIn(chunk))).get();
       for (final r in authors) {
+        choreographerIds.add(r.choreographerId);
+      }
+      final interpreters = await (_db.select(
+        _db.danceInterpreters,
+      )..where((t) => t.danceId.isIn(chunk))).get();
+      for (final r in interpreters) {
         choreographerIds.add(r.choreographerId);
       }
       final sources = await (_db.select(
@@ -2511,6 +2554,7 @@ class DanceRepository {
         'DELETE FROM ${_db.choreographers.actualTableName} '
         'WHERE id IN ($placeholders) '
         'AND id NOT IN (SELECT choreographer_id FROM dance_authors) '
+        'AND id NOT IN (SELECT choreographer_id FROM dance_interpreters) '
         'AND $_bareChoreographerSql',
         variables: [for (final id in chunk) Variable<String>(id)],
         updates: {_db.choreographers},
@@ -2876,6 +2920,7 @@ class DanceRepository {
     if (!_isBlankRow(row)) return false;
     for (final TableInfo<Table, dynamic> table in [
       _db.danceAuthors,
+      _db.danceInterpreters,
       _db.danceTags,
       _db.danceLinks,
       _db.danceSources,
@@ -2899,12 +2944,15 @@ class DanceRepository {
       row.form == DanceForm.contra &&
       row.formationShape == FormationShape.dupleImproper &&
       row.formationDetail == null &&
+      !row.formationImproper &&
       row.progression == Progression.single &&
       row.phraseStructure.isEmpty &&
       row.figuresJson == '[]' &&
       row.hook.isEmpty &&
       row.callingNotes.isEmpty &&
       row.walkthrough.isEmpty &&
+      row.meter.isEmpty &&
+      row.musicalKey.isEmpty &&
       row.status == DanceStatus.active &&
       row.levelId == null &&
       !row.mixedLevel &&
@@ -2912,6 +2960,7 @@ class DanceRepository {
       row.rating == null &&
       row.tunesJson == '[]' &&
       row.composedOn == null &&
+      row.interpretedOn == null &&
       row.revisedOn == null;
 
   /// Removes everything a trashed, published dance holds except its deletion
@@ -2950,6 +2999,9 @@ class DanceRepository {
     await (_db.delete(
       _db.danceAuthors,
     )..where((t) => t.danceId.equals(id))).go();
+    await (_db.delete(
+      _db.danceInterpreters,
+    )..where((t) => t.danceId.equals(id))).go();
     await (_db.delete(_db.danceTags)..where((t) => t.danceId.equals(id))).go();
     await (_db.delete(_db.danceLinks)..where((t) => t.danceId.equals(id))).go();
     await (_db.delete(
@@ -2982,12 +3034,15 @@ class DanceRepository {
         form: const Value(DanceForm.contra),
         formationShape: const Value(FormationShape.dupleImproper),
         formationDetail: Value(normalizeShareableTextOrNull(null)),
+        formationImproper: const Value(false),
         progression: const Value(Progression.single),
         phraseStructure: const Value(''),
         figuresJson: Value(normalizeShareableJsonText('[]')),
         hook: Value(normalizeShareableText('')),
         callingNotes: Value(normalizeShareableText('')),
         walkthrough: Value(normalizeShareableText('')),
+        meter: Value(normalizeShareableText('')),
+        musicalKey: Value(normalizeShareableText('')),
         status: const Value(DanceStatus.active),
         levelId: const Value(null),
         mixedLevel: const Value(false),
@@ -2995,6 +3050,7 @@ class DanceRepository {
         rating: const Value(null),
         tunesJson: Value(normalizeShareableJsonText('[]')),
         composedOn: const Value(null),
+        interpretedOn: const Value(null),
         revisedOn: const Value(null),
         updatedAt: Value(_stampAfter(asUtc(row.updatedAt), now)),
         deletedAt: Value(permanentlyDeletedAt),
@@ -3437,6 +3493,7 @@ class DanceRepository {
               ..addColumns([
                 _db.dances.id,
                 _db.dances.title,
+                _db.dances.form,
                 _db.dances.figuresJson,
               ])
               ..where(_db.dances.deletedAt.isNull()))
@@ -3457,7 +3514,10 @@ class DanceRepository {
         UnreadableFigures() => null,
       };
       if (figures == null) continue;
-      final outcome = reparse(figures, taxonomy: _taxonomy);
+      final outcome = reparse(
+        figures,
+        taxonomy: _parseTaxonomy(row.readWithConverter(_db.dances.form)!),
+      );
       if (outcome.upgradedCount > 0) {
         previews.add(
           CustomReparsePreview(
@@ -3508,7 +3568,7 @@ class DanceRepository {
           UnreadableFigures() => null,
         };
         if (figures == null) return null;
-        final outcome = reparse(figures, taxonomy: _taxonomy);
+        final outcome = reparse(figures, taxonomy: _parseTaxonomy(dance.form));
         if (outcome.upgradedCount == 0) return null;
         return dance.copyWith(figures: outcome.figures, updatedAt: now);
       },
@@ -3520,6 +3580,106 @@ class DanceRepository {
       // re-derivation of existing stored content — the same class as the
       // normalisation passes §6.8 excludes from cancelling a pending
       // tombstone. Nothing here is content the user authored.
+      localUserEdit: false,
+    );
+  }
+
+  /// The dry run of the opt-in ECD migration (ADR-006 §12.1 F5): each live
+  /// English Country Dance that [migrate] would change, with what it would
+  /// change, sorted by title. A dance whose figures could not be read is left
+  /// out, as [migrateEcdDances] skips it.
+  ///
+  /// [migrate] is the same caller-supplied migration [migrateEcdDances]
+  /// applies, so the dry run cannot disagree with the apply.
+  Future<List<EcdMigrationPreview>> previewEcdMigration({
+    required EcdDanceMigrator migrate,
+  }) async {
+    final rows =
+        await (_db.selectOnly(_db.dances)
+              ..addColumns([
+                _db.dances.id,
+                _db.dances.title,
+                _db.dances.formationShape,
+                _db.dances.formationDetail,
+                _db.dances.formationImproper,
+                _db.dances.figuresJson,
+              ])
+              ..where(
+                _db.dances.deletedAt.isNull() &
+                    _db.dances.form.equalsValue(DanceForm.ecd),
+              ))
+            .get();
+    final previews = <EcdMigrationPreview>[];
+    for (final row in rows) {
+      final figures = switch (_figureSourceFor(
+        row.read(_db.dances.figuresJson)!,
+      )) {
+        DecodedFigures(:final figures) => figures,
+        UnreadableFigures() => null,
+      };
+      if (figures == null) continue;
+      final result = migrate(
+        figures,
+        Formation(
+          row.readWithConverter(_db.dances.formationShape)!,
+          detail: row.read(_db.dances.formationDetail),
+          improper: row.read(_db.dances.formationImproper)!,
+        ),
+      );
+      if (!result.changed) continue;
+      previews.add(
+        EcdMigrationPreview(
+          danceId: row.read(_db.dances.id)!,
+          title: row.read(_db.dances.title)!,
+          movesConverted: result.movesConverted,
+          linesReread: result.linesReread,
+          shapeChanged: result.shapeChanged,
+        ),
+      );
+    }
+    previews.sort(
+      (a, b) =>
+          foldForTitleMatch(a.title).compareTo(foldForTitleMatch(b.title)),
+    );
+    return previews;
+  }
+
+  /// Applies the opt-in ECD migration (ADR-006 §12.1 F5) to the English
+  /// Country Dances in [ids]: each one's figures and formation become what
+  /// [migrate] returns. Every other field is kept, as for
+  /// [reparseImportGapFiguresForMany]. A dance of another form, an unknown
+  /// or deleted id, a dance whose figures could not be read, and a dance
+  /// with nothing to change are skipped, so applying twice changes nothing
+  /// more. Stamps [now] on the dances it changes and returns how many. The
+  /// batch is one transaction.
+  ///
+  /// Like the re-check, it re-expresses content already stored (each move
+  /// keeps its meaning, only its taxonomy changes), so it is not a local user
+  /// edit and never cancels a peer's pending tombstone (sync-spec §6.8).
+  Future<int> migrateEcdDances(
+    Iterable<String> ids, {
+    required EcdDanceMigrator migrate,
+    required DateTime now,
+  }) {
+    assertUtc(now, 'now');
+    return _updateMany(
+      ids,
+      (dance) {
+        if (dance.form != DanceForm.ecd) return null;
+        final figures = switch (dance.figuresSource) {
+          DecodedFigures(:final figures) => figures,
+          UnreadableFigures() => null,
+        };
+        if (figures == null) return null;
+        final result = migrate(figures, dance.formation);
+        if (!result.changed) return null;
+        return dance.copyWith(
+          figures: result.figures,
+          formation: result.formation,
+          updatedAt: now,
+        );
+      },
+      rebuildDerived: true,
       localUserEdit: false,
     );
   }
@@ -3910,6 +4070,9 @@ class DanceRepository {
     final authors = await _authorsForMany([
       id,
     ], includeDeletedChoreographers: includeDeletedAuthors);
+    final interpreters = await _interpretersForMany([
+      id,
+    ], includeDeletedChoreographers: includeDeletedAuthors);
     final tags = await _tagsForMany([id]);
     final links = await _linksForMany([id]);
     final sources = await _sourcesForMany([id]);
@@ -3918,6 +4081,7 @@ class DanceRepository {
     return _buildDance(
       row,
       authorIds: authors[id] ?? const [],
+      interpreterIds: interpreters[id] ?? const [],
       tagIds: tags[id] ?? const [],
       links: links[id] ?? const [],
       sourceCitations: sources[id] ?? const [],
@@ -4000,6 +4164,7 @@ class DanceRepository {
   Dance _buildDance(
     DanceRow row, {
     required List<String> authorIds,
+    required List<String> interpreterIds,
     required List<String> tagIds,
     required List<DanceLink> links,
     required List<SourceCitation> sourceCitations,
@@ -4011,7 +4176,11 @@ class DanceRepository {
       title: row.title,
       authorIds: authorIds,
       form: row.form,
-      formation: Formation(row.formationShape, detail: row.formationDetail),
+      formation: Formation(
+        row.formationShape,
+        detail: row.formationDetail,
+        improper: row.formationImproper,
+      ),
       progression: row.progression,
       // Tolerant: the editor and importers once accepted unbounded counts, so
       // a stored value may be out of bounds; it must not block loading.
@@ -4020,6 +4189,8 @@ class DanceRepository {
       hook: row.hook,
       callingNotes: row.callingNotes,
       walkthrough: row.walkthrough,
+      meter: row.meter,
+      musicalKey: row.musicalKey,
       status: row.status,
       difficultyLevelId: row.levelId,
       mixedLevel: row.mixedLevel,
@@ -4028,6 +4199,10 @@ class DanceRepository {
       composedOn: row.composedOn == null
           ? null
           : PartialDate.parse(row.composedOn!),
+      interpreterIds: interpreterIds,
+      interpretedOn: row.interpretedOn == null
+          ? null
+          : PartialDate.parse(row.interpretedOn!),
       revisedOn: row.revisedOn == null
           ? null
           : PartialDate.parse(row.revisedOn!),
@@ -4087,6 +4262,40 @@ class DanceRepository {
               .get();
       for (final r in rows) {
         final row = r.readTable(_db.danceAuthors);
+        (byDance[row.danceId] ??= <String>[]).add(row.choreographerId);
+      }
+    }
+    return byDance;
+  }
+
+  /// `dance_id → [choreographerId]` for the interpreters
+  /// (`dance_interpreters`), in position order; the same rules as
+  /// [_authorsForMany], including skipping soft-deleted choreographers.
+  Future<Map<String, List<String>>> _interpretersForMany(
+    List<String> ids, {
+    bool includeDeletedChoreographers = false,
+  }) async {
+    if (ids.isEmpty) return const {};
+    final t = _db.danceInterpreters;
+    final byDance = <String, List<String>>{};
+    for (final chunk in _chunkIds(ids)) {
+      final query = _db.select(t)..where((r) => r.danceId.isIn(chunk));
+      final rows =
+          await (query.join([
+                innerJoin(
+                  _db.choreographers,
+                  _db.choreographers.id.equalsExp(t.choreographerId) &
+                      (includeDeletedChoreographers
+                          ? const Constant(true)
+                          : _db.choreographers.deletedAt.isNull()),
+                ),
+              ])..orderBy([
+                OrderingTerm(expression: t.danceId),
+                OrderingTerm(expression: t.position),
+              ]))
+              .get();
+      for (final r in rows) {
+        final row = r.readTable(t);
         (byDance[row.danceId] ??= <String>[]).add(row.choreographerId);
       }
     }
@@ -4286,4 +4495,29 @@ class CustomReparsePreview {
   final String danceId;
   final String title;
   final int upgradeCount;
+}
+
+/// One English Country Dance's dry-run result for the opt-in ECD migration
+/// (ADR-006 §12.1 F5), from [DanceRepository.previewEcdMigration].
+class EcdMigrationPreview {
+  const EcdMigrationPreview({
+    required this.danceId,
+    required this.title,
+    required this.movesConverted,
+    required this.linesReread,
+    required this.shapeChanged,
+  });
+
+  final String danceId;
+  final String title;
+
+  /// Contra moves that would become ECD figures: a one-to-one twin, or a
+  /// reading of the move's displayed words.
+  final int movesConverted;
+
+  /// Unrecognized lines the ECD parser would now read.
+  final int linesReread;
+
+  /// Whether the formation would take its ECD shape.
+  final bool shapeChanged;
 }

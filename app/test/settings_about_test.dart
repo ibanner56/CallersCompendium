@@ -92,17 +92,26 @@ void main() {
       find.descendant(of: brandHeader, matching: find.text(kAppName)),
       findsOneWidget,
     );
-    expect(find.text('Version $kAppVersion, "$kAppCodename"'), findsOneWidget);
     expect(
-      find.text(
-        '$kAppName · Version $kAppVersion, "$kAppCodename" · $kAppLicenseSpdx',
-      ),
+      find.text('Version $kUpdaterVersion, "$kAppCodename"'),
       findsOneWidget,
     );
-    expect(find.text(kAppTagline), findsOneWidget);
+    // The version (with any beta suffix) appears once on the whole screen: the
+    // footer line below carries name, codename and license only.
+    expect(find.textContaining(kUpdaterVersion), findsOneWidget);
+    expect(
+      find.text('$kAppName · "$kAppCodename" · $kAppLicenseSpdx'),
+      findsOneWidget,
+    );
+    expect(kAppLicenseSpdx, 'AGPL-3.0-only');
+    expect(
+      find.text("Your caller's box, in the palm of your hand"),
+      findsOneWidget,
+    );
 
-    // AGPL-3.0 license notice + source offer and link.
+    // AGPL-3.0-only license notice + source offer and link.
     expect(find.textContaining('AGPL-3.0'), findsWidgets);
+    expect(find.textContaining('(AGPL-3.0-only)'), findsOneWidget);
     expect(
       find.textContaining('Affero General Public License'),
       findsOneWidget,
@@ -138,8 +147,14 @@ void main() {
       find.descendant(of: brandHeader, matching: find.byType(BrandMark)),
       findsOneWidget,
     );
-    expect(find.text('Version $kAppVersion, "$kAppCodename"'), findsOneWidget);
-    expect(find.text(kAppTagline), findsOneWidget);
+    expect(
+      find.text('Version $kUpdaterVersion, "$kAppCodename"'),
+      findsOneWidget,
+    );
+    expect(
+      find.text("Your caller's box, in the palm of your hand"),
+      findsOneWidget,
+    );
 
     // The detail route shows the same compliance content.
     expect(find.text(kAppName), findsWidgets);
@@ -167,6 +182,21 @@ void main() {
       // ...and it enumerates the bundled Roboto (OFL) license we registered,
       // proving LicenseRegistry wiring reached showLicensePage.
       expect(find.text('Roboto (OFL 1.1)'), findsOneWidget);
+      // The licence is written one way, and the version is not repeated on
+      // the page (it is shown once, on the About header).
+      expect(
+        find.text(
+          "© The Caller's Compendium contributors. Licensed under AGPL-3.0-only.",
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: find.byType(LicensePage),
+          matching: find.textContaining(kAppVersion),
+        ),
+        findsNothing,
+      );
     },
   );
 

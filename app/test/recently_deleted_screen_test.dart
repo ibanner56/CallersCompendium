@@ -193,7 +193,8 @@ void main() {
 
       // Confirm dialog appears.
       expect(find.text('Delete permanently?'), findsOneWidget);
-      expect(find.textContaining('cannot be recovered'), findsOneWidget);
+      expect(find.text('"Gone Forever" will be deleted now.'), findsOneWidget);
+      expect(find.text("This can't be undone."), findsOneWidget);
 
       await tester.tap(find.byKey(const ValueKey('confirm-permanent-delete')));
       await tester.pumpAndSettle();

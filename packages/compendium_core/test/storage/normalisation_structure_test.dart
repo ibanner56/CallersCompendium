@@ -19,6 +19,7 @@ const _normalisationExemptions = <String, String>{
   'dances.status': 'enum value',
   'dances.level_id': 'opaque key',
   'dances.composed_on': 'canonical partial date',
+  'dances.interpreted_on': 'canonical partial date',
   'dances.revised_on': 'canonical partial date',
   'dance_links.kind': 'enum value',
   'provenance.source': 'enum value',

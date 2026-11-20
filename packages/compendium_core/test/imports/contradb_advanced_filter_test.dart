@@ -388,6 +388,7 @@ void main() {
         'turn_as_couples',
         'orbit',
         'circular_hey',
+        'hey_for_three',
         'starburst',
         // ContraDB has long lines only; `long_lines` (its alias) maps to it.
         'forward_and_back',
@@ -535,11 +536,14 @@ void main() {
       // decided (map it exactly, or refuse it) rather than defaulting to refused.
       final leftOut = knownIds.difference(tableIds.toSet()).toList()..sort();
       expect(leftOut, const [
+        'cast',
         'circular_hey',
         'courtesy_turn',
         'custom',
         'form_short_waves',
         'forward_and_back',
+        'hand_cast',
+        'hey_for_three',
         'meltdown_swing',
         'orbit',
         'pass_the_ocean',

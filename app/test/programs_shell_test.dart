@@ -12,6 +12,8 @@ import 'package:compendium_app/src/screens/perform_program_screen.dart';
 import 'package:compendium_app/src/screens/program_editor_screen.dart';
 import 'package:compendium_app/src/screens/program_summary_screen.dart';
 import 'package:compendium_app/src/search/program_sort.dart' show ProgramSort;
+import 'package:compendium_app/src/widgets/brand_mark.dart';
+import 'package:compendium_app/src/widgets/empty_state.dart';
 import 'package:compendium_app/src/screens/programs_shell.dart';
 
 import 'support/test_repositories.dart';
@@ -117,6 +119,19 @@ Future<void> _pumpNarrow(
 }
 
 void main() {
+  testWidgets('the empty-detail pane carries the brand mark', (tester) async {
+    final repos = openTestRepositories();
+    await _pumpWide(tester, repos);
+    final pane = find.ancestor(
+      of: find.text(AppLocalizationsEn().programsSelectTitle),
+      matching: find.byType(EmptyState),
+    );
+    expect(
+      find.descendant(of: pane, matching: find.byType(BrandMark)),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('empty-detail pane body text uses onSurfaceVariant (AA)', (
     tester,
   ) async {
@@ -313,6 +328,8 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(DanceDetailScreen), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('dance-actions-overflow')));
+      await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('reimport-dance')), findsOneWidget);
     },
   );
@@ -1188,7 +1205,7 @@ void main() {
   });
 
   group('rotation across the split-pane breakpoint (issue #895)', () {
-    /// Rotating a tablet crosses [ProgramsShell.splitBreakpoint] (900px): the
+    /// Rotating a tablet crosses [AppBreakpoints.split] (900px): the
     /// narrow branch builds a bare [ProgramsListScreen]
     /// (`programs_shell.dart:70`) while the wide branch builds one nested in
     /// `Row > SizedBox > ScaffoldMessenger` (`:82-89`) — structurally

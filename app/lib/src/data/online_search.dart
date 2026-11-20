@@ -619,7 +619,7 @@ bool _figuresComparablyIdentical(Dance existing, Dance incoming) {
       figuresCanonicallyIdentical(
         oldFigures: oldFigures,
         newFigures: newFigures,
-        taxonomy: contraTaxonomy,
+        taxonomy: shippedTaxonomies.anyForm,
       );
 }
 

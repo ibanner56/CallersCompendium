@@ -7,14 +7,18 @@
 //
 // Parameterized and compound columns are created here; both custom kinds
 // share the ordered list, rename, hide, and cleanup behavior.
+import '../../widgets/reorder_move_buttons.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/foundation.dart' show mapEquals;
 import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../search/facet_labels.dart';
+import '../../theme/app_motion.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/destructive_button_style.dart';
+import '../../utils/confirm_delete.dart';
+import '../../utils/undo_snack_bar.dart';
 import '../../widgets/dropdown_selection.dart';
 import '../../widgets/section_header.dart';
 import '../../widgets/dirty_dialog_guard.dart';
@@ -32,6 +36,7 @@ class MatrixColumnEditor extends StatelessWidget {
     required this.config,
     required this.dialect,
     required this.onConfigChanged,
+    this.currentConfig,
     this.taxonomy,
     this.userFigures = UserFigureCatalog.empty,
   });
@@ -44,6 +49,11 @@ class MatrixColumnEditor extends StatelessWidget {
 
   /// Reports a new configuration after an edit. The parent persists it.
   final ValueChanged<MatrixColumnConfig> onConfigChanged;
+
+  /// The live configuration, read when an Undo runs, which may be after this
+  /// editor has gone. Without it Undo works from the configuration the delete
+  /// left.
+  final ValueGetter<MatrixColumnConfig>? currentConfig;
 
   /// The taxonomy whose columns are listed. Defaults to [contraTaxonomy] — the
   /// same taxonomy the matrix builds from.
@@ -192,6 +202,7 @@ class MatrixColumnEditor extends StatelessWidget {
         initialValue: config.renames[id] ?? '',
         defaultLabel: _defaultLabel(column),
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
     // A dismissed dialog (null) leaves the rename unchanged; an explicit empty
     // string clears the override.
@@ -202,6 +213,7 @@ class MatrixColumnEditor extends StatelessWidget {
     final draft = await showDialog<_ParameterizedColumnDraft>(
       context: context,
       builder: (context) => _ParameterizedColumnDialog(taxonomy: _taxonomy),
+      animationStyle: AppMotion.styleFor(context),
     );
     if (draft == null) return;
     final id = '$parameterizedColumnIdPrefix${uuidV4()}';
@@ -224,6 +236,7 @@ class MatrixColumnEditor extends StatelessWidget {
     final draft = await showDialog<_CompoundColumnDraft>(
       context: context,
       builder: (context) => _CompoundColumnDialog(taxonomy: _taxonomy),
+      animationStyle: AppMotion.styleFor(context),
     );
     if (draft == null) return;
     final id = '$compoundColumnIdPrefix${uuidV4()}';
@@ -250,6 +263,7 @@ class MatrixColumnEditor extends StatelessWidget {
         initial: column,
         initialLabel: config.renames[column.id] ?? '',
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
     if (draft == null) return;
     final compounds = [
@@ -263,52 +277,6 @@ class MatrixColumnEditor extends StatelessWidget {
     onConfigChanged(config.copyWith(compound: compounds, renames: renames));
   }
 
-  Future<void> _deleteCompound(
-    BuildContext context,
-    CompoundColumn column,
-  ) async {
-    final l10n = AppLocalizations.of(context);
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l10n.settingsMatrixColumnsCompoundDeleteTitle),
-        content: Text(l10n.settingsMatrixColumnsCompoundDeleteBody),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: Text(l10n.commonCancel),
-          ),
-          FilledButton(
-            style: destructiveFilledButtonStyle(Theme.of(context).colorScheme),
-            key: ValueKey('matrix-column-delete-confirm-${column.id}'),
-            onPressed: () => Navigator.of(context).pop(true),
-            child: Text(l10n.settingsMatrixColumnsCompoundDeleteConfirm),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true) return;
-
-    final compounds = [
-      for (final current in config.compound)
-        if (current.id != column.id) current,
-    ];
-    final order = [
-      for (final id in config.order)
-        if (id != column.id) id,
-    ];
-    final hidden = Set<String>.of(config.hidden)..remove(column.id);
-    final renames = Map<String, String>.of(config.renames)..remove(column.id);
-    onConfigChanged(
-      config.copyWith(
-        compound: compounds,
-        order: order,
-        hidden: hidden,
-        renames: renames,
-      ),
-    );
-  }
-
   Future<void> _editParameterized(
     BuildContext context,
     ParameterizedColumn column,
@@ -320,6 +288,7 @@ class MatrixColumnEditor extends StatelessWidget {
         initial: column,
         initialLabel: config.renames[column.id] ?? '',
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
     if (draft == null) return;
     final parameterized = [
@@ -339,49 +308,54 @@ class MatrixColumnEditor extends StatelessWidget {
     );
   }
 
-  Future<void> _deleteParameterized(
+  /// Deletes the parameterized or compound column [id] at once and offers
+  /// Undo, asking first only when "Confirm before delete" is on (see
+  /// `confirm_delete.dart`). The column goes from the order, hidden set and
+  /// renames as well as its own list; Undo puts each piece back into the
+  /// configuration as it then stands ([restoreDeletedMatrixColumn]), so an
+  /// edit made in between is kept.
+  Future<void> _deleteCustomColumn(
     BuildContext context,
-    ParameterizedColumn column,
+    String id,
+    String label,
   ) async {
+    if (!await confirmDeleteIfEnabled(context, itemLabel: label)) return;
+    if (!context.mounted) return;
     final l10n = AppLocalizations.of(context);
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l10n.settingsMatrixColumnsParameterizedDeleteTitle),
-        content: Text(l10n.settingsMatrixColumnsParameterizedDeleteBody),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: Text(l10n.commonCancel),
-          ),
-          FilledButton(
-            style: destructiveFilledButtonStyle(Theme.of(context).colorScheme),
-            key: ValueKey('matrix-column-delete-confirm-${column.id}'),
-            onPressed: () => Navigator.of(context).pop(true),
-            child: Text(l10n.settingsMatrixColumnsParameterizedDeleteConfirm),
-          ),
-        ],
-      ),
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    final accessibleNavigation = MediaQuery.accessibleNavigationOf(context);
+    final before = (currentConfig ?? () => config)();
+    if (!before.customColumnIds.contains(id)) return;
+    final after = before.copyWith(
+      parameterized: [
+        for (final c in before.parameterized)
+          if (c.id != id) c,
+      ],
+      compound: [
+        for (final c in before.compound)
+          if (c.id != id) c,
+      ],
+      order: [
+        for (final o in before.order)
+          if (o != id) o,
+      ],
+      hidden: Set<String>.of(before.hidden)..remove(id),
+      renames: Map<String, String>.of(before.renames)..remove(id),
     );
-    if (confirmed != true) return;
-
-    final parameterized = [
-      for (final current in config.parameterized)
-        if (current.id != column.id) current,
-    ];
-    final order = [
-      for (final id in config.order)
-        if (id != column.id) id,
-    ];
-    final hidden = Set<String>.of(config.hidden)..remove(column.id);
-    final renames = Map<String, String>.of(config.renames)..remove(column.id);
-    onConfigChanged(
-      config.copyWith(
-        parameterized: parameterized,
-        order: order,
-        hidden: hidden,
-        renames: renames,
-      ),
+    // Captured now: Undo can run after this editor has gone.
+    final report = onConfigChanged;
+    final current = currentConfig ?? () => after;
+    report(after);
+    if (messenger == null) return;
+    showUndoSnackBar(
+      messenger,
+      actionKey: ValueKey('matrix-column-delete-undo-$id'),
+      message: l10n.commonDeletedSnack(label),
+      undoLabel: l10n.commonUndo,
+      undoFailedMessage: l10n.commonUndoFailed,
+      accessibleNavigation: accessibleNavigation,
+      onUndo: () =>
+          report(restoreDeletedMatrixColumn(current(), before: before, id: id)),
     );
   }
 
@@ -405,6 +379,7 @@ class MatrixColumnEditor extends StatelessWidget {
           ),
         ],
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
     if (confirmed ?? false) _restoreTrueDefaults();
   }
@@ -436,7 +411,7 @@ class MatrixColumnEditor extends StatelessWidget {
             buildDefaultDragHandles: false,
             children: [
               for (var i = 0; i < columns.length; i++)
-                _buildColumnRow(context, columns[i], i),
+                _buildColumnRow(context, columns[i], i, columns.length),
             ],
           ),
         ),
@@ -483,7 +458,12 @@ class MatrixColumnEditor extends StatelessWidget {
     );
   }
 
-  Widget _buildColumnRow(BuildContext context, MatrixColumn column, int index) {
+  Widget _buildColumnRow(
+    BuildContext context,
+    MatrixColumn column,
+    int index,
+    int count,
+  ) {
     final l10n = AppLocalizations.of(context);
     ParameterizedColumn? parameterized;
     for (final candidate in config.parameterized) {
@@ -510,6 +490,28 @@ class MatrixColumnEditor extends StatelessWidget {
       onRename: () => _promptRename(context, column),
       onToggleHidden: () => _toggleHidden(column.moveId),
       columnId: column.moveId,
+      onMoveUp: index == 0
+          ? null
+          : () {
+              _reorder(index, index - 1);
+              announceMoved(
+                context,
+                name: _effectiveLabel(column),
+                position: index,
+                count: count,
+              );
+            },
+      onMoveDown: index == count - 1
+          ? null
+          : () {
+              _reorder(index, index + 1);
+              announceMoved(
+                context,
+                name: _effectiveLabel(column),
+                position: index + 2,
+                count: count,
+              );
+            },
       onEditDetails: parameterizedColumn == null
           ? compoundColumn == null
                 ? null
@@ -518,11 +520,13 @@ class MatrixColumnEditor extends StatelessWidget {
       detailsTooltip: compoundColumn == null
           ? null
           : l10n.settingsMatrixColumnsCompoundEdit,
-      onDelete: parameterizedColumn == null
-          ? compoundColumn == null
-                ? null
-                : () => _deleteCompound(context, compoundColumn)
-          : () => _deleteParameterized(context, parameterizedColumn),
+      onDelete: parameterizedColumn == null && compoundColumn == null
+          ? null
+          : () => _deleteCustomColumn(
+              context,
+              column.moveId,
+              _effectiveLabel(column),
+            ),
       deleteTooltip: compoundColumn == null
           ? null
           : l10n.settingsMatrixColumnsCompoundDelete,
@@ -542,6 +546,8 @@ class _ColumnRow extends StatelessWidget {
     required this.onRename,
     required this.onToggleHidden,
     required this.columnId,
+    required this.onMoveUp,
+    required this.onMoveDown,
     this.onEditDetails,
     this.onDelete,
     this.detailsTooltip,
@@ -555,6 +561,8 @@ class _ColumnRow extends StatelessWidget {
   final VoidCallback onRename;
   final VoidCallback onToggleHidden;
   final String columnId;
+  final VoidCallback? onMoveUp;
+  final VoidCallback? onMoveDown;
   final VoidCallback? onEditDetails;
   final VoidCallback? onDelete;
   final String? detailsTooltip;
@@ -571,7 +579,7 @@ class _ColumnRow extends StatelessWidget {
         child: Semantics(
           label: l10n.settingsMatrixColumnsDragToReorder(label),
           child: const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 4),
+            padding: EdgeInsets.symmetric(horizontal: AppSpacing.xxs),
             child: Icon(Icons.drag_handle),
           ),
         ),
@@ -585,47 +593,63 @@ class _ColumnRow extends StatelessWidget {
               )
             : theme.textTheme.bodyMedium,
       ),
-      subtitle: renamed ? Text(l10n.settingsMatrixColumnsRenamedBadge) : null,
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
+      // The actions sit on their own wrapping line under the label rather than
+      // in a trailing slot: with the move buttons there are up to six
+      // full-size targets, which do not fit beside the label on a phone.
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (onEditDetails != null)
-            IconButton(
-              key: ValueKey('matrix-column-edit-details-$columnId'),
-              icon: const Icon(Icons.tune),
-              tooltip:
-                  detailsTooltip ?? l10n.settingsMatrixColumnsParameterizedEdit,
-              onPressed: onEditDetails,
-            ),
-          IconButton(
-            key: ValueKey('matrix-column-rename-$columnId'),
-            icon: const Icon(Icons.edit_outlined),
-            tooltip: l10n.settingsMatrixColumnsRenameTooltip,
-            onPressed: onRename,
+          if (renamed) Text(l10n.settingsMatrixColumnsRenamedBadge),
+          Wrap(
+            children: [
+              ReorderMoveButtons(
+                keyPrefix: 'matrix-column-$columnId',
+                name: label,
+                onMoveUp: onMoveUp,
+                onMoveDown: onMoveDown,
+              ),
+              if (onEditDetails != null)
+                IconButton(
+                  key: ValueKey('matrix-column-edit-details-$columnId'),
+                  icon: const Icon(Icons.tune),
+                  tooltip:
+                      detailsTooltip ??
+                      l10n.settingsMatrixColumnsParameterizedEdit,
+                  onPressed: onEditDetails,
+                ),
+              IconButton(
+                key: ValueKey('matrix-column-rename-$columnId'),
+                icon: const Icon(Icons.edit_outlined),
+                tooltip: l10n.settingsMatrixColumnsRenameTooltip,
+                onPressed: onRename,
+              ),
+              IconButton(
+                key: ValueKey(
+                  hidden
+                      ? 'matrix-column-restore-$columnId'
+                      : 'matrix-column-remove-$columnId',
+                ),
+                icon: Icon(
+                  hidden
+                      ? Icons.add_circle_outline
+                      : Icons.remove_circle_outline,
+                ),
+                tooltip: hidden
+                    ? l10n.settingsMatrixColumnsRestoreTooltip
+                    : l10n.settingsMatrixColumnsRemoveTooltip,
+                onPressed: onToggleHidden,
+              ),
+              if (onDelete != null)
+                IconButton(
+                  key: ValueKey('matrix-column-delete-$columnId'),
+                  icon: const Icon(Icons.delete_outline),
+                  tooltip:
+                      deleteTooltip ??
+                      l10n.settingsMatrixColumnsParameterizedDelete,
+                  onPressed: onDelete,
+                ),
+            ],
           ),
-          IconButton(
-            key: ValueKey(
-              hidden
-                  ? 'matrix-column-restore-$columnId'
-                  : 'matrix-column-remove-$columnId',
-            ),
-            icon: Icon(
-              hidden ? Icons.add_circle_outline : Icons.remove_circle_outline,
-            ),
-            tooltip: hidden
-                ? l10n.settingsMatrixColumnsRestoreTooltip
-                : l10n.settingsMatrixColumnsRemoveTooltip,
-            onPressed: onToggleHidden,
-          ),
-          if (onDelete != null)
-            IconButton(
-              key: ValueKey('matrix-column-delete-$columnId'),
-              icon: const Icon(Icons.delete_outline),
-              tooltip:
-                  deleteTooltip ??
-                  l10n.settingsMatrixColumnsParameterizedDelete,
-              onPressed: onDelete,
-            ),
         ],
       ),
     );
@@ -1312,3 +1336,55 @@ Map<String, Object?> _editableParams(
   String move,
   Map<String, Object?> params,
 ) => {...?taxonomy.aliases[move]?.pinnedParams, ...params};
+
+/// [current] with the custom column [id] put back as [before] had it: Undo of
+/// a column delete. Each piece goes back where it was, clamped to the lists
+/// as they now are: the column into its parameterized or compound list, its
+/// place in the order, its hidden flag and its label. Everything else in
+/// [current] (an edit made after the delete) is kept.
+///
+/// Throws [StateError] when [current] has a custom column [id] again, or
+/// [before] never had one, rather than report an Undo that did nothing.
+MatrixColumnConfig restoreDeletedMatrixColumn(
+  MatrixColumnConfig current, {
+  required MatrixColumnConfig before,
+  required String id,
+}) {
+  if (current.customColumnIds.contains(id)) {
+    throw StateError('column $id is already back');
+  }
+  List<T> putBack<T>(List<T> into, List<T> from, bool Function(T) isIt) {
+    final at = from.indexWhere(isIt);
+    if (at < 0) return into;
+    return into.toList()..insert(at.clamp(0, into.length), from[at]);
+  }
+
+  final parameterized = putBack(
+    current.parameterized,
+    before.parameterized,
+    (c) => c.id == id,
+  );
+  final compound = putBack(
+    current.compound,
+    before.compound,
+    (c) => c.id == id,
+  );
+  if (identical(parameterized, current.parameterized) &&
+      identical(compound, current.compound)) {
+    throw StateError('column $id was not in the configuration');
+  }
+  final label = before.renames[id];
+  return current.copyWith(
+    parameterized: parameterized,
+    compound: compound,
+    order: current.order.contains(id)
+        ? current.order
+        : putBack(current.order, before.order, (o) => o == id),
+    hidden: before.hidden.contains(id)
+        ? (Set<String>.of(current.hidden)..add(id))
+        : current.hidden,
+    renames: label == null
+        ? current.renames
+        : (Map<String, String>.of(current.renames)..[id] = label),
+  );
+}

@@ -111,6 +111,27 @@ void main() {
     expect(_switch(tester, 'updates-beta-toggle').value, isFalse);
   });
 
+  testWidgets('status lines show the controller\'s running release identity', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    final controller = _controller(repos, <UpdateChannel>[]);
+    addTearDown(controller.dispose);
+
+    await _pump(tester, controller);
+    expect(find.text("You're on version 0.1.0."), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('updates-check-now')));
+    await tester.pumpAndSettle();
+    expect(
+      find.text(
+        "Couldn't check for updates right now. "
+        "You're on version 0.1.0.",
+      ),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('manual check works with beta off and fetches stable', (
     tester,
   ) async {

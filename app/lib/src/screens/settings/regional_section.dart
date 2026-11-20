@@ -9,7 +9,7 @@ import '../../data/regional_formats.dart';
 import '../../data/persisted_preference.dart';
 import '../../data/repositories_scope.dart';
 import '../../../l10n/app_localizations.dart';
-import '../../widgets/readable_width.dart';
+import '../../theme/app_spacing.dart';
 import '../../widgets/section_header.dart';
 import '../../widgets/settings_dropdown_row.dart';
 
@@ -213,7 +213,7 @@ class _RegionalView extends StatelessWidget {
     // System default + every locale the app ships a translation for. Dropping a
     // new app_<locale>.arb into lib/l10n/ adds it here with no code change.
     final localeOptions = <Locale?>[null, ...AppLocalizations.supportedLocales];
-    return ReadableListView(
+    return ListView(
       children: [
         SectionHeader(title: l10n.settingsRegionalLanguageHeader),
         SettingsDropdownRow(
@@ -266,7 +266,12 @@ class _RegionalView extends StatelessWidget {
         // the app's fall-back-to-system behavior is explained in context.
         if (isCustom)
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.md,
+              0,
+              AppSpacing.md,
+              AppSpacing.xs,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -286,7 +291,7 @@ class _RegionalView extends StatelessWidget {
                   onChanged: onCustomPatternChanged,
                 ),
                 Padding(
-                  padding: const EdgeInsets.only(top: 4),
+                  padding: const EdgeInsets.only(top: AppSpacing.xxs),
                   child: Text(
                     l10n.settingsDateFormatCustomLegend,
                     key: const ValueKey('regional-date-format-custom-legend'),

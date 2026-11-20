@@ -26,9 +26,9 @@ void main() {
       parseFigureLines(rawText, beats: beats, frontEnd: tcbFigureFrontEnd);
 
   group('taxonomy — the v23 move', () {
-    test('contraTaxonomyVersion is 39', () {
-      expect(contraTaxonomyVersion, 39);
-      expect(tax.version, 39);
+    test('contraTaxonomyVersion is 40', () {
+      expect(contraTaxonomyVersion, 40);
+      expect(tax.version, 40);
     });
 
     test('v23 is purely additive — it owed no schema migration of its own', () {
@@ -78,7 +78,10 @@ void main() {
       // table (sync-spec §6.7), and leaves the taxonomy alone too. Schema 40
       // (#709) adds the user glossary tables, taxonomy untouched. Schema 41
       // (#1935) adds lookup indexes on the dance join tables, likewise.
-      expect(kCompendiumSchemaVersion, 41);
+      // Schema 42 adds ECD's meter, key and proper/improper columns to
+      // `dances` (ADR-006) and the nullable programs.archived_at, with no
+      // taxonomy change either.
+      expect(kCompendiumSchemaVersion, 42);
     });
 
     test('registers with the maintainer-ruled param set', () {

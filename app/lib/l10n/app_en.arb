@@ -393,6 +393,10 @@
       }
     }
   },
+  "colorEditHexInvalid": "Enter six hex digits, like #804020.",
+  "@colorEditHexInvalid": {
+    "description": "Error under the colour dialog's Hex field when Apply is pressed while the field holds something that is not a six-digit hex colour."
+  },
   "colorEditHexLabel": "Hex",
   "@colorEditHexLabel": {
     "description": "Field label for the hexadecimal color input in the shared color-picker dialog."
@@ -1868,9 +1872,13 @@
       }
     }
   },
-  "settingsSyncDevicesEmpty": "No other devices are connected to this store.",
-  "@settingsSyncDevicesEmpty": {
-    "description": "Empty state when this is the only device with a manifest in the Device Sync store."
+  "settingsSyncDevicesEmptyTitle": "No other devices yet",
+  "@settingsSyncDevicesEmptyTitle": {
+    "description": "Heading of the empty state on the sync devices screen when no other device is connected to the store."
+  },
+  "settingsSyncDevicesEmptyBody": "Other devices connected to this store will appear here.",
+  "@settingsSyncDevicesEmptyBody": {
+    "description": "Body of the empty state on the sync devices screen."
   },
   "settingsSyncDevicesFailed": "Couldn't load the device list. Check your connection and try again.",
   "@settingsSyncDevicesFailed": {
@@ -2268,9 +2276,9 @@
   "@settingsAboutLicenseHeader": {
     "description": "About section header introducing the app's software license notice."
   },
-  "settingsAboutLicenseBody": "Caller's Compendium is free software, licensed under the GNU Affero General Public License, version 3 (AGPL-3.0). You are free to use, study, share, and modify it under that license. Because the AGPL requires it, the complete corresponding source code is offered to everyone who uses the app.",
+  "settingsAboutLicenseBody": "Caller's Compendium is free software, licensed under the GNU Affero General Public License, version 3 (AGPL-3.0-only). You are free to use, study, share, and modify it under that license. Because the AGPL requires it, the complete corresponding source code is offered to everyone who uses the app.",
   "@settingsAboutLicenseBody": {
-    "description": "Explanatory paragraph about the app's AGPL-3.0 license and the corresponding source-code offer. 'Caller's Compendium', 'GNU Affero General Public License', and 'AGPL-3.0' are proper nouns kept verbatim."
+    "description": "Explanatory paragraph about the app's AGPL-3.0 license and the corresponding source-code offer. 'Caller's Compendium', 'GNU Affero General Public License', and 'AGPL-3.0-only' are proper nouns kept verbatim."
   },
   "settingsAboutViewSourceTitle": "View source on GitHub",
   "@settingsAboutViewSourceTitle": {
@@ -2324,9 +2332,13 @@
   "@settingsAboutViewLicensesSubtitle": {
     "description": "Subtitle for the 'View licenses' tile."
   },
-  "settingsAboutLegalese": "© The Caller's Compendium contributors. Licensed under AGPL-3.0.",
+  "settingsAboutLegalese": "© The Caller's Compendium contributors. Licensed under AGPL-3.0-only.",
   "@settingsAboutLegalese": {
-    "description": "Legal notice shown on the license page. 'The Caller's Compendium' and 'AGPL-3.0' are proper nouns kept verbatim."
+    "description": "Legal notice shown on the license page. 'The Caller's Compendium' and 'AGPL-3.0-only' are proper nouns kept verbatim."
+  },
+  "settingsAboutTagline": "Your caller's box, in the palm of your hand",
+  "@settingsAboutTagline": {
+    "description": "One-line tagline shown under the version on the About brand header, and used as the Linux launcher comment. 'Caller's box' is a colloquial term among dance callers for the bag or case of cards, notes and gear a caller carries; it is not a product name or trademark, so translate the idiom naturally rather than literally."
   },
   "settingsAboutVersion": "Version {version}, \"{codename}\"",
   "@settingsAboutVersion": {
@@ -2342,17 +2354,13 @@
       }
     }
   },
-  "settingsAboutVersionLine": "{appName} · Version {version}, \"{codename}\" · {license}",
+  "settingsAboutVersionLine": "{appName} · \"{codename}\" · {license}",
   "@settingsAboutVersionLine": {
-    "description": "One-line footer at the bottom of the About section combining the app name, version, release codename, and license identifier. The app name, version, codename, and license are proper nouns / identifiers kept verbatim; only the word 'Version' is translatable.",
+    "description": "One-line footer at the bottom of the About section combining the app name, release codename, and license identifier. The version is deliberately not repeated here: it is shown once, in the About header. The app name, codename, and license are proper nouns / identifiers kept verbatim.",
     "placeholders": {
       "appName": {
         "type": "String",
         "example": "Caller's Compendium"
-      },
-      "version": {
-        "type": "String",
-        "example": "1.4.0"
       },
       "codename": {
         "type": "String",
@@ -2360,7 +2368,7 @@
       },
       "license": {
         "type": "String",
-        "example": "AGPL-3.0"
+        "example": "AGPL-3.0-only"
       }
     }
   },
@@ -2544,6 +2552,10 @@
   "@settingsDialectHeader": {
     "description": "Dialect settings section header for the dialect library."
   },
+  "settingsDialectFormHelper": "Each dance type has its own dialects. Choose a type to see and set up its dialects.",
+  "@settingsDialectFormHelper": {
+    "description": "Helper text above the dance-type selector in Settings › Dialect. The selector's segments are the dance-type names (Contra, English, Square); the list below it shows only the chosen type's dialects."
+  },
   "settingsDialectDanceDetailsHeader": "Dance details & shorthands",
   "@settingsDialectDanceDetailsHeader": {
     "description": "Settings subsection header for canonical dance-detail text and figure-entry preferences."
@@ -2595,20 +2607,6 @@
   "settingsDialectDuplicateToCustomize": "Duplicate to customize",
   "@settingsDialectDuplicateToCustomize": {
     "description": "Row menu item on a read-only preset that duplicates it into an editable custom dialect."
-  },
-  "settingsDialectDeleteTitle": "Delete dialect?",
-  "@settingsDialectDeleteTitle": {
-    "description": "Title of the confirm-delete dialog for a custom dialect."
-  },
-  "settingsDialectDeleteConfirmBody": "\"{name}\" will be permanently removed.",
-  "@settingsDialectDeleteConfirmBody": {
-    "description": "Body of the confirm-delete dialog, quoting the dialect name (untrusted user text, rendered as plain text).",
-    "placeholders": {
-      "name": {
-        "type": "String",
-        "example": "My dialect"
-      }
-    }
   },
   "settingsDialectEditConflictSnack": "\"{name}\" was renamed or deleted while you were editing it, so your changes were not saved.",
   "@settingsDialectEditConflictSnack": {
@@ -3080,20 +3078,6 @@
   "@settingsAppearanceCustomThemesEmpty": {
     "description": "Helper text shown when the user has no saved custom themes yet."
   },
-  "settingsAppearanceDeleteThemeTitle": "Delete theme?",
-  "@settingsAppearanceDeleteThemeTitle": {
-    "description": "Title of the confirm-delete dialog for a custom theme."
-  },
-  "settingsAppearanceDeleteThemeBody": "\"{name}\" will be permanently removed.",
-  "@settingsAppearanceDeleteThemeBody": {
-    "description": "Body of the confirm-delete dialog for a custom theme.",
-    "placeholders": {
-      "name": {
-        "type": "String",
-        "example": "My theme"
-      }
-    }
-  },
   "settingsAppearanceCustomThemeSemantic": "Custom theme {name}",
   "@settingsAppearanceCustomThemeSemantic": {
     "description": "Screen-reader label for a saved custom-theme card.",
@@ -3404,6 +3388,10 @@
   "@settingsDefaultsFormSubtitle": {
     "description": "Explanation for the default dance-type picker."
   },
+  "settingsDefaultsFormLastUsed": "Last used",
+  "@settingsDefaultsFormLastUsed": {
+    "description": "Option in the default dance-type picker: a new dance starts as the type of the last dance the user created."
+  },
   "settingsDefaultsFormationTitle": "Formation",
   "@settingsDefaultsFormationTitle": {
     "description": "Title of the default dance-formation picker."
@@ -3510,9 +3498,13 @@
   "@settingsAppearanceTagColoursSubtitle": {
     "description": "Explanation for the tag-color customisation entry."
   },
-  "settingsTagColoursEmpty": "You haven't created any tags yet. Add a tag to a dance and it will appear here.",
-  "@settingsTagColoursEmpty": {
-    "description": "Shown on the tag-color screen when the collection has no tags."
+  "settingsTagColoursEmptyTitle": "No tags yet",
+  "@settingsTagColoursEmptyTitle": {
+    "description": "Heading of the empty state on the tag manager."
+  },
+  "settingsTagColoursEmptyBody": "Add a tag to a dance and it will appear here.",
+  "@settingsTagColoursEmptyBody": {
+    "description": "Body of the empty state on the tag manager; says where tags come from."
   },
   "settingsTagColoursSaveError": "Couldn't save that color. Please try again.",
   "@settingsTagColoursSaveError": {
@@ -3614,9 +3606,13 @@
   "@authorManagerNameLabel": {
     "description": "Label of the name field in the Authors manager's rename dialog."
   },
-  "authorManagerEmpty": "No authors yet. Authors you credit on a dance appear here.",
-  "@authorManagerEmpty": {
-    "description": "Shown in the Authors manager when there are no authors."
+  "authorManagerEmptyTitle": "No authors yet",
+  "@authorManagerEmptyTitle": {
+    "description": "Heading of the empty state on the author manager."
+  },
+  "authorManagerEmptyBody": "Authors you credit on a dance appear here.",
+  "@authorManagerEmptyBody": {
+    "description": "Body of the empty state on the author manager."
   },
   "authorManagerLoadError": "Couldn't load your authors.",
   "@authorManagerLoadError": {
@@ -3648,9 +3644,13 @@
   "@sourceManagerTitleLabel": {
     "description": "Label of the title field in the Sources manager's rename dialog."
   },
-  "sourceManagerEmpty": "No sources yet. Books and websites you cite on a dance appear here.",
-  "@sourceManagerEmpty": {
-    "description": "Shown in the Sources manager when there are no sources."
+  "sourceManagerEmptyTitle": "No sources yet",
+  "@sourceManagerEmptyTitle": {
+    "description": "Heading of the empty state on the source manager."
+  },
+  "sourceManagerEmptyBody": "Books and websites you cite on a dance appear here.",
+  "@sourceManagerEmptyBody": {
+    "description": "Body of the empty state on the source manager."
   },
   "sourceManagerLoadError": "Couldn't load your sources.",
   "@sourceManagerLoadError": {
@@ -4040,18 +4040,6 @@
   "@settingsMatrixColumnsParameterizedDelete": {
     "description": "Tooltip for deleting a parameterized column definition."
   },
-  "settingsMatrixColumnsParameterizedDeleteTitle": "Delete parameterized column?",
-  "@settingsMatrixColumnsParameterizedDeleteTitle": {
-    "description": "Title of the delete-parameterized-column confirmation dialog."
-  },
-  "settingsMatrixColumnsParameterizedDeleteBody": "This removes the column and its matching rules from the matrix. This cannot be undone.",
-  "@settingsMatrixColumnsParameterizedDeleteBody": {
-    "description": "Warning shown before deleting a parameterized column."
-  },
-  "settingsMatrixColumnsParameterizedDeleteConfirm": "Delete column",
-  "@settingsMatrixColumnsParameterizedDeleteConfirm": {
-    "description": "Confirm button for deleting a parameterized column."
-  },
   "settingsMatrixColumnsCompoundAdd": "Add compound column",
   "@settingsMatrixColumnsCompoundAdd": {
     "description": "Button that opens the editor for adding a compound matrix column."
@@ -4104,18 +4092,6 @@
   "@settingsMatrixColumnsCompoundDelete": {
     "description": "Tooltip for deleting a compound column definition."
   },
-  "settingsMatrixColumnsCompoundDeleteTitle": "Delete compound column?",
-  "@settingsMatrixColumnsCompoundDeleteTitle": {
-    "description": "Title of the delete-compound-column confirmation dialog."
-  },
-  "settingsMatrixColumnsCompoundDeleteBody": "This removes the column and its matching sequence from the matrix. This cannot be undone.",
-  "@settingsMatrixColumnsCompoundDeleteBody": {
-    "description": "Warning shown before deleting a compound column."
-  },
-  "settingsMatrixColumnsCompoundDeleteConfirm": "Delete column",
-  "@settingsMatrixColumnsCompoundDeleteConfirm": {
-    "description": "Confirm button for deleting a compound column."
-  },
   "settingsGeneralPerformanceHeader": "Performance",
   "@settingsGeneralPerformanceHeader": {
     "description": "General settings section header for performance-mode display preferences."
@@ -4124,7 +4100,7 @@
   "@settingsGeneralAutoSizePerformTitle": {
     "description": "Title of the General settings toggle that automatically sizes Perform screen cards."
   },
-  "settingsGeneralAutoSizePerformSubtitle": "Scale each card so the full dance or slot fits the screen without scrolling. Turn off to set the size yourself with A- / A+.",
+  "settingsGeneralAutoSizePerformSubtitle": "Scale each card to fit the screen, but never below your usual text size: a longer dance or slot scrolls instead. Turn off to set the size yourself with A- / A+.",
   "@settingsGeneralAutoSizePerformSubtitle": {
     "description": "Subtitle explaining the auto-size Perform cards toggle. 'A-' and 'A+' refer to text-size controls."
   },
@@ -4135,6 +4111,14 @@
   "settingsShowIndividualPerformTimerSubtitle": "Show elapsed time while performing a single dance. The timer starts when it appears and can be paused.",
   "@settingsShowIndividualPerformTimerSubtitle": {
     "description": "Subtitle explaining the default-on individual Perform elapsed-timer toggle."
+  },
+  "settingsConfirmPerformExitTitle": "Confirm before leaving Perform",
+  "@settingsConfirmPerformExitTitle": {
+    "description": "Title of the Program settings toggle that makes the Perform close button and system Back ask before leaving Perform."
+  },
+  "settingsConfirmPerformExitSubtitle": "Ask before the close button or Back takes you out of Perform. Turn this off to leave in one tap; program Perform keeps your place either way.",
+  "@settingsConfirmPerformExitSubtitle": {
+    "description": "Subtitle of the Program settings toggle that makes leaving Perform ask for confirmation."
   },
   "settingsShowProgramSlotCallerNotesTitle": "Show caller notes in program Perform",
   "@settingsShowProgramSlotCallerNotesTitle": {
@@ -4300,9 +4284,31 @@
   "@settingsGeneralConfirmBeforeDeleteTitle": {
     "description": "Title of the General settings toggle that asks before deleting a dance or program."
   },
-  "settingsGeneralConfirmBeforeDeleteSubtitle": "Ask for confirmation before deleting a dance or program. Deletes can still be undone; this just adds an explicit prompt first.",
+  "settingsGeneralConfirmBeforeDeleteSubtitle": "Ask before deleting anything you can undo. Deletes that can't be undone always ask first.",
   "@settingsGeneralConfirmBeforeDeleteSubtitle": {
     "description": "Subtitle explaining the confirm-before-delete toggle."
+  },
+  "settingsGeneralUndoPromptTitle": "Undo prompt",
+  "@settingsGeneralUndoPromptTitle": {
+    "description": "Title of the setting for how long the Undo prompt (the snackbar offering Undo after a delete or change) stays on screen."
+  },
+  "settingsGeneralUndoPromptSubtitle": "How long Undo stays on screen after you delete or change something. It also stays while you point at it or move to it with the keyboard.",
+  "@settingsGeneralUndoPromptSubtitle": {
+    "description": "Subtitle of the Undo prompt duration setting."
+  },
+  "settingsGeneralUndoPromptSeconds": "{seconds, plural, =1{1 second} other{{seconds} seconds}}",
+  "@settingsGeneralUndoPromptSeconds": {
+    "description": "Undo prompt duration dropdown option: a number of seconds.",
+    "placeholders": {
+      "seconds": {
+        "type": "int",
+        "example": "10"
+      }
+    }
+  },
+  "settingsGeneralUndoPromptUntilClosed": "Until I close it",
+  "@settingsGeneralUndoPromptUntilClosed": {
+    "description": "Undo prompt duration dropdown option: the prompt has no time limit and stays until the user closes it or a new prompt replaces it."
   },
   "settingsGeneralDeletedItemsHeader": "Recently deleted",
   "@settingsGeneralDeletedItemsHeader": {
@@ -4535,6 +4541,18 @@
   "settingsGeneralReparseCustomFiguresAction": "Re-check…",
   "@settingsGeneralReparseCustomFiguresAction": {
     "description": "Button label that opens the re-check custom figures flow; the ellipsis indicates more review follows."
+  },
+  "settingsGeneralEcdMigrationTitle": "Convert English dances",
+  "@settingsGeneralEcdMigrationTitle": {
+    "description": "Settings row title for the opt-in migration of English country dances stored with contra moves (ADR-006 F5)."
+  },
+  "settingsGeneralEcdMigrationSubtitle": "English country dances stored before the app knew English figures still use contra moves. Convert the moves that mean the same in English dancing, re-read unrecognized figures, and give each dance its English formation. You choose the dances and confirm before anything changes.",
+  "@settingsGeneralEcdMigrationSubtitle": {
+    "description": "Settings row subtitle explaining the English-dance conversion."
+  },
+  "settingsGeneralEcdMigrationAction": "Convert…",
+  "@settingsGeneralEcdMigrationAction": {
+    "description": "Button that opens the English-dance conversion screen."
   },
   "settingsGeneralBackupRestoreHeader": "Backup & restore",
   "@settingsGeneralBackupRestoreHeader": {
@@ -5054,6 +5072,10 @@
   "@commonFormationDupleImproper": {
     "description": "Formation shape value: duple improper."
   },
+  "commonFormationProgressedImproper": "Progressed improper",
+  "@commonFormationProgressedImproper": {
+    "description": "Formation shape value: improper formation already progressed."
+  },
   "commonFormationReverseProgressionImproper": "Reverse progression improper",
   "@commonFormationReverseProgressionImproper": {
     "description": "Formation shape value: improper formation with reverse progression."
@@ -5130,6 +5152,63 @@
       }
     }
   },
+  "commonFormationDupleMinor": "Duple minor",
+  "@commonFormationDupleMinor": {
+    "description": "Formation shape value (English country dance): a longways set danced in minor sets of two couples."
+  },
+  "commonFormationThreeCoupleLongways": "Three-couple longways",
+  "@commonFormationThreeCoupleLongways": {
+    "description": "Formation shape value (English country dance): a longways set of exactly three couples."
+  },
+  "commonFormationFourCoupleLongways": "Four-couple longways",
+  "@commonFormationFourCoupleLongways": {
+    "description": "Formation shape value (English country dance): a longways set of exactly four couples."
+  },
+  "commonFormationFiveCoupleLongways": "Five-couple longways",
+  "@commonFormationFiveCoupleLongways": {
+    "description": "Formation shape value (English country dance): a longways set of exactly five couples."
+  },
+  "commonFormationSixCoupleLongways": "Six-couple longways",
+  "@commonFormationSixCoupleLongways": {
+    "description": "Formation shape value (English country dance): a longways set of exactly six couples."
+  },
+  "commonFormationCircle": "Circle",
+  "@commonFormationCircle": {
+    "description": "Formation shape value (English country dance): dancers in a circle."
+  },
+  "commonFormationSquare": "Square",
+  "@commonFormationSquare": {
+    "description": "Formation shape value (English country dance): a square set of four couples."
+  },
+  "commonFormationTwoCoupleSet": "Two-couple set",
+  "@commonFormationTwoCoupleSet": {
+    "description": "Formation shape value (English country dance): a set of exactly two couples."
+  },
+  "commonFormationImproperFlag": "{shape}, improper",
+  "@commonFormationImproperFlag": {
+    "description": "An English country dance formation that starts improper (first couple crossed over). {shape} is a localized formation shape name, such as 'Duple minor'.",
+    "placeholders": {
+      "shape": {
+        "type": "String"
+      }
+    }
+  },
+  "danceEditorMeterLabel": "Meter",
+  "@danceEditorMeterLabel": {
+    "description": "Label for a dance's written meter (time signature) as free text, for example 3/2 or 6/8."
+  },
+  "danceEditorMusicalKeyLabel": "Key",
+  "@danceEditorMusicalKeyLabel": {
+    "description": "Label for the musical key of a dance's tune as free text, for example G minor."
+  },
+  "danceEditorMeterHint": "e.g. 3/2",
+  "@danceEditorMeterHint": {
+    "description": "Hint in the dance editor's meter field: an example of a written meter."
+  },
+  "danceEditorMusicalKeyHint": "e.g. G minor",
+  "@danceEditorMusicalKeyHint": {
+    "description": "Hint in the dance editor's key field: an example of a musical key."
+  },
   "commonMixedLevel": "Mixed level",
   "@commonMixedLevel": {
     "description": "Label indicating a dance suits mixed experience levels; used as a filter chip/section and a dance indicator chip."
@@ -5158,6 +5237,10 @@
       }
     }
   },
+  "commonCantBeUndone": "This can't be undone.",
+  "@commonCantBeUndone": {
+    "description": "Second paragraph of every confirmation for a delete that cannot be undone (there is no Undo and nothing in Recently deleted). The one wording for irreversibility across the app."
+  },
   "importGapMessage": "Couldn't recognize this call — kept exactly as written as an unrecognized figure.",
   "@importGapMessage": {
     "description": "Explanation shown for a figure that an import parser could not map to a structured move and kept verbatim. Shared by the import-gap badge tooltip, its explanation dialog body, and the figure-row Semantics label."
@@ -5177,16 +5260,6 @@
   "collectionNewDance": "New dance",
   "@collectionNewDance": {
     "description": "Label of the floating action button that creates a new dance."
-  },
-  "collectionSearchTooltip": "{platform, select, apple{Search (⌘K)} other{Search (Ctrl+K)}}",
-  "@collectionSearchTooltip": {
-    "description": "Tooltip for the app-bar search button, noting its keyboard shortcut.",
-    "placeholders": {
-      "platform": {
-        "type": "String",
-        "description": "'apple' on macOS and iOS, where shortcuts use the Command key; 'other' everywhere else."
-      }
-    }
   },
   "collectionSelectDancesTooltip": "Select dances",
   "@collectionSelectDancesTooltip": {
@@ -6317,6 +6390,92 @@
       }
     }
   },
+  "danceFigureBars": "{halfBars, plural, =1{{bars} bar} =2{{bars} bar} other{{bars} bars}}",
+  "@danceFigureBars": {
+    "description": "A figure's length in bars, for an English country dance: {bars} is the count as written, such as 4 or 1½; {halfBars} is the same count in half bars, which picks the plural (1 is half a bar, 2 is one bar).",
+    "placeholders": {
+      "bars": {
+        "type": "String"
+      },
+      "halfBars": {
+        "type": "int"
+      }
+    }
+  },
+  "danceEditorBarsLabel": "Bars",
+  "@danceEditorBarsLabel": {
+    "description": "Label of a figure's length field in the dance editor for an English country dance, which is timed in bars rather than beats."
+  },
+  "danceEditorStepUntimed": "No timing of its own",
+  "@danceEditorStepUntimed": {
+    "description": "Shown for a step of a sequence that has no bars of its own: the sequence as a whole states its bars, as in 'A, B and C in bars 1–4'."
+  },
+  "danceEditorBarsRangeError": "Enter whole or half bars, up to {max}",
+  "@danceEditorBarsRangeError": {
+    "description": "Error under a bars field in the dance editor when the text is not a number of whole or half bars within range.",
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "danceEditorHalfBarRefused": "Whole bars only, with {beatsPerBar} beats to the bar",
+  "@danceEditorHalfBarRefused": {
+    "description": "Error under a bars field when half a bar is entered in a tune whose bar has an odd number of beats, such as triple time.",
+    "placeholders": {
+      "beatsPerBar": {
+        "type": "int"
+      }
+    }
+  },
+  "danceEditorSequenceSpanLabel": "Bars for all",
+  "@danceEditorSequenceSpanLabel": {
+    "description": "Label of the field giving the bars a whole sequence takes in an English country dance, as in 'A, B and C in bars 1–4'."
+  },
+  "danceEditorSequenceSpanEmptyHelp": "Leave empty to add up the steps' bars, or give the bars the whole sequence takes, as in \"A, B and C in bars 1–4\".",
+  "@danceEditorSequenceSpanEmptyHelp": {
+    "description": "Help under the empty 'Bars for all' field of a sequence in an English country dance."
+  },
+  "danceEditorSequenceSpanHelp": "The steps share these bars, and each may leave its own bars empty.",
+  "@danceEditorSequenceSpanHelp": {
+    "description": "Help under the filled 'Bars for all' field of a sequence in an English country dance."
+  },
+  "danceEditorSequenceSpanMismatch": "The steps take {steps}, but the sequence takes {span}.",
+  "@danceEditorSequenceSpanMismatch": {
+    "description": "Warning in a sequence of an English country dance whose every step has its own bars and they don't add up to the sequence's. {steps} and {span} are lengths such as '4 bars'.",
+    "placeholders": {
+      "steps": {
+        "type": "String"
+      },
+      "span": {
+        "type": "String"
+      }
+    }
+  },
+  "danceEditorSequenceSpanNoRoom": "The steps with bars of their own take {steps} of the sequence's {span}, leaving none for the rest.",
+  "@danceEditorSequenceSpanNoRoom": {
+    "description": "Warning in a sequence of an English country dance whose timed steps already fill its bars, leaving none for its untimed steps. {steps} and {span} are lengths such as '4 bars'.",
+    "placeholders": {
+      "steps": {
+        "type": "String"
+      },
+      "span": {
+        "type": "String"
+      }
+    }
+  },
+  "danceEditorSequenceOverPhraseTimed": "This sequence is {length}, longer than one phrase ({limit}).",
+  "@danceEditorSequenceOverPhraseTimed": {
+    "description": "Warning in a sequence of an English country dance that runs longer than one phrase. {length} and {limit} are lengths such as '10 bars'.",
+    "placeholders": {
+      "length": {
+        "type": "String"
+      },
+      "limit": {
+        "type": "String"
+      }
+    }
+  },
   "danceFigureProgressionSemantic": "progression",
   "@danceFigureProgressionSemantic": {
     "description": "Word inserted into a figure row's accessible label when the figure carries the progression."
@@ -6361,7 +6520,7 @@
   },
   "programsMoreActions": "More actions",
   "@programsMoreActions": {
-    "description": "Tooltip for the overflow (⋮) menu holding Mark all performed, Duplicate and Delete on the program builder's and summary's narrow toolbars."
+    "description": "Tooltip for the overflow (⋮) menu holding Mark all performed, Duplicate, Archive and Delete on the program builder's and summary's narrow toolbars."
   },
   "danceSectionFigures": "Figures",
   "@danceSectionFigures": {
@@ -6452,6 +6611,10 @@
   "danceCanonicalToggleLabel": "Canonical",
   "@danceCanonicalToggleLabel": {
     "description": "Visible label beside the canonical-terms toggle."
+  },
+  "danceRoleTermsOverrideNote": "Shown with larks and robins: the author has asked that this dance only ever be called with those role terms, so your dialect's role terms are not used here.",
+  "@danceRoleTermsOverrideNote": {
+    "description": "Note on a dance's detail page when the dance is shown with the role terms 'larks' and 'robins' instead of the role terms of the user's dialect, because its author asked that it only be called with those terms. 'larks' and 'robins' are the role terms the dance is shown with, which stay in English in the dance, so keep them as written."
   },
   "danceProvenanceVia": "via {source}",
   "@danceProvenanceVia": {
@@ -6767,10 +6930,6 @@
   "@programsNoLongerExists": {
     "description": "Error shown in the program editor when the program was deleted and can no longer be loaded."
   },
-  "programsFallbackTitle": "Program",
-  "@programsFallbackTitle": {
-    "description": "Fallback title used for an untitled program when opening the Perform view from an unsaved draft."
-  },
   "programsUntitledDanceFallback": "dance",
   "@programsUntitledDanceFallback": {
     "description": "Fallback word used in place of a dance title when the title is unavailable, in add-dance confirmation messages."
@@ -6860,6 +7019,54 @@
         "example": "Friday Night Contra"
       }
     }
+  },
+  "programsArchive": "Archive",
+  "@programsArchive": {
+    "description": "Action that archives a program: hides it from the Programs list without deleting it. Shown in a program row's ⋮ menu, and as a toolbar button tooltip (or ⋮ menu item on narrow screens) on the program summary and the program builder."
+  },
+  "programsUnarchive": "Unarchive",
+  "@programsUnarchive": {
+    "description": "Action that reverses Archive on an archived program, so it shows in the Programs list again. Shown in the same places as programsArchive."
+  },
+  "programsArchivedSnack": "\"{title}\" archived.",
+  "@programsArchivedSnack": {
+    "description": "Snackbar confirming a program was archived, quoting its title. Paired with an Undo action.",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "Friday Night Contra"
+      }
+    }
+  },
+  "programsUnarchivedSnack": "\"{title}\" unarchived.",
+  "@programsUnarchivedSnack": {
+    "description": "Snackbar confirming an archived program was unarchived and is back in the Programs list, quoting its title.",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "Friday Night Contra"
+      }
+    }
+  },
+  "programsArchivedLabel": "Archived",
+  "@programsArchivedLabel": {
+    "description": "Label marking a program as archived: the chip on its row in the Programs list and on its summary, and the field name when Sync compares two versions of a program."
+  },
+  "programsShowArchived": "Show archived",
+  "@programsShowArchived": {
+    "description": "Programs list ⋮ menu item (and empty-state button) that also lists archived programs, alongside the others."
+  },
+  "programsHideArchived": "Hide archived",
+  "@programsHideArchived": {
+    "description": "Programs list ⋮ menu item, shown while archived programs are listed, that hides them again."
+  },
+  "programsAllArchivedTitle": "No programs to show",
+  "@programsAllArchivedTitle": {
+    "description": "Title of the empty state when every program is archived: on the Programs list while archived programs are hidden, and in the add-to-program sheet, which never offers archived programs."
+  },
+  "programsAllArchivedBody": "All your programs are archived.",
+  "@programsAllArchivedBody": {
+    "description": "Body of the empty state when every program is archived. On the Programs list (while archived programs are hidden) it is followed by Show archived and New program buttons; in the add-to-program sheet it sits below the pinned New program row."
   },
   "programsDiscardTitle": "Discard changes?",
   "@programsDiscardTitle": {
@@ -7164,6 +7371,14 @@
   "@programsTitle": {
     "description": "Title of the Programs list screen and its navigation destination."
   },
+  "programsSearchTooltip": "Search programs",
+  "@programsSearchTooltip": {
+    "description": "Tooltip of the narrow-layout Programs list's app-bar search button, which searches programs only (not dances); also the screen-reader label of that search's dismiss barrier."
+  },
+  "programsSearchHint": "Search programs…",
+  "@programsSearchHint": {
+    "description": "Placeholder hint in the search field opened from the narrow-layout Programs list, which lists programs only."
+  },
   "programsSortTitle": "Title",
   "@programsSortTitle": {
     "description": "Programs list sort option: order alphabetically by program title."
@@ -7340,9 +7555,13 @@
   "@programsSlotNoteFallback": {
     "description": "Fallback title for a free-text program slot that has no text yet."
   },
-  "programsSlotEditorEmpty": "No slots yet. Add a dance or a note to get started.",
-  "@programsSlotEditorEmpty": {
-    "description": "Empty state shown in the program slot list editor when a program has no slots."
+  "programsSlotEditorEmptyTitle": "No slots yet",
+  "@programsSlotEditorEmptyTitle": {
+    "description": "Heading of the empty state in the program slot list editor when a program has no slots."
+  },
+  "programsSlotEditorEmptyBody": "Add a dance or a note to get started.",
+  "@programsSlotEditorEmptyBody": {
+    "description": "Body of the empty state in the program slot list editor; says how to add the first slot."
   },
   "programsSlotMovedUp": "Slot moved up.",
   "@programsSlotMovedUp": {
@@ -8073,6 +8292,14 @@
         "example": "8"
       }
     }
+  },
+  "performProgramClockLabel": "Program",
+  "@performProgramClockLabel": {
+    "description": "Short visible label in the program Perform footer, shown before the clock that times the whole program (the evening). Keep it to one short word; the footer is narrow."
+  },
+  "performSlotClockLabel": "Slot",
+  "@performSlotClockLabel": {
+    "description": "Short visible label in the program Perform footer, shown before the clock that times the current slot (dance). Keep it to one short word, matching the word used in 'Slot {current} of {total}'."
   },
   "performShowingSlot": "Showing {label}",
   "@performShowingSlot": {
@@ -10626,6 +10853,10 @@
       }
     }
   },
+  "importReviewEditOverwriteConfirm": "Replace",
+  "@importReviewEditOverwriteConfirm": {
+    "description": "Confirm button of the dialog that asks before Import and edit writes onto an existing dance in the collection. Names the action: the existing dance's content is replaced."
+  },
   "importReviewEditReimportTitle": "Re-import onto the existing dance now?",
   "@importReviewEditReimportTitle": {
     "description": "Title of the confirmation shown when Import and edit is pressed on a row set to Re-import, because the matched dance is updated immediately, outside the batch Undo."
@@ -10896,9 +11127,13 @@
   "@settingsWalkthroughSnippetsDescription": {
     "description": "Explanatory text at the top of the walkthrough-snippet library editor (#411)."
   },
-  "settingsWalkthroughSnippetsEmpty": "No saved snippets yet. Add walkthrough step descriptions while editing a dance's figures.",
-  "@settingsWalkthroughSnippetsEmpty": {
-    "description": "Empty-state text on the walkthrough-snippet library editor when the library is empty (#411)."
+  "settingsWalkthroughSnippetsEmptyTitle": "No saved snippets yet",
+  "@settingsWalkthroughSnippetsEmptyTitle": {
+    "description": "Heading of the empty state on the walkthrough-snippet library editor."
+  },
+  "settingsWalkthroughSnippetsEmptyBody": "Add walkthrough step descriptions while editing a dance's figures.",
+  "@settingsWalkthroughSnippetsEmptyBody": {
+    "description": "Body of the empty state on the walkthrough-snippet library editor; says where snippets come from."
   },
   "settingsWalkthroughSnippetsCount": "{count, plural, =1{1 snippet} other{{count} snippets}}",
   "@settingsWalkthroughSnippetsCount": {
@@ -10908,14 +11143,6 @@
         "type": "int"
       }
     }
-  },
-  "settingsWalkthroughSnippetDeleteTitle": "Delete snippet?",
-  "@settingsWalkthroughSnippetDeleteTitle": {
-    "description": "Title of the confirmation before deleting a saved walkthrough snippet (#411)."
-  },
-  "settingsWalkthroughSnippetDeleteBody": "This removes the saved default for this figure. Dances keep any walkthrough text you already wrote.",
-  "@settingsWalkthroughSnippetDeleteBody": {
-    "description": "Body of the confirmation before deleting a saved walkthrough snippet (#411)."
   },
   "settingsWalkthroughSnippetEditTitle": "Edit snippet",
   "@settingsWalkthroughSnippetEditTitle": {
@@ -10937,6 +11164,14 @@
   "@danceEditorMixerSubtitle": {
     "description": "Subtitle explaining the mixer checkbox in the dance editor: the dance progresses dancers to a new partner each time through the sequence."
   },
+  "danceEditorImproperLabel": "Starts improper",
+  "@danceEditorImproperLabel": {
+    "description": "Checkbox in the dance editor, offered for English country dances only: the dance starts improper (the first couple crossed over). Unchecked means it starts proper, the default."
+  },
+  "danceEditorImproperSubtitle": "Leave unchecked for a dance that starts proper.",
+  "@danceEditorImproperSubtitle": {
+    "description": "Subtitle of the 'Starts improper' checkbox in the dance editor."
+  },
   "danceEditorComposedLabel": "Composed",
   "@danceEditorComposedLabel": {
     "description": "Label for the partial date when the dance was composed."
@@ -10944,6 +11179,18 @@
   "danceEditorComposedHelper": "When the dance was composed (year, or add month/day)",
   "@danceEditorComposedHelper": {
     "description": "Helper text for the composed-date field."
+  },
+  "danceEditorInterpretedByLabel": "Interpreted by",
+  "@danceEditorInterpretedByLabel": {
+    "description": "Field label for the people who interpreted the dance: reconstructed it from its original publication, as English country dances often are. Drawn from the same people list as the authors."
+  },
+  "danceEditorInterpretedOnLabel": "Interpreted in",
+  "@danceEditorInterpretedOnLabel": {
+    "description": "Label for the partial date (a year, or a fuller date) when the dance was interpreted, like the Composed date."
+  },
+  "danceEditorInterpretedOnHelper": "When the dance was interpreted (year, or add month/day)",
+  "@danceEditorInterpretedOnHelper": {
+    "description": "Helper text for the interpreted-date field, like the composed-date field's helper."
   },
   "danceEditorRevisedLabel": "Revised",
   "@danceEditorRevisedLabel": {
@@ -11185,6 +11432,54 @@
       }
     }
   },
+  "validationSequenceSpanMismatch": "The steps of the sequence in figure {position} take {actual} beats; the sequence takes {expected}.",
+  "@validationSequenceSpanMismatch": {
+    "description": "Editor warning for an English country dance's sequence whose steps each have a count that doesn't add up to the sequence's own. {position} is the figure holding it.",
+    "placeholders": {
+      "position": {
+        "type": "int"
+      },
+      "actual": {
+        "type": "int"
+      },
+      "expected": {
+        "type": "int"
+      }
+    }
+  },
+  "validationSequenceSpanNoRoom": "The timed steps of the sequence in figure {position} take {actual} beats, leaving none of its {expected} for the rest.",
+  "@validationSequenceSpanNoRoom": {
+    "description": "Editor warning for an English country dance's sequence whose timed steps fill its count, leaving none for its untimed steps. {position} is the figure holding it.",
+    "placeholders": {
+      "position": {
+        "type": "int"
+      },
+      "actual": {
+        "type": "int"
+      },
+      "expected": {
+        "type": "int"
+      }
+    }
+  },
+  "validationOtherFormFigures": "This dance is {danceForm}, but {count, plural, =1{1 figure is} other{{count} figures are}} from {figureForm}. They are kept as they are, but the figure picker offers only {pickerForm} figures.",
+  "@validationOtherFormFigures": {
+    "description": "Editor warning when a dance holds figures of another dance type than its own, for example after its type was changed. {danceForm} and {figureForm} are dance type names such as 'Contra' or 'English (ECD)'. {pickerForm} is the type whose figures the picker offers: the dance's own, or Contra's for a type that has no figure list of its own yet (Square).",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "danceForm": {
+        "type": "String"
+      },
+      "figureForm": {
+        "type": "String"
+      },
+      "pickerForm": {
+        "type": "String"
+      }
+    }
+  },
   "validationIncompleteFigure": "Figure {position} is not complete, so Save leaves it out.",
   "@validationIncompleteFigure": {
     "description": "Dance-editor warning (AUTH-2): the figure row at {position} (1-based, counting the rows of the figure list) is not complete, such as a group (meanwhile, modifier or sequence) with fewer than two of its figures filled in, a modifier group with no Core, or a row with no move that holds a walkthrough step, so saving the dance leaves it out. 'Save' is the editor's Save button (commonSave).",
@@ -11229,7 +11524,7 @@
     "placeholders": {
       "term": {
         "type": "String",
-        "example": "gents"
+        "example": "larks"
       }
     }
   },
@@ -11239,7 +11534,7 @@
     "placeholders": {
       "source": {
         "type": "String",
-        "example": "gents"
+        "example": "larks"
       },
       "existing": {
         "type": "String",
@@ -11248,6 +11543,16 @@
       "substitution": {
         "type": "String",
         "example": "larks"
+      }
+    }
+  },
+  "validationGenderedRoleTerm": "\"{word}\" is a gendered role word, which the app never shows. Use a role-neutral word instead.",
+  "@validationGenderedRoleTerm": {
+    "description": "Dialect-editor and dialect-name validation error: the entry uses a gendered role word (such as the words for men or women), which the app never shows. {word} is the offending word as the user typed it, rendered as plain text.",
+    "placeholders": {
+      "word": {
+        "type": "String",
+        "example": "ladies"
       }
     }
   },
@@ -11261,7 +11566,7 @@
     "placeholders": {
       "term": {
         "type": "String",
-        "example": "gents"
+        "example": "larks"
       }
     }
   },
@@ -11271,7 +11576,7 @@
     "placeholders": {
       "term": {
         "type": "String",
-        "example": "gents"
+        "example": "larks"
       }
     }
   },
@@ -11887,6 +12192,48 @@
   "@danceEditorMoveDown": {
     "description": "Menu item label for moving a figure row downward."
   },
+  "commonMoveItemUp": "Move {name} up",
+  "@commonMoveItemUp": {
+    "description": "Tooltip and screen-reader label for the button that moves one item of a reorderable settings list up a position, the keyboard and switch alternative to dragging.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Intermediate"
+      }
+    }
+  },
+  "commonMoveItemDown": "Move {name} down",
+  "@commonMoveItemDown": {
+    "description": "Tooltip and screen-reader label for the button that moves one item of a reorderable settings list down a position, the keyboard and switch alternative to dragging.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Intermediate"
+      }
+    }
+  },
+  "commonMovedItemPosition": "{name} moved to position {position} of {count}",
+  "@commonMovedItemPosition": {
+    "description": "Screen-reader announcement after the move-up or move-down button of a reorderable settings list has moved an item, saying where it now is; positions count from 1.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Intermediate"
+      },
+      "position": {
+        "type": "int",
+        "example": "2"
+      },
+      "count": {
+        "type": "int",
+        "example": "5"
+      }
+    }
+  },
+  "danceEditorFigureCutState": "Cut",
+  "@danceEditorFigureCutState": {
+    "description": "Badge and screen-reader text on a figure row that has been cut and is waiting to be pasted somewhere else; says the row's state, where danceEditorCut is the menu action that puts it there."
+  },
   "danceEditorCut": "Cut",
   "@danceEditorCut": {
     "description": "Menu item label for cutting a figure row before pasting it elsewhere."
@@ -12245,7 +12592,7 @@
   },
   "danceEditorParamNotStated": "not stated",
   "@danceEditorParamNotStated": {
-    "description": "Shown in the figure parameter editor when the source never stated a value for this parameter, so none may be assumed. Used by the rotation stepper and by the choice dropdowns whose parameter admits the unstated state."
+    "description": "Shown in the figure parameter editor when the source never stated a value for this parameter, so none may be assumed. Used by the rotation stepper, by the choice dropdowns whose parameter admits the unstated state, and as the placeholder of an empty places field that admits it (a circle's or star's places)."
   },
   "figureParamFacingStarBackingUp": "backing up",
   "@figureParamFacingStarBackingUp": {
@@ -12261,7 +12608,7 @@
   },
   "danceEditorIntParamRangeError": "Enter a whole number from {min} to {max}",
   "@danceEditorIntParamRangeError": {
-    "description": "Error shown under an integer figure parameter field (beats, places) while its text is empty, not a whole number, or outside the allowed range; the draft keeps its last valid value meanwhile.",
+    "description": "Error shown under an integer figure parameter field (beats, places) while its text is empty, not a whole number, or outside the allowed range; the draft keeps its last valid value meanwhile. A circle's or star's places field may be left empty, which means not stated and shows no error.",
     "placeholders": {
       "min": {
         "type": "int",
@@ -12675,7 +13022,7 @@
       }
     }
   },
-  "collectionPickerSearchLabel": "Find a dance to add",
+  "collectionPickerSearchLabel": "Find a dance",
   "@collectionPickerSearchLabel": {
     "description": "Label for the search field in the collection picker (adding a dance to a program)."
   },
@@ -12804,9 +13151,13 @@
   "@shorthandMappingsNew": {
     "description": "Button that creates a new figure-shorthand mapping."
   },
-  "shorthandMappingsEmpty": "No shorthands yet.",
-  "@shorthandMappingsEmpty": {
-    "description": "Empty state when the user has no figure-shorthand mappings."
+  "shorthandMappingsEmptyTitle": "No shorthands yet",
+  "@shorthandMappingsEmptyTitle": {
+    "description": "Heading of the empty state on the shorthand list."
+  },
+  "shorthandMappingsEmptyBody": "Choose New shorthand to add one.",
+  "@shorthandMappingsEmptyBody": {
+    "description": "Body of the empty state on the shorthand list; names the New shorthand button."
   },
   "shorthandMappingsLimitReached": "You have reached the limit of {max} figure shorthands. Delete one to add another.",
   "@shorthandMappingsLimitReached": {
@@ -12814,19 +13165,6 @@
     "placeholders": {
       "max": {
         "type": "int"
-      }
-    }
-  },
-  "shorthandMappingsDeleteTitle": "Delete shorthand?",
-  "@shorthandMappingsDeleteTitle": {
-    "description": "Title of the confirm-delete dialog for a figure-shorthand mapping."
-  },
-  "shorthandMappingsDeleteBody": "\"{token}\" will be permanently removed.",
-  "@shorthandMappingsDeleteBody": {
-    "description": "Body of the confirm-delete dialog; {token} is the user's shorthand token, rendered as plain text.",
-    "placeholders": {
-      "token": {
-        "type": "String"
       }
     }
   },
@@ -13250,18 +13588,95 @@
   "@reparseErrorBody": {
     "description": "Body of the error state when scanning for upgradable figures fails."
   },
-  "customFieldsDeleteTitle": "Delete custom field",
-  "@customFieldsDeleteTitle": {
-    "description": "Title of the confirm-delete dialog for a custom field."
+  "ecdMigrationScreenTitle": "Convert English dances",
+  "@ecdMigrationScreenTitle": {
+    "description": "App-bar title of the English-dance conversion screen."
   },
-  "customFieldsDeleteBody": "Delete \"{label}\"? This cannot be undone.",
-  "@customFieldsDeleteBody": {
-    "description": "Body of the confirm-delete dialog; {label} is the field's display label, rendered as plain text.",
+  "ecdMigrationIntro": "{danceCount, plural, =1{1 English dance still uses} other{{danceCount} English dances still use}} contra moves, unrecognized figures or a contra formation. Choose the dances to convert, then confirm. A move with no clear English meaning stays as it is.",
+  "@ecdMigrationIntro": {
+    "description": "Intro paragraph on the English-dance conversion screen.",
     "placeholders": {
-      "label": {
-        "type": "String"
+      "danceCount": {
+        "type": "int"
       }
     }
+  },
+  "ecdMigrationPreviewMoves": "{count, plural, =1{1 move to convert} other{{count} moves to convert}}",
+  "@ecdMigrationPreviewMoves": {
+    "description": "Per-dance line: how many contra moves would become English figures.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "ecdMigrationPreviewLines": "{count, plural, =1{1 unrecognized figure now read} other{{count} unrecognized figures now read}}",
+  "@ecdMigrationPreviewLines": {
+    "description": "Per-dance line: how many unrecognized figures the English parser would now read.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "ecdMigrationPreviewShape": "English formation",
+  "@ecdMigrationPreviewShape": {
+    "description": "Per-dance line: the dance's formation would take its English shape (for example duple proper becomes duple minor)."
+  },
+  "ecdMigrationConvertButton": "Convert {danceCount, plural, =1{1 dance} other{{danceCount} dances}}",
+  "@ecdMigrationConvertButton": {
+    "description": "Primary button that converts the chosen English dances.",
+    "placeholders": {
+      "danceCount": {
+        "type": "int"
+      }
+    }
+  },
+  "ecdMigrationConfirmTitle": "Convert these English dances?",
+  "@ecdMigrationConfirmTitle": {
+    "description": "Title of the confirm dialog before converting English dances."
+  },
+  "ecdMigrationConfirmBody": "This changes the figures and formation of {danceCount, plural, =1{1 dance} other{{danceCount} dances}}. Tags, ratings, notes and everything else are kept. This can't be undone, so you may want to back up first.",
+  "@ecdMigrationConfirmBody": {
+    "description": "Body of the confirm dialog before converting English dances.",
+    "placeholders": {
+      "danceCount": {
+        "type": "int"
+      }
+    }
+  },
+  "ecdMigrationConfirmAction": "Convert",
+  "@ecdMigrationConfirmAction": {
+    "description": "Confirm-dialog action that converts the English dances."
+  },
+  "ecdMigrationDoneSnack": "Converted {danceCount, plural, =1{1 dance} other{{danceCount} dances}}.",
+  "@ecdMigrationDoneSnack": {
+    "description": "Snackbar confirming how many English dances were converted.",
+    "placeholders": {
+      "danceCount": {
+        "type": "int"
+      }
+    }
+  },
+  "ecdMigrationNothingSnack": "Nothing to convert.",
+  "@ecdMigrationNothingSnack": {
+    "description": "Snackbar shown when a conversion run changed nothing."
+  },
+  "ecdMigrationFailed": "Could not convert the dances. Nothing was changed. Please try again.",
+  "@ecdMigrationFailed": {
+    "description": "Snackbar shown when the English-dance conversion fails."
+  },
+  "ecdMigrationEmptyTitle": "Nothing to convert",
+  "@ecdMigrationEmptyTitle": {
+    "description": "Empty-state title when no English dance needs converting."
+  },
+  "ecdMigrationEmptyBody": "None of your English country dances has anything this can convert. A move with no clear English meaning stays as it is.",
+  "@ecdMigrationEmptyBody": {
+    "description": "Empty-state body when no English dance has anything the conversion can change (some may still hold contra moves it leaves alone)."
+  },
+  "ecdMigrationErrorTitle": "Could not check your English dances",
+  "@ecdMigrationErrorTitle": {
+    "description": "Error-state title when scanning English dances fails."
   },
   "customFieldsDeleteInUse": "Can't delete \"{label}\": still used by {count, plural, =1{1 dance} other{{count} dances}}. Remove the value from all dances first.",
   "@customFieldsDeleteInUse": {
@@ -13314,9 +13729,13 @@
   "@customFieldsLoadError": {
     "description": "Error shown when the custom-field definitions fail to load."
   },
-  "customFieldsEmpty": "No custom fields yet.\nTap + to define one.",
-  "@customFieldsEmpty": {
-    "description": "Empty state when no custom fields are defined."
+  "customFieldsEmptyTitle": "No custom fields yet",
+  "@customFieldsEmptyTitle": {
+    "description": "Heading of the empty state on the custom fields list."
+  },
+  "customFieldsEmptyBody": "Choose New field to add one.",
+  "@customFieldsEmptyBody": {
+    "description": "Body of the empty state on the custom fields list; names the New field button."
   },
   "customFieldsFlagInList": "In list",
   "@customFieldsFlagInList": {
@@ -13604,7 +14023,7 @@
   "@recentlyDeletedDeleteTitle": {
     "description": "Title of the confirm permanent-delete dialog."
   },
-  "recentlyDeletedDeleteBody": "\"{title}\" will be deleted immediately and cannot be recovered.",
+  "recentlyDeletedDeleteBody": "\"{title}\" will be deleted now.",
   "@recentlyDeletedDeleteBody": {
     "description": "Body of the confirm permanent-delete dialog; {title} is the item title, plain text.",
     "placeholders": {
@@ -13781,30 +14200,6 @@
       "count": {
         "type": "int",
         "example": "3"
-      }
-    }
-  },
-  "venueManagerDeleteTitle": "Delete venue?",
-  "@venueManagerDeleteTitle": {
-    "description": "Title of the confirmation dialog for permanently deleting a venue."
-  },
-  "venueManagerDeleteBody": "Permanently delete \"{name}\"? This can't be undone.",
-  "@venueManagerDeleteBody": {
-    "description": "Body of the delete-venue confirmation dialog; {name} is the venue's name (plain text, may be user-entered or imported).",
-    "placeholders": {
-      "name": {
-        "type": "String",
-        "example": "Grange Hall"
-      }
-    }
-  },
-  "venueManagerDeletedSnack": "Deleted \"{name}\"",
-  "@venueManagerDeletedSnack": {
-    "description": "Snackbar confirming a venue was deleted; {name} is the venue's name (plain text).",
-    "placeholders": {
-      "name": {
-        "type": "String",
-        "example": "Grange Hall"
       }
     }
   },
@@ -14044,7 +14439,11 @@
   },
   "publishedCollectionsUnavailable": "Published collections are temporarily unavailable.",
   "@publishedCollectionsUnavailable": {
-    "description": "Non-leaking error shown when the signed catalog or an archive was fetched but failed an integrity or trust check."
+    "description": "Non-leaking error shown when the signed catalog or an archive was fetched but failed an integrity or trust check other than an unrecognized catalog signature."
+  },
+  "publishedCollectionsUnverified": "Published collections could not be verified, so nothing was loaded. If this keeps happening, update the app.",
+  "@publishedCollectionsUnverified": {
+    "description": "Error shown when the signed published-collection catalog's signature does not match any key this app trusts. After a signing-key change, updating the app is the fix; it could also mean the catalog was tampered with, or that a network (for example a captive portal) replaced the signature file, so the wording does not claim any one cause."
   },
   "publishedCollectionsOffline": "Published collections could not be reached. Check your connection and try again.",
   "@publishedCollectionsOffline": {
@@ -14349,7 +14748,11 @@
   },
   "glossaryAddCustomFigure": "Add your own figure",
   "@glossaryAddCustomFigure": {
-    "description": "Tooltip of the Glossary's add button, which opens the editor for a new custom figure."
+    "description": "Tooltip of the Glossary's add button, which opens the editor for a new custom figure; also the label of the Custom Figures screen's button while that screen is empty."
+  },
+  "customFiguresNewFigure": "New figure",
+  "@customFiguresNewFigure": {
+    "description": "Label of the floating button on the Custom Figures screen that opens the editor for a new figure of the user's own. Keep it short: it is one line at the bottom of a phone screen, beside a + icon."
   },
   "glossaryCustomMarker": "Custom",
   "@glossaryCustomMarker": {

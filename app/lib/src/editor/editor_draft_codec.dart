@@ -104,6 +104,20 @@ bool isNewDanceEditorDraftKey(String key) {
 ///   role terms of the dialect the figure notes and custom-figure text are
 ///   written in, which stay as typed. A restore under other role terms
 ///   converts them; an older build reads them as before.
+/// - `meter`, `musicalKey`, `improper`, `interpreterIds` and `interpretedOn`
+///   (ADR-006 §12.1 F2 and F3, §9.2 point 7), each omitted when empty, false
+///   or unset. A build that ignores them predates the database version that
+///   stores them (v42), and a database of that version cannot be opened by
+///   it, so no older build ever restores a draft that holds them. The other
+///   way round, a draft written before them decodes them as empty, and Save
+///   writes that over the stored dance; such a draft predates v42, so the
+///   dance can hold them only if sync has brought them since, which the
+///   restore prompt reports as a change to the dance (AUTH-10).
+///
+/// - `spanStated` (true, or omitted) on a sequence that states its own span
+///   (ADR-006 §5.5). A sequence's `beatsTouched` is read from it alone, since
+///   a build before spans wrote `beatsTouched` on every sequence it loaded.
+///   A build that ignores it counts the sequence's steps, as it always did.
 ///
 /// An older build does look for a new dance's draft under the shared key
 /// `editor_draft:new` only, so after a downgrade it does not
@@ -132,12 +146,15 @@ const _kDraftVersionWithoutCompounds = 13;
 ///   "title": "...", "hook": "...", "notes": "...",
 ///   "walkthrough": "...",
 ///   "phrase": "...", "formationDetail": "...",
-///   "form": "contra", "formationShape": "dupleImproper",
+///   "meter": "3/2", "musicalKey": "G minor",
+///   "form": "contra", "formationShape": "dupleImproper", "improper": true,
 ///   "progression": "single", "status": "active",
 ///   "level": "intermediate", "mixedLevel": false, "mixer": false,
 ///   "rating": 4,
 ///   "composedOn": "1989", "revisedOn": "2004-03-15",
-///   "authorIds": ["..."], "tagIds": ["..."], "tunes": ["..."],
+///   "interpretedOn": "1975",
+///   "authorIds": ["..."], "interpreterIds": ["..."],
+///   "tagIds": ["..."], "tunes": ["..."],
 ///   "stagedTags": [{"id":"...","name":"...","color":4294901760}],
 ///   "links": [
 ///     {"id":"...", "kind":"source", "url":"...", "label":"..."},
@@ -186,8 +203,11 @@ String encodeDraft(EditorSnapshot snapshot) {
     if (snapshot.walkthrough.isNotEmpty) 'walkthrough': snapshot.walkthrough,
     'phrase': snapshot.phrase,
     'formationDetail': snapshot.formationDetail,
+    if (snapshot.meter.isNotEmpty) 'meter': snapshot.meter,
+    if (snapshot.musicalKey.isNotEmpty) 'musicalKey': snapshot.musicalKey,
     'form': snapshot.form.name,
     'formationShape': snapshot.formationShape.name,
+    if (snapshot.improper) 'improper': true,
     'progression': snapshot.progression.name,
     'status': snapshot.status.name,
     if (snapshot.level != null) 'level': snapshot.level!.id,
@@ -198,7 +218,11 @@ String encodeDraft(EditorSnapshot snapshot) {
       'composedOn': snapshot.composedOn!.serialize(),
     if (snapshot.revisedOn != null)
       'revisedOn': snapshot.revisedOn!.serialize(),
+    if (snapshot.interpretedOn case final interpretedOn?)
+      'interpretedOn': interpretedOn.serialize(),
     'authorIds': snapshot.authorIds,
+    if (snapshot.interpreterIds.isNotEmpty)
+      'interpreterIds': snapshot.interpreterIds,
     'tagIds': snapshot.tagIds,
     'tunes': snapshot.tunes,
     if (snapshot.stagedTags.isNotEmpty)
@@ -285,11 +309,14 @@ EditorSnapshot decodeDraft(Object? value, {Iterable<DifficultyLevel>? levels}) {
     walkthrough: _str(json, 'walkthrough'),
     phrase: _str(json, 'phrase'),
     formationDetail: _str(json, 'formationDetail'),
+    meter: _str(json, 'meter'),
+    musicalKey: _str(json, 'musicalKey'),
     form: _parseEnum(DanceForm.values, _str(json, 'form')),
     formationShape: _parseEnum(
       FormationShape.values,
       _str(json, 'formationShape'),
     ),
+    improper: _bool(json, 'improper'),
     progression: _parseEnum(Progression.values, _str(json, 'progression')),
     status: _parseEnum(DanceStatus.values, _str(json, 'status')),
     level: _parseDifficulty(json['level'], levels ?? DifficultyLevel.shipped),
@@ -298,7 +325,9 @@ EditorSnapshot decodeDraft(Object? value, {Iterable<DifficultyLevel>? levels}) {
     rating: _parseNullableRating(json['rating']),
     composedOn: _parseNullablePartialDate(json['composedOn']),
     revisedOn: _parseNullablePartialDate(json['revisedOn']),
+    interpretedOn: _parseNullablePartialDate(json['interpretedOn']),
     authorIds: _strList(json, 'authorIds'),
+    interpreterIds: _strList(json, 'interpreterIds'),
     tagIds: _strList(json, 'tagIds'),
     tunes: _strList(json, 'tunes'),
     stagedTags: _parseStagedTags(json['stagedTags']),
@@ -607,7 +636,7 @@ FigureDraftSnapshot _parseFigureDraftSnapshot(
 
   final normalized = rawMove == null
       ? null
-      : contraTaxonomy.normalizeFigureV35(
+      : shippedTaxonomies.anyForm.normalizeFigureV35(
           Figure(move: rawMove, params: parsedParams),
         );
   return FigureDraftSnapshot(
@@ -620,7 +649,11 @@ FigureDraftSnapshot _parseFigureDraftSnapshot(
     // Additive/tolerant (AUTH-5): a draft from before the flag was written
     // reads a stored count as the caller's, except a group's 0, which
     // follows its sides (AUTH-11).
+    // A sequence's flag marks a span of its own (ADR-006 §5.5), which only
+    // `spanStated` records: a build before spans wrote `beatsTouched` on
+    // every sequence it loaded, over a count it never kept up to date.
     beatsTouched: switch (m['beatsTouched']) {
+      _ when containerKind == sequenceMove => m['spanStated'] == true,
       final bool touched => touched,
       _ => _legacyBeatsTouched(
         normalized?.params ?? parsedParams,
@@ -689,6 +722,10 @@ Map<String, Object?> _figureDraftJson(FigureDraftSnapshot draft) {
     'progression': draft.progression,
     'sv': draft.schemaVersion,
     'beatsTouched': draft.beatsTouched,
+    if (draft.sequenceFigures != null &&
+        draft.beatsTouched &&
+        draft.params['beats'] is int)
+      'spanStated': true,
     if (draft.assumedSubject) 'assumedSubject': true,
     if (draft.customOrigin == CustomOrigin.importGap)
       'customOrigin': 'importGap',

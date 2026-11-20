@@ -56,6 +56,11 @@ final Map<String, DataClassification> settingsClassifications = {
   // a glossary entry, a soft reference (sync-spec §6.15) that is inert on a
   // device without the figure.
   'custom_dialects': _preference,
+  // Each dance form's own dialects (ADR-006 §9.1, point 1); contra keeps
+  // `custom_dialects`. Classified as it is: the user's own wording, which
+  // travels to their devices like the contra library.
+  'custom_dialects_ecd': _preference,
+  'custom_dialects_square': _preference,
   'custom_themes': _preference,
   'shorthand_mappings': _preference,
   'compound_shorthands': DataClassification(
@@ -110,6 +115,8 @@ final Map<String, DataClassification> settingsClassifications = {
   // -- Dialect and rendering ------------------------------------------------
   'active_dialect': _preference,
   'active_dialect_ref': _preference,
+  'active_dialect_ref_ecd': _preference,
+  'active_dialect_ref_square': _preference,
   'verbose_figure_rendering': _preference,
   'decimal_turns': _preference,
   'capitalize_figures': _preference,
@@ -164,11 +171,21 @@ final Map<String, DataClassification> settingsClassifications = {
   'last_used_program_sort_direction': _preference,
   'default_dance_detail_rendering': _preference,
   'default_dance_form': _preference,
+  // The form of the last dance the user created, which a new dance starts as
+  // while `default_dance_form` is "last used" (ADR-006 §12.2, S2). Synced
+  // with that setting, which the maintainer chose to sync (§9.1, point 10),
+  // like the `last_used_*_sort` keys above.
+  'last_used_dance_form': _preference,
   'default_dance_formation_shape': _preference,
   'default_dance_phrase_structure': _preference,
   'default_dance_progression': _preference,
   'sort_ignore_articles': _preference,
   'confirm_before_delete': _preference,
+  // How long the Undo prompt stays on screen (0 = until closed). A reading or
+  // motor-access need of the person, not of the screen, so it travels with
+  // their other preferences like confirm_before_delete; it holds one small
+  // number and nothing personal.
+  'undo_prompt_seconds': _preference,
   'soft_delete_retention_days': _preference,
   'venue_entity_mode': _preference,
   'collection_tile_visible_fields': _preference,
@@ -338,6 +355,16 @@ final Map<String, DataClassification> settingsClassifications = {
         '(settings-sync-scope, 2026-10-29).',
   ),
   'show_individual_perform_timer': _preference,
+  'confirm_perform_exit': const DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.appUser,
+    egress: EgressClass.shareable,
+    note:
+        'Whether leaving Perform asks first. A habit of '
+        'the caller rather than a property of the screen, like '
+        'confirm_before_delete, so it travels with their other preferences; '
+        'unlike auto_size_perform_cards it does not depend on screen size.',
+  ),
   'show_program_slot_caller_notes': _preference,
   'auto_commit_program_changes': _preference,
   'perform_canonical_view': DataClassification(
@@ -480,6 +507,7 @@ final Map<String, DataClassification> settingsClassifications = {
   '__taxonomy_v37_canonical_rebuild_done__': _installState,
   '__taxonomy_v38_canonical_rebuild_done__': _installState,
   '__taxonomy_v39_canonical_rebuild_done__': _installState,
+  '__ecd_taxonomy_canonical_rebuild_done__': _installState,
   '__taxonomy_v35_figure_normalization_done__': _installState,
   '__callersbox_roll_away_role_repair_done__': _installState,
   '__normalisation_derived_index_repair_done__': _installState,

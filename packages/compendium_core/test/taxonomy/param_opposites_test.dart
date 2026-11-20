@@ -93,6 +93,7 @@ void main() {
     ParamKind.choice: (OppositeCoverage.none, {'left': null, 'right': null}),
     ParamKind.text: (OppositeCoverage.none, {'anything': null}),
     ParamKind.flag: (OppositeCoverage.none, {true: null, false: null}),
+    ParamKind.dancerList: (OppositeCoverage.none, {'ones': null}),
   };
 
   test('every ParamKind is in the pinned table', () {
@@ -217,6 +218,9 @@ void main() {
         'slice.slice',
         'rory_o_more.slide',
         'circle.direction',
+        // v40 (#770): left/right are shoulders and up/down directions along
+        // the set, in one free-form slot like circle's, so it takes none.
+        'cast.direction',
       });
       expect(ParamOpposites.coverage(ParamKind.choice), OppositeCoverage.none);
     },

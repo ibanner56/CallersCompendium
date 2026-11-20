@@ -2,9 +2,9 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
-import '../data/app_theme_scope.dart';
 import '../data/formation_colors_controller.dart';
 import '../search/facet_labels.dart';
+import '../theme/app_motion.dart';
 import '../theme/app_spacing.dart';
 import '../theme/set_list_accents.dart';
 import '../widgets/color_edit_dialog.dart';
@@ -27,14 +27,12 @@ class FormationColorsScreen extends StatelessWidget {
 
   Future<void> _edit(BuildContext context, FormationShape shape) async {
     final l10n = AppLocalizations.of(context);
-    final highContrast =
-        (AppThemeScope.maybeOf(context)?.isHighContrast ?? false) ||
-        MediaQuery.highContrastOf(context);
+    final brightAccents = setListAccentsBright(context);
     // Seed the picker with the current override, else the family default so the
     // user starts from a sensible on-theme color rather than plain black.
     final seed =
         controller.overrideFor(shape) ??
-        setListAccentForShape(shape, highContrast: highContrast) ??
+        setListAccentForShape(shape, brightPalette: brightAccents) ??
         Theme.of(context).colorScheme.primary;
     final picked = await showDialog<Color>(
       context: context,
@@ -42,6 +40,7 @@ class FormationColorsScreen extends StatelessWidget {
         title: formationShapeLabel(l10n, shape),
         initial: seed,
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
     if (picked != null) await controller.setColor(shape, picked);
   }
@@ -49,9 +48,7 @@ class FormationColorsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final highContrast =
-        (AppThemeScope.maybeOf(context)?.isHighContrast ?? false) ||
-        MediaQuery.highContrastOf(context);
+    final brightAccents = setListAccentsBright(context);
     return Scaffold(
       appBar: AppBar(title: Text(l10n.settingsFormationColoursTitle)),
       body: AnimatedBuilder(
@@ -78,7 +75,7 @@ class FormationColorsScreen extends StatelessWidget {
                   overrideColor: controller.overrideFor(shape),
                   familyDefault: setListAccentForShape(
                     shape,
-                    highContrast: highContrast,
+                    brightPalette: brightAccents,
                   ),
                   onEdit: () => _edit(context, shape),
                   onReset: () => controller.clearColor(shape),

@@ -6,6 +6,8 @@ import '../../l10n/app_localizations.dart';
 import '../data/user_figures_scope.dart';
 import '../data/validation_issue_labels.dart';
 import '../search/facet_labels.dart' show humanizeToken;
+import '../theme/app_motion.dart';
+import '../theme/app_spacing.dart';
 import '../theme/destructive_button_style.dart';
 import '../widgets/collapsible_section.dart';
 import '../widgets/confirm_discard_changes.dart';
@@ -14,8 +16,8 @@ import '../widgets/wording_condition_notes.dart';
 import '../widgets/app_bar_text_action.dart';
 
 /// Full-screen term editor for a single named [Dialect] (`docs/design/ux.md`
-/// §6). Edits the pieces a dialect can set — role terms (gendered terms live
-/// here, not as presets), per-move substitutions (with the `%S` handedness
+/// §6). Edits the pieces a dialect of one dance [DialectEditorScreen.form] can
+/// set — role terms, per-move substitutions (with the `%S` handedness
 /// placeholder), display-only per-move wording templates, dancer-token
 /// substitutions, and the discouraged-terms list — then returns the edited
 /// [Dialect] via [Navigator.pop] (or `null` on cancel).
@@ -28,10 +30,19 @@ import '../widgets/app_bar_text_action.dart';
 /// run on every edit so substitution and wording issues surface inline as the
 /// user types; both checks also guard Save so invalid data is never returned.
 class DialectEditorScreen extends StatefulWidget {
-  const DialectEditorScreen({super.key, required this.initial});
+  const DialectEditorScreen({
+    super.key,
+    required this.initial,
+    required this.form,
+  });
 
   /// The dialect being edited. Its name is kept as-is on save.
   final Dialect initial;
+
+  /// The dance form the dialect is for: its moves are the ones this form's
+  /// dances are edited with ([TaxonomyRegistry.forForm]), so a dialect can
+  /// name or word any of them (ADR-006 §9.1, point 1).
+  final DanceForm form;
 
   @override
   State<DialectEditorScreen> createState() => _DialectEditorScreenState();
@@ -78,7 +89,9 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
   /// edit so the live preview and validation both read from it.
   late Dialect _working;
 
-  static final FigureRenderer _renderer = FigureRenderer(contraTaxonomy);
+  late final FigureRenderer _renderer = FigureRenderer(
+    shippedTaxonomies.forForm(widget.form),
+  );
 
   bool _seeded = false;
 
@@ -134,7 +147,12 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
   String _shownWording(String id, String stored, Dialect dialect) =>
       wordingForEditing(
         stored,
-        _wordingVocabulary(id, dialect, UserFiguresScope.catalogOf(context)),
+        _wordingVocabulary(
+          id,
+          dialect,
+          UserFiguresScope.catalogOf(context),
+          _renderer,
+        ),
       );
 
   /// A controller showing the stored wording [stored] for [id] (and
@@ -166,6 +184,7 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
       key.split(_branchSeparator).first,
       Dialect.canonical,
       UserFiguresScope.catalogOf(context),
+      _renderer,
     );
     if (nodes != null &&
         vocabulary.names.isNotEmpty &&
@@ -191,6 +210,7 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
         controller.text,
         words,
         userFigures,
+        _renderer,
       ).stored;
       if (stored != null) {
         _readWordings[key] = (stored: stored, shown: controller.text);
@@ -363,7 +383,7 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
     final userFigures = UserFiguresScope.catalogOf(context);
     String? stored(String id, String text, [String? branch]) =>
         _keptWording(_wordingKey(id, branch), text) ??
-        _checkWording(id, text, words, userFigures).stored;
+        _checkWording(id, text, words, userFigures, _renderer).stored;
 
     final moveWordings = <String, String>{};
     for (final entry in _wordingCtrls.entries) {
@@ -425,7 +445,7 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
     bool invalid(String id, String text, [String? branch]) =>
         text.trim().isNotEmpty &&
         _keptWording(_wordingKey(id, branch), text) == null &&
-        _checkWording(id, text, _working, userFigures).hasErrors;
+        _checkWording(id, text, _working, userFigures, _renderer).hasErrors;
     return [
       for (final entry in _wordingCtrls.entries)
         if (invalid(entry.key, entry.value.text)) entry.key,
@@ -591,6 +611,7 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
             ),
           ],
         ),
+        animationStyle: AppMotion.styleFor(context),
       );
       if (!mounted || confirmed != true) return;
     }
@@ -634,12 +655,16 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
             child: Text(l10n.commonCancel),
           ),
           FilledButton(
+            style: destructiveFilledButtonStyle(
+              Theme.of(dialogContext).colorScheme,
+            ),
             key: const ValueKey('dialect-discouraged-reset-confirm'),
             onPressed: () => Navigator.of(dialogContext).pop(true),
             child: Text(l10n.dialectEditorRestoreDefaults),
           ),
         ],
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
     if (confirmed == true && mounted) _restoreDiscouragedDefaults();
   }
@@ -772,6 +797,7 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
           ),
         ],
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
     if (confirmed == true && mounted) _restoreMoveWordings();
   }
@@ -845,7 +871,12 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
   List<Widget Function()> _editorItemBuilders(AppLocalizations l10n) => [
     if (_issues.isNotEmpty || _invalidMoveWordings.isNotEmpty)
       () => Padding(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.md,
+          AppSpacing.sm,
+          AppSpacing.md,
+          0,
+        ),
         child: Text(
           [
             ..._issues.map(
@@ -885,6 +916,7 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
       expanded: _showMoves,
       onExpansionChanged: (expanded) => setState(() => _showMoves = expanded),
       child: _MoveSubstitutionsEditor(
+        renderer: _renderer,
         label: _label,
         userFigureKeys: _userFigureKeys(),
         controllers: _moveCtrls,
@@ -913,6 +945,7 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
       onExpansionChanged: (expanded) =>
           setState(() => _showWordings = expanded),
       child: _MoveWordingsEditor(
+        renderer: _renderer,
         keptWording: _keptWording,
         label: _label,
         userFigureKeys: _userFigureKeys(),
@@ -942,13 +975,14 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
       ),
     ),
     () => SectionHeader(title: l10n.dialectEditorSectionPreview),
-    () => _DialectPreview(dialect: _working),
+    () => _DialectPreview(dialect: _working, renderer: _renderer),
     () => const SizedBox(height: 24),
   ];
 }
 
 /// Two-role editor: singular + plural for role1 and role2. Blank singular drops
-/// the role (canonical). This is where a user enters gendered terms if wanted.
+/// the role (canonical). A gendered role word is refused, as everywhere in a
+/// dialect ([Dialect.validate], ADR-006 §9.1, point 7).
 class _RoleTermsEditor extends StatelessWidget {
   const _RoleTermsEditor({
     required this.role1Singular,
@@ -968,7 +1002,7 @@ class _RoleTermsEditor extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1014,7 +1048,7 @@ class _RoleTermsEditor extends StatelessWidget {
         SizedBox(
           width: 64,
           child: Padding(
-            padding: const EdgeInsets.only(top: 20),
+            padding: const EdgeInsets.only(top: AppSpacing.lg),
             child: Text(label),
           ),
         ),
@@ -1045,6 +1079,7 @@ class _RoleTermsEditor extends StatelessWidget {
 /// other move. `%S` in a substitution injects the figure's handedness.
 class _MoveSubstitutionsEditor extends StatelessWidget {
   const _MoveSubstitutionsEditor({
+    required this.renderer,
     required this.label,
     required this.userFigureKeys,
     required this.controllers,
@@ -1064,12 +1099,15 @@ class _MoveSubstitutionsEditor extends StatelessWidget {
   /// The user's figures that can be named (#1023), offered after the moves.
   final List<String> userFigureKeys;
 
+  /// Renders with the dialect's form's taxonomy, whose moves it lists.
+  final FigureRenderer renderer;
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final overridden = controllers.keys.toList().reversed;
     final available = [
-      for (final id in _dialectNameableMoveIds)
+      for (final id in _dialectNameableMoveIds(renderer.taxonomy))
         if (!controllers.containsKey(id)) id,
     ]..sort((a, b) => label(a).toLowerCase().compareTo(label(b).toLowerCase()));
     available.addAll([
@@ -1078,7 +1116,7 @@ class _MoveSubstitutionsEditor extends StatelessWidget {
     ]);
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1104,7 +1142,7 @@ class _MoveSubstitutionsEditor extends StatelessWidget {
             ),
           for (final id in overridden)
             Padding(
-              padding: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.only(bottom: AppSpacing.xs),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
@@ -1158,21 +1196,16 @@ WordingVocabulary _wordingVocabulary(
   String id,
   Dialect dialect,
   UserFigureCatalog userFigures,
+  FigureRenderer renderer,
 ) {
   if (!isUserFigureKey(id)) {
-    return _DialectEditorScreenState._renderer.moveWordingVocabulary(
-      id,
-      dialect,
-    );
+    return renderer.moveWordingVocabulary(id, dialect);
   }
   final definition =
       userFigures[id.substring(userFigureRefPrefix.length)]?.definition;
   return definition == null
       ? WordingVocabulary(const [])
-      : _DialectEditorScreenState._renderer.userFigureWordingVocabulary(
-          definition,
-          dialect,
-        );
+      : renderer.userFigureWordingVocabulary(definition, dialect);
 }
 
 /// The wording [id], typed as [text], read in [dialect]'s words: its stored
@@ -1182,7 +1215,11 @@ WordingCheck _checkWording(
   String text,
   Dialect dialect,
   UserFigureCatalog userFigures,
-) => checkWording(text.trim(), _wordingVocabulary(id, dialect, userFigures));
+  FigureRenderer renderer,
+) => checkWording(
+  text.trim(),
+  _wordingVocabulary(id, dialect, userFigures, renderer),
+);
 
 /// A dialect entry's label: a move's name, or, for a figure of your own's
 /// `userFigure:<id>` key (#1023), the figure's name in [dialect], or a note
@@ -1200,18 +1237,18 @@ String _entryLabel(
         ? l10n.dialectEditorUserFigureGone
         : renderer.renderFreeText(view.name, dialect);
   }
-  return contraTaxonomy.moves[id]?.displayName ??
-      contraTaxonomy.aliases[id]?.displayName ??
+  return renderer.taxonomy.moves[id]?.displayName ??
+      renderer.taxonomy.aliases[id]?.displayName ??
       id;
 }
 
 /// The ids a dialect can name or word: every move but `custom`, and every
 /// alias listed as a move ([MoveAlias.listedAsMove]), which a dialect names
 /// on its own: `long lines`, a move until taxonomy v39.
-Iterable<String> get _dialectNameableMoveIds => [
-  for (final m in contraTaxonomy.moves.values)
+Iterable<String> _dialectNameableMoveIds(Taxonomy taxonomy) => [
+  for (final m in taxonomy.moves.values)
     if (m.id != customMoveId) m.id,
-  for (final a in contraTaxonomy.aliases.values)
+  for (final a in taxonomy.aliases.values)
     if (a.listedAsMove) a.id,
 ];
 
@@ -1231,6 +1268,7 @@ String _branchLabel(String branch, AppLocalizations l10n) => switch (branch) {
 /// renderer still falls back defensively for imported or migrated data.
 class _MoveWordingsEditor extends StatelessWidget {
   const _MoveWordingsEditor({
+    required this.renderer,
     required this.keptWording,
     required this.label,
     required this.userFigureKeys,
@@ -1263,6 +1301,9 @@ class _MoveWordingsEditor extends StatelessWidget {
   /// The user's figures, for a figure's slots and preview.
   final UserFigureCatalog userFigures;
 
+  /// Renders with the dialect's form's taxonomy, whose moves it lists.
+  final FigureRenderer renderer;
+
   /// The stored form of a wording still as the editor showed it, under its
   /// [_DialectEditorScreenState._wordingKey], else null.
   final String? Function(String key, String text) keptWording;
@@ -1277,18 +1318,16 @@ class _MoveWordingsEditor extends StatelessWidget {
     if (kept != null) return WordingCheck(kept, const []);
     return checkWording(
       text.trim(),
-      _wordingVocabulary(id, dialect, userFigures),
+      _wordingVocabulary(id, dialect, userFigures, renderer),
     );
   }
-
-  static final FigureRenderer _renderer = FigureRenderer(contraTaxonomy);
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final configured = controllers.keys.toList().reversed;
     final available = [
-      for (final id in _dialectNameableMoveIds)
+      for (final id in _dialectNameableMoveIds(renderer.taxonomy))
         if (!controllers.containsKey(id) && !branchControllers.containsKey(id))
           id,
     ]..sort((a, b) => label(a).toLowerCase().compareTo(label(b).toLowerCase()));
@@ -1298,7 +1337,7 @@ class _MoveWordingsEditor extends StatelessWidget {
     ]);
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1308,14 +1347,14 @@ class _MoveWordingsEditor extends StatelessWidget {
           ),
           if (branchControllers.isNotEmpty)
             Padding(
-              padding: const EdgeInsets.only(top: 8),
+              padding: const EdgeInsets.only(top: AppSpacing.xs),
               child: Text(
                 l10n.dialectEditorMoveWordingsConditionalHelp,
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             ),
           Padding(
-            padding: const EdgeInsets.only(top: 8),
+            padding: const EdgeInsets.only(top: AppSpacing.xs),
             child: Text(
               l10n.dialectEditorMoveWordingsForceHelp('{!hand}'),
               key: const ValueKey('dialect-wording-force-help'),
@@ -1362,26 +1401,29 @@ class _MoveWordingsEditor extends StatelessWidget {
     if (isUserFigureKey(id)) return _userFigureWordingRow(context, id, l10n);
     final controller = controllers[id]!;
     final text = controller.text;
-    final known = _renderer.moveWordingSlots(id);
+    final known = renderer.moveWordingSlots(id);
     final used = RegExp(
       r'\{!?(\w+)\}',
     ).allMatches(text).map((match) => match[1]!).toSet();
     final unknown = used.difference(known).toList()..sort();
-    final vocabulary = _wordingVocabulary(id, dialect, userFigures);
+    final vocabulary = _wordingVocabulary(id, dialect, userFigures, renderer);
     final check = _check(id, text);
     final valid = text.trim().isEmpty || !check.hasErrors;
     final missing = valid
-        ? (_renderer.moveWordingMissingSlots(id, text).toList()..sort())
+        ? (renderer.moveWordingMissingSlots(id, text).toList()..sort())
         : const <String>[];
     final errorMissing = missing.where((slot) => slot != 'move').toList();
     final optionalMissing = missing.where((slot) => slot == 'move').toList();
     final previewDialect = dialect.copyWith(
       moveWordings: {...dialect.moveWordings, id: check.stored ?? ''},
     );
-    final preview = _renderer.render(_wordedFigure(id), previewDialect);
+    final preview = renderer.render(
+      _wordedFigure(id, renderer.taxonomy),
+      previewDialect,
+    );
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1410,13 +1452,13 @@ class _MoveWordingsEditor extends StatelessWidget {
             controller: controller,
             decoration: InputDecoration(
               labelText: l10n.dialectEditorMoveWordingLabel,
-              hintText: _renderer.moveWordingTemplate(id),
+              hintText: renderer.moveWordingTemplate(id),
             ),
             onChanged: (_) => onEdited(),
           ),
           Text(
             l10n.dialectEditorMoveWordingSlots(
-              _renderer.moveWordingSlotLabels(id, known).join(', '),
+              renderer.moveWordingSlotLabels(id, known).join(', '),
             ),
             style: Theme.of(context).textTheme.bodySmall,
           ),
@@ -1433,14 +1475,14 @@ class _MoveWordingsEditor extends StatelessWidget {
           if (errorMissing.isNotEmpty)
             Text(
               l10n.dialectEditorMoveWordingMissingSlots(
-                _renderer.moveWordingSlotLabels(id, errorMissing).join(', '),
+                renderer.moveWordingSlotLabels(id, errorMissing).join(', '),
               ),
               style: TextStyle(color: Theme.of(context).colorScheme.error),
             ),
           if (optionalMissing.isNotEmpty)
             Text(
               l10n.dialectEditorMoveWordingOptionalSlots(
-                _renderer.moveWordingSlotLabels(id, optionalMissing).join(', '),
+                renderer.moveWordingSlotLabels(id, optionalMissing).join(', '),
               ),
               style: TextStyle(color: Theme.of(context).colorScheme.tertiary),
             ),
@@ -1471,7 +1513,7 @@ class _MoveWordingsEditor extends StatelessWidget {
     final known = definition?.slots ?? const <String>{};
     final used = userFigureTemplateSlots(text);
     final unknown = used.difference(known).toList()..sort();
-    final vocabulary = _wordingVocabulary(id, dialect, userFigures);
+    final vocabulary = _wordingVocabulary(id, dialect, userFigures, renderer);
     final check = _check(id, text);
     final valid = text.trim().isEmpty || !check.hasErrors;
     final tested = check.stored == null
@@ -1488,7 +1530,7 @@ class _MoveWordingsEditor extends StatelessWidget {
           ]..sort());
     final preview = definition == null
         ? null
-        : FigureRenderer(contraTaxonomy, userFigures: userFigures).render(
+        : FigureRenderer(renderer.taxonomy, userFigures: userFigures).render(
             userFigureUseFigure(
               id: figureId,
               args: {
@@ -1504,7 +1546,7 @@ class _MoveWordingsEditor extends StatelessWidget {
     String slotList(Iterable<String> slots) =>
         [for (final slot in slots) '{$slot}'].join(', ');
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1582,7 +1624,10 @@ class _MoveWordingsEditor extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.only(top: 16, bottom: 4),
+          padding: const EdgeInsets.only(
+            top: AppSpacing.md,
+            bottom: AppSpacing.xxs,
+          ),
           child: Row(
             children: [
               Expanded(
@@ -1616,15 +1661,18 @@ class _MoveWordingsEditor extends StatelessWidget {
     TextEditingController controller,
     AppLocalizations l10n,
   ) {
-    final known = _renderer.moveWordingBranchSlots(moveId, branch);
+    final known = renderer.moveWordingBranchSlots(moveId, branch);
     final text = controller.text;
     final hasText = text.trim().isNotEmpty;
-    final vocabulary = _wordingVocabulary(moveId, dialect, userFigures);
+    final vocabulary = _wordingVocabulary(
+      moveId,
+      dialect,
+      userFigures,
+      renderer,
+    );
     final check = _check(moveId, text, branch);
     final missing = hasText
-        ? (_renderer
-              .moveWordingBranchMissingSlots(moveId, branch, text)
-              .toList()
+        ? (renderer.moveWordingBranchMissingSlots(moveId, branch, text).toList()
             ..sort())
         : const <String>[];
     final previewDialect = dialect.copyWith(
@@ -1636,12 +1684,12 @@ class _MoveWordingsEditor extends StatelessWidget {
         },
       },
     );
-    final preview = _renderer.render(
+    final preview = renderer.render(
       _branchFigure(moveId, branch),
       previewDialect,
     );
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1654,13 +1702,13 @@ class _MoveWordingsEditor extends StatelessWidget {
             controller: controller,
             decoration: InputDecoration(
               labelText: l10n.dialectEditorMoveWordingLabel,
-              hintText: _renderer.moveWordingBranchTemplate(moveId, branch),
+              hintText: renderer.moveWordingBranchTemplate(moveId, branch),
             ),
             onChanged: (_) => onEdited(),
           ),
           Text(
             l10n.dialectEditorMoveWordingSlots(
-              _renderer.moveWordingSlotLabels(moveId, known).join(', '),
+              renderer.moveWordingSlotLabels(moveId, known).join(', '),
             ),
             style: Theme.of(context).textTheme.bodySmall,
           ),
@@ -1673,7 +1721,7 @@ class _MoveWordingsEditor extends StatelessWidget {
           if (missing.isNotEmpty)
             Text(
               l10n.dialectEditorMoveWordingMissingSlots(
-                _renderer.moveWordingSlotLabels(moveId, missing).join(', '),
+                renderer.moveWordingSlotLabels(moveId, missing).join(', '),
               ),
               style: TextStyle(color: Theme.of(context).colorScheme.error),
             ),
@@ -1776,7 +1824,7 @@ class _DancerSubstitutionsEditor extends StatelessWidget {
         );
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1805,7 +1853,7 @@ class _DancerSubstitutionsEditor extends StatelessWidget {
             ),
           for (final token in overridden)
             Padding(
-              padding: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.only(bottom: AppSpacing.xs),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
@@ -1863,7 +1911,7 @@ class _DiscouragedTermsEditor extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1935,11 +1983,12 @@ class _DiscouragedTermsEditor extends StatelessWidget {
 /// prose — so edits visibly update as the user types. Deterministic and
 /// dialect-only; nothing is persisted.
 class _DialectPreview extends StatelessWidget {
-  const _DialectPreview({required this.dialect});
+  const _DialectPreview({required this.dialect, required this.renderer});
 
   final Dialect dialect;
 
-  static final FigureRenderer _renderer = FigureRenderer(contraTaxonomy);
+  /// Renders with the dialect's form's taxonomy.
+  final FigureRenderer renderer;
 
   static final List<Figure> _sampleFigures = [
     Figure(
@@ -1957,11 +2006,11 @@ class _DialectPreview extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final lines = <String>[
-      for (final figure in _sampleFigures) _renderer.render(figure, dialect),
-      _renderer.renderFreeText(_sampleFreeText, dialect),
+      for (final figure in _sampleFigures) renderer.render(figure, dialect),
+      renderer.renderFreeText(_sampleFreeText, dialect),
     ];
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1969,14 +2018,16 @@ class _DialectPreview extends StatelessWidget {
           const SizedBox(height: 8),
           Card(
             child: Padding(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(AppSpacing.sm),
               child: Column(
                 key: const ValueKey('dialect-preview'),
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   for (final line in lines)
                     Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: AppSpacing.xxxs,
+                      ),
                       child: Text(line, style: theme.textTheme.bodyMedium),
                     ),
                 ],
@@ -1994,16 +2045,16 @@ class _DialectPreview extends StatelessWidget {
 /// move ([MoveAlias.listedAsMove]), which takes only its own wording. A
 /// forward and back at its defaults is a long lines (taxonomy v39), so it is
 /// previewed in the first formation that keeps it a forward and back.
-Figure _wordedFigure(String moveId) {
+Figure _wordedFigure(String moveId, Taxonomy taxonomy) {
   final plain = Figure(move: moveId);
-  if (contraTaxonomy.resolvedMoveId(plain) == moveId) return plain;
-  for (final alias in contraTaxonomy.aliases.values) {
+  if (taxonomy.resolvedMoveId(plain) == moveId) return plain;
+  for (final alias in taxonomy.aliases.values) {
     if (!alias.listedAsMove || alias.targetMove != moveId) continue;
     for (final param in alias.pinnedParams.keys) {
-      final spec = contraTaxonomy.moves[moveId]?.params[param];
+      final spec = taxonomy.moves[moveId]?.params[param];
       for (final value in spec?.choices ?? const <String>[]) {
         final figure = Figure(move: moveId, params: {param: value});
-        if (contraTaxonomy.resolvedMoveId(figure) == moveId) return figure;
+        if (taxonomy.resolvedMoveId(figure) == moveId) return figure;
       }
     }
   }

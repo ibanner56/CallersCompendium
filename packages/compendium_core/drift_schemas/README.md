@@ -49,13 +49,14 @@ release will not carry. A schema change made while head is unreleased
 joins head rather than bumping it (see "Amending the unreleased head" below),
 so from here on each version past head is one that a release will carry.
 
-That matters because twelve entities in this schema are created by raw
+That matters because thirteen entities in this schema are created by raw
 `customStatement` DDL rather than being drift-managed — the `dance_fts` and
-`dance_substring_fts` FTS5 virtual tables and the ten lookup indices
+`dance_substring_fts` FTS5 virtual tables and the eleven lookup indices
 `dance_figures_move_section`, `dance_links_dance_id`, `dance_links_target_transitive`, `dances_level_id`,
-`programs_venue_id`, `program_slots_dance_id` and the four cited-id indexes
+`programs_venue_id`, `program_slots_dance_id`, the four cited-id indexes
 `dance_authors_choreographer_id`, `dance_tags_tag_id`,
-`dance_sources_source_id` and `custom_field_values_field_id` (v41). A
+`dance_sources_source_id` and `custom_field_values_field_id` (v41), and
+`dance_interpreters_choreographer_id` (v42). A
 dump taken from Dart source contains none of them, which would leave exactly
 the entities that are maintained by hand in two places (`onCreate` **and** an
 upgrade step) outside the verification. Dumping databases keeps them in scope,

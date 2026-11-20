@@ -1,4 +1,7 @@
+import 'package:collection/collection.dart';
+
 import '../model/figure.dart';
+import '../taxonomy/cast_vocabulary.dart';
 import '../taxonomy/dance_vocabulary.dart'
     show displayDirectionPhrases, displayFacingPhrases;
 import '../taxonomy/gate_facing.dart';
@@ -11,6 +14,7 @@ import '../taxonomy/user_figure_use.dart';
 import '../util/inline_emphasis.dart';
 import '../util/text_sanitizer.dart';
 import 'dialect.dart';
+import 'ecd_display.dart';
 import 'discouraged_terms.dart';
 import 'substitution.dart';
 import 'wording_conditions.dart';
@@ -309,7 +313,7 @@ class FigureRenderer {
       return titled(
         _sequenceLine(
           children,
-          [
+          _withEcdStarReturn(children, [
             for (final child in children)
               _renderSummary(
                 child,
@@ -318,7 +322,7 @@ class FigureRenderer {
                 decimals: decimals,
                 canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
               ),
-          ],
+          ]),
           dialect,
           canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
         ),
@@ -576,7 +580,7 @@ class FigureRenderer {
           ? rendered.join(' $sequenceMove ')
           : _sequenceLine(
               children,
-              rendered,
+              _withEcdStarReturn(children, rendered),
               dialect,
               canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
             );
@@ -657,6 +661,19 @@ class FigureRenderer {
           forCanonical: false,
           includeSilencedDefaults: true,
         );
+        // An ECD slot reads in a wording as it does in the default line
+        // ("back to place", a set's unsaid right).
+        if (isEcdMove(def.id)) {
+          for (final name in [...wordingSlots.keys]) {
+            final words = ecdSlotWords(
+              def.id,
+              name,
+              params,
+              forCanonical: false,
+            );
+            if (words != null) wordingSlots[name] = words;
+          }
+        }
         // `{!name}` slots: recompute with every hiding rule lifted and expose
         // the result under the `!name` key. Slots owned by a display base
         // renderer have no forced form and read as their plain slot.
@@ -679,7 +696,18 @@ class FigureRenderer {
             forceAll: true,
           );
           for (final name in forcedNames) {
-            final value = forcedSlots[name];
+            var value = forcedSlots[name];
+            // A forced ECD slot reads in ECD's words too, unless those words
+            // hide it (a set to the right), which forcing lifts.
+            if (value != null && isEcdMove(def.id)) {
+              final words = ecdSlotWords(
+                def.id,
+                name,
+                params,
+                forCanonical: false,
+              );
+              if (words != null && words.isNotEmpty) value = words;
+            }
             if (value != null) wordingSlots['!$name'] = value;
           }
         }
@@ -727,6 +755,8 @@ class FigureRenderer {
             ? (line.trimLeft().startsWith('single file ')
                   ? line
                   : 'single file $line')
+            : isEcdMove(def.id)
+            ? ecdWordingLine(line)
             : line;
         return figure.assumedSubject
             ? _spliceAssumedSubjectMarker(displayLine)
@@ -856,10 +886,7 @@ class FigureRenderer {
             : turnRaw == 'right'
             ? 'counterclockwise'
             : turn; // tolerant-decode fallback
-        final placesRaw = params['places'];
-        final places = placesRaw is int
-            ? _formatPlaces(placesRaw)
-            : _displayScalar(placesRaw);
+        final places = _ringPlaces(params['places']);
         return _collapseSpaces(
           [
             'single file promenade',
@@ -884,11 +911,31 @@ class FigureRenderer {
     final template = forCanonical
         ? def.renderTemplate
         : _displayRenderTemplates[def.id] ?? def.renderTemplate;
-    final rendered = template.replaceAllMapped(
-      _placeholder,
-      (match) => slots[match[1]!] ?? '',
-    );
-    final line = _collapseSpaces(rendered);
+    final String line;
+    if (isEcdMove(def.id)) {
+      // ECD's own wording and optional groups (ADR-006 §6.3).
+      for (final name in [...slots.keys]) {
+        final words = ecdSlotWords(
+          def.id,
+          name,
+          params,
+          forCanonical: forCanonical,
+        );
+        if (words != null) slots[name] = words;
+      }
+      line = expandEcdTemplate(
+        ecdTemplateFor(def.id, template, params),
+        slots,
+        params,
+      );
+    } else {
+      line = _collapseSpaces(
+        template.replaceAllMapped(
+          _placeholder,
+          (match) => slots[match[1]!] ?? '',
+        ),
+      );
+    }
     // DISPLAY-ONLY: flag a subject the import parser DEFAULTED (the source
     // omitted it) with a non-authoritative "(assumed)" marker, so fabricated
     // choreography never reads as source-stated fact (#460). The marker is
@@ -897,6 +944,35 @@ class FigureRenderer {
     return (!forCanonical && figure.assumedSubject)
         ? _spliceAssumedSubjectMarker(line)
         : _stripSubjectMark(line);
+  }
+
+  /// [lines], a sequence's display lines for [children], with an ECD star
+  /// that ends the sequence back in place by a stated hand, after a star of
+  /// the same dancers, worded as its return: "right hands across and back by
+  /// the left" (ADR-006 §7.3).
+  /// Display only, and only for a step with no wording override of its own:
+  /// the canonical text keeps the star whole.
+  List<String> _withEcdStarReturn(List<Figure> children, List<String> lines) {
+    // Only a star that follows a star of the same dancers and states no
+    // extent of its own, so the words leave nothing it states unsaid.
+    if (children.length < 2) return lines;
+    final last = children.last;
+    final before = children[children.length - 2];
+    final places = last.params['places'];
+    if (last.move != '${ecdMovePrefix}star' ||
+        before.move != '${ecdMovePrefix}star' ||
+        last.wordingOverride != null ||
+        last.params['destination'] != 'place' ||
+        (places != null && places != ParamVocab.unspecified) ||
+        !const DeepCollectionEquality().equals(
+          last.params['who'] ?? const [ParamVocab.unspecified],
+          before.params['who'] ?? const [ParamVocab.unspecified],
+        )) {
+      return lines;
+    }
+    final words = ecdStarReturn(last.params['hand']);
+    if (words == null) return lines;
+    return [...lines.take(lines.length - 1), words];
   }
 
   /// [parts] as an English list, with a serial comma from three on: `A`,
@@ -968,6 +1044,24 @@ class FigureRenderer {
     bool plain(Figure f) => !f.isCustom && !f.isContainer && !f.assumedSubject;
     if (!plain(previous) || !plain(step)) return const {};
     final who = step.params['who'];
+    // An ECD `who` is a list (ADR-006 §5.2): the same list, said once.
+    if (who is List && isEcdMove(step.move) && isEcdMove(previous.move)) {
+      final before = previous.params['who'];
+      if (before is! List ||
+          !const ListEquality<Object?>().equals(who, before)) {
+        return const {};
+      }
+      final subject = _renderValue(
+        'who',
+        who,
+        const ParamSpec(ParamKind.dancerList, defaultValue: null),
+        dialect,
+        false,
+        false,
+        false,
+      );
+      return subject.isEmpty ? const {} : {'$subject '};
+    }
     if (who is! String || who != previous.params['who']) return const {};
     return {
       for (final plural in [false, true])
@@ -1189,6 +1283,7 @@ class FigureRenderer {
       'form_short_waves': 'forming short waves',
       'give_and_take': 'giving and taking',
       'hey': 'doing a hey',
+      'hey_for_three': 'doing a hey for three',
       'lead_up_the_center': 'leading up the center',
       'long_lines': 'forming long lines',
       'forward_and_back': 'going forward and back',
@@ -1574,6 +1669,10 @@ class FigureRenderer {
           ParamKind.text:
       case ParamKind.flag:
         return const [];
+      // A list of dancers (ECD's `who`) has no single word a condition could
+      // test; per-form wording conditions are ADR-006's W4.
+      case ParamKind.dancerList:
+        return const [];
       case ParamKind.dancerSet || ParamKind.dancerPair:
         domain = spec.choices ?? ParamVocab.dancerSets;
       case ParamKind.handedness || ParamKind.shoulder:
@@ -1778,14 +1877,23 @@ class FigureRenderer {
     final def = taxonomy.resolve(moveId);
     if (def == null) return null;
     // An alias with its own dialect name starts from the line it shows, its
-    // name alone (`long lines`), not its target's.
-    if (_listedAsMove(moveId)) return '{move}';
+    // name alone (`long lines`), not its target's. One that pins nothing
+    // (`hand cast`) shows every slot its target does, so it starts from the
+    // target's template, where `{move}` is its own name.
+    if (_listedAsMove(moveId) &&
+        (taxonomy.aliases[moveId]?.pinnedParams.isNotEmpty ?? true)) {
+      return '{move}';
+    }
     final canonicalMoveId = def.id;
     final seed = _moveWordingSeedTemplates[canonicalMoveId];
     if (seed != null) return seed;
     final base = _displayBaseRenderers[canonicalMoveId];
     if (base == null) {
-      return _displayRenderTemplates[canonicalMoveId] ?? def.renderTemplate;
+      final template =
+          _displayRenderTemplates[canonicalMoveId] ?? def.renderTemplate;
+      return isEcdMove(canonicalMoveId)
+          ? ecdTemplateAsWording(template)
+          : template;
     }
     final figure = Figure(move: canonicalMoveId);
     final params = taxonomy.effectiveParams(figure);
@@ -2023,6 +2131,15 @@ class FigureRenderer {
   /// clause in that case instead of writing the word "unspecified".
   static bool _isUnspecified(Object? value) => value == ParamVocab.unspecified;
 
+  /// A circle's or star's `places` (taxonomy v39): a count as "N places", and
+  /// the [ParamVocab.unspecified] sentinel, which both admit, as nothing, so an
+  /// unstated distance reads "circle left". Any other value humanizes, which
+  /// surfaces malformed data rather than hiding it. Used by the display
+  /// entries and the canonical single-file circle, which bypass the template's
+  /// own sentinel handling in [_renderValue].
+  static String _ringPlaces(Object? value) =>
+      value is int ? _formatPlaces(value) : _displayChoice(value);
+
   /// DISPLAY-ONLY: a `choice` param for the base lines, rendering the
   /// [ParamVocab.unspecified] sentinel as nothing and otherwise humanizing
   /// (so an unexpected imported value is still surfaced, never hidden).
@@ -2215,6 +2332,30 @@ class FigureRenderer {
     }
     if (value is String && roleTokens.contains(value)) {
       return _roleTerm(value, dialect);
+    }
+    // A list of dancers (ECD's `who`, ADR-006 §5.2): each token as a dancer
+    // set, joined as an English list; `unspecified` says nothing.
+    if (spec?.kind == ParamKind.dancerList) {
+      if (value is! List) return _humanize(value.toString());
+      final tokenSpec = ParamSpec(
+        ParamKind.dancerSet,
+        defaultValue: null,
+        choices: spec!.choices,
+      );
+      return _andList([
+        for (final token in value)
+          if (_renderValue(
+                name,
+                token,
+                tokenSpec,
+                dialect,
+                verbose,
+                decimals,
+                forCanonical,
+              )
+              case final String words when words.isNotEmpty)
+            words,
+      ]);
     }
     if (!forCanonical && !userFigure && spec?.kind == ParamKind.direction) {
       return _displayDirection(value);
@@ -2691,8 +2832,31 @@ class FigureRenderer {
   /// `long_lines` takes none although `forward_and_back`, its target since
   /// taxonomy v39, has one: it keeps the line it had as a move, "long lines"
   /// from its template with the direction added by [renderSummary].
-  static _DisplayBaseRenderer? _displayBaseFor(Figure figure, MoveDef def) =>
-      figure.move == 'long_lines' ? null : _displayBaseRenderers[def.id];
+  ///
+  /// `hand_cast` (taxonomy v40), an alias of `gate` listed as a move, takes
+  /// `gate`'s renderer under its own id and name, so it reads "hand cast" with
+  /// a gate's wording around it ("neighbor hand cast ½ to face up"), and a
+  /// dialect's name for it, never one for `gate`, applies.
+  static _DisplayBaseRenderer? _displayBaseFor(Figure figure, MoveDef def) {
+    if (figure.move == 'long_lines') return null;
+    final base = _displayBaseRenderers[def.id];
+    if (figure.move != 'hand_cast' || base == null) return base;
+    final aliasId = figure.move;
+    return (r, def, params, dialect, verbose, decimals) => base(
+      r,
+      MoveDef(
+        id: aliasId,
+        displayName:
+            r.taxonomy.aliases[aliasId]?.displayName ?? def.displayName,
+        params: def.params,
+        renderTemplate: def.renderTemplate,
+      ),
+      params,
+      dialect,
+      verbose,
+      decimals,
+    );
+  }
 
   /// DISPLAY-ONLY base-line renderers that adopt ContraDB `libfigure`
   /// (`app/javascript/libfigure/figure.js` @13f38a5) `words()` sentence
@@ -2968,6 +3132,47 @@ class FigureRenderer {
         'direction': direction,
         'facing': facing,
       }, '{who} {move} {whom} {direction}{facing}');
+    },
+    // Contra's cast (taxonomy v40, issue #770). The maintainer's wording, given
+    // as a rough template rather than a rule:
+    //   {who} cast {back | back {direction} | {direction}} {places} places
+    //   [around {whom}] [to {destination}]
+    // An unstated direction reads "cast back"; a shoulder (`left`/`right`)
+    // reads "cast back left"/"cast back right", even when it is the dancers'
+    // role's usual one (the maintainer's ruling: unlike a chain's hand, it is
+    // never left unsaid); `up`/`down` read bare. The
+    // canonical render keeps expanding the flat template, so search and dedupe
+    // see the stored token ("cast right") rather than this wording.
+    'cast': (r, def, params, dialect, verbose, decimals) {
+      final swho = r._subjectToken(
+        params['who'],
+        dialect,
+        omitUnspecified: true,
+      );
+      final move = r._renderMoveName(def.id, def.displayName, params, dialect);
+      final directionRaw = params['direction'];
+      final direction = switch (directionRaw) {
+        'up' || 'down' => directionRaw as String,
+        'left' || 'right' => 'back $directionRaw',
+        // An unexpected value is surfaced after "back" rather than dropped.
+        _ when _isUnspecified(directionRaw) || directionRaw == null => 'back',
+        _ => 'back ${_displayScalar(directionRaw)}',
+      };
+      final placesRaw = params['places'];
+      final places = placesRaw is int ? _formatPlaces(placesRaw) : '';
+      final whomRaw = params['whom'];
+      final around = (!_isUnspecified(whomRaw) && whomRaw != null)
+          ? 'around ${r._displaySubject(whomRaw, dialect)}'
+          : '';
+      final destination = castDestinationPhrase(params['destination']);
+      return _displayTemplate({
+        'who': swho,
+        'move': move,
+        'direction': direction,
+        'places': places,
+        'around': around,
+        'destination': destination,
+      }, '{who} {move} {direction} {places} {around} {destination}');
     },
     // The side belongs to the verb: "slide left along set", not the canonical
     // "slide along set left". The taxonomy's name is spelled out around the
@@ -3500,6 +3705,24 @@ class FigureRenderer {
         'shoulder': shoulder,
       }, '{move} - start with {who} passing {whom} by {shoulder}');
     },
+    // `dolphin_hey`'s wording (taxonomy v39), with `who` a single dancer too:
+    // "hey for three - start with second robin passing first lark by right
+    // shoulders". Both dancers render via [_singleDancerLabel].
+    'hey_for_three': (r, def, params, dialect, verbose, decimals) {
+      final move = r._renderMoveName(def.id, def.displayName, params, dialect);
+      final swho = r._singleDancerLabel(params['who'], dialect);
+      final swhom = r._singleDancerLabel(params['whom'], dialect);
+      final sh = params['shoulder'];
+      final shoulder = sh == null
+          ? ''
+          : '${_humanize(sh.toString())} shoulders';
+      return _displayTemplate({
+        'move': move,
+        'who': swho,
+        'whom': swhom,
+        'shoulder': shoulder,
+      }, '{move} - start with {who} passing {whom} by {shoulder}');
+    },
     // ContraDB `formLongWavesWords`: words(smove, "-", ssubject, "face in,",
     // invertPair(subject), "face out"). v21 (#295) extends it with the pair and
     // hand TCB states ("Balance long wave (NR, women face in)" = neighbors by
@@ -3727,7 +3950,8 @@ class FigureRenderer {
       );
     },
     // ContraDB `starWords`: `star <hand> [- <grip> -] <n> places`. The grip
-    // clause appears between the hand and the count for the two non-`none`
+    // clause appears between the hand and the count (or, with the count
+    // unstated, v39, ends the line without its closing dash) for the two non-`none`
     // grips ("- wrist grip -" and "- hands across -"; real ContraDB renders:
     // Al's Safeway Produce, Strange New Worlds, Sweet Vicki, Fun Dance for
     // Marjorie). `none` (the default / unspecified value) emits no clause so
@@ -3738,18 +3962,22 @@ class FigureRenderer {
     'star': (r, def, params, dialect, verbose, decimals) {
       final move = r._renderMoveName(def.id, def.displayName, params, dialect);
       final hand = _displayScalar(params['hand']);
-      final placesRaw = params['places'];
-      final places = placesRaw is int
-          ? _formatPlaces(placesRaw)
-          : _displayScalar(placesRaw);
+      final places = _ringPlaces(params['places']);
       final grip = params['grip'];
-      final gripClause = grip == 'none' || grip == null
+      final gripWords = grip == 'none' || grip == null
           ? ''
           : grip == 'wristGrip'
-          ? ' - wrist grip -'
+          ? 'wrist grip'
           : grip == 'handsAcross'
-          ? ' - hands across -'
-          : ' - ${_humanize(grip.toString())} -';
+          ? 'hands across'
+          : _humanize(grip.toString());
+      // The closing dash separates the grip from the count, so an unstated
+      // count (v39) drops it: "star left - wrist grip".
+      final gripClause = gripWords.isEmpty
+          ? ''
+          : places.isEmpty
+          ? ' - $gripWords'
+          : ' - $gripWords -';
       return _displayTemplate({
         'move': move,
         'hand': hand,
@@ -3873,10 +4101,7 @@ class FigureRenderer {
     // by this entry. Canonical uses a distinct form to include "circle" as a
     // searchable token despite phrasing as "promenade".
     'circle': (r, def, params, dialect, verbose, decimals) {
-      final placesRaw = params['places'];
-      final places = placesRaw is int
-          ? _formatPlaces(placesRaw)
-          : _displayScalar(placesRaw);
+      final places = _ringPlaces(params['places']);
       if (params['singleFile'] == true) {
         // v30 (#989): render `turn` raw (`left`/`right`) like every other
         // move's turn/direction param, for consistency with the rest of the

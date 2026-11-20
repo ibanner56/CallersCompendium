@@ -392,10 +392,10 @@ const String kFirstDayOfWeekKey = 'first_day_of_week';
 
 /// Which day the week starts on in date UIs the app renders itself.
 ///
-/// NOTE: Flutter's [showDatePicker] derives its first day of week from the
-/// active locale and offers no per-call override, so this preference cannot
-/// change the system calendar picker. It applies only to date surfaces the app
-/// draws directly. See `docs/dev/localization.md`.
+/// NOTE: the date picker ([showAppDatePicker], Flutter's `DatePickerDialog`)
+/// takes its first day of week from the active locale, and the app does not
+/// override it, so this preference does not change the picker. It applies only
+/// to date surfaces the app draws directly. See `docs/dev/localization.md`.
 enum FirstDayOfWeekPref {
   /// Defer to the platform locale (via `MaterialLocalizations`).
   system('system'),

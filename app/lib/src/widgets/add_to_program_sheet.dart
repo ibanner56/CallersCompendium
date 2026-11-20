@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../editor/program_slot_rebase.dart';
+import '../theme/app_motion.dart';
+import '../theme/app_spacing.dart';
 import '../utils/undo_snack_bar.dart';
 import 'add_to_program_list.dart';
 
@@ -39,7 +41,15 @@ Future<void> showAddToProgramSheet(
   required String danceId,
   required String danceTitle,
 }) async {
-  final programs = await repositories.programs.listAll();
+  // An archived program is not offered: archiving takes it out of the
+  // Programs list, and adding a dance to it would be adding to a list the
+  // caller has put away. Unarchive it to add to it again.
+  final all = await repositories.programs.listAll();
+  final programs = [
+    for (final program in all)
+      if (!program.isArchived) program,
+  ];
+  final allArchived = programs.isEmpty && all.isNotEmpty;
   if (!context.mounted) return;
   // Venue labels are resolved beside the rows, as on the Programs list, and the
   // search matches them. The catalogue is read only when a program links one;
@@ -96,7 +106,12 @@ Future<void> showAddToProgramSheet(
                         children: [
                           if (keyboard == 0)
                             Padding(
-                              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                              padding: const EdgeInsets.fromLTRB(
+                                AppSpacing.md,
+                                0,
+                                AppSpacing.md,
+                                AppSpacing.xs,
+                              ),
                               child: Align(
                                 alignment: Alignment.centerLeft,
                                 child: Text(
@@ -122,7 +137,11 @@ Future<void> showAddToProgramSheet(
                   ),
                   Expanded(
                     child: programs.isEmpty
-                        ? _buildEmptyPrograms(sheetContext, l10n: l10n)
+                        ? _buildEmptyPrograms(
+                            sheetContext,
+                            l10n: l10n,
+                            allArchived: allArchived,
+                          )
                         : AddToProgramList(
                             programs: programs,
                             venuesById: venuesById,
@@ -160,6 +179,7 @@ Future<void> showAddToProgramSheet(
         ),
       );
     },
+    sheetAnimationStyle: AppMotion.styleFor(context),
   );
 }
 
@@ -199,25 +219,29 @@ Widget _buildCreateRow(
 }
 
 /// Teaching empty state shown when no programs exist yet, beneath the pinned
-/// create row.
+/// create row. When programs exist but every one is archived ([allArchived]),
+/// it says so instead of claiming there are none.
 Widget _buildEmptyPrograms(
   BuildContext context, {
   required AppLocalizations l10n,
+  required bool allArchived,
 }) {
   final theme = Theme.of(context);
   return ListView(
-    padding: const EdgeInsets.all(24),
+    padding: const EdgeInsets.all(AppSpacing.lg),
     children: [
       const SizedBox(height: 16),
       Text(
-        l10n.programsEmptyTitle,
+        allArchived ? l10n.programsAllArchivedTitle : l10n.programsEmptyTitle,
         key: const ValueKey('add-to-program-empty'),
         style: theme.textTheme.titleMedium,
         textAlign: TextAlign.center,
       ),
       const SizedBox(height: 8),
       Text(
-        l10n.programsAddToProgramEmptyBody,
+        allArchived
+            ? l10n.programsAllArchivedBody
+            : l10n.programsAddToProgramEmptyBody,
         style: theme.textTheme.bodyMedium,
         textAlign: TextAlign.center,
       ),
@@ -256,6 +280,7 @@ Future<bool> _confirmAddAgain(
         ),
       ],
     ),
+    animationStyle: AppMotion.styleFor(sheetContext),
   );
   return again ?? false;
 }

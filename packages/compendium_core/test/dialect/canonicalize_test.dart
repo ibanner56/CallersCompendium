@@ -2,6 +2,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  _moveSearchTextAcrossForms();
   final larks = Dialect.larksRobins;
   // Gendered dialects are no longer shipped presets; canonicalization must
   // still handle a user's custom gendered role terms, so build them inline.
@@ -389,5 +390,40 @@ void main() {
         );
       },
     );
+  });
+}
+
+void _moveSearchTextAcrossForms() {
+  group('canonicalizeMoveSearchText across dance forms (ADR-006)', () {
+    final contraQueries = <String>{
+      for (final m in contraTaxonomy.moves.values) ...[
+        m.displayName,
+        ...m.searchKeywords,
+      ],
+      for (final a in contraTaxonomy.aliases.values) ...[
+        a.displayName,
+        ...a.searchKeywords,
+      ],
+    };
+
+    test('a contra name or keyword reads the same with every form shipped', () {
+      final changed = [
+        for (final q in contraQueries)
+          if (canonicalizeMoveSearchText(q, shippedTaxonomies.anyForm) !=
+              canonicalizeMoveSearchText(q, contraTaxonomy))
+            '$q -> ${canonicalizeMoveSearchText(q, shippedTaxonomies.anyForm)}',
+      ];
+      expect(contraQueries, isNotEmpty);
+      expect(changed, isEmpty);
+    });
+
+    test('an ECD dance reads its own keywords first', () {
+      final ecd = shippedTaxonomies.forForm(DanceForm.ecd);
+      expect(canonicalizeMoveSearchText('reel of three', ecd), 'hey for three');
+      expect(
+        canonicalizeMoveSearchText('reel of three', shippedTaxonomies.anyForm),
+        'hey for three',
+      );
+    });
   });
 }

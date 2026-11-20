@@ -1,6 +1,4 @@
 import 'package:compendium_core/compendium_core.dart';
-import 'package:flutter/foundation.dart'
-    show debugDefaultTargetPlatformOverride;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -14,6 +12,11 @@ import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/require_performed_for_history_scope.dart';
 import 'package:compendium_app/src/data/show_glossary_scope.dart';
 import 'package:compendium_app/src/screens/app_shell.dart';
+import 'package:compendium_app/src/screens/dance_list_screen.dart';
+import 'package:compendium_app/src/screens/programs_list_screen.dart';
+import 'package:compendium_app/src/theme/app_breakpoints.dart';
+import 'package:compendium_app/src/theme/app_theme.dart';
+import 'package:compendium_app/src/widgets/hardware_keyboard_presence.dart';
 import 'package:compendium_app/src/screens/dance_detail_screen.dart';
 import 'package:compendium_app/src/screens/glossary/glossary_screen.dart';
 import 'package:compendium_app/src/screens/program_editor_screen.dart';
@@ -34,6 +37,7 @@ Future<void> _pump(
   required Size size,
   ImportPicker? reimportPicker,
   ValueNotifier<bool>? showGlossary,
+  ThemeData? theme,
 }) async {
   await tester.binding.setSurfaceSize(size);
   addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -59,6 +63,7 @@ Future<void> _pump(
   final shellKey = GlobalKey<AppShellState>();
   await tester.pumpWidget(
     MaterialApp(
+      theme: theme,
       // Mirrors the root MaterialApp in main.dart, which owns Ctrl/Cmd-K.
       shortcuts: {...WidgetsApp.defaultShortcuts, ...searchShortcuts},
       actions: {
@@ -109,6 +114,8 @@ void main() {
   // (leaving its spinner animating so `pumpAndSettle` never settles); clearing
   // the cache before each test makes the guide load fresh and settle.
   setUp(rootBundle.clear);
+  // Each test starts as a fresh run that has seen no key press.
+  setUp(HardwareKeyboardPresence.debugReset);
 
   testWidgets('narrow layout uses a bottom NavigationBar', (tester) async {
     final repos = openTestRepositories();
@@ -195,6 +202,201 @@ void main() {
     expect(find.text('Nav Target Program'), findsNothing);
   });
 
+  group('Show archived on the Programs list', () {
+    Future<CompendiumRepositories> seeded() async {
+      final repos = openTestRepositories();
+      final now = DateTime.utc(2026, 1, 1);
+      await repos.programs.create(
+        Program(
+          id: 'p1',
+          title: 'Live Program',
+          createdAt: now,
+          updatedAt: now,
+        ),
+      );
+      await repos.programs.create(
+        Program(
+          id: 'p2',
+          title: 'Archived Program',
+          archivedAt: now,
+          createdAt: now,
+          updatedAt: now,
+        ),
+      );
+      return repos;
+    }
+
+    Future<void> showArchived(WidgetTester tester) async {
+      await tester.tap(find.byKey(const ValueKey('programs-more-actions')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Show archived'));
+      await tester.pumpAndSettle();
+      expect(find.text('Archived Program'), findsOneWidget);
+    }
+
+    for (final destination in ['Collection', 'Settings']) {
+      testWidgets('outlasts opening a program, and resets when $destination '
+          'is chosen', (tester) async {
+        final repos = await seeded();
+        await _pump(tester, repos, size: const Size(500, 900));
+        await tester.tap(find.text('Programs').last);
+        await tester.pumpAndSettle();
+        expect(find.text('Archived Program'), findsNothing);
+        await showArchived(tester);
+
+        // Open the archived program's summary and its builder, then come back.
+        await tester.tap(find.text('Archived Program'));
+        await tester.pumpAndSettle();
+        expect(find.byType(ProgramSummaryScreen), findsOneWidget);
+        await tester.tap(find.byKey(const ValueKey('open-builder')));
+        await tester.pumpAndSettle();
+        expect(find.byType(ProgramEditorScreen), findsOneWidget);
+        await tester.pageBack();
+        await tester.pumpAndSettle();
+        await tester.pageBack();
+        await tester.pumpAndSettle();
+        expect(find.text('Archived Program'), findsOneWidget);
+
+        await tester.tap(
+          find.widgetWithText(NavigationDestination, destination),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Programs').last);
+        await tester.pumpAndSettle();
+        expect(find.text('Live Program'), findsOneWidget);
+        expect(find.text('Archived Program'), findsNothing);
+      });
+    }
+
+    testWidgets('wide: archiving the open program from its row closes it', (
+      tester,
+    ) async {
+      final repos = await seeded();
+      await _pump(tester, repos, size: const Size(1400, 900));
+      await tester.tap(find.text('Programs').last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Live Program'));
+      await tester.pumpAndSettle();
+      expect(find.byType(ProgramSummaryPane), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('program-actions-p1')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('program-action-archive')));
+      await tester.pumpAndSettle();
+      expect((await repos.programs.getById('p1'))!.isArchived, isTrue);
+      expect(find.byType(ProgramSummaryPane), findsNothing);
+    });
+
+    testWidgets('wide: Hide archived closes an open archived program, and '
+        'leaves an open unarchived one', (tester) async {
+      final repos = await seeded();
+      await _pump(tester, repos, size: const Size(1400, 900));
+      await tester.tap(find.text('Programs').last);
+      await tester.pumpAndSettle();
+      await showArchived(tester);
+
+      // An unarchived program stays open across Hide archived.
+      await tester.tap(find.text('Live Program'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('programs-more-actions')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Hide archived'));
+      await tester.pumpAndSettle();
+      expect(find.byType(ProgramSummaryPane), findsOneWidget);
+
+      // An archived one closes.
+      await showArchived(tester);
+      await tester.tap(find.text('Archived Program'));
+      await tester.pumpAndSettle();
+      expect(find.byType(ProgramSummaryPane), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('programs-more-actions')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Hide archived'));
+      await tester.pumpAndSettle();
+      expect(find.byType(ProgramSummaryPane), findsNothing);
+      expect(await repos.programs.getById('p2'), isNotNull);
+    });
+
+    testWidgets('wide: leaving Programs with Show archived on closes an open '
+        'archived program', (tester) async {
+      final repos = await seeded();
+      await _pump(tester, repos, size: const Size(1400, 900));
+      await tester.tap(find.text('Programs').last);
+      await tester.pumpAndSettle();
+      await showArchived(tester);
+      await tester.tap(find.text('Archived Program'));
+      await tester.pumpAndSettle();
+      expect(find.byType(ProgramSummaryPane), findsOneWidget);
+
+      await tester.tap(find.text('Collection').last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Programs').last);
+      await tester.pumpAndSettle();
+      expect(find.text('Archived Program'), findsNothing);
+      expect(find.byType(ProgramSummaryPane), findsNothing);
+    });
+
+    testWidgets('wide: a program deleted from its row is not closed by the '
+        'hidden-program check', (tester) async {
+      final repos = await seeded();
+      await _pump(tester, repos, size: const Size(1400, 900));
+      await tester.tap(find.text('Programs').last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Live Program'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('program-actions-p1')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('program-action-delete')));
+      await tester.pumpAndSettle();
+      expect((await repos.programs.getById('p1')), isNull);
+      // Deleting keeps the behaviour it had before archiving existed: the
+      // pane stays, saying the program is unavailable.
+      expect(find.byType(ProgramSummaryPane), findsOneWidget);
+    });
+
+    testWidgets('a program archived while narrow is closed on rotating back to '
+        'wide', (tester) async {
+      final repos = await seeded();
+      await _pump(tester, repos, size: const Size(1400, 900));
+      await tester.tap(find.text('Programs').last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Live Program'));
+      await tester.pumpAndSettle();
+      expect(find.byType(ProgramSummaryPane), findsOneWidget);
+
+      await tester.binding.setSurfaceSize(const Size(600, 1200));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('program-actions-p1')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('program-action-archive')));
+      await tester.pumpAndSettle();
+      expect((await repos.programs.getById('p1'))!.isArchived, isTrue);
+
+      await tester.binding.setSurfaceSize(const Size(1400, 900));
+      await tester.pumpAndSettle();
+      expect(find.byType(ProgramSummaryPane), findsNothing);
+    });
+
+    testWidgets('wide: archiving from the summary pane closes the program', (
+      tester,
+    ) async {
+      final repos = await seeded();
+      await _pump(tester, repos, size: const Size(1400, 900));
+      await tester.tap(find.text('Programs').last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Live Program'));
+      await tester.pumpAndSettle();
+      expect(find.byType(ProgramSummaryPane), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('summary-archive')));
+      await tester.pumpAndSettle();
+      expect((await repos.programs.getById('p1'))!.isArchived, isTrue);
+      expect(find.byType(ProgramSummaryPane), findsNothing);
+      expect(find.text('Live Program'), findsNothing);
+    });
+  });
+
   testWidgets('a rotation across the rail breakpoint mid-set keeps the '
       "program's Perform place (GIG-14)", (tester) async {
     final repos = openTestRepositories();
@@ -239,9 +441,9 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('perform-next')));
     await tester.pump();
 
-    // AppShell swaps rail for bottom bar at the same width the Programs shell
-    // splits at, which rebuilds everything under it unless it is moved. The
-    // shells are laid out again only once Perform has gone.
+    // Crossing the rail width swaps rail for bottom bar, which rebuilds
+    // everything under it unless it is moved. The shells are laid out again
+    // only once Perform has gone.
     await tester.binding.setSurfaceSize(const Size(600, 1200));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('perform-program-exit')));
@@ -258,6 +460,60 @@ void main() {
       tester.widget<Text>(find.byKey(const ValueKey('perform-position'))).data,
       'Slot 2 of 2',
     );
+  });
+
+  testWidgets('turning a phone to landscape keeps what each destination '
+      'holds: the Collection search, the Settings section', (tester) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(
+      Dance(
+        id: 'd1',
+        title: 'Petronella',
+        createdAt: DateTime.utc(2026, 1, 1),
+        updatedAt: DateTime.utc(2026, 1, 1),
+      ),
+    );
+    // Portrait: bottom bar. Landscape: wider than the rail width, so the rail.
+    await _pump(tester, repos, size: const Size(390, 844));
+    expect(find.byType(NavigationBar), findsOneWidget);
+    final field = find.byKey(const ValueKey('collection-search-field'));
+    await tester.enterText(field, 'petro');
+    await tester.pumpAndSettle();
+
+    String searchText() => tester
+        .widget<EditableText>(
+          find.descendant(of: field, matching: find.byType(EditableText)),
+        )
+        .controller
+        .text;
+    expect(searchText(), 'petro');
+
+    await tester.binding.setSurfaceSize(const Size(844, 390));
+    await tester.pumpAndSettle();
+    expect(find.byType(NavigationRail), findsOneWidget);
+    expect(searchText(), 'petro');
+
+    // The Settings section chosen on a wide window survives a narrowing too.
+    await tester.binding.setSurfaceSize(const Size(1000, 844));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Settings').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('settings-nav-updates')));
+    await tester.pumpAndSettle();
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    await tester.pumpAndSettle();
+    expect(find.byType(NavigationBar), findsOneWidget);
+    await tester.binding.setSurfaceSize(const Size(1000, 844));
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .widget<ListTile>(find.byKey(const ValueKey('settings-nav-updates')))
+          .selected,
+      isTrue,
+    );
+    await tester.tap(find.text('Collection').last);
+    await tester.pumpAndSettle();
+    expect(searchText(), 'petro');
   });
 
   testWidgets('exposes four destinations including Settings and Guide', (
@@ -331,6 +587,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(DanceDetailScreen), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('dance-actions-overflow')));
+    await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('reimport-dance')), findsOneWidget);
   });
 
@@ -518,87 +776,130 @@ void main() {
     );
   });
 
-  testWidgets('the app-bar search action opens the palette (narrow)', (
-    tester,
-  ) async {
+  testWidgets('the narrow Collection has no global search action; its own '
+      'search field is its search', (tester) async {
     final repos = openTestRepositories();
-    await _pump(tester, repos, size: const Size(500, 900));
-
-    // The old bottom-right search FAB no longer exists on phones.
-    expect(find.byKey(const ValueKey('global-search-fab')), findsNothing);
-
-    await tester.tap(find.byKey(const ValueKey('collection-search')));
-    await tester.pumpAndSettle();
-
-    expect(find.byKey(const ValueKey('command-palette')), findsOneWidget);
-  });
-
-  for (final (platform, hint) in [
-    (TargetPlatform.android, 'Ctrl+K'),
-    (TargetPlatform.iOS, '\u2318K'),
-  ]) {
-    testWidgets('app-bar search tooltips name the $platform shortcut', (
-      tester,
-    ) async {
-      final repos = openTestRepositories();
-      debugDefaultTargetPlatformOverride = platform;
-      try {
-        await _pump(tester, repos, size: const Size(500, 900));
-        String tooltipOf(String key) =>
-            tester.widget<IconButton>(find.byKey(ValueKey(key))).tooltip!;
-        expect(tooltipOf('collection-search'), 'Search ($hint)');
-        await tester.tap(find.text('Programs').last);
-        await tester.pumpAndSettle();
-        expect(tooltipOf('programs-search'), 'Search ($hint)');
-      } finally {
-        // Cleared before the body returns: the binding checks foundation debug
-        // variables before any addTearDown callback runs.
-        debugDefaultTargetPlatformOverride = null;
-      }
-    });
-  }
-
-  testWidgets(
-    'phone (360dp) shows a single, unobstructed New FAB and app-bar search',
-    (tester) async {
-      final repos = openTestRepositories();
-      await _pump(tester, repos, size: const Size(360, 800));
-
-      // Only one FAB in the bottom-right slot — the screen's "New dance" FAB.
-      // The previously-overlapping search FAB is gone, so there is no collision.
-      expect(find.byType(FloatingActionButton), findsOneWidget);
-      expect(find.byKey(const ValueKey('new-dance')), findsOneWidget);
-      expect(find.byKey(const ValueKey('global-search-fab')), findsNothing);
-
-      // Search is reachable in a single tap from the app bar, with a touch
-      // target that meets the >=44px minimum.
-      final search = find.byKey(const ValueKey('collection-search'));
-      expect(search, findsOneWidget);
-      final searchSize = tester.getSize(search);
-      expect(searchSize.width, greaterThanOrEqualTo(44));
-      expect(searchSize.height, greaterThanOrEqualTo(44));
-
-      await tester.tap(search);
-      await tester.pumpAndSettle();
-      expect(find.byKey(const ValueKey('command-palette')), findsOneWidget);
-    },
-  );
-
-  testWidgets('Programs (narrow) exposes app-bar search and a single New FAB', (
-    tester,
-  ) async {
-    final repos = openTestRepositories();
+    await repos.dances.create(
+      Dance(
+        id: 'd1',
+        title: 'Petronella',
+        createdAt: DateTime.utc(2026, 1, 1),
+        updatedAt: DateTime.utc(2026, 1, 1),
+      ),
+    );
     await _pump(tester, repos, size: const Size(360, 800));
 
+    expect(find.byType(NavigationBar), findsOneWidget);
+    expect(find.byKey(const ValueKey('collection-search')), findsNothing);
+    expect(
+      find.descendant(
+        of: find.byType(AppBar),
+        matching: find.byIcon(Icons.search),
+      ),
+      findsNothing,
+      reason: 'no magnifying glass in the Collection app bar',
+    );
+    expect(
+      find.byKey(const ValueKey('collection-search-field')),
+      findsOneWidget,
+    );
+    // Only one FAB in the bottom-right slot: the screen's "New dance" FAB.
+    expect(find.byType(FloatingActionButton), findsOneWidget);
+    expect(find.byKey(const ValueKey('new-dance')), findsOneWidget);
+  });
+
+  testWidgets('the narrow Programs search lists programs only', (tester) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(
+      Dance(
+        id: 'd1',
+        title: 'Autumn Reel',
+        createdAt: DateTime.utc(2026, 1, 1),
+        updatedAt: DateTime.utc(2026, 1, 1),
+      ),
+    );
+    await repos.programs.create(
+      Program(
+        id: 'p1',
+        title: 'Autumn Ball',
+        createdAt: DateTime.utc(2026, 1, 1),
+        updatedAt: DateTime.utc(2026, 1, 1),
+      ),
+    );
+    await _pump(tester, repos, size: const Size(360, 800));
     await tester.tap(find.text('Programs').last);
     await tester.pumpAndSettle();
 
     expect(find.byType(FloatingActionButton), findsOneWidget);
     expect(find.byKey(const ValueKey('new-program')), findsOneWidget);
+    final search = find.byKey(const ValueKey('programs-search'));
+    expect(tester.widget<IconButton>(search).tooltip, 'Search programs');
+    // A touch target that meets the >=44px minimum.
+    expect(tester.getSize(search).width, greaterThanOrEqualTo(44));
+    expect(tester.getSize(search).height, greaterThanOrEqualTo(44));
 
-    await tester.tap(find.byKey(const ValueKey('programs-search')));
+    await tester.tap(search);
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('command-palette')), findsOneWidget);
+    expect(find.text('Search programs…'), findsOneWidget);
+    // Both titles match "Autumn"; only the program is listed.
+    await tester.enterText(
+      find.byKey(const ValueKey('command-palette-field')),
+      'Autumn',
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('command-result-program-p1')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const ValueKey('command-result-dance-d1')), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('command-result-program-p1')));
+    await tester.pumpAndSettle();
+    expect(find.byType(ProgramSummaryScreen), findsOneWidget);
+  });
+
+  testWidgets('Ctrl-K on a phone still searches dances and programs together', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(
+      Dance(
+        id: 'd1',
+        title: 'Autumn Reel',
+        createdAt: DateTime.utc(2026, 1, 1),
+        updatedAt: DateTime.utc(2026, 1, 1),
+      ),
+    );
+    await repos.programs.create(
+      Program(
+        id: 'p1',
+        title: 'Autumn Ball',
+        createdAt: DateTime.utc(2026, 1, 1),
+        updatedAt: DateTime.utc(2026, 1, 1),
+      ),
+    );
+    await _pump(tester, repos, size: const Size(360, 800));
+    await tester.tap(find.text('Programs').last);
+    await tester.pumpAndSettle();
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyK);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('command-palette-field')),
+      'Autumn',
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('command-result-program-p1')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('command-result-dance-d1')),
+      findsOneWidget,
+    );
   });
 
   testWidgets('wide layout keeps search in the rail, not the app bar', (
@@ -616,7 +917,12 @@ void main() {
     tester,
   ) async {
     final repos = openTestRepositories();
-    await _pump(tester, repos, size: const Size(1200, 900));
+    await _pump(
+      tester,
+      repos,
+      size: const Size(1200, 900),
+      theme: ThemeData(platform: TargetPlatform.windows),
+    );
 
     // Discoverability: the rail search entry is not a bare glyph — it shows a
     // visible "Search" label plus the ⌘K / Ctrl K shortcut hint.
@@ -626,7 +932,9 @@ void main() {
       find.descendant(of: button, matching: find.text('Search')),
       findsOneWidget,
     );
-    final hint = find.byKey(const ValueKey('global-search-shortcut-hint'));
+    final hint = find
+        .byKey(const ValueKey('global-search-shortcut-hint'))
+        .hitTestable();
     expect(hint, findsOneWidget);
     expect(
       find.descendant(of: hint, matching: find.textContaining('K')),
@@ -829,6 +1137,414 @@ void main() {
     });
   });
 
+  group('one set of breakpoints', () {
+    Future<CompendiumRepositories> seeded() async {
+      final repos = openTestRepositories();
+      await repos.dances.create(
+        Dance(
+          id: 'd1',
+          title: 'Petronella',
+          createdAt: DateTime.utc(2026, 1, 1),
+          updatedAt: DateTime.utc(2026, 1, 1),
+        ),
+      );
+      await repos.programs.create(
+        Program(
+          id: 'p1',
+          title: 'Autumn Ball',
+          createdAt: DateTime.utc(2026, 1, 1),
+          updatedAt: DateTime.utc(2026, 1, 1),
+        ),
+      );
+      return repos;
+    }
+
+    // The list pane is a fixed-width column only beside a detail pane.
+    bool splitsCollection(WidgetTester tester) =>
+        tester.getSize(find.byType(DanceListScreen)).width == 400;
+    bool splitsPrograms(WidgetTester tester) =>
+        tester.getSize(find.byType(ProgramsListScreen)).width == 400;
+    // Narrow Settings lists its sections with a chevron; side by side it
+    // shows the General section beside the sidebar.
+    bool splitsSettings(WidgetTester tester) {
+      final sideBySide = find
+          .byKey(const ValueKey('general-sort-ignore-articles'))
+          .evaluate()
+          .isNotEmpty;
+      final chevrons = find
+          .descendant(
+            of: find.byKey(const ValueKey('settings-nav-general')),
+            matching: find.byIcon(Icons.chevron_right),
+          )
+          .evaluate()
+          .isNotEmpty;
+      expect(sideBySide, !chevrons, reason: 'exactly one Settings layout');
+      return sideBySide;
+    }
+
+    Future<void> showSettings(WidgetTester tester) async {
+      await tester.tap(find.text('Settings').last);
+      await tester.pumpAndSettle();
+    }
+
+    for (final (width, rail, split) in [
+      (AppBreakpoints.rail - 1, false, false),
+      (AppBreakpoints.rail, true, false),
+      (AppBreakpoints.split - 1, true, false),
+      (AppBreakpoints.split, true, true),
+    ]) {
+      testWidgets('at ${width.toInt()} px: rail $rail, split $split', (
+        tester,
+      ) async {
+        final repos = await seeded();
+        await _pump(tester, repos, size: Size(width, 900));
+
+        expect(
+          find.byType(NavigationRail),
+          rail ? findsOneWidget : findsNothing,
+        );
+        expect(
+          find.byType(NavigationBar),
+          rail ? findsNothing : findsOneWidget,
+        );
+        expect(splitsCollection(tester), split, reason: 'Collection');
+
+        await tester.tap(find.text('Programs').last);
+        await tester.pumpAndSettle();
+        expect(splitsPrograms(tester), split, reason: 'Programs');
+
+        await showSettings(tester);
+        expect(splitsSettings(tester), split, reason: 'Settings');
+        expect(tester.takeException(), isNull);
+      });
+    }
+
+    testWidgets('the bands are the ones named in AppBreakpoints', (
+      tester,
+    ) async {
+      // A change of the numbers is a change of docs/design/ux.md too.
+      expect(AppBreakpoints.rail, 720);
+      expect(AppBreakpoints.split, 900);
+      expect(AppBreakpoints.compact, 600);
+    });
+
+    testWidgets('a tablet in portrait, 820 px wide, gets the rail and one '
+        'pane', (tester) async {
+      final repos = await seeded();
+      await _pump(tester, repos, size: const Size(820, 1180));
+      expect(find.byType(NavigationRail), findsOneWidget);
+      expect(splitsCollection(tester), isFalse);
+    });
+
+    testWidgets('widening across the split width splits each destination, '
+        'and narrowing joins it again', (tester) async {
+      final repos = await seeded();
+      await _pump(tester, repos, size: const Size(899, 900));
+      await showSettings(tester);
+      expect(splitsSettings(tester), isFalse);
+
+      await tester.binding.setSurfaceSize(const Size(900, 900));
+      await tester.pumpAndSettle();
+      expect(splitsSettings(tester), isTrue);
+
+      await tester.binding.setSurfaceSize(const Size(899, 900));
+      await tester.pumpAndSettle();
+      expect(splitsSettings(tester), isFalse);
+    });
+
+    testWidgets('large text between the bands lays out without overflow', (
+      tester,
+    ) async {
+      tester.platformDispatcher.textScaleFactorTestValue = 2.0;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      final repos = await seeded();
+      await _pump(tester, repos, size: const Size(720, 900));
+      expect(find.byType(NavigationRail), findsOneWidget);
+      await showSettings(tester);
+      await tester.tap(find.byKey(const ValueKey('user-guide-button')));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+    });
+  });
+
+  group('short windows (a phone in landscape)', () {
+    Future<void> pumpWindow(
+      WidgetTester tester,
+      Size size, {
+      double textScale = 1.0,
+    }) async {
+      // The window's real size, so MediaQuery sees the height too.
+      tester.view.physicalSize = size;
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      tester.platformDispatcher.textScaleFactorTestValue = textScale;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      final repos = openTestRepositories();
+      await repos.dances.create(
+        Dance(
+          id: 'd1',
+          title: 'Petronella',
+          createdAt: DateTime.utc(2026, 1, 1),
+          updatedAt: DateTime.utc(2026, 1, 1),
+        ),
+      );
+      await _pump(tester, repos, size: size);
+    }
+
+    for (final (size, short) in [
+      (const Size(844, 390), true),
+      (const Size(932, 430), true),
+      (const Size(390, 844), false),
+      (const Size(430, 932), false),
+    ]) {
+      testWidgets('at ${size.width.toInt()} x ${size.height.toInt()} the New '
+          'dance button is ${short ? 'its icon' : 'labelled'}', (tester) async {
+        await pumpWindow(tester, size);
+        // Landscape is wider than the rail width, so no bottom bar takes
+        // height there.
+        expect(
+          find.byType(NavigationBar),
+          size.width >= AppBreakpoints.rail ? findsNothing : findsOneWidget,
+        );
+        final fab = tester.widget<FloatingActionButton>(
+          find.byKey(const ValueKey('new-dance')),
+        );
+        expect(fab.isExtended, !short);
+        // Folded, it keeps its name as a tooltip; labelled, nothing repeats it.
+        expect(fab.tooltip, short ? 'New dance' : isNull);
+        expect(find.text('New dance'), short ? findsNothing : findsWidgets);
+        expect(tester.takeException(), isNull);
+      });
+    }
+
+    testWidgets('large text on a landscape phone lays out without overflow', (
+      tester,
+    ) async {
+      await pumpWindow(tester, const Size(844, 390), textScale: 2.0);
+      expect(find.byType(NavigationRail), findsOneWidget);
+      expect(
+        tester
+            .widget<FloatingActionButton>(
+              find.byKey(const ValueKey('new-dance')),
+            )
+            .isExtended,
+        isFalse,
+      );
+      expect(tester.takeException(), isNull);
+      await tester.tap(find.text('Settings').last);
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+    });
+  });
+
+  group('rail Search and Guide', () {
+    for (final (platform, keyboard) in [
+      (TargetPlatform.macOS, true),
+      (TargetPlatform.windows, true),
+      (TargetPlatform.linux, true),
+      (TargetPlatform.iOS, false),
+      (TargetPlatform.android, false),
+    ]) {
+      testWidgets('on $platform the shortcut hint shows from the start: '
+          '$keyboard', (tester) async {
+        final repos = openTestRepositories();
+        await _pump(
+          tester,
+          repos,
+          size: const Size(1200, 900),
+          theme: ThemeData(platform: platform),
+        );
+        final hint = find
+            .byKey(const ValueKey('global-search-shortcut-hint'))
+            .hitTestable();
+        expect(hint, keyboard ? findsOneWidget : findsNothing);
+        final tooltip = tester.widget<Tooltip>(
+          find.descendant(
+            of: find.byKey(const ValueKey('global-search-button')),
+            matching: find.byType(Tooltip),
+          ),
+        );
+        expect(
+          tooltip.message,
+          keyboard ? startsWith('Search (') : 'Search',
+          reason: 'the tooltip names a shortcut only when there is a key',
+        );
+      });
+    }
+
+    testWidgets('on an iPad the hint appears once a key only a hardware '
+        'keyboard sends is pressed', (tester) async {
+      final repos = openTestRepositories();
+      await _pump(
+        tester,
+        repos,
+        size: const Size(1200, 900),
+        theme: ThemeData(platform: TargetPlatform.iOS),
+      );
+      final hint = find
+          .byKey(const ValueKey('global-search-shortcut-hint'))
+          .hitTestable();
+      expect(hint, findsNothing);
+
+      // Keys that reach the app without a keyboard: an on-screen keyboard's
+      // Backspace, Enter, arrows and digits, Android's volume and Back keys.
+      for (final key in [
+        LogicalKeyboardKey.backspace,
+        LogicalKeyboardKey.enter,
+        LogicalKeyboardKey.arrowDown,
+        LogicalKeyboardKey.digit1,
+        LogicalKeyboardKey.audioVolumeUp,
+      ]) {
+        await tester.sendKeyEvent(key);
+        await tester.pumpAndSettle();
+        expect(hint, findsNothing, reason: '$key');
+      }
+      // The key simulator has no scan code for Android's Back key, so it goes
+      // straight to the keyboard state the presence check listens to.
+      const back = PhysicalKeyboardKey(0x000c0224);
+      HardwareKeyboard.instance.handleKeyEvent(
+        const KeyDownEvent(
+          physicalKey: back,
+          logicalKey: LogicalKeyboardKey.goBack,
+          timeStamp: Duration.zero,
+        ),
+      );
+      HardwareKeyboard.instance.handleKeyEvent(
+        const KeyUpEvent(
+          physicalKey: back,
+          logicalKey: LogicalKeyboardKey.goBack,
+          timeStamp: Duration.zero,
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(hint, findsNothing, reason: 'goBack');
+
+      final collection = find.descendant(
+        of: find.byType(NavigationRail),
+        matching: find.text('Collection'),
+      );
+      final before = tester.getTopLeft(collection);
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyA);
+      await tester.pumpAndSettle();
+      expect(hint, findsOneWidget);
+      // Its room was kept, so nothing below it moves.
+      expect(tester.getTopLeft(collection), before);
+      expect(
+        find.descendant(of: hint, matching: find.text('⌘K')),
+        findsOneWidget,
+      );
+    });
+
+    for (final (name, theme) in [
+      ('default', AppTheme.dark),
+      ('High contrast', AppTheme.highContrast),
+      // A rail theme of its own, so the test tells "reads the rail theme"
+      // from "happens to match the fallback".
+      (
+        'custom rail theme',
+        AppTheme.dark.copyWith(
+          navigationRailTheme: const NavigationRailThemeData(
+            indicatorColor: Color(0xFF7A3E9D),
+            indicatorShape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.all(Radius.circular(6)),
+            ),
+          ),
+        ),
+      ),
+    ]) {
+      testWidgets('Search and Guide use the destinations\' pill ($name)', (
+        tester,
+      ) async {
+        final repos = openTestRepositories();
+        await _pump(tester, repos, size: const Size(1200, 900), theme: theme);
+        final railTheme = theme.navigationRailTheme;
+
+        Material pill(String key) => tester.widget<Material>(
+          find.descendant(
+            of: find.byKey(ValueKey(key)),
+            matching: find.byKey(const ValueKey('rail-action-indicator')),
+          ),
+        );
+
+        // No circle anywhere in the two tiles.
+        for (final key in ['global-search-button', 'user-guide-button']) {
+          expect(
+            find.descendant(
+              of: find.byKey(ValueKey(key)),
+              matching: find.byWidgetPredicate(
+                (w) =>
+                    w is Container &&
+                    w.decoration is BoxDecoration &&
+                    (w.decoration! as BoxDecoration).shape == BoxShape.circle,
+              ),
+            ),
+            findsNothing,
+            reason: key,
+          );
+          expect(pill(key).shape, railTheme.indicatorShape, reason: key);
+        }
+        // Unselected: no fill, like an unselected destination.
+        expect(pill('global-search-button').color, Colors.transparent);
+        expect(pill('user-guide-button').color, Colors.transparent);
+
+        await tester.tap(find.byKey(const ValueKey('user-guide-button')));
+        await tester.pumpAndSettle();
+        // Selected: the rail's own indicator colour, as a selected destination.
+        expect(pill('user-guide-button').color, railTheme.indicatorColor);
+        // Search is an action, never selected.
+        expect(pill('global-search-button').color, Colors.transparent);
+      });
+    }
+
+    testWidgets('a tap on the label, not only the pill, opens search', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await _pump(tester, repos, size: const Size(1200, 900));
+      await tester.tap(
+        find.descendant(
+          of: find.byKey(const ValueKey('global-search-button')),
+          matching: find.text('Search'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('command-palette')), findsOneWidget);
+    });
+
+    testWidgets('keyboard alone reaches Search and Guide and activates them', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await _pump(tester, repos, size: const Size(1200, 900));
+
+      // Tabs until keyboard focus is inside the tile with [key], within a
+      // bounded number of presses.
+      Future<bool> tabTo(String key) async {
+        for (var i = 0; i < 40; i++) {
+          await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+          await tester.pumpAndSettle();
+          final focused = FocusManager.instance.primaryFocus?.context;
+          final tile = find.byKey(ValueKey(key)).evaluate().single;
+          if (focused is Element && _isAncestor(tile, focused)) return true;
+        }
+        return false;
+      }
+
+      expect(await tabTo('global-search-button'), isTrue);
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('command-palette')), findsOneWidget);
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('command-palette')), findsNothing);
+
+      expect(await tabTo('user-guide-button'), isTrue);
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.pumpAndSettle();
+      expect(find.byType(UserGuideScreen).hitTestable(), findsOneWidget);
+    });
+  });
+
   // UX4-6b: the rail's Search and Guide tiles were bare InkWells, so a screen
   // reader got a label with no "button" role.
   testWidgets('the rail Search and Guide tiles are announced as buttons', (
@@ -845,6 +1561,26 @@ void main() {
         reason: key,
       );
     }
+    // Guide is a place and says whether it is selected; Search is an action
+    // and has no selected state to announce.
+    expect(
+      tester.getSemantics(find.byKey(const ValueKey('user-guide-button'))),
+      isSemantics(isButton: true, hasSelectedState: true, isSelected: false),
+    );
+    expect(
+      tester.getSemantics(find.byKey(const ValueKey('global-search-button'))),
+      isSemantics(isButton: true, hasSelectedState: false),
+    );
     handle.dispose();
   });
+}
+
+/// Whether [ancestor] is above [element] in the element tree.
+bool _isAncestor(Element ancestor, Element element) {
+  var found = false;
+  element.visitAncestorElements((e) {
+    if (identical(e, ancestor)) found = true;
+    return !found;
+  });
+  return found;
 }

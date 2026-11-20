@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:compendium_app/src/data/undo_prompt_duration_scope.dart';
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/calling_card_settings_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
@@ -13,6 +14,7 @@ import 'package:flutter_test/flutter_test.dart';
 import '../support/l10n_harness.dart';
 import '../support/pdf_probe.dart';
 import '../support/test_repositories.dart';
+import 'package:compendium_app/src/theme/app_breakpoints.dart';
 
 /// A 1 × 1 transparent PNG: what the fake rasterizer hands the preview.
 final _png = Uint8List.fromList(const [
@@ -267,10 +269,11 @@ void main() {
       WidgetTester tester, {
       CallingCardSettings settings = const CallingCardSettings(enabled: true),
       bool wide = true,
+      Size? size,
     }) async {
-      if (wide) {
+      if (wide || size != null) {
         // Two panes: the preview and help have a column of their own.
-        tester.view.physicalSize = const Size(1400, 1000);
+        tester.view.physicalSize = size ?? const Size(1400, 1000);
         tester.view.devicePixelRatio = 1;
         addTearDown(tester.view.reset);
       }
@@ -288,6 +291,23 @@ void main() {
           find.byKey(const ValueKey('calling-card-layout-field')),
         )
         .controller!;
+
+    for (final (width, twoPanes) in [
+      (AppBreakpoints.split - 1, false),
+      (AppBreakpoints.split, true),
+    ]) {
+      testWidgets('the preview sits beside the editor from the split width: '
+          '${width.toInt()} px two panes $twoPanes', (tester) async {
+        await pumpEditor(tester, size: Size(width, 1000));
+        expect(
+          find.descendant(
+            of: find.byType(CallingCardLayoutEditorScreen),
+            matching: find.byType(ListView),
+          ),
+          twoPanes ? findsNWidgets(2) : findsOneWidget,
+        );
+      });
+    }
 
     testWidgets('previews the stored layout at the card size', (tester) async {
       // The phone layout: one column.
@@ -425,6 +445,25 @@ void main() {
       expect(h.notifier.value.layout, isNull, reason: 'back to the default');
       expect(controller(tester).text, kDefaultCallingCardLayout);
       await drawn(tester, 3);
+    });
+
+    testWidgets("an example's Undo prompt times out", (tester) async {
+      await pumpEditor(tester);
+      final example = find.byKey(
+        const ValueKey('calling-card-example-bigPrint'),
+      );
+      await tester.ensureVisible(example);
+      await tester.pump();
+      await tester.tap(example);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 750));
+      expect(find.text('Undo'), findsOneWidget);
+
+      await tester.pump(const Duration(seconds: kUndoPromptDefaultSeconds + 1));
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pump(const Duration(seconds: 1));
+      expect(find.text('Undo'), findsNothing);
+      await drawn(tester, 2);
     });
 
     testWidgets('Reset asks first, then restores the default', (tester) async {

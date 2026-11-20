@@ -35,7 +35,10 @@ void main() {
             onPressed: () async {
               popped = await Navigator.of(context).push<Dialect>(
                 MaterialPageRoute(
-                  builder: (_) => DialectEditorScreen(initial: initial),
+                  builder: (_) => DialectEditorScreen(
+                    form: DanceForm.contra,
+                    initial: initial,
+                  ),
                 ),
               );
             },

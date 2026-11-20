@@ -18,10 +18,12 @@ import '../diagnostics/error_log.dart';
 import '../editor/draft_save_health.dart';
 import '../editor/editor_snapshot.dart';
 import '../search/dance_editor_reference_data.dart';
+import '../theme/app_motion.dart';
 import '../utils/confirm_delete.dart';
 import '../utils/scroll_to_error.dart';
 import '../utils/shortcut_platform.dart';
 import '../utils/undo_snack_bar.dart';
+import '../widgets/app_bar_text_action.dart';
 import '../widgets/app_shortcuts.dart';
 import '../widgets/author_details_flow.dart';
 import '../widgets/confirm_discard_changes.dart';
@@ -32,6 +34,7 @@ import 'dance_editor/dance_editor_form.dart';
 import 'dance_editor/name_picker.dart';
 import 'settings/library_manager_list.dart';
 import 'settings/settings_keys.dart';
+import '../theme/app_breakpoints.dart';
 
 /// Dance editor (`docs/design/ux.md` §3). Covers the metadata form — title,
 /// authors (with inline choreographer/tag creation), formation, form/type,
@@ -72,8 +75,6 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
   final _formScroll = ScrollController();
   final _moreDetailsController = ExpansibleController();
 
-  static final Taxonomy _taxonomy = contraTaxonomy;
-
   /// Per-move insert-time parameter overrides (ROADMAP DD.3), loaded once in
   /// [_load] from the saved Defaults. Empty until loaded (and on any read
   /// failure), so the editor falls back to pure taxonomy defaults rather than
@@ -91,7 +92,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
   /// kept in sync with [ActiveDialectScope] in [didChangeDependencies], so the
   /// prose fields restyle live when the caller switches dialects — mirroring
   /// the figure/move field.
-  Dialect _activeDialect = Dialect.larksRobins;
+  DialectsByForm _activeDialects = DialectsByForm.defaults;
 
   bool _dependenciesInitialized = false;
   void Function()? _unregisterShutdownFlush;
@@ -159,32 +160,42 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
     // equality, so only walk the controllers when the dialect actually changed
     // (identity fast-path first) to avoid needless O(n) comparisons and
     // listener churn.
-    final newDialect = ActiveDialectScope.of(context);
+    final newDialects = ActiveDialectScope.of(context);
     if (!_dependenciesInitialized) {
       // Kick off exactly once per widget instance: `_load()` appends into the
       // controller's mutable collections, so a second run would duplicate
       // state and leak controllers.
       _dependenciesInitialized = true;
-      _activeDialect = newDialect;
+      _activeDialects = newDialects;
       _repos = RepositoriesScope.of(context);
       _createController();
       _load();
       _subscribeReferenceData();
-    } else if (!identical(newDialect, _activeDialect) &&
-        newDialect != _activeDialect) {
-      _activeDialect = newDialect;
-      _controller.updateDialect(newDialect);
+    } else if (!identical(newDialects, _activeDialects) &&
+        newDialects != _activeDialects) {
+      _activeDialects = newDialects;
+      _controller.updateDialects(newDialects);
     }
+  }
+
+  /// Lets the controller re-check the dialect the dance is shown in, which
+  /// is lark and robin for the roles while its title and authors say its
+  /// choreographer asked for them (`dialectForDance`): after the title, the
+  /// authors or an author's name changed.
+  void _syncEditorDialect() {
+    if (!_dependenciesInitialized) return;
+    _controller.setAuthorNames(_choreographerNames);
   }
 
   void _createController() {
     _controller = DanceEditorController(
       repositories: _repos,
       danceId: widget.danceId,
-      dialect: _activeDialect,
+      dialects: _activeDialects,
       initialTitle: widget.initialTitle,
     );
     _controller.addListener(_onControllerChanged);
+    _controller.titleController.addListener(_syncEditorDialect);
     final shutdownController = EditorDraftShutdownScope.maybeOf(context);
     if (shutdownController != null) {
       _unregisterShutdownFlush = shutdownController.register(
@@ -230,6 +241,9 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
   /// callback that outlived the route) is a no-op.
   void _onControllerChanged() {
     if (mounted) {
+      // The authors may have changed; a conversion this starts notifies
+      // again, and the second pass finds nothing left to change.
+      _syncEditorDialect();
       setState(_rebuildTagOptions);
     }
   }
@@ -319,6 +333,8 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
             _danceNamesById = data.danceNamesById;
             _sourcesById = data.sourcesById;
           });
+          // An author renamed elsewhere can change what the dance requires.
+          _syncEditorDialect();
         }
         completeInitialReadyOnce();
       },
@@ -344,6 +360,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
     if (_dependenciesInitialized) {
       _unregisterShutdownFlush?.call();
       _controller.removeListener(_onControllerChanged);
+      _controller.titleController.removeListener(_syncEditorDialect);
       _controller.dispose();
       _moreDetailsController.dispose();
     }
@@ -512,11 +529,28 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
     // The dance is committed. Nothing below may report the save as failed or
     // leave the editor open: for a new dance a second Save would mint a fresh
     // id (`buildDance`) and insert a duplicate.
+    if (_controller.original == null) await _rememberNewDanceForm(dance.form);
     await _clearDraftAfterCommit();
     _controller.clearStagedTags();
     _controller.markSaved();
     if (mounted) {
       Navigator.of(context).pop(dance.id);
+    }
+  }
+
+  /// Records [form] as the form of the last new dance, which a new dance
+  /// starts as while the default form is "last used" (ADR-006 §12.2, S2).
+  /// Best-effort: the dance is already saved, so a failure is only logged,
+  /// and the next new dance starts as the form recorded before.
+  Future<void> _rememberNewDanceForm(DanceForm form) async {
+    try {
+      await _repos.settings.set(kLastUsedDanceFormKey, form.name);
+    } catch (error, stackTrace) {
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'dance_editor_screen._rememberNewDanceForm',
+      );
     }
   }
 
@@ -623,6 +657,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
           ),
         ],
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
 
     if (!mounted) return;
@@ -846,6 +881,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
       ];
       _choreographerNames = {..._choreographerNames, stored.id: stored.name};
     });
+    _syncEditorDialect();
   }
 
   /// Follows [merge] in the draft: every merged author becomes the survivor.
@@ -1054,32 +1090,27 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
                         icon: const Icon(Icons.delete_outline),
                         onPressed: _deleting ? null : _delete,
                       ),
+                    // Save goes last in the top bar, as in every full-screen
+                    // editor (`docs/design/ux.md`, "Where Save, New and the
+                    // record's name go"): a floating Save covered the form's
+                    // fields. On a phone it is the check icon; a spinner
+                    // stands in for it while a save runs.
+                    AppBarTextAction(
+                      key: const ValueKey('save-dance'),
+                      label: l10n.commonSave,
+                      icon: Icons.check,
+                      maxWidthFraction:
+                          MediaQuery.sizeOf(context).width <
+                              AppBreakpoints.compact
+                          ? 0
+                          : 0.4,
+                      busy: _saving,
+                      onPressed: _saving ? null : _save,
+                    ),
                   ],
                 ],
               ),
               body: _buildBody(),
-              // Save mirrors the program builder: a bottom-right extended FAB
-              // rather than an AppBar action. The two long editors (dance and
-              // program) float Save; the short ones keep it in the top bar
-              // (`docs/design/ux.md`, "Where Save, New and the record's name
-              // go", D-11). Undo /
-              // redo stay in the AppBar. The `_saving` disabled state and inline
-              // spinner are preserved.
-              floatingActionButton: _controller.loaded
-                  ? FloatingActionButton.extended(
-                      key: const ValueKey('save-dance'),
-                      heroTag: 'save-dance',
-                      onPressed: _saving ? null : _save,
-                      icon: _saving
-                          ? const SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Icon(Icons.save_outlined),
-                      label: Text(l10n.commonSave),
-                    )
-                  : null,
             ),
           ),
         ),
@@ -1090,6 +1121,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
   Widget _buildBody() {
     if (_loadError != null) {
       return LoadErrorView(
+        icon: LoadErrorView.errorGlyph(context),
         message: AppLocalizations.of(context).danceEditorLoadError,
         onRetry: _loadInFlight ? null : _retryLoad,
       );
@@ -1098,9 +1130,11 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
       return const Center(child: CircularProgressIndicator());
     }
     // Registers a dependency so the whole editor rebuilds (and prose fields
-    // restyle) when the active dialect changes; also passed down to the lingo
-    // hints so they reflect the current dialect's discouraged terms.
-    final dialect = ActiveDialectScope.of(context);
+    // restyle) when a dialect changes. The controller holds the dialect of the
+    // dance's own form, passed down to the lingo hints so they reflect that
+    // dialect's discouraged terms.
+    ActiveDialectScope.of(context);
+    final dialect = _controller.dialect;
     // The outer shortcut Focus(autofocus: true) owns focus from the spinner
     // frame, so the title's own autofocus is dropped; request it once here.
     if (widget.isNew && !_titleFocusRequested) {
@@ -1114,7 +1148,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
       formKey: _formKey,
       scrollController: _formScroll,
       moreDetailsController: _moreDetailsController,
-      taxonomy: _taxonomy,
+      taxonomy: _controller.taxonomy,
       moveParamDefaults: _moveParamDefaults,
       freeTextEntry: _freeTextEntry,
       shorthandMappings: ShorthandMappingsScope.maybeOf(context)?.store,
@@ -1141,6 +1175,10 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
         // the editor may have been disposed meanwhile.
         if (!mounted) return;
         _controller.addAuthor(id);
+      },
+      onAddInterpreter: (id) {
+        if (!mounted) return;
+        _controller.addInterpreter(id);
       },
       onAddTag: (id) {
         if (!mounted) return;

@@ -196,12 +196,15 @@ only if you tick **Also update title and credit** on its row; a corrected note
 never does.
 
 If the catalog or a collection cannot be loaded, the message tells you which of
-three things happened: the catalog **could not be reached** (check your
-connection), it **needs a newer app version** (update the app), or it is
-**temporarily unavailable** (it failed a safety check, so nothing was imported).
-Choose **Retry** to try again without leaving the screen (it is not offered when
-the fix is to update the app). Failures are recorded in **Settings** →
-**Diagnostics**.
+four things happened: the catalog **could not be reached** (check your
+connection), it **needs a newer app version** (update the app), it **could not
+be verified** (its signature did not match a key this app trusts; if it keeps
+happening, update the app, because the catalog may have moved to a newer
+signing key), or it is **temporarily unavailable** (it failed another safety
+check, so nothing was imported). Choose **Retry** to try again without leaving
+the screen (it is not offered when the catalog or collection is in a format
+only a newer app can read). Failures are
+recorded in **Settings** → **Diagnostics**.
 
 ## Bring in a list of dance titles
 
@@ -416,7 +419,11 @@ The import now reads that choreography, so a migrated dance arrives with real
 A1/A2/B1/B2 figures you can search and edit. A line that names several figures
 separated by commas, such as "Slide Left, Circle Left 3/4", comes across as
 those figures, sharing the line's beats. Anything the app cannot represent
-faithfully is kept word-for-word as text rather than guessed at.
+faithfully is kept word-for-word as text rather than guessed at. A dance
+whose Type is English comes across as an English country dance: its lines
+are read as English figures, and a "Duple Proper" or "Duple Improper"
+formation becomes a duple minor, proper or improper. A formation that doesn't
+say Improper comes across proper.
 
 The app also reads Caller's Companion's abbreviations and wording. "Circle L",
 "pass R shoulder" and "alle R 1.5" keep their direction, shoulder and hand;
@@ -545,6 +552,43 @@ have deleted in the meantime is not put back.
 The question appears when the app opens, not straight after an import: a
 dance you import tagged **ECD** is offered for conversion the next time you
 open the app.
+
+### Convert English dances to English figures
+
+An English country dance imported before the app knew English figures, or
+converted from the **ECD** tag above, still holds the contra moves it was
+read with. Those still show correctly, but **Settings → General → Import →
+Convert English dances** can turn them into English figures, so they read in your
+English dialect and can be edited with English options.
+
+The screen lists each English dance that would change and what would change
+in it:
+
+- **moves to convert**: contra moves that mean the same in English dancing,
+  such as a circle, a star, an allemande (a hand turn) or a do si do (a back to
+  back). Only what the dance already says is carried across: nothing it left
+  unstated is filled in, except that a forward and back goes back, and goes a
+  double unless the dance says otherwise. Each figure keeps the number of
+  beats it had.
+  A contra move with no English twin is read again from its words, as if you
+  had typed them into the English dance, and converts when they read in full
+  as English figures that keep every detail the move holds. Then what it
+  shows, such as the hand or shoulder, is what it states from then on. A move
+  whose words would lose or change a detail, such as a promenade's direction
+  entered in the contra editor, stays as it is.
+- **unrecognized figures now read**: lines the app kept as text because it
+  could not read them, which the English reading now understands, as
+  [Re-check unrecognized figures](./authoring.md#fix-figures-an-import-could-not-read)
+  does. An unrecognized figure you chose to write as text is not changed.
+- **English formation**: a duple proper or improper dance becomes a duple
+  minor, proper or improper, and a triplet or quadruplet becomes a three- or
+  four-couple longways set.
+
+Every dance starts ticked. Untick the ones you want to leave alone, choose
+**Convert**, and confirm. A move with no clear English meaning, such as a
+contra hey, a poussette, a mad robin or a petronella, stays as it is. Tags, ratings, notes
+and everything else on the dance are kept. A conversion can't be undone, so
+you may want to [export a backup](./backup-portability.md) first.
 
 ### Bring your call buttons across as shorthands
 

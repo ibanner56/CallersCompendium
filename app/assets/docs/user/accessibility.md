@@ -34,10 +34,12 @@ adds a second layer on top of your system setting, because a stage is a special
 case. Perform text starts large — sized to be readable at arm's length — and
 there's a very wide range beyond that.
 
-- **Auto-size** fits each card's text to the screen so nothing scrolls off. It's
-  on by default. Set how it starts under **Settings › Program › Auto-size Perform
-  cards**, and flip it for the night with **Auto-size text to screen** in Perform
-  itself.
+- **Auto-size** fits each card's text to the screen, but never shrinks the
+  figure lines or their notes below your system text size; a card too long for
+  that scrolls.
+  It's on by default. Set how it starts under **Settings › Program › Auto-size
+  Perform cards**, and flip it for the night with **Auto-size text to screen**
+  in Perform itself.
 - The **Decrease text size** and **Increase text size** buttons — **A−** and
   **A+** — set the size yourself. Using either one switches auto-size off, and the
   size you land on is remembered for next time. Choose whatever is comfortable for
@@ -59,7 +61,11 @@ Open **Settings › Appearance** to choose how the app looks. You'll find:
 - **Light** — a bright theme for well-lit rooms and daytime prep.
 - **Dark** — an easy-on-the-eyes theme that suits calling on a dark stage.
 - **High contrast** — a dedicated theme tuned for strong legibility, with bold
-  separation between text and background.
+  separation between text and background. Cards, dialogs, popup menus, bottom
+  sheets, suggestion lists, the date and time pickers and buttons (icon buttons
+  included) also get a visible outline, so you can see their edges without
+  relying on shading. The lists that open from drop-down fields are not
+  outlined yet.
 
 There are additional palettes and custom themes to explore as well, but those four
 are the ones most people reach for first — see
@@ -143,7 +149,8 @@ and Linux and **Cmd** on a Mac:
 - **Ctrl-,** (**Cmd-,**) opens **Settings**.
 - **Esc**, or **Ctrl-W** (**Cmd-W**), goes back. If a menu, a list of
   suggestions, or a dialog you could close by clicking outside it is open, it
-  closes that first. Otherwise it leaves
+  closes that first (a dialog holding text you have typed stays open, so that
+  text is not lost; use its **Cancel**). Otherwise it leaves
   the page you're on, as the back button does, so an editor with unsaved
   changes asks you first. A mouse's **Back** button does the same.
 
@@ -191,8 +198,11 @@ so reading ahead never changes your slot.
 
 **Reordering without dragging.** Program slots and figures also offer **move-up**
 and **move-down** actions, and figures additionally offer cut and paste, so you
-never *need* to drag them. A few settings lists — matrix columns, difficulty
-levels and custom-field choices — have no move buttons, so you drag those.
+never *need* to drag them. The settings lists you can reorder — matrix columns,
+difficulty levels and custom-field choices — have the same **Move up** and
+**Move down** buttons beside each item, as well as drag handles. After you use
+one, a screen reader says where the item now is, such as "Intermediate moved to
+position 2 of 5".
 
 **Figure actions menu.** Tab to a figure's **⋮** button and press **Space** or
 **Enter** to open its actions menu. Focus lands on the first action you can use,
@@ -204,8 +214,11 @@ one, and **Esc** closes the menu and returns focus to the **⋮** button.
 first choice: **Enter** picks **Add figure**, and the arrow keys reach **Add
 meanwhile**, **Add modifier** and **Add sequence**.
 
-**Always know where you are.** Interactive controls show a visible focus outline
-as you move through them, so you can always see which control has focus.
+**Always know where you are.** As you move through controls with the keyboard,
+the one with focus gets a solid outline drawn just outside it — in the theme's
+accent color, or a thicker yellow ring in **High contrast** — so you can always
+see which control has focus. Text fields show the same ring as their border. The
+outline appears only while you're using the keyboard, not when you tap or click.
 
 ## Motion, deleting, and other comforts
 
@@ -216,16 +229,29 @@ A few smaller settings and behaviors round out the experience:
   device's system accessibility settings, the app honors that automatically — you
   don't have to find this switch first. Turn the in-app switch on to
   switch off the app's animations and the fade between themes even when your
-  device allows motion. Turning it off stops the app removing its own
-  animations, but cannot restore animations your device's setting has already
-  shortened.
-- **Confirm before delete** (**Settings › General**) adds a prompt before you
-  delete a dance or a program from its **⋮** menu, from its own screen, or from
-  Collection's selection mode. It does not cover the swipe shortcut: swiping a
-  row in the Collection or Programs list reveals a **Delete** button, and
-  tapping that button deletes straight away. If you want every delete to ask
-  first, use the **⋮** menu rather than the swipe. And regardless of this
-  setting, deletes are undoable — so a slip is recoverable either way.
+  device allows motion: screens, dialogs, date pickers and bottom sheets then
+  appear at once instead of sliding or fading in, and expanding sections open
+  without animating. On iPhone and iPad you can still swipe in from the edge of
+  the screen to go back. Turning it off stops the app removing its own animations, but
+  cannot restore animations your device's setting has already shortened.
+- **Confirm before delete** (**Settings › General**) adds a prompt before any
+  delete you can undo: a dance or a program from its **⋮** menu, from its own
+  screen, or from Collection's selection mode, and a venue, custom field, tag,
+  author, source, shorthand, dialect, custom theme, walkthrough snippet or
+  matrix column. It does not cover the swipe shortcut: swiping a row in the
+  Collection or Programs list reveals a **Delete** button, and tapping that
+  button deletes straight away. If you want every delete to ask first, use the
+  **⋮** menu rather than the swipe. Regardless of this setting, those deletes
+  offer **Undo**, so a slip is recoverable either way. A delete that can't be
+  undone (permanently deleting from **Recently deleted**, or deleting one of
+  your own Glossary entries or figures) always asks first and says "This can't
+  be undone."
+- **Undo prompt** (**Settings › General**) sets how long the **Undo** message
+  stays on screen: 2, 5, 10 (the default) or 15 seconds, or **Until I close
+  it**. Whatever you choose, the message also stays while you point at it with
+  a mouse or move to its **Undo** button with the keyboard, and its full time
+  starts again when you move away. With a screen reader running, it stays until
+  you act on it or close it.
 - **Meaning is never carried by color alone.** Statuses and special slots — like
   an [alt](./glossary.md#alt) — always include an icon and a text label as well as
   color, so nothing depends on being able to distinguish hues. That holds for the

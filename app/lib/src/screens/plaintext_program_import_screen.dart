@@ -15,9 +15,12 @@ import '../data/program_import_online_resolver.dart';
 import '../data/program_import_rollback.dart';
 import '../data/repositories_scope.dart';
 import '../diagnostics/error_log.dart';
+import '../theme/app_spacing.dart';
 import '../utils/undo_snack_bar.dart';
 import 'import_review_screen.dart';
 import '../widgets/app_bar_text_action.dart';
+import '../widgets/load_error_view.dart';
+import '../widgets/confirm_discard_changes.dart';
 
 /// Builds a [Program] from a pasted, newline-separated list of dance titles
 /// (epic #291, sub-issue #312).
@@ -46,7 +49,8 @@ import '../widgets/app_bar_text_action.dart';
 /// SnackBar that hard-deletes the just-created program. Dances the online pass
 /// imported are tracked in a [ProgramImportRollback]: Undo removes them along
 /// with the program, and backing out without creating the program removes them
-/// at once (docs/user/programs.md).
+/// at once (docs/user/programs.md). Backing out with a list entered asks first
+/// ([DiscardChangesGuard]), except while the program is being written.
 class PlaintextProgramImportScreen extends StatefulWidget {
   const PlaintextProgramImportScreen({
     super.key,
@@ -511,54 +515,56 @@ class _PlaintextProgramImportScreenState
     await _discardImported(undoneProgramId: id);
   }
 
+  /// Whether backing out now would lose a pasted list (and any online matches
+  /// resolved for it). Not once the program is written or being written: from
+  /// then on the imported dances belong to the program's Undo.
+  bool get _hasInputToLose =>
+      !_committed &&
+      !_committing &&
+      (_pasteController.text.trim().isNotEmpty ||
+          _titleController.text.trim().isNotEmpty);
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.importTitleListTitle),
-        actions: [
-          AppBarTextAction(
-            key: const ValueKey('plaintext-import-commit'),
-            label: l10n.importAction,
-            icon: Icons.download_done,
-            onPressed: _canCommit ? _commit : null,
-          ),
-        ],
+    return DiscardChangesGuard(
+      dirty: _hasInputToLose,
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(l10n.importTitleListTitle),
+          actions: [
+            AppBarTextAction(
+              key: const ValueKey('plaintext-import-commit'),
+              label: l10n.importAction,
+              icon: Icons.download_done,
+              onPressed: _canCommit ? _commit : null,
+            ),
+          ],
+        ),
+        body: _buildBody(),
       ),
-      body: _buildBody(),
     );
   }
 
   Widget _buildBody() {
     final l10n = AppLocalizations.of(context);
     if (_loadError != null) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.error_outline, size: 48),
-            const SizedBox(height: 8),
-            Text(l10n.importCollectionLoadError),
-            const SizedBox(height: 8),
-            FilledButton(
-              onPressed: () {
-                setState(() {
-                  _collection = null;
-                  _loadError = null;
-                });
-                _load();
-              },
-              child: Text(l10n.commonRetry),
-            ),
-          ],
-        ),
+      return LoadErrorView(
+        icon: LoadErrorView.errorGlyph(context),
+        message: l10n.importCollectionLoadError,
+        onRetry: () {
+          setState(() {
+            _collection = null;
+            _loadError = null;
+          });
+          _load();
+        },
       );
     }
 
     return SafeArea(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppSpacing.md),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -614,7 +620,7 @@ class _PlaintextProgramImportScreenState
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Padding(
-          padding: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.only(bottom: AppSpacing.xs),
           child: Row(
             children: [
               Expanded(

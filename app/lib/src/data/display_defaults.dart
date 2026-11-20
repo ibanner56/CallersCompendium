@@ -358,9 +358,38 @@ Future<void> initializeCanonicalFigureTextGate(
 }
 
 /// Key used to persist the default dance FORM for new dances (ROADMAP DD.1).
-/// Stored as the [DanceForm] enum's stable `.name`. Absent/invalid ⇒
-/// [DanceForm.contra] (the historical new-dance default).
+/// Stored as the [DanceForm] enum's stable `.name`, or
+/// [kDefaultDanceFormLastUsed] for "the form of the last new dance" (ADR-006
+/// §12.2, S2). Absent/invalid ⇒ [DanceForm.contra] (the historical new-dance
+/// default). Synced, like every new-dance default.
 const String kDefaultDanceFormKey = 'default_dance_form';
+
+/// The [kDefaultDanceFormKey] value meaning "the form of the last dance
+/// created" ([kLastUsedDanceFormKey]). An older build reads it as an unknown
+/// name, so as contra.
+const String kDefaultDanceFormLastUsed = 'lastUsed';
+
+/// Key holding the form of the last dance the user created in the dance
+/// editor, as the [DanceForm]'s `.name`: what a new dance starts as while the
+/// default form is [kDefaultDanceFormLastUsed]. Synced with the setting it
+/// serves, so "last used" means the last on any of the user's devices.
+const String kLastUsedDanceFormKey = 'last_used_dance_form';
+
+/// The default-form setting as stored: a fixed [DanceForm], or `null` for
+/// [kDefaultDanceFormLastUsed]. Anything else reads as [DanceForm.contra], as
+/// [danceFormFromStored] does.
+DanceForm? defaultDanceFormSettingFromStored(Object? stored) =>
+    stored == kDefaultDanceFormLastUsed ? null : danceFormFromStored(stored);
+
+/// The form a new dance starts as: the default-form setting, or, when it is
+/// "last used", the form of the last dance created ([kLastUsedDanceFormKey]),
+/// which is contra until there is one.
+DanceForm resolveNewDanceForm({
+  required Object? defaultFormStored,
+  required Object? lastUsedStored,
+}) =>
+    defaultDanceFormSettingFromStored(defaultFormStored) ??
+    danceFormFromStored(lastUsedStored);
 
 /// Key used to persist the default formation SHAPE for new dances (ROADMAP
 /// DD.1). Stored as the [FormationShape] enum's stable `.name`. Absent/invalid

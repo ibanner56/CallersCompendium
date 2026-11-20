@@ -1,3 +1,4 @@
+import 'support/announcements.dart';
 import 'dart:async';
 import 'dart:convert';
 
@@ -63,6 +64,26 @@ class _TransactionCounter extends drift.QueryInterceptor {
   drift.TransactionExecutor beginTransaction(drift.QueryExecutor parent) {
     begun++;
     return parent.beginTransaction();
+  }
+}
+
+/// Holds the first write to the difficulty-level table open until released, so
+/// a test can tap again while a reorder is still being written.
+class _GateLevelWrites extends drift.QueryInterceptor {
+  Completer<void>? gate;
+
+  @override
+  Future<int> runUpdate(
+    drift.QueryExecutor executor,
+    String statement,
+    List<Object?> args,
+  ) async {
+    final held = gate;
+    if (held != null && statement.contains('difficulty_level')) {
+      gate = null;
+      await held.future;
+    }
+    return super.runUpdate(executor, statement, args);
   }
 }
 
@@ -749,6 +770,86 @@ void main() {
       (await repos.difficultyLevels.listAll()).map((l) => l.id),
       isNot(contains(DifficultyLevel.beginnerId)),
     );
+  });
+
+  testWidgets('difficulty levels can be reordered with move buttons, not only '
+      'by dragging', (tester) async {
+    final repos = openTestRepositories();
+    await _pumpDefaults(tester, repos);
+    await _openDifficultySection(tester);
+    final before = (await repos.difficultyLevels.listAll())
+        .map((l) => l.id)
+        .toList();
+    expect(before.length, greaterThan(2));
+
+    // The first level cannot move up; the last cannot move down.
+    IconButton button(String id, String dir) => tester.widget<IconButton>(
+      find.byKey(ValueKey('difficulty-level-$id-move-$dir')),
+    );
+    expect(button(before.first, 'up').onPressed, isNull);
+    expect(button(before.last, 'down').onPressed, isNull);
+
+    final announced = recordAnnouncements();
+    final firstLabel = (await repos.difficultyLevels.listAll()).first.label;
+    await tester.tap(
+      find.byKey(ValueKey('difficulty-level-${before.first}-move-down')),
+    );
+    await tester.pumpAndSettle();
+
+    final after = (await repos.difficultyLevels.listAll())
+        .map((l) => l.id)
+        .toList();
+    expect(after, [before[1], before[0], ...before.skip(2)]);
+    expect(announced, ['$firstLabel moved to position 2 of ${before.length}']);
+
+    await tester.tap(
+      find.byKey(ValueKey('difficulty-level-${before.first}-move-up')),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      (await repos.difficultyLevels.listAll()).map((l) => l.id).toList(),
+      before,
+    );
+  });
+
+  testWidgets('a second move while a reorder is being written is ignored', (
+    tester,
+  ) async {
+    final gated = _GateLevelWrites();
+    final repos = CompendiumRepositories(
+      openWidgetTestDatabase(
+        executor: NativeDatabase.memory().interceptWith(gated),
+      ),
+      contraTaxonomy,
+    );
+    await _pumpDefaults(tester, repos);
+    await _openDifficultySection(tester);
+    final before = (await repos.difficultyLevels.listAll())
+        .map((l) => l.id)
+        .toList();
+
+    final release = Completer<void>();
+    gated.gate = release;
+    await tester.tap(
+      find.byKey(ValueKey('difficulty-level-${before[0]}-move-down')),
+    );
+    await tester.pump();
+    // The first write is still held open; the list already shows the move, so
+    // the former second level is now first. Moving it down would undo the
+    // first move if it were accepted.
+    await tester.tap(
+      find.byKey(ValueKey('difficulty-level-${before[1]}-move-down')),
+    );
+    await tester.pump();
+
+    release.complete();
+    await tester.pumpAndSettle();
+
+    expect((await repos.difficultyLevels.listAll()).map((l) => l.id).toList(), [
+      before[1],
+      before[0],
+      ...before.skip(2),
+    ]);
   });
 
   testWidgets('deleting an unused difficulty level offers Undo, which brings '
@@ -1551,11 +1652,11 @@ void main() {
 
     expect(
       tester
-          .widget<DropdownButton<DanceForm>>(
+          .widget<DropdownButton<String>>(
             find.byKey(const ValueKey('defaults-dance-form')),
           )
           .value,
-      DanceForm.contra,
+      DanceForm.contra.name,
     );
     expect(
       tester
@@ -1652,11 +1753,11 @@ void main() {
 
     expect(
       tester
-          .widget<DropdownButton<DanceForm>>(
+          .widget<DropdownButton<String>>(
             find.byKey(const ValueKey('defaults-dance-form')),
           )
           .value,
-      DanceForm.ecd,
+      DanceForm.ecd.name,
     );
     expect(
       tester
@@ -2965,11 +3066,11 @@ void main() {
             },
             expectEdited: (tester) => expect(
               tester
-                  .widget<DropdownButton<DanceForm>>(
+                  .widget<DropdownButton<String>>(
                     find.byKey(const ValueKey('defaults-dance-form')),
                   )
                   .value,
-              DanceForm.square,
+              DanceForm.square.name,
             ),
           ),
           (
@@ -3242,11 +3343,11 @@ void main() {
       await _scrollTo(tester, const ValueKey('defaults-dance-form'));
       expect(
         tester
-            .widget<DropdownButton<DanceForm>>(
+            .widget<DropdownButton<String>>(
               find.byKey(const ValueKey('defaults-dance-form')),
             )
             .value,
-        DanceForm.contra,
+        DanceForm.contra.name,
       );
       expect(
         tester

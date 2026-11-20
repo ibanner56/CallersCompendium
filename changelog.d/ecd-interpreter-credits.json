@@ -1,0 +1,14 @@
+{
+  "id": "ecd-interpreter-credits",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "A dance can now record who interpreted it from its original publication, and when, beside its authors and composed date. Interpreters come from the same people list as authors, and backups, share files and Device Sync carry them. An older version of the app can't restore a backup that holds them."
+    ]
+  },
+  "core": {
+    "added": [
+      "Dance.interpreterIds (schema v42 table dance_interpreters, shaped like dance_authors) and Dance.interpretedOn (column interpreted_on), with StructuredDraft.interpreterNames for imports (ADR-006 §9.2). Archive envelope v8 is stamped when a dance carries either."
+    ]
+  }
+}

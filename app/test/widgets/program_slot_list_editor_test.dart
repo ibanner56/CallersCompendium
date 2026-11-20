@@ -272,6 +272,44 @@ void main() {
   // cut/paste reorder, leaving "Remove slot" only in the overflow menu). The
   // tooltip keeps its "Cut …" wording by maintainer decision, so these tests
   // find the button by that tooltip and not by key.
+  group('row action buttons are full-size touch targets', () {
+    testWidgets('move up, move down and cut are at least 44 x 44', (
+      tester,
+    ) async {
+      await tester.binding.setSurfaceSize(const Size(1000, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          home: Scaffold(
+            body: ProgramSlotListEditor(
+              slots: [
+                ProgramSlot(id: 's1', position: 0, danceId: 'd1'),
+                ProgramSlot(id: 's2', position: 1, danceId: 'd2'),
+              ],
+              danceTitles: (id) => 'Dance $id',
+              formationFor: (_) => null,
+              mixerFor: (_) => false,
+              onReorder: (_, _) {},
+              onSlotChanged: (_, _) {},
+              onPromoteAlternate: (_, _) {},
+              onRemove: (_) {},
+              onCreateDance: (_) {},
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      for (final action in ['move-up', 'move-down', 'remove']) {
+        final size = tester.getSize(find.byKey(ValueKey('slot-0-$action')));
+        expect(size.width, greaterThanOrEqualTo(44), reason: action);
+        expect(size.height, greaterThanOrEqualTo(44), reason: action);
+      }
+    });
+  });
+
   group('scissors button removes the slot (issue #1270)', () {
     Future<void> pumpEditor(
       WidgetTester tester, {
@@ -570,8 +608,9 @@ void main() {
     testWidgets('a narrow program pane on a wide window also compacts', (
       tester,
     ) async {
-      // The builder's two-pane layout halves the window: at 820dp the program
-      // pane is about 380dp, where the full row overflowed an alternate.
+      // The builder's two-pane layout halves the window, so its program pane
+      // can be far narrower than the window: a 378dp pane is where the full
+      // row overflowed an alternate.
       await pumpPhone(tester, size: const Size(820, 800), listWidth: 378);
       expect(tester.takeException(), isNull);
       expect(find.byKey(const ValueKey('slot-1-move-up')), findsNothing);

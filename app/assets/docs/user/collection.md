@@ -43,8 +43,8 @@ dances visible.*
 
 ![The Collection screen with a figure search for "petronella", three formations chosen in the Filters panel, and one of the four matching dances open beside the list](images/collection-search-filters.png)
 
-To change the order, open the **Sort** control at the top of the list. You can
-sort by:
+To change the order, open the **Sort** control at the top of the list. It
+appears once your collection has a dance. You can sort by:
 
 - **Title** — alphabetical, ignoring a leading "The," "A," or "An," so *The
   Nice Combination* sorts under **N**, where you would look for it. Accents
@@ -481,7 +481,8 @@ From the detail view you can:
 
 - **Edit** the dance.
 - **Re-import choreography** from The Caller's Box, ContraDB — by searching for
-  the dance's title, or from its link or ID number — or from a single-dance
+  the dance's title, or from its link or ID number (the link box stays open once you have typed in it, so a
+  stray tap outside doesn't lose the link) — or from a single-dance
   Caller's Compendium JSON file. You can also do this when you open a saved
   dance from **Programs**, from search, or from the results of an import.
 - **Duplicate dance** — copy it as a starting point for a variation.
@@ -500,17 +501,23 @@ From the detail view you can:
   and **Cancel** leaves the sheet open so you can pick another program.
 - **Export** it — share it as text or as a share file, copy it, or print it as a
   PDF. The export follows your active dialect, so what you hand someone matches
-  how they speak — see [Share, print & export](./sharing.md#share-a-dance).
+  how they speak (except the role terms of a dance whose author asked for
+  larks and robins) — see [Share, print & export](./sharing.md#which-words-a-dance-export-uses).
 - **Perform this dance** — open it in [Perform mode](./glossary.md#perform-mode),
   the large-print calling view, to call it on its own.
 - **Delete dance** — see [Keep your collection tidy](#keep-your-collection-tidy).
 
-On a narrow screen, the less-used actions are in the **More actions** menu.
+On a tablet or computer, **Perform** (a labelled button), **Share** and **Add to
+program** sit in the title bar; the dialect choice, **Duplicate**, **Re-import**
+and **Delete** are in the **⋮** menu beside them, with **Delete** last. On a
+phone, the same actions are in the **⋮** menu except Perform and Add to program.
 
 ## Add a dance
 
 To put in a dance by hand, choose **New dance** (or press **Ctrl-N**, **Cmd-N**
-on macOS). This opens the editor, where the
+on macOS). It floats at the bottom of the list; while the Collection is empty,
+or holds only the sample dance with no search or filter set, it is a button on
+the page instead. This opens the editor, where the
 **title** is the only required field. Figure entry is keyboard-first: start
 typing a move and accept a match from the type-ahead, with a running beat count
 keeping you honest as you go. If a move is unusual and nothing matches, type it
@@ -536,7 +543,8 @@ Beyond the built-in details, you can track whatever matters to you — a tune
 suggestion, a "taught it at" note, a difficulty of your own. Choose **Manage
 custom fields** from the **More actions** (**⋮**) menu on the **Collection**
 page to create, edit, and delete your
-own fields.
+own fields. Deleting a field offers **Undo**; a field still filled in on a
+dance can't be deleted until you clear it there.
 
 A custom field can be a choice list, a yes/no switch, a text note, or a number.
 Once you define one, it:
@@ -673,6 +681,13 @@ The changes:
   dances were in Recently deleted, as restoring one dance does. Programs that include
   a deleted dance still show it, as they do when you delete one dance.
 
+The **Add tags**, **Add tunes** and **Edit custom field** dialogs stay open once
+you have typed in them (a new tag's name, a tune, or a field's value), so a stray
+tap outside, **Esc** or **Back** doesn't lose it; use the dialog's **Cancel** to close it on
+purpose. Ticking tags or choosing a field does not hold a dialog open. A
+dialog you have not typed in closes with a tap outside as usual. The **+** button that adds an option to a choice
+field works the same way.
+
 Every batch change is announced to screen readers and can be undone, and the app
 tells you plainly when a change would affect nothing. If a change can't be
 saved, the app says so and leaves your selection in place so you can try again;
@@ -684,11 +699,16 @@ so the selection is clear however you are reading the screen.
 
 ## Jump straight to a dance or program
 
-Anywhere in the app except Perform mode, the **Search** button — in the
-navigation rail on a wide screen, or in the app bar on a narrow one — or the
-keyboard shortcut **Ctrl-K** (**Cmd-K** on macOS) opens a single search box over
-whatever you are doing. Type, and matching **Dances** and **Programs** are listed
-in groups; choose one and you go straight there.
+Anywhere in the app except Perform mode, the **Search** button in the
+navigation rail, or the keyboard shortcut **Ctrl-K** (**Cmd-K** on macOS), opens
+a single search box over whatever you are doing. Type, and matching **Dances**
+and **Programs** are listed in groups; choose one and you go straight there.
+
+On a phone held upright, where the navigation is a bar along the bottom, there is no
+**Search** button for dances and programs together: the Collection's own search
+box is how you find a dance, and the search button at the top of **Programs**
+finds programs only. With a keyboard attached, **Ctrl-K** (**Cmd-K**) still
+searches both.
 
 It searches titles across your collection and your programs, so it is the fastest
 way to reach a dance you can name. Accents are ignored (typing `ecole` finds

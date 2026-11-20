@@ -617,7 +617,9 @@ declines the collapse.
   caller's own description of the start, is the detail. A square whose `SubType`
   starts "Mixer" is a mixer (in a real file only squares have one). A formation
   type read this way adds no "Type:" line to the calling notes. The CC text
-  export, which gives one formation string, keeps the single-string mapping, its
+  export, which gives one formation string, keeps the single-string mapping (a set
+  shape such as "Proper Triplet" is read as that shape, with the start word as
+  detail, before the Proper / Improper words are tried), its
   "Type:" note for these types, and `mixer: false`. `SetItem.AlternateDance`
   marks an alternate "ALT" in a real file, which is read as true.
 - **Program slots link to dances the commit did not write (INTAKE-1).** A slot
@@ -946,14 +948,19 @@ declines the collapse.
   and routes each figure line through the shared free-text parser.
   Formation text is normalized before classification; recognized formation text
   is stored as shape only unless the page's optional
-  `div.dance-show-preamble` supplies normalized `Formation.detail`; unclassified
+  `div.dance-show-preamble` supplies normalized `Formation.detail`, or the name
+  is a set shape (triplet, quadruplet, triple minor), which keeps its Proper /
+  Improper / Indecent start word as detail, ahead of any preamble and joined
+  with `; `; unclassified
   formation text is retained as detail, after any preamble and with a warning.
 - A second, **deprecated** adapter (`ContraDbAdapter`) maps ContraDB's internal
   `figures_json` positional move/parameter model move-for-move onto our taxonomy
   (positional→named table per move, gyre → shoulder_round term migration). It is
   **`@Deprecated` and wired into no live path** — that JSON input is unobtainable
   from the site — and is retained only as reference prior art plus its unit tests.
-  Its recognized `start_type` is shape-only; normalized `preamble` is stored in
+  Its recognized `start_type` is shape-only, except that a set shape (triplet,
+  quadruplet, triple minor) keeps its Proper / Improper / Indecent start word as
+  detail, ahead of any preamble; normalized `preamble` is stored in
   `Formation.detail`, and only `notes` is stored in `callingNotes`. If an
   unclassified `start_type` and preamble coexist, both are retained in detail
   with the preamble first.
@@ -1560,24 +1567,25 @@ shared reading", "becomes an unrecognized figure") over the bare verb.
 
 Which is which, derived from the code rather than from memory:
 
-- `tcbFigureFrontEnd` registers **twenty-one** pre-recognizers: `_hey`,
+- `tcbFigureFrontEnd` registers **twenty-two** pre-recognizers: `_hey`,
   `_circulate`, `_waveBalanceCirculate`, `_circulateCrossBracket`,
   `_handBalanceSquareThrough`, `_squareThroughPassList`,
   `_balanceHandAnnotation`, `_balancePairHandAnnotation`, `_gateAnnotation`,
-  `_courtesyTurnAnnotation`, `_walkForwardAnnotation`, `_chainAnnotation`,
-  `_starPromenadeAnnotation`, `_promenadeAnnotation`,
+  `_courtesyTurnAnnotation`, `_tcbCast`, `_walkForwardAnnotation`,
+  `_chainAnnotation`, `_starPromenadeAnnotation`, `_promenadeAnnotation`,
   `_rightLeftThroughAnnotation`, `_singleFileCircleRecognizer`,
   `_bracketAnnotation`, `_weaveSlideAnnotation`, `_perRoleChoreoAnnotation`,
-  `_proseAnnotation` and `_decodeSideRunAnnotation`. All but two are the
+  `_proseAnnotation` and `_decodeSideRunAnnotation`. All but three are the
   falls-through kind. `_squareThroughPassList` sends a `without hands` line
-  whose pass list does not decode to `custom` (#1971), and
+  whose pass list does not decode to `custom` (#1971),
   `_bracketAnnotation` does the same for a leading bracket that names no
-  modelled subject. The front end also has a veto (`_tcbDeclineToCustom`).
+  modelled subject, and `_tcbCast` (taxonomy v40) does it for a `(past …)`
+  list it cannot count, or a count the line contradicts. The front end also has a veto (`_tcbDeclineToCustom`).
 - `contraDbHtmlFigureFrontEnd` registers its **entire grammar** as
   pre-recognizers, **and** supplies a veto. Both halves matter, and they pull in
   opposite directions, which is why this front end is the one most likely to be
   described wrongly:
-  - All **48** of its *recognizers* are the falls-through kind. None of them can send
+  - All **62** of its *recognizers* are the falls-through kind. None of them can send
     a line to `custom` on its own; that happens only when the shared core
     declines it too. So "this ContraDB recognizer declines the line to custom"
     is wrong about the mechanism even when it is right about the outcome.
@@ -1856,6 +1864,32 @@ has to be judged in its own context.
   to partner:`, `Wheel chain to neighbor:`) now decompose, because their
   all-or-nothing child list was previously blocked by the unstructurable
   courtesy-turn tail.
+  **Cast (taxonomy v40, #770):** the shared reader takes
+  `[<dancer>] cast [off [n] | up | down | back [<shoulder>] | <shoulder>]
+  [<n> place(s)] [around <dancer>] [to <destination> | to <dancer>]`, where a
+  shoulder is `right`/`clockwise` or `left`/`counterclockwise`, `off` is down
+  one place unless a count follows, and `to <dancer>` (`to P2`) becomes a
+  note. It also reads the display's own wording ("cast back right 2 places
+  around twos to partner's place"). The front end's `_tcbCast` adds TCB's
+  `(cw)`/`(ccw)` annotation on a cast (its shoulder) and `(past twos;
+  threes)`: when every item is a dancer, the count fills `places` and the list
+  is kept as a note; otherwise the line stays `custom`. **Only the adapter**
+  then assumes a shoulder for a role's cast that states none (role2s right,
+  role1s left; `CallersBoxAdapter._assumeCastShoulders`, the maintainer's
+  ruling). A re-check of stored lines, a Caller's Companion import and
+  free-text entry leave it unstated, so on those lines a re-check of an older
+  import differs from a fresh one. A bare `Hand cast` is the `hand_cast` alias of `gate`. Over
+  the 1,563 public dances whose figures mention a cast, the `custom` cast
+  lines fell from 2,060 to 469. See the v40 entry in
+  [figure-taxonomy.md](figure-taxonomy.md#taxonomy-version-history) for what
+  stays custom and why.
+  *Secondary effect:* a `;` line whose only unstructurable clause was a cast
+  now splits (`Partner lead down; cast up to place`), and a compound parent
+  whose children include casts can now decompose (`Butterfly double figure
+  eight 1/2:` in dances 7867 and 7868, a sequence titled with the parent's
+  name). Dance 19800's two-beat `Women cast back || Men go forward` still
+  folds into the following meltdown swing; the fold now recognizes the
+  structured cast-back side (a cast up or down is not the setup).
   **Walk forward (#733, NO taxonomy change):** TCB writes `walk forward` on 879
   figure lines; it is three families, none of which needs a move. A bare
   `[<dancer>] walk forward` clause is read TOGETHER with the clause that follows
@@ -2182,6 +2216,159 @@ has to be judged in its own context.
   (`meanwhile`)" above; it fans into a `meanwhile` container one layer above
   this per-move recognizer, #591.)
 
+#### English Country Dance lines (ADR-006 W6)
+
+A line of an ECD dance is read by its own grammar, `ecd_figure_parser.dart`
+(`parseEcdFigureLine`, `recognizeEcdLine`), never by the contra front-ends
+above: an unprefixed move in an ECD dance means one stored before the ECD
+taxonomy existed (ADR-006 §5.1), so new entry must not create one. It is used
+by free-text entry when the dance's taxonomy is ECD's
+(`shippedTaxonomies.forForm(DanceForm.ecd)`), by a Caller's Companion dance
+whose Type is English, and by **Re-check unrecognized figures** for an ECD
+dance.
+
+- **Same contract.** A line not read in full is a custom `importGap` figure
+  with its scrubbed text; nothing throws; every structured leaf is validated
+  against `ecdTaxonomy` alone, with no contra under it.
+- **Store what the words say** (ADR-006 §5.3). An unstated value is not
+  stored, so it reads as `unspecified` (`who` included). The one exception is
+  ADR-006's own: a forward and back with no distance is a double. A
+  bracketed aside (`(on the side)`) is the figure's note.
+- **Steps.** One to four steps joined by `and`, `then` or a comma make one
+  `sequence` (§5.4), its span the line's count (or, with none, the sum of its
+  steps' usual beats); the steps carry no timing of their own (§5.5). One `as`
+  or `while` makes a `meanwhile`. `, bending the line` makes a `modifier`. A
+  subject on the first step is each later step's too ("1st corners set and
+  turn single", §8.1), unless a later step names other dancers, which leaves
+  whose the rest are unclear, so none is given. A ring movement (circle,
+  star, chain, rights and lefts, the heys, poussette) never takes it: "1s set
+  and circle left" does not say the 1s circle alone. `and back` after a star is a
+  star back to place (§8.1); after a forward and back or a galop it is that
+  movement's `goBack`.
+- **Not guessed.** A bare `hey` (no number of dancers), a turn with no hand,
+  `up` or `down` without a distance (`robin up`), and a bare side after
+  `cross` (hand or shoulder?) stay custom. So does a word the movement has no
+  place for: dancers named both before and after a turn (`1s turn 2s`), a
+  preposition other than the one the movement shows its partner dancers with
+  (`cast around 2s` reads, `cast to 2s` does not), `to the right` as a
+  hand or a cast's shoulder (it is a way to travel: `circle to the left`
+  reads), a cast's shoulder beside `up` or `down`, a bare `improper`
+  (`ending improper` reads), and a subject before a poussette, whose `who` is
+  the dancers who push (`half poussette, 2s push` reads; "all" adds nothing).
+- **Cast** reads the shape ADR-006 §9.4 gives it: `up`, `down`, a bare
+  `left`/`right` (the shoulder turned over) or `clockwise` (right) /
+  `counterclockwise` (left) is its `direction`; no shoulder is assumed from
+  the dancers' role (`robins cast back` states none); and `back`
+  states nothing (`cast back left` is `left`), so a displayed cast reads
+  back in. `N places` is its `places`, and `to the bottom`/`to top` its
+  `destination`; any other movement still reads `to top` as dancers (`set to
+  top`). `cast off` is down one place unless the line states a count (`cast
+  off two places`) or where it ends (`cast off to the bottom`). A bare `cast
+  around`, with no dancers, has no parameter to hold it and stays custom.
+  `hand cast` is a gate, stored under its own alias `ecd_hand_cast`.
+- **Rings.** A circle's or star's fraction ("half way") is a number of places
+  from the size of the ring (§7.3): a size the line states (`circle six left
+  half way`), the couples the subject names, or the dance's formation
+  (`ecdRingDancers`: four in a duple minor, six in a triple minor). A stated
+  size with no fraction (`circle six`, `4 hands across`) has nowhere to be
+  held, so that line stays custom. When none settles it, the
+  fraction's words are the note and `places` is unstated. Free-text entry gets
+  the formation from the editor; the re-check does not see it.
+- **Free-text entry** keeps its count, `;`-clause and shorthand handling, and
+  retries a line with the dialect's role words as for contra. A line that
+  starts with a bare number is read whole first (`2 changes of rights and
+  lefts`, `2 hand turn`), then with the number as its count.
+- **Caller's Companion English dances** also take the ECD shape their contra
+  shape names (`ecdFormationFromContra`: duple proper → duple minor, duple
+  improper → duple minor, improper; triplet and quadruplet → three- and
+  four-couple longways). Contra reads a formation that states no start as
+  improper; an English dance is improper only when its source says so, since
+  ECD's flag defaults to proper (ADR-006 §9.2). Its lines are cached apart
+  from contra's and per ring size, since a `half way` circle is two places in
+  one dance and three in another. A compound prefix (`(4,4)`) whose parts match the
+  sequence's steps keeps each part on its step.
+
+Measured on 19 November 2026 against one caller's own notes for about 100
+English dances (split into 1,475 fragments at counts and full stops; most
+fragments are teaching prose), the grammar read 554 fragments; the rest stay
+text. That corpus is not in the repository; the tests use generic lines.
+
+#### Converting English dances stored with contra moves (ADR-006 §12.1 F5)
+
+An ECD dance imported or tagged before the ECD taxonomy existed holds contra
+moves and a contra shape; they still display through the contra taxonomy
+(§5.1). **Settings → General → Import → Convert English dances** is the opt-in
+migration that turns them into ECD figures. Nothing runs it on its own.
+
+- `ecd_migration.dart` (`migrateEcdDance`) does four things to one dance:
+  1. a contra move with an ECD twin of the same meaning becomes that twin
+     (`ecdTwinOfContraMove`), inside containers too. The twin table lists, per
+     move, the params that carry across unchanged. A move storing any other
+     param with a real value (a star's wrist grip, a swing's balance prefix, a
+     forward and back in squares) stays contra; an empty text or a value the
+     move's own name states (a see saw's left shoulder) is not in the way. A
+     move with no twin stays contra too: a contra hey, poussette, mad robin,
+     circular hey or form long waves, whose `who` names a different group in
+     each form (the pair that pushes, steps in front, passes first or faces
+     in, against ECD's subject); a petronella, which in contra includes the
+     balance; and form short waves, whose center and sides the ECD short wave
+     does not show;
+  2. any other contra move is read again from its words
+     (`ecdReadingOfContraWording`, Hudson's decision: twins first, then try
+     the ECD grammar on what else can parse). The words are the move's own
+     summary as the figure list shows it, in the canonical dialect, balance
+     and other modifiers included and never the person's wording override
+     (which can name another move). Contra silences its defaults there, so a
+     default the words do show can become a stated value: the accepted cost
+     of this step. The reverse is refused: a figure that states a non-default
+     value its words hide (a promenade's destination) is not read. Nor is one
+     whose reading would drop a value it stores, its contra default included
+     (the contra editor seeds every param), or state it as another value. A
+     value is kept when a step states its param with the same value (a contra
+     `who` as ECD's one-dancer list), when it is a balance the reading made a
+     step of its own, or when it is a formation the reading states as `who`
+     (side couples forward and back). A param a step states otherwise (`role2s
+     1¼ figure 8` reads as a quarter figure eight for the 1st role2), or that
+     no step has a place for, keeps the figure contra. A param a step leaves
+     unstated is set on the one step that is the move's twin when the twin
+     table carries it (a hand-entered balance and swing keeps the swing's
+     `endFacing: in`); otherwise the figure stays contra. So a hand-entered
+     promenade (its `where` and `direction`) and figure 8 (its `lead`) stay
+     contra. Also never read: a figure that fails contra validation or whose
+     subject was assumed; the moves left out of the twin table for their `who`;
+     form short waves, whose center and sides would be lost; and a petronella,
+     whose contra words hide whether it includes the balance. A reading is kept
+     only when every leaf is an ECD move that validates against `ecdTaxonomy`.
+     It can be a sequence ("partner balance & swing" is a balance, then a
+     swing, keeping the 16 beats it danced), which replaces only a top-level
+     figure, so containers never nest. The figure keeps its
+     note, mark and overrides, and its contra count as below;
+  3. import-gap custom lines are re-read with the ECD grammar
+     (`reparseImportGapFigures` with ECD's taxonomy); user-entered customs are
+     left alone, as in Re-check;
+  4. the shape becomes `ecdFormationFromContra`'s.
+- In a twin (step 1), only values the contra figure **stores** are carried, never a contra default,
+  so the migrated figure states nothing the dance did not (R2). A `who` the
+  importer assumed (`assumedSubject`) is dropped. The exceptions are values the
+  move's own name states: a see saw is a left-shoulder back to back, and a
+  forward and back (or long lines) goes back and, with no distance stored, is a
+  double (§9.1 point 3). A figure with no stored count gets the count it
+  danced in contra (its effective beats, which can follow its params) when
+  the twin's would differ: a pass through is 2 beats in contra and 4 in ECD,
+  and a forward with no back is 4 in contra and 8 in ECD. So the dance keeps
+  its length. Every twin is validated
+  against `ecdTaxonomy`; one that fails stays contra. A test converts each
+  twin-table move as the contra editor stores it, so an entry that can never
+  convert fails.
+- Storage cannot import this layer, so `DanceRepository.previewEcdMigration`
+  and `migrateEcdDances` take it as an `EcdDanceMigrator`
+  (`migrateEcdDanceForStorage`), as Re-check takes its `FigureReparser`. The
+  preview lists only ECD dances the migration would change; the apply re-runs
+  the migration per dance inside one transaction, skips a dance no longer ECD
+  or with nothing to change, rebuilds derived rows, and stamps `updatedAt`.
+  Like Re-check, it re-expresses stored content, so it is not a local user
+  edit and never cancels a peer's pending tombstone (sync-spec §6.8).
+
 #### Parse cost: what is cached, and what must stay true
 
 Parsing a figure line is the dominant cost of planning a large import (a
@@ -2205,7 +2392,9 @@ uncached parser over a 20,516-dance corpus and ~200k mutated lines):
   (`CcFigureLineCache`): a library repeats its stock calls thousands of times.
   Keyed on the trimmed raw line **including its beats prefix**, bounded (50,000
   lines; past that new lines are just parsed each time), and safe to share
-  between dances because `Figure` is immutable.
+  between dances because `Figure` is immutable. An English dance's lines are
+  kept in a map of their own (`lookup(line, ecd: true)`): the same text reads
+  as an ECD figure there and a contra one elsewhere.
 
 Everything above is static or per-adapter state, so it is **per isolate**. Two
 things keep it honest: a cache must never hold anything but a pure function of

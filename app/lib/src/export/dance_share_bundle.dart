@@ -18,7 +18,8 @@ String buildDanceShareBundle(
 }) {
   final choreographers = <Choreographer>[];
   final seenAuthors = <String>{};
-  for (final id in dance.authorIds) {
+  // Interpreters come from the same people list and travel the same way.
+  for (final id in [...dance.authorIds, ...dance.interpreterIds]) {
     if (!seenAuthors.add(id)) continue;
     final choreographer = choreographerFor(id);
     if (choreographer == null) {

@@ -65,7 +65,7 @@ Keep this handy — every form asks some slice of it.
 | Support / marketing site | <https://ibanner56.github.io/CallersCompendium/> |
 | Source & issues | <https://github.com/ibanner56/CallersCompendium> |
 | Privacy policy URL | <https://ibanner56.github.io/CallersCompendium/privacy/> (published from `site/privacy/index.html`, which is authoritative; [`privacy-policy.md`](privacy-policy.md) is its hand-kept mirror) |
-| License | AGPL-3.0 (source-available) |
+| License | AGPL-3.0-only (source-available) |
 | Data collection | Selected Other User Content via optional Device Sync, not linked to you, used for App Functionality when the user opts in. |
 | Network use | User-initiated imports (Caller's Box, ContraDB, JSON) over HTTPS; published-collection browsing/imports from a developer-hosted catalog; opt-in update check (off by default); opt-in Device Sync for selected shareable content |
 | Age rating | Suitable for everyone (no objectionable content) |
@@ -109,7 +109,7 @@ These are the things needed **regardless** of store. Knock them out first.
 
 First-time publishers rarely see these coming; both apply to us specifically.
 
-### 1. AGPL-3.0 vs. the Apple App Store terms
+### 1. AGPL-3.0-only vs. the Apple App Store terms
 
 Apple's standard licensed-application EULA imposes usage restrictions (e.g.
 limiting use to a number of Apple devices you own/control) that are **additional

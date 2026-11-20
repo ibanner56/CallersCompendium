@@ -11,8 +11,9 @@ import '../data/online_search.dart';
 import '../data/repositories_scope.dart';
 import '../diagnostics/error_log.dart';
 import '../search/dance_detail_data.dart';
-import '../theme/app_spacing.dart';
 import '../widgets/brand_mark.dart';
+import '../widgets/empty_state.dart';
+import '../widgets/load_error_view.dart';
 import '../widgets/online_import_dialogs.dart';
 import '../widgets/online_import_snack_bar.dart';
 import '../published_collections/published_collection_service.dart';
@@ -23,16 +24,18 @@ import 'dance_reimport_flow.dart';
 import 'custom_fields_screen.dart';
 import 'import_review_screen.dart';
 import 'recently_deleted_screen.dart';
+import '../theme/app_breakpoints.dart';
 
 /// Responsive collection shell (`docs/design/ux.md` — list/detail split pane
 /// for desktop/tablet; `docs/ROADMAP.md` deferred follow-up
 /// `defer-editor-splitpane`).
 ///
-/// **Breakpoint: 900 logical pixels wide.**
-/// - **Narrow (< 900 px):** renders [DanceListScreen] directly, preserving the
-///   existing push-navigation to [DanceDetailScreen]. No behaviour change on
-///   phones or narrow tablet portrait.
-/// - **Wide (≥ 900 px):** renders a master-detail [Row]:
+/// **Breakpoint: [AppBreakpoints.split] (900 px) of window width**, the same
+/// for every destination, so the rail beside this shell does not move it.
+/// - **Narrow (below 900 px):** renders [DanceListScreen] directly, with
+///   push-navigation to [DanceDetailScreen]. From [AppBreakpoints.rail]
+///   (720 px) the app shell's rail sits beside it.
+/// - **Wide (from 900 px):** renders a master-detail [Row]:
 ///   - *List pane* (fixed 400 px): [DanceListScreen] with [onSelectDance] wired
 ///     to update the detail pane, and the currently selected row highlighted.
 ///   - *Detail pane* (flexible remaining space): the selected
@@ -95,9 +98,6 @@ class CollectionShell extends StatefulWidget {
   /// preview. Injected in tests with a seam-backed instance; defaults to a
   /// network-backed [ContraDbOnline].
   final ContraDbOnline? contraDbOnline;
-
-  /// Breakpoint (logical pixels) at which the split-pane layout activates.
-  static const double splitBreakpoint = 900;
 
   /// Fixed width (logical pixels) of the list pane in split mode.
   static const double listPaneWidth = 400;
@@ -252,6 +252,10 @@ class _CollectionShellState extends State<CollectionShell> {
   OnlinePreview? _onlinePreview;
   bool _onlinePreviewLoading = false;
   String? _onlinePreviewError;
+
+  /// The result whose record is being fetched, kept so a failed fetch can be
+  /// retried from the pane without going back to the list and tapping again.
+  OnlineSearchResultRow? _onlinePreviewRequest;
   int _onlineSeq = 0;
 
   /// Guards the direct-import commit so a rapid double-tap (or re-tap) of the
@@ -334,6 +338,7 @@ class _CollectionShellState extends State<CollectionShell> {
     _onlinePreview = null;
     _onlinePreviewLoading = false;
     _onlinePreviewError = null;
+    _onlinePreviewRequest = null;
     _reimportTargetId = null;
     _reimportTargetUpdatedAt = null;
     _reimportPreview = null;
@@ -487,6 +492,7 @@ class _CollectionShellState extends State<CollectionShell> {
     setState(() {
       _selectedDanceId = null;
       _detailMode = _DetailMode.onlinePreview;
+      _onlinePreviewRequest = result;
       _onlinePreview = null;
       _onlinePreviewError = null;
       _onlinePreviewLoading = true;
@@ -631,7 +637,7 @@ class _CollectionShellState extends State<CollectionShell> {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        _wide = constraints.maxWidth >= CollectionShell.splitBreakpoint;
+        _wide = AppBreakpoints.showsSplit(context, constraints.maxWidth);
         if (_wide) {
           return _buildSplitPane();
         }
@@ -713,15 +719,19 @@ class _CollectionShellState extends State<CollectionShell> {
           }
           if (_onlinePreviewError != null) {
             return Scaffold(
-              body: Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(AppSpacing.lg),
-                  child: Text(
-                    _onlinePreviewError!,
-                    key: const ValueKey('online-preview-error'),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
+              body: LoadErrorView(
+                key: const ValueKey('online-preview-error'),
+                icon: LoadErrorView.errorGlyph(context),
+                message: _onlinePreviewError!,
+                // Retrying is refused while a direct import is committing, so
+                // the button leaves then rather than pressing to no effect.
+                onRetry: _importCommitInFlight || _onlinePreviewRequest == null
+                    ? null
+                    : () => _onSelectOnlineDance(_onlinePreviewRequest!),
+                onBack: () => setState(() {
+                  _detailMode = _DetailMode.none;
+                  _clearOnlinePreview();
+                }),
               ),
             );
           }
@@ -812,34 +822,13 @@ class _EmptyDetailPane extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            BrandMark(
-              size: 64,
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              l10n.collectionSplitEmptyTitle,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              l10n.collectionSplitEmptySubtitle,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                // Body text must clear the 4.5:1 WCAG AA threshold, so it uses
-                // onSurfaceVariant (a text role) rather than outlineVariant (a
-                // hairline/border role that falls below AA against the pane).
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ],
+      body: EmptyState(
+        icon: BrandMark(
+          size: 64,
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
         ),
+        title: l10n.collectionSplitEmptyTitle,
+        body: l10n.collectionSplitEmptySubtitle,
       ),
     );
   }

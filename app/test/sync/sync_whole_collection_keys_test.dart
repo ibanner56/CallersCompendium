@@ -18,6 +18,8 @@ void main() {
     expect(syncWholeCollectionSettingKeys, {
       kCompoundShorthandsKey,
       kCustomDialectsKey,
+      kCustomDialectsEcdKey,
+      kCustomDialectsSquareKey,
       kCustomThemesKey,
       kShorthandMappingsKey,
       kUserFigureShorthandsKey,
@@ -29,6 +31,11 @@ void main() {
     // Combine both refuses a dialect list longer than core's limit; a longer
     // one would be cut short the next time a backup restores it.
     expect(syncMaxCustomDialects, kMaxCustomDialects);
-    expect(syncCollectionLimit('custom_dialects'), kMaxCustomDialects);
+    for (final form in DanceForm.values) {
+      expect(
+        syncCollectionLimit(customDialectsKeyFor(form)),
+        kMaxCustomDialects,
+      );
+    }
   });
 }

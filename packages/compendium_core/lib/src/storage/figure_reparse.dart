@@ -1,6 +1,7 @@
 import 'package:meta/meta.dart';
 
 import '../model/figure.dart';
+import '../model/formation.dart';
 import '../taxonomy/taxonomy.dart';
 
 /// The result of re-parsing a figure list: the (possibly rewritten) [figures]
@@ -33,3 +34,31 @@ class FigureReparseOutcome {
 /// app). Injected so `storage/` does not import `imports/`.
 typedef FigureReparser =
     FigureReparseOutcome Function(List<Figure> figures, {Taxonomy? taxonomy});
+
+/// What one English Country Dance's opt-in ECD migration (ADR-006 §12.1 F5)
+/// would write: its new [figures] and [formation], and the counts a preview
+/// shows. Built by the caller-supplied [EcdDanceMigrator].
+@immutable
+class EcdDanceMigrationResult {
+  const EcdDanceMigrationResult({
+    required this.figures,
+    required this.formation,
+    required this.movesConverted,
+    required this.linesReread,
+    required this.shapeChanged,
+  });
+
+  final List<Figure> figures;
+  final Formation formation;
+  final int movesConverted;
+  final int linesReread;
+  final bool shapeChanged;
+
+  bool get changed => movesConverted > 0 || linesReread > 0 || shapeChanged;
+}
+
+/// The ECD migration of one dance's [figures] and [formation]
+/// (`migrateEcdDance` from the imports layer in the app). Injected, as
+/// [FigureReparser] is, so `storage/` does not import `imports/`.
+typedef EcdDanceMigrator =
+    EcdDanceMigrationResult Function(List<Figure> figures, Formation formation);

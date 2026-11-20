@@ -141,6 +141,7 @@ class ChoreographerRepository {
                   incomingId: c.id,
                   joinTable: _db.danceAuthors,
                   joinColumn: 'choreographer_id',
+                  moreJoinTables: [_db.danceInterpreters],
                 ) ??
                 c.id;
       await _db
@@ -249,7 +250,8 @@ class ChoreographerRepository {
           .watch()
           .map((rows) => rows.map(_toModel).toList());
 
-  /// Throws if [id] is still referenced by any `dance_authors` row — callers
+  /// Throws if [id] is still referenced by any `dance_authors` or
+  /// `dance_interpreters` row — callers
   /// should reassign or remove authorship first (deleting a choreographer
   /// silently orphaning credited dances would be a silent data loss bug). The
   /// "still credited?" check and the delete run inside a single transaction
@@ -287,13 +289,28 @@ class ChoreographerRepository {
       // instead of erasing them: the surviving rows made this guard throw, the
       // caller swallowed it, and the import-created choreographer stayed live.
       // `CompendiumSyncStorage._hasCitation` counts liveness the same way.
-      final stillUsed = await liveDanceCitationCount(
-        _db,
-        joinTable: _db.danceAuthors,
-        keyColumn: _db.danceAuthors.choreographerId,
-        danceIdColumn: _db.danceAuthors.danceId,
-        id: id,
-      );
+      // An interpreter credit (`dance_interpreters`) holds the row back
+      // exactly as an author credit does; a dance crediting the person both
+      // ways counts once.
+      final stillUsed =
+          (await _db
+                  .customSelect(
+                    'SELECT COUNT(DISTINCT c.dance_id) AS n FROM ('
+                    'SELECT dance_id FROM dance_authors '
+                    'WHERE choreographer_id = ? '
+                    'UNION ALL SELECT dance_id FROM dance_interpreters '
+                    'WHERE choreographer_id = ?) AS c '
+                    'JOIN dances AS d ON d.id = c.dance_id '
+                    'WHERE d.deleted_at IS NULL',
+                    variables: [Variable<String>(id), Variable<String>(id)],
+                    readsFrom: {
+                      _db.danceAuthors,
+                      _db.danceInterpreters,
+                      _db.dances,
+                    },
+                  )
+                  .getSingle())
+              .read<int>('n');
       if (stillUsed > 0) {
         throw StateError(
           'cannot delete choreographer "$id": still credited on '
@@ -306,10 +323,15 @@ class ChoreographerRepository {
         // rather than cascading that dance's credit away (issue #1357).
         final creditedBySurvivor =
             await (_db.select(_db.danceAuthors)
-                  ..where((t) => t.choreographerId.equals(id))
-                  ..limit(1))
-                .getSingleOrNull() !=
-            null;
+                      ..where((t) => t.choreographerId.equals(id))
+                      ..limit(1))
+                    .getSingleOrNull() !=
+                null ||
+            await (_db.select(_db.danceInterpreters)
+                      ..where((t) => t.choreographerId.equals(id))
+                      ..limit(1))
+                    .getSingleOrNull() !=
+                null;
         if (creditedBySurvivor ||
             await isPublishedSyncRecord(
               _db,

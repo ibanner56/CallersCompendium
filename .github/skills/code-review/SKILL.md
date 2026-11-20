@@ -270,7 +270,8 @@ mechanical; a diff that violates one is a hard fail, not an opinion:
   embeds a URL can leak it into exported diagnostics.)
 - **schema-gate / version-history** — a schema or taxonomy bump must ship its
   required entries and never ride a PATCH release; the version ledger must gain
-  the matching entry.
+  the matching entry (schema, contra and ECD taxonomy, and sync wire version
+  each have one).
 - **changelog-gate** — pending fragments must be compiled and consumed at release.
 - **l10n / user-docs** — ARB parity/coverage; `docs/user` is the single source of
   the in-app bundle.
@@ -383,7 +384,10 @@ Rules for the output:
   `check_pr_review_gates.py findings` prints and what the thread-resolution gate
   counts, so a Suspected item's thread must be resolved before the merge gate
   passes (the gate counts only resolved threads, so a reply that dismisses it
-  is not enough on its own). `findings` prints only the first 160 characters of each
+  is not enough on its own). Resolving it is not enough either: the merge gate
+  passes only an `APPROVE`, so an item stays until a later round drops it, and
+  a dispute is settled by your next round re-judging it (step 5), not by the
+  author's reply. `findings` prints only the first 160 characters of each
   comment, newlines collapsed, so start each inline comment with the ID,
   severity and title: `B1 blocker: <title>`, `N2 minor: <title>`,
   `S1 suspected: <title>`; the rest of the comment is that finding's block.

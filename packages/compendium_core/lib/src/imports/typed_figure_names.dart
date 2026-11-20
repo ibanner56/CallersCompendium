@@ -46,7 +46,9 @@ typedef _Named = ({String move, Map<String, Object?> params});
 /// Caller phrasings that name a move but are not a taxonomy name. Each states
 /// only what its words say, except that `hey for four` states a full hey
 /// (decision: Isaac, 2026-10-17): a caller who means half a hey says so
-/// (`half hey`), so the bare phrasing is a full one.
+/// (`half hey`), so the bare phrasing is a full one. `hey for 3` is the
+/// `hey_for_three` move's name with the numeral, as `hey for 4` is `hey for
+/// four`'s, and states nothing more.
 const Map<String, _Named> _typedPhrasings = {
   'hey for four': (move: 'hey', params: {'length': 'full'}),
   'hey for 4': (move: 'hey', params: {'length': 'full'}),
@@ -56,6 +58,7 @@ const Map<String, _Named> _typedPhrasings = {
   'full hey': (move: 'hey', params: {'length': 'full'}),
   'full hey for four': (move: 'hey', params: {'length': 'full'}),
   'full hey for 4': (move: 'hey', params: {'length': 'full'}),
+  'hey for 3': (move: 'hey_for_three', params: {}),
   'turn as a couple': (move: 'turn_as_couples', params: {}),
 };
 

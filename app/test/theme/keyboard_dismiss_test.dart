@@ -1,5 +1,4 @@
 import 'package:compendium_app/src/theme/keyboard_dismiss.dart';
-import 'package:compendium_app/src/widgets/readable_width.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -69,13 +68,6 @@ void main() {
           for (var i = 0; i < 40; i++) Text('$i'),
         ],
       ),
-    ),
-    'ReadableListView': () => ReadableListView(
-      children: [
-        for (var i = 0; i < 12; i++) Text('$i'),
-        const TextField(),
-        for (var i = 0; i < 40; i++) Text('$i'),
-      ],
     ),
   };
 

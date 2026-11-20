@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../data/reduce_motion_scope.dart';
+import '../theme/app_motion.dart';
+import '../theme/app_shapes.dart';
 import '../theme/app_spacing.dart';
 
 /// Content-shaped loading placeholders ("skeletons").
@@ -34,7 +36,9 @@ class SkeletonBone extends StatelessWidget {
   const SkeletonBone.circle(double size, {super.key})
     : width = size,
       height = size,
-      borderRadius = const BorderRadius.all(Radius.circular(999));
+      borderRadius = const BorderRadius.all(
+        Radius.circular(AppShapes.radiusFull),
+      );
 
   final double width;
   final double height;
@@ -49,7 +53,8 @@ class SkeletonBone extends StatelessWidget {
         // high-contrast themes. Purely decorative — the surrounding [Semantics]
         // conveys the loading state — so no text-contrast requirement applies.
         color: scheme.onSurface.withValues(alpha: 0.11),
-        borderRadius: borderRadius ?? BorderRadius.circular(6),
+        borderRadius:
+            borderRadius ?? BorderRadius.circular(AppShapes.radiusSmall),
       ),
       child: SizedBox(width: width, height: height),
     );
@@ -71,7 +76,7 @@ class Shimmer extends StatefulWidget {
 class _ShimmerState extends State<Shimmer> with SingleTickerProviderStateMixin {
   late final AnimationController _controller = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 1400),
+    duration: AppMotion.shimmer,
   );
 
   @override
@@ -169,7 +174,7 @@ class _SkeletonListRow extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.md,
-        vertical: 10,
+        vertical: AppSpacing.sm,
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,

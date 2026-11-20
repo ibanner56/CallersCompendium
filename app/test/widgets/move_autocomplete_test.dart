@@ -1,3 +1,4 @@
+import 'package:compendium_app/l10n/app_localizations.dart';
 import 'package:compendium_app/src/editor/pending_move_text_controller.dart';
 import 'package:compendium_app/src/widgets/move_autocomplete.dart';
 import 'package:compendium_core/compendium_core.dart';
@@ -20,12 +21,15 @@ Future<void> _pump(
   List<MoveOption> compoundOptions = const [],
   bool includeModifier = false,
   bool includeAliases = true,
+  Taxonomy? taxonomy,
 }) async {
   await tester.pumpWidget(
     MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       home: Scaffold(
         body: MoveAutocomplete(
-          taxonomy: contraTaxonomy,
+          taxonomy: taxonomy ?? contraTaxonomy,
           dialect: dialect,
           initialText: '',
           fieldKey: 'move',
@@ -42,6 +46,114 @@ Future<void> _pump(
 }
 
 void main() {
+  group('moves of several dance forms (ADR-006)', () {
+    testWidgets('an ECD dance offers its own circle, not contra\'s', (
+      tester,
+    ) async {
+      await _pump(tester, taxonomy: shippedTaxonomies.forForm(DanceForm.ecd));
+      await tester.enterText(
+        find.byKey(const ValueKey('move-input')),
+        'circle',
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('move-option-ecd_circle')),
+        findsOneWidget,
+      );
+      expect(find.byKey(const ValueKey('move-option-circle')), findsNothing);
+    });
+
+    testWidgets('an ECD dance offers only its own form\'s figures', (
+      tester,
+    ) async {
+      // ADR-006 §12.2, S1: contra's swing has no ECD counterpart, so an ECD
+      // dance is not offered it at all, alone or among others.
+      await _pump(
+        tester,
+        taxonomy: shippedTaxonomies.forForm(DanceForm.ecd),
+        includeAliases: true,
+      );
+      await tester.enterText(find.byKey(const ValueKey('move-input')), 'swing');
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('move-option-swing')), findsNothing);
+      for (final id in contraTaxonomy.moves.keys) {
+        expect(
+          find.byKey(ValueKey('move-option-$id')),
+          findsNothing,
+          reason: 'contra\'s $id offered in an ECD dance',
+        );
+      }
+      // Positive control: the same field does offer ECD's own turn.
+      await tester.enterText(find.byKey(const ValueKey('move-input')), 'turn');
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('move-option-ecd_hand_turn')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('a contra dance offers only contra\'s figures', (tester) async {
+      await _pump(
+        tester,
+        taxonomy: shippedTaxonomies.forForm(DanceForm.contra),
+      );
+      await tester.enterText(find.byKey(const ValueKey('move-input')), 'turn');
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('move-option-ecd_hand_turn')),
+        findsNothing,
+      );
+    });
+
+    testWidgets('a search over every dance offers both, the other form named', (
+      tester,
+    ) async {
+      await _pump(tester, taxonomy: shippedTaxonomies.anyForm);
+      await tester.enterText(
+        find.byKey(const ValueKey('move-input')),
+        'circle',
+      );
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('move-option-circle')), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('move-option-ecd_circle')),
+        findsOneWidget,
+      );
+      expect(find.text('circle · English (ECD)'), findsOneWidget);
+    });
+
+    testWidgets(
+      'a listed alias of each form is offered, the other form named',
+      (tester) async {
+        // Contra's and ECD's "hand cast" (ADR-006 §9.4) are both listed as
+        // moves; a search over every dance tells them apart as it does moves.
+        for (final includeAliases in [true, false]) {
+          await _pump(
+            tester,
+            taxonomy: shippedTaxonomies.anyForm,
+            includeAliases: includeAliases,
+          );
+          await tester.enterText(
+            find.byKey(const ValueKey('move-input')),
+            'hand cast',
+          );
+          await tester.pumpAndSettle();
+          expect(
+            find.byKey(const ValueKey('move-option-hand_cast')),
+            findsOneWidget,
+            reason: 'includeAliases: $includeAliases',
+          );
+          expect(
+            find.byKey(const ValueKey('move-option-ecd_hand_cast')),
+            findsOneWidget,
+            reason: 'includeAliases: $includeAliases',
+          );
+          expect(find.text('hand cast · English (ECD)'), findsOneWidget);
+        }
+      },
+    );
+  });
+
   testWidgets('matches and displays a dialect move substitution', (
     tester,
   ) async {

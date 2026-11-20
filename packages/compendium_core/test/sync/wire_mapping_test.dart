@@ -300,6 +300,7 @@ void main() {
     // aliasing would be hiding exactly the mismatch the test exists to find.
     const keyAliases = <String, String>{
       'dance_authors.choreographer_id': 'choreographers.id',
+      'dance_interpreters.choreographer_id': 'choreographers.id',
       'dance_tags.tag_id': 'tags.id',
       'dance_sources.source_id': 'published_sources.id',
       'dance_links.target_dance_id': 'dances.id',
@@ -824,7 +825,9 @@ String _format(Set<_Target> targets) {
 /// is which paths CHANGED.
 const _valuePairs = <String, List<Object?>>{
   'choreographers.deceased': [false, true],
-  'dances.form': ['contra', 'ecd'],
+  // ECD first: `formation.improper` holds only on a form with the flag
+  // (`formHasImproperFlag`), so the fixture's base form must have it.
+  'dances.form': ['ecd', 'contra'],
   'dances.formation_shape': ['becketCw', 'dupleProper'],
   'dances.progression': ['single', 'triple'],
   'dances.status': ['active', 'draft'],
@@ -832,7 +835,9 @@ const _valuePairs = <String, List<Object?>>{
   'dances.rating': [3, 4],
   'dances.mixed_level': [false, true],
   'dances.mixer': [false, true],
+  'dances.formation_improper': [false, true],
   'dances.composed_on': ['1989', '1990'],
+  'dances.interpreted_on': ['1995', '1996-07'],
   'dances.revised_on': ['2004-03-15', '2005-04-16'],
   'dances.created_at': _earlier,
   'dances.updated_at': _earlier,
@@ -855,6 +860,7 @@ const _valuePairs = <String, List<Object?>>{
   'programs.created_at': _earlier,
   'programs.updated_at': _earlier,
   'programs.deleted_at': _earlier,
+  'programs.archived_at': _earlier,
   'program_slots.position': [0, 1],
   'program_slots.is_alt': [false, true],
   'program_slots.is_purged_dance': [false, true],
@@ -919,6 +925,10 @@ class _Fixture {
     Choreographer(
       id: _str('dance_authors.choreographer_id'),
       name: 'Aux Author',
+    ),
+    Choreographer(
+      id: _str('dance_interpreters.choreographer_id'),
+      name: 'Aux Interpreter',
     ),
   ];
 
@@ -1018,6 +1028,7 @@ class _Fixture {
     formation: Formation(
       FormationShape.values.byName(_str('dances.formation_shape')),
       detail: _str('dances.formation_detail'),
+      improper: _flag('dances.formation_improper'),
     ),
     progression: Progression.values.byName(_str('dances.progression')),
     phraseStructure: _str('dances.phrase_structure'),
@@ -1036,6 +1047,8 @@ class _Fixture {
     hook: _str('dances.hook'),
     callingNotes: _str('dances.calling_notes'),
     walkthrough: _str('dances.walkthrough'),
+    meter: _str('dances.meter'),
+    musicalKey: _str('dances.musical_key'),
     status: DanceStatus.values.byName(_str('dances.status')),
     difficultyLevelId: _str('dances.level_id'),
     mixedLevel: _flag('dances.mixed_level'),
@@ -1086,6 +1099,8 @@ class _Fixture {
       sourceVersion: _str('provenance.source_version'),
     ),
     composedOn: PartialDate.parse(_str('dances.composed_on')),
+    interpreterIds: [_str('dance_interpreters.choreographer_id')],
+    interpretedOn: PartialDate.parse(_str('dances.interpreted_on')),
     revisedOn: PartialDate.parse(_str('dances.revised_on')),
     createdAt: _date('dances.created_at'),
     updatedAt: _date('dances.updated_at'),
@@ -1141,6 +1156,7 @@ class _Fixture {
     createdAt: _date('programs.created_at'),
     updatedAt: _date('programs.updated_at'),
     deletedAt: _date('programs.deleted_at'),
+    archivedAt: _date('programs.archived_at'),
   );
 
   StoredUserGlossaryEntry glossaryEntry() => StoredUserGlossaryEntry(

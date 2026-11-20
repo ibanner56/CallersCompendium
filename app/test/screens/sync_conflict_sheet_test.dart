@@ -996,7 +996,9 @@ void main() {
       final snackBar = tester.widget<SnackBar>(
         find.byKey(const ValueKey('sync-conflict-saved')),
       );
-      expect(snackBar.persist, isFalse);
+      // The prompt runs its own timer (so hover and focus can hold it), so
+      // the scaffold's `persist` no longer says whether it times out; the
+      // pump below does.
       expect(snackBar.behavior, SnackBarBehavior.floating);
 
       await tester.pump(snackBar.duration);
@@ -1372,6 +1374,67 @@ void main() {
       });
     }
 
+    testWidgets('a program archived on one device only is shown as a '
+        'difference', (tester) async {
+      final repos = await _pump(tester);
+      await tester.runAsync(() async {
+        await repos.programs.create(
+          Program(
+            id: 'p1',
+            title: 'Friday dance',
+            createdAt: _tie,
+            updatedAt: _tie,
+          ),
+        );
+        await _queueRecordTie(
+          repos,
+          SyncRecordKind.program,
+          'p1',
+          (body) => {...body, 'archivedAt': '2026-09-15T12:00:00.000Z'},
+        );
+      });
+      await _open(tester);
+
+      expect(find.textContaining('Archived'), findsWidgets);
+      expect(find.text('This device: Not set'), findsOneWidget);
+      expect(find.textContaining('Another device: '), findsOneWidget);
+      // A formatted value, never the raw wire timestamp.
+      expect(find.textContaining('2026-09-15T'), findsNothing);
+      expect(find.textContaining('only in details this view'), findsNothing);
+    });
+
+    testWidgets('two versions archived an hour apart on the same day read '
+        'differently: the time is shown', (tester) async {
+      final repos = await _pump(tester);
+      await tester.runAsync(() async {
+        await repos.programs.create(
+          Program(
+            id: 'p1',
+            title: 'Friday dance',
+            archivedAt: DateTime.utc(2026, 9, 15, 10),
+            createdAt: _tie,
+            updatedAt: _tie,
+          ),
+        );
+        await _queueRecordTie(
+          repos,
+          SyncRecordKind.program,
+          'p1',
+          (body) => {...body, 'archivedAt': '2026-09-15T11:00:00.000Z'},
+        );
+      });
+      await _open(tester);
+
+      String valueOf(String prefix) => tester
+          .widget<Text>(find.textContaining(prefix))
+          .data!
+          .substring(prefix.length);
+      final mine = valueOf('This device: ');
+      final theirs = valueOf('Another device: ');
+      expect(mine, isNot('Not set'));
+      expect(mine, isNot(theirs));
+    });
+
     testWidgets("a dialect shows the terms that differ, not just its name", (
       tester,
     ) async {
@@ -1400,6 +1463,45 @@ void main() {
       expect(find.text('Mine: Move substitutions'), findsOneWidget);
       expect(find.text('This device: swing → swing'), findsOneWidget);
       expect(find.text('Another device: swing → twirl'), findsOneWidget);
+    });
+
+    testWidgets('a dialect from an older build shows no gendered term', (
+      tester,
+    ) async {
+      final repos = await _pump(tester);
+      final mine = {
+        ...Dialect.larksRobins.toJson(),
+        'name': 'Mine',
+        'roles': {
+          'role1': {'singular': 'jay'},
+          'role2': {'singular': 'wren'},
+        },
+      };
+      await tester.runAsync(
+        () => _queueTie(repos, [
+          (
+            'custom_dialects_ecd',
+            [mine],
+            [
+              {
+                ...mine,
+                'roles': {
+                  'role1': {'singular': 'gent'},
+                  'role2': {'singular': 'wren'},
+                },
+              },
+              {...mine, 'name': 'Gents & Ladies'},
+            ],
+          ),
+        ]),
+      );
+      await _open(tester);
+
+      for (final word in ['gent', 'Gents', 'Ladies']) {
+        expect(find.textContaining(word), findsNothing, reason: word);
+      }
+      expect(find.text('Mine: Role terms'), findsOneWidget);
+      expect(find.text('Another device: role1 → lark / larks'), findsOneWidget);
     });
 
     testWidgets('a theme shows the colours that differ', (tester) async {

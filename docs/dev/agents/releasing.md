@@ -48,6 +48,10 @@ step-by-step does not prevent on its own.
   `UPDATE_SIGNING_KEY` to a key that is not already pinned in a widely
   installed release; the procedure is
   [releasing.md → Key rotation](../releasing.md#key-rotation).
+- **Rotating the published-collection signing key** works the same way through
+  `kPublishedCollectionPublicKeys`, but the signer is Compendium Analect's
+  `ANALECT_SIGNING_KEY_B64`; the procedure is
+  [releasing.md → Published-collection key rotation](../releasing.md#published-collection-key-rotation).
 - **Release identity is deliberately narrow.** Record beta status and `X.Y.Z`;
   only `vX.Y.Z-beta` and `vX.Y.Z` are valid. A beta establishes the shared
   section, and stable refreshes both signed update channels while beta refreshes

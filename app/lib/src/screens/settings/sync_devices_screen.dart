@@ -8,8 +8,10 @@ import '../../sync/sync_controller.dart';
 import '../../sync/sync_coordinator.dart' show SyncPeerSummary;
 import '../../sync/sync_failure.dart';
 import '../../sync/sync_scope.dart';
+import '../../theme/app_motion.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/destructive_button_style.dart';
+import '../../widgets/empty_state.dart';
 import 'sync_device_labels.dart';
 import 'sync_failure_labels.dart';
 
@@ -68,6 +70,7 @@ Future<void> confirmAndWipeStore(
             ),
           ],
         ),
+        animationStyle: AppMotion.styleFor(context),
       );
     case _:
       messenger?.showSnackBar(
@@ -135,6 +138,7 @@ Future<bool> _confirmSyncWipe(BuildContext context) async {
         ],
       );
     },
+    animationStyle: AppMotion.styleFor(context),
   );
   return confirmed ?? false;
 }
@@ -201,12 +205,16 @@ class _SyncDevicesScreenState extends State<SyncDevicesScreen> {
             ),
           ),
           FilledButton(
+            style: destructiveFilledButtonStyle(
+              Theme.of(dialogContext).colorScheme,
+            ),
             key: const ValueKey('sync-device-remove-confirm'),
             onPressed: () => Navigator.of(dialogContext).pop(true),
             child: Text(l10n.settingsSyncDeviceRemoveAction),
           ),
         ],
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
     if (confirmed != true || !mounted) return;
     final messenger = ScaffoldMessenger.maybeOf(context);
@@ -285,12 +293,12 @@ class _SyncDevicesScreenState extends State<SyncDevicesScreen> {
             ),
           ),
         if (result.devices.isEmpty)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-            child: Text(
-              l10n.settingsSyncDevicesEmpty,
-              key: const ValueKey('sync-devices-empty'),
-            ),
+          EmptyState(
+            key: const ValueKey('sync-devices-empty'),
+            inline: true,
+            icon: EmptyState.glyph(context, Icons.devices_outlined),
+            title: l10n.settingsSyncDevicesEmptyTitle,
+            body: l10n.settingsSyncDevicesEmptyBody,
           ),
         for (final deviceId in result.devices)
           _deviceTile(

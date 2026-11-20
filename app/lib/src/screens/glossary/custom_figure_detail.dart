@@ -17,8 +17,9 @@ import '../../diagnostics/error_log.dart';
 import '../../glossary/custom_figures.dart';
 import '../../glossary/user_figure_defaults.dart';
 import '../../search/facet_labels.dart';
+import '../../theme/app_motion.dart';
 import '../../theme/app_spacing.dart';
-import '../../theme/destructive_button_style.dart';
+import '../../utils/confirm_delete.dart';
 import 'compound_editor_screen.dart';
 import 'user_figure_switch_screen.dart';
 
@@ -27,7 +28,8 @@ final FigureRenderer _renderer = FigureRenderer(contraTaxonomy);
 /// The name a parameter kind is offered and shown under in a custom figure.
 String compoundParamKindLabel(AppLocalizations l10n, ParamKind kind) =>
     switch (kind) {
-      ParamKind.dancerSet => l10n.compoundParamKindDancers,
+      ParamKind.dancerSet ||
+      ParamKind.dancerList => l10n.compoundParamKindDancers,
       ParamKind.dancerPair => l10n.compoundParamKindDancerPair,
       ParamKind.handedness => l10n.compoundParamKindHand,
       ParamKind.shoulder => l10n.compoundParamKindShoulder,
@@ -207,41 +209,24 @@ class _GlossaryCustomFigureDetailState
     // Whether the default figure lists use it, to say so.
     final inDefaults = isFigure && (await _frozenDefaults(repos)).isNotEmpty;
     if (!context.mounted) return;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(l10n.glossaryCustomDeleteTitle(name)),
-        content: Text(
-          [
-            if (uses == null)
-              l10n.glossaryCustomDeleteBody
-            else ...[
-              l10n.glossaryCustomDeleteUses(uses),
-              if (trashed > 0) l10n.glossaryCustomDeleteTrash(trashed),
-              if (inDefaults) l10n.glossaryCustomDeleteDefaults,
-            ],
-            if (shorthandCount > 0)
-              l10n.glossaryCustomDeleteShorthands(shorthandCount),
-          ].join(' '),
-          key: const ValueKey('glossary-custom-delete-body'),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: Text(l10n.commonCancel),
-          ),
-          FilledButton(
-            style: destructiveFilledButtonStyle(
-              Theme.of(dialogContext).colorScheme,
-            ),
-            key: const ValueKey('glossary-custom-delete-confirm'),
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: Text(l10n.commonDelete),
-          ),
+    final confirmed = await confirmPermanentDelete(
+      context,
+      title: l10n.glossaryCustomDeleteTitle(name),
+      body: [
+        if (uses == null)
+          l10n.glossaryCustomDeleteBody
+        else ...[
+          l10n.glossaryCustomDeleteUses(uses),
+          if (trashed > 0) l10n.glossaryCustomDeleteTrash(trashed),
+          if (inDefaults) l10n.glossaryCustomDeleteDefaults,
         ],
-      ),
+        if (shorthandCount > 0)
+          l10n.glossaryCustomDeleteShorthands(shorthandCount),
+      ].join(' '),
+      bodyKey: const ValueKey('glossary-custom-delete-body'),
+      confirmKey: const ValueKey('glossary-custom-delete-confirm'),
     );
-    if (confirmed != true) return;
+    if (!confirmed) return;
     if (isFigure) {
       // Read again now, not when the dialog opened: the lists, or the figure,
       // may have changed while it was open. Read before the delete, while the
@@ -298,7 +283,7 @@ class _GlossaryCustomFigureDetailState
     final shorthands = ShorthandMappingsScope.maybeOf(context);
     final targetName = _renderer.displayMoveName(
       target,
-      ActiveDialectScope.of(context),
+      ActiveDialectScope.contraOf(context),
     );
     final mapping = await navigator.push<UserFigureSwitch>(
       MaterialPageRoute(
@@ -355,6 +340,7 @@ class _GlossaryCustomFigureDetailState
           ),
         ],
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
     if (confirmed != true) return;
     // Read again now, not when the dialog opened, and before the switch,
@@ -465,7 +451,7 @@ class _GlossaryCustomFigureDetailState
   Future<void> _forgetSettings(
     NavigatorState navigator,
     CompendiumRepositories repos,
-    DialectLibraryController? dialects,
+    DialectLibraries? dialects,
     Map<String, String> defaults,
   ) async {
     // Each dialect's name and wording for it, and its matrix column's place,
@@ -544,7 +530,7 @@ class _GlossaryCustomFigureDetailState
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final dialect = ActiveDialectScope.of(context);
+    final dialect = ActiveDialectScope.contraOf(context);
     final entries = _entries;
     if (entries == null) return const SizedBox.shrink();
     final items = resolveCustomGlossary(
@@ -552,7 +538,7 @@ class _GlossaryCustomFigureDetailState
       taxonomy: contraTaxonomy,
       dialects: [
         dialect,
-        ...?DialectLibraryScope.maybeOf(context)?.customDialects,
+        ...?DialectLibraryScope.maybeOf(context)?.allCustomDialects,
       ],
       shorthandTokens: ShorthandMappingsScope.tokensOf(context),
     );
@@ -924,7 +910,10 @@ class _CustomFigureTitleState extends State<CustomFigureTitle> {
     return Text(
       name == null
           ? widget.fallback
-          : _renderer.renderFreeText(name, ActiveDialectScope.of(context)),
+          : _renderer.renderFreeText(
+              name,
+              ActiveDialectScope.contraOf(context),
+            ),
       key: const ValueKey('glossary-custom-title'),
     );
   }

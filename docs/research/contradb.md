@@ -3,8 +3,8 @@
 *Roadmap item 1.2 · surveyed 2026-07-10 from github.com/contradb/contra @ `13f38a5`.*
 
 ContraDB (Rails, by David Morse, 2015–2022, now unmaintained) is the strongest
-prior art for structured figures + dialect. **License: AGPL-3.0 — identical to
-ours**, so we may reuse code and design with attribution; the figure taxonomy
+prior art for structured figures + dialect. **License: AGPL-3.0 — the same
+licence family as ours (AGPL-3.0-only)**, so we may reuse code and design with attribution; the figure taxonomy
 itself is factual domain vocabulary and freely adoptable.
 
 ## Figure model

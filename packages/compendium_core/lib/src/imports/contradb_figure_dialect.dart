@@ -281,6 +281,8 @@ const List<FigureMatch? Function(String)> _recognizers =
       _pullByDancers,
       // Ahead of [_gate]: ContraDB's own wording (`to face up the set`) is not
       // the display's, so it falls through to [_gate] whole.
+      // Taxonomy v40 (#770): the display of a hand cast, read as a gate's.
+      _handCastDisplay,
       _gateDisplay,
       _courtesyTurnFacingDisplay,
       _gate,
@@ -888,6 +890,28 @@ FigureMatch? _formALongWaveInPlace(String text) {
   );
 }
 
+/// The app's display of a `hand_cast` (taxonomy v40, #770), an alias of
+/// `gate` shown through the gate's wording under its own name ("neighbor hand
+/// cast ½ to face up the hall"): read as the same line with `gate` in its
+/// place would be by [_gateDisplay], and tagged `hand_cast`. Only the display's
+/// grammar, not ContraDB's general [_gate]: that would read "ones hand cast" as
+/// the ones backing up, a slot The Caller's Box's "Ones hand cast" does not
+/// state, so a hand cast naming only its dancers stays custom.
+FigureMatch? _handCastDisplay(String text) {
+  final at = _handCastPhrase.firstMatch(text);
+  if (at == null) return null;
+  final gate = _gateDisplay(text.replaceRange(at.start, at.end, 'gate'));
+  if (gate == null || gate.forceCustom || gate.moveId != 'gate') return null;
+  return FigureMatch(
+    'hand_cast',
+    params: gate.params,
+    note: gate.note,
+    assumedSubject: gate.assumedSubject,
+  );
+}
+
+final RegExp _handCastPhrase = RegExp(r'\bhand\s+cast\b', caseSensitive: false);
+
 /// The gate in the app's display wording (#2121), in the order the renderer
 /// writes its slots: a subject, `mirror`, `gate`, up to two objects,
 /// `clockwise` or `counterclockwise`, a turn, ", WHOM forward", and "to face
@@ -1049,6 +1073,36 @@ FigureMatch? readDisplayedStarburst(String text, {String name = 'starburst'}) {
       'who': who,
       'whom': whom,
     },
+  );
+}
+
+/// A hey for three in the app's display wording (taxonomy v39), the dolphin
+/// hey's with a single dancer starting: "hey for three - start with WHO
+/// passing WHOM by SIDE shoulders", where WHO and WHOM are single dancers
+/// ("second role2", as [_singleDancer] reads one). No source's grammar reads
+/// this figure, so only free-text entry calls it (`parseFreeTextFigureEntry`),
+/// so a figure the app displays reads back, and no import's grammar changes.
+/// Every slot is required and only the whole line is read: a line that leaves
+/// one out is not this display, and stays as typed.
+///
+/// [name] is the move's name as the line writes it: `hey for three`, or a
+/// dialect's name for it, lowercase and single-spaced.
+FigureMatch? readDisplayedHeyForThree(
+  String text, {
+  String name = 'hey for three',
+}) {
+  final s = _Scan(text);
+  if (name.isEmpty || !s.eatPhrase(name)) return null;
+  if (!s.eat('-') || !s.eatPhrase('start with')) return null;
+  final who = _singleDancer(s);
+  if (who == null || !s.eat('passing')) return null;
+  final whom = _singleDancer(s);
+  if (whom == null || !s.eat('by')) return null;
+  final shoulder = _shoulderPhrase(s);
+  if (shoulder == null || s.peek() != null) return null;
+  return FigureMatch(
+    'hey_for_three',
+    params: {'who': who, 'whom': whom, 'shoulder': shoulder},
   );
 }
 

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
 import '../data/app_theme_labels_l10n.dart';
 import '../data/custom_theme.dart';
+import '../theme/app_motion.dart';
 import '../theme/wcag.dart';
 import '../widgets/color_edit_dialog.dart';
 import '../widgets/notice_card.dart';
@@ -65,6 +66,7 @@ class _ThemeEditorScreenState extends State<ThemeEditorScreen> {
       context: context,
       builder: (_) =>
           ColorEditDialog(title: title, initial: _colorOf(role.key)),
+      animationStyle: AppMotion.styleFor(context),
     );
     if (picked != null) {
       setState(() => _setTheme(_theme.withColor(role.key, picked)));
@@ -118,7 +120,12 @@ class _ThemeEditorScreenState extends State<ThemeEditorScreen> {
           ],
         ),
         body: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.md,
+            AppSpacing.xs,
+            AppSpacing.md,
+            AppSpacing.xl,
+          ),
           children: [
             _PreviewCard(scheme: _theme.toScheme()),
             const SizedBox(height: 16),
@@ -262,7 +269,7 @@ class _ContrastBadge extends StatelessWidget {
     final color = passes ? theme.colorScheme.primary : theme.colorScheme.error;
     final ratioText = ratio.toStringAsFixed(1);
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxxs),
       child: Row(
         children: [
           Icon(
@@ -284,7 +291,7 @@ class _ContrastBadge extends StatelessWidget {
                 : l10n.themeEditorRatioFail(ratioText),
             style: theme.textTheme.labelSmall?.copyWith(
               color: color,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w700,
             ),
           ),
         ],
@@ -344,7 +351,7 @@ class _PreviewCard extends StatelessWidget {
         borderRadius: AppShapes.borderRadiusMedium,
         border: Border.all(color: scheme.outlineVariant),
       ),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppSpacing.md),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -353,7 +360,7 @@ class _PreviewCard extends StatelessWidget {
             style: TextStyle(
               color: scheme.onSurface,
               fontSize: 20,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w700,
             ),
           ),
           const SizedBox(height: 4),
@@ -399,10 +406,13 @@ class _PreviewCard extends StatelessWidget {
 
   Widget _swatch(BuildContext context, String label, Color bg, Color fg) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.sm,
+        vertical: AppSpacing.xs,
+      ),
       decoration: BoxDecoration(
         color: bg,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(AppShapes.radiusLarge),
       ),
       child: Text(
         label,

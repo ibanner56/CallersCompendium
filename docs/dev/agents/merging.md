@@ -28,11 +28,14 @@ reasoning below when a gate fails, or when you are checking by hand.
   If `hasNextPage` is true (or `totalCount` exceeds the nodes returned), fetch
   the rest with `after: "<endCursor>"` before concluding anything.
 
-- **No `BLOCK` verdict in the latest Claude review.** Only when Claude is the
-  reviewer (the default). A blocker on a line outside the diff exists in
-  the review body only, so no inline comment or thread records it and the other
-  gates pass. `findings` prints the latest `## Review verdict:` line and fails on
-  `BLOCK`. Details:
+- **The latest Claude review reads `APPROVE`.** Only when Claude is the
+  reviewer (the default). `findings` prints the latest `## Review verdict:`
+  line and fails on anything else. On `BLOCK` because a blocker on a line
+  outside the diff exists in the review body only, so no inline comment or
+  thread records it and the other gates pass. On `APPROVE-WITH-NITS` because a
+  resolved thread is not a cleared item: fix each item, or dispute it and
+  re-request the review so the next round re-judges it. A dispute the reviewer
+  upholds goes to the maintainer. Details:
   [code-review.md](code-review.md#requesting-a-claude-review).
 
 - **CI green on the commit being merged.** Re-check after any push; a green run
@@ -88,6 +91,44 @@ reasoning below when a gate fails, or when you are checking by hand.
 
 - **The PR closes only the issues you intend** (below).
 - **State verified from the remote**, not from memory or a stale local checkout.
+
+## Merging as an agent
+
+GitHub merges when the `official` ruleset is satisfied. That ruleset requires
+only `Merge gate`, allows squash only, and lets nobody bypass it. `Merge gate`
+reads CI job results only (its `needs` in
+[`ci.yml`](../../../.github/workflows/ci.yml)), so nothing on GitHub waits for a
+review of the current head, for open threads, or for an `APPROVE` verdict:
+clear those gates yourself, before either path below.
+[`.claude/settings.json`](../../../.claude/settings.json) lets Claude Code
+sessions take both without a prompt.
+
+- **CI still running: enable auto-merge.** Enable it only once the Claude
+  review of the current head has posted and every gate except `ci` passes:
+
+  ```sh
+  python3 tools/ci/check_pr_review_gates.py findings <PR> &&
+  python3 tools/ci/check_pr_review_gates.py review <PR> &&
+  python3 tools/ci/check_pr_review_gates.py threads <PR> &&
+  python3 tools/ci/check_pr_review_gates.py closes <PR> --closes <ISSUE>...
+  ```
+
+  The chain stops at the first `FAIL` or `SKIP`, so its exit status is `0`
+  only when all four pass. `ci` is the gate auto-merge waits on. **After any
+  push, disable auto-merge first**, then clear the gates again on the new head.
+  Otherwise the PR can merge as soon as CI on the new head goes green, before
+  that head has been reviewed.
+- **CI already green: merge directly.** GitHub refuses to enable auto-merge on
+  a PR whose checks have all passed, which is common when CI finishes before
+  the review posts (#2208). Squash-merge once
+  `check_pr_review_gates.py all <PR> --closes <ISSUE>...` exits `0`, and pass
+  the head SHA the gates checked as the expected head (`sha` in the REST merge
+  call, `expectedHeadSha` in the GitHub MCP tool), so a push in between fails
+  the merge instead of landing an unchecked commit.
+
+A PR whose `findings` gate fails is merged by neither path. When the reviewer
+upholds an item the author disputes, the maintainer decides, and merges by hand
+([code-review.md](code-review.md#requesting-a-claude-review)).
 
 ## When GraphQL is refused (Claude Code cloud sessions)
 
@@ -155,52 +196,17 @@ exactly the unintended one you are looking for. If `hasNextPage` is true (or
 `totalCount` exceeds the nodes returned), page with `after: "<endCursor>"`
 before concluding anything.
 
-## Never squash a branch-sync PR
+## Branch-sync PRs
 
-This repo squash-merges ([`releasing.md`](../releasing.md)), which is right for
-ordinary feature PRs and wrong for a PR whose whole purpose is to carry one
-long-lived branch into another — `main` into `athenaeum`, or `athenaeum` back
-into `main`.
+`main` is the only long-lived branch; `athenaeum`, the last other one, is gone.
+A PR that brings another branch into `main` is squash-merged like any other
+(the `official` ruleset allows nothing else), and the gates above, auto-merge
+included, apply to it unchanged.
 
-A squash rewrites the merge into a single-parent commit, so git never records
-the source branch as an ancestor and the merge base does not advance. PR #1314
-("Merge main into athenaeum") was squash-merged this way. The *content* of
-`main` landed correctly, but the merge base stayed pinned at `8f180a9a`, and
-every later merge in either direction re-derived twenty-one commits of
-already-resolved diff. `app/lib/main.dart`, `app/test/settings_backup_test.dart`
-and `app/test/startup_sequence_test.dart` conflicted again, with the same
-hunks, against resolutions that were already committed — and would have
-conflicted again on every subsequent sync, because nothing about re-resolving
-them teaches git where the real base is.
-
-Merge a branch-sync PR with **Create a merge commit**, never *Squash and
-merge*. The two-parent commit is the entire point of the PR.
-
-If a sync has already been squashed, do not re-resolve the phantom conflicts —
-that buries the problem one merge deeper. Restore the missing parent instead,
-with a merge that changes no files:
-
-```sh
-git checkout athenaeum
-git merge -s ours --no-ff <the-source-commit-the-squash-integrated>
-git merge main        # now a normal, minimal merge
-```
-
-`-s ours` keeps the current tree and records the second parent, so the merge
-base advances to `<the-source-commit>`. It asserts that the squash already
-integrated that commit faithfully, which is a claim to verify before you make
-it, not after — the assertion is permanent. Replay the merge the squash stood
-in for and compare:
-
-```sh
-git checkout --detach <pre-squash-tip>
-git merge --no-commit --no-ff <the-source-commit-the-squash-integrated>
-git diff <squash-commit> -- . ':!<each><conflicted><path>'
-```
-
-An empty diff means every path git merged on its own matches the squash. Read
-the conflicted paths by hand and confirm both sides survived; a file that is
-absent from the squash is only correct if the branch deleted it on purpose
-(`BackupControllerScope` was such a case — deleted by `athenaeum` in favour of
-`SyncWriterLifecycleScope`, and older than the merge base, so its absence was
-intent and not loss).
+A squash records no second parent, so it never advances the merge base between
+the two branches. That costs nothing for a branch that ends at the merge (merged
+branches are deleted), and a lot for one that keeps living: every later sync
+re-derives conflicts that were already resolved. If a long-lived branch comes
+back, read
+[#1314](incidents.md#1314-a-squashed-sync-pinned-the-merge-base) before its
+first sync. It records what that cost and how to restore the missing parent.

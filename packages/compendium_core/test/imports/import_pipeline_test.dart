@@ -775,6 +775,37 @@ void main() {
       },
     );
 
+    // A source that names no interpreter (every adapter but the native
+    // archive) leaves the linked-over dance's interpreters and their date as
+    // they were, as it does a rating (ADR-006 §9.2).
+    test('resolution link keeps the existing interpreters when the incoming '
+        'record names none', () async {
+      final existingId = await seedExisting();
+      final interpreterId = await choreographers.upsert(
+        Choreographer(id: 'pat', name: 'Pat Shaw'),
+      );
+      await dances.update(
+        (await dances.getById(existingId))!.copyWith(
+          interpreterIds: [interpreterId],
+          interpretedOn: PartialDate.parse('1985'),
+        ),
+      );
+      final session = await pipeline.commit(
+        await pipeline.plan(
+          FakeSourceAdapter([record('fake-2', 'Nice Combination')]),
+          const ImportRequest(),
+        ),
+        now: now,
+        newId: nextId,
+        resolutions: {0: DedupeResolution.link(existingId)},
+      );
+      expect(session.records.single.action, CommitAction.link);
+      final linked = (await dances.getById(existingId))!;
+      expect(linked.title, 'Nice Combination');
+      expect(linked.interpreterIds, [interpreterId]);
+      expect(linked.interpretedOn, PartialDate.parse('1985'));
+    });
+
     test('resolution duplicate imports a separate new dance', () async {
       await seedExisting();
       final incoming = FakeSourceAdapter([

@@ -290,12 +290,71 @@ def test_claude_block_verdict_fails_through_run_gates_with_exit_one() -> None:
     assert any(line.startswith("PASS review:") for line in printed), printed
 
 
-def test_claude_non_block_verdict_is_surfaced_and_passes() -> None:
-    for verdict in ("APPROVE", "APPROVE-WITH-NITS"):
-        body = f"## Review verdict: {verdict}\n\nNo blockers."
+def test_claude_approve_verdict_is_surfaced_and_passes() -> None:
+    body = "## Review verdict: APPROVE\n\nNo findings."
+    ok, lines = gates.gate_findings(_claude_reviews((HEAD, body)), 1, CLAUDE)
+    assert ok, lines
+    assert any("verdict APPROVE" in line for line in lines), lines
+
+
+NITS_BODY = """\
+## Review verdict: APPROVE-WITH-NITS
+
+### Suspected (never makes the verdict BLOCK; confirm or dismiss in one line)
+
+#### S1. 360 px surface size is not reset after its test
+"""
+
+
+def test_claude_nits_verdict_fails_the_findings_gate() -> None:
+    """On #2196 and #2192 the author replied "Dismissed" to the reviewer's item,
+    resolved the thread, and merged under APPROVE-WITH-NITS: every thread was
+    resolved, so `threads` passed, and `findings` passed anything but BLOCK. A
+    nit now clears only when a later round no longer raises it -- a fix, or a
+    dispute the reviewer accepts on a re-run."""
+    ok, lines = gates.gate_findings(_claude_reviews((HEAD, NITS_BODY)), 1, CLAUDE)
+    assert not ok, lines
+    assert "APPROVE-WITH-NITS" in lines[0], lines
+    assert any("verdict APPROVE-WITH-NITS" in line for line in lines), lines
+
+
+def test_claude_nits_verdict_fails_through_run_gates_with_exit_one() -> None:
+    fetcher = _claude_reviews((HEAD, NITS_BODY))
+    fetcher._rest["pulls/1"] = pull()
+    printed: list[str] = []
+    code = gates.run_gates(
+        fetcher, 1, ["findings", "review"], [], reviewer=CLAUDE, out=printed.append
+    )
+    assert code == 1, printed
+    assert any(line.startswith("FAIL findings:") for line in printed), printed
+
+
+def test_nits_cleared_by_a_later_approve_passes_and_a_later_nits_fails() -> None:
+    cleared = _claude_reviews((STALE, NITS_BODY), (HEAD, "## Review verdict: APPROVE"))
+    ok, lines = gates.gate_findings(cleared, 1, CLAUDE)
+    assert ok, lines
+
+    reopened = _claude_reviews((STALE, "## Review verdict: APPROVE"), (HEAD, NITS_BODY))
+    ok, lines = gates.gate_findings(reopened, 1, CLAUDE)
+    assert not ok, lines
+
+
+def test_a_verdictless_entry_does_not_mask_a_nits_round() -> None:
+    """`claude.yml` answers and thread replies can record claude[bot] review
+    entries with no verdict line; one after a NITS round must not read as
+    clearing it."""
+    fetcher = _claude_reviews((HEAD, NITS_BODY), (HEAD, ""))
+    ok, lines = gates.gate_findings(fetcher, 1, CLAUDE)
+    assert not ok, lines
+
+
+def test_an_unrecognised_claude_verdict_fails_closed() -> None:
+    """Only the exact word APPROVE passes: a misspelt or new verdict word is
+    not evidence of a clean review."""
+    for verdict in ("APPROVED", "LGTM", "APPROVE-WITH"):
+        body = f"## Review verdict: {verdict}"
         ok, lines = gates.gate_findings(_claude_reviews((HEAD, body)), 1, CLAUDE)
-        assert ok, lines
-        assert any(f"verdict {verdict}" in line for line in lines), lines
+        assert not ok, (verdict, lines)
 
 
 def test_claude_verdict_is_read_from_the_latest_round_only() -> None:

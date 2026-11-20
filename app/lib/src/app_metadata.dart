@@ -1,5 +1,6 @@
 /// Static app identity used by the About/Licenses section (settings) and any
-/// other in-app attribution surface.
+/// other in-app attribution surface. Screens that show the version to the user
+/// use [kUpdaterVersion], which carries any beta suffix.
 ///
 /// The version is kept as a plain constant rather than read at runtime via a
 /// plugin (e.g. `package_info_plus`): the app has no existing runtime version
@@ -12,13 +13,8 @@ library;
 /// Human-facing application name.
 const String kAppName = "Caller's Compendium";
 
-/// One-line mission/tagline shown under the app name on the About brand header.
-/// Kept here as the single source of truth so any other surface can reuse it.
-const String kAppTagline =
-    'Your dances, your dialect — in the hall or on the road.';
-
-/// Marketing/display version. Mirror the exact `version:` in `app/pubspec.yaml`.
-const String kAppVersion = '0.9.2';
+/// Marketing version, always bare (no beta suffix). Mirror the exact `version:` in `app/pubspec.yaml`.
+const String kAppVersion = '0.10.0';
 
 /// Human-facing release codename.
 ///
@@ -27,7 +23,7 @@ const String kAppVersion = '0.9.2';
 /// current release codename as a fallback.
 const String kAppCodename = String.fromEnvironment(
   'CALLERS_COMPENDIUM_RELEASE_CODENAME',
-  defaultValue: 'End Effects',
+  defaultValue: 'Forward and Back',
 );
 
 /// Release identity the strict updater compares with manifest versions.
@@ -42,7 +38,7 @@ const String kUpdaterVersion = String.fromEnvironment(
 );
 
 /// The project's canonical source repository. Surfaced in the About section to
-/// satisfy the AGPL-3.0 obligation to offer the corresponding source, and used
+/// satisfy the AGPL-3.0-only obligation to offer the corresponding source, and used
 /// as the "View source" link target.
 const String kSourceRepoUrl = 'https://github.com/ibanner56/CallersCompendium';
 

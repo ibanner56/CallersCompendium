@@ -5,9 +5,9 @@ import '../../l10n/app_localizations.dart';
 import '../data/repositories_scope.dart';
 import '../data/soft_delete_retention.dart';
 import '../widgets/empty_state.dart';
+import '../widgets/load_error_view.dart';
 import '../diagnostics/error_log.dart';
-import '../theme/app_spacing.dart';
-import '../theme/destructive_button_style.dart';
+import '../utils/confirm_delete.dart';
 
 /// Per-entity configuration for [RecentlyDeletedScreen].
 ///
@@ -210,26 +210,13 @@ class _RecentlyDeletedScreenState<T> extends State<RecentlyDeletedScreen<T>> {
   Future<void> _permanentDelete(T item) async {
     final l10n = AppLocalizations.of(context);
     final title = _config.titleOf(item);
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.recentlyDeletedDeleteTitle),
-        content: Text(l10n.recentlyDeletedDeleteBody(title)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text(l10n.commonCancel),
-          ),
-          FilledButton(
-            style: destructiveFilledButtonStyle(Theme.of(ctx).colorScheme),
-            key: const ValueKey('confirm-permanent-delete'),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: Text(l10n.recentlyDeletedDeleteConfirm),
-          ),
-        ],
-      ),
+    final confirmed = await confirmPermanentDelete(
+      context,
+      title: l10n.recentlyDeletedDeleteTitle,
+      body: l10n.recentlyDeletedDeleteBody(title),
+      confirmLabel: l10n.recentlyDeletedDeleteConfirm,
     );
-    if (confirmed != true || !mounted) return;
+    if (!confirmed || !mounted) return;
     final outcome = await _config.permanentlyDelete(_repos, item);
     if (!mounted) return;
     // A blanked item is gone from this device, but its deletion record stays
@@ -278,25 +265,11 @@ class _RecentlyDeletedScreenState<T> extends State<RecentlyDeletedScreen<T>> {
           // Without this a failed load would read as an empty trash, telling
           // the user their deleted items are gone when they may not be.
           if (snapshot.hasError) {
-            return Center(
+            return LoadErrorView(
               key: const ValueKey('load-error'),
-              child: Padding(
-                padding: const EdgeInsets.all(AppSpacing.lg),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      l10n.recentlyDeletedLoadError,
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: AppSpacing.xs),
-                    TextButton(
-                      onPressed: _reload,
-                      child: Text(l10n.commonRetry),
-                    ),
-                  ],
-                ),
-              ),
+              icon: LoadErrorView.errorGlyph(context),
+              message: l10n.recentlyDeletedLoadError,
+              onRetry: _reload,
             );
           }
           final deleted = snapshot.data ?? <T>[];
@@ -452,7 +425,13 @@ final RecentlyDeletedConfig<Program> programRecentlyDeletedConfig =
                 .toList(),
           ),
       restore: (repos, program) async {
-        await repos.programs.restore(program.id, at: DateTime.now().toUtc());
+        // Restored unarchived, so it shows in the Programs list (the
+        // maintainer's decision on #2218).
+        await repos.programs.restore(
+          program.id,
+          at: DateTime.now().toUtc(),
+          unarchive: true,
+        );
         return await repos.programs.getById(program.id) != null;
       },
       permanentlyDelete: (repos, program) => repos.programs.permanentlyDelete(

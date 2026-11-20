@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../theme/app_motion.dart';
 
 /// The user's answer to [showEcdConvertPromptDialog]: whether to run the
 /// conversion, and whether they opted out of seeing the prompt again.
@@ -26,6 +27,7 @@ Future<EcdConvertPromptResult?> showEcdConvertPromptDialog(
 ) => showDialog<EcdConvertPromptResult>(
   context: context,
   builder: (_) => const _EcdConvertPromptDialog(),
+  animationStyle: AppMotion.styleFor(context),
 );
 
 class _EcdConvertPromptDialog extends StatefulWidget {

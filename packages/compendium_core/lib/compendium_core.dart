@@ -10,9 +10,12 @@ export 'src/analysis/matrix_column_config.dart';
 export 'src/analysis/program_matrix.dart';
 export 'src/diagnostics/crash_log_record.dart';
 export 'src/diagnostics/crash_redactor.dart';
+export 'src/dialect/author_role_terms.dart';
 export 'src/dialect/canonicalize.dart';
 export 'src/dialect/role_canonicalizer.dart';
 export 'src/dialect/dialect.dart';
+export 'src/dialect/dialects_by_form.dart';
+export 'src/dialect/gendered_terms.dart';
 export 'src/dialect/renderer.dart';
 export 'src/dialect/substitution.dart' show Substitutor;
 export 'src/dialect/wording_conditions.dart';
@@ -44,6 +47,9 @@ export 'src/imports/contradb_program.dart';
 export 'src/imports/contradb_program_index.dart';
 export 'src/imports/contradb_search.dart';
 export 'src/imports/figure_diff.dart';
+export 'src/imports/ecd_figure_parser.dart';
+export 'src/imports/ecd_formation.dart';
+export 'src/imports/ecd_migration.dart';
 export 'src/imports/figure_parser.dart';
 export 'src/imports/figure_front_end_fan_out.dart';
 export 'src/imports/figure_text_scrub.dart';
@@ -171,6 +177,7 @@ export 'src/storage/database.dart'
         taxonomyV37CanonicalRebuildDoneKey,
         taxonomyV38CanonicalRebuildDoneKey,
         taxonomyV39CanonicalRebuildDoneKey,
+        ecdTaxonomyCanonicalRebuildDoneKey,
         callersBoxRollAwayRoleRepairDoneKey,
         shareableTextNormalisationScopeKey,
         normalisationDerivedIndexRepairDoneKey,
@@ -217,8 +224,11 @@ export 'src/storage/repositories/settings_repository.dart';
 export 'src/storage/repositories/sync_local_repository.dart';
 export 'src/storage/repositories/tag_repository.dart';
 export 'src/storage/repositories/venue_repository.dart';
+export 'src/taxonomy/cast_vocabulary.dart';
 export 'src/taxonomy/compound_definition.dart';
 export 'src/taxonomy/contra_taxonomy.dart';
+export 'src/taxonomy/ecd_sequence_span.dart';
+export 'src/taxonomy/ecd_taxonomy.dart';
 export 'src/taxonomy/figure_glossary.dart';
 export 'src/taxonomy/gate_facing.dart';
 export 'src/taxonomy/glossary_names.dart';
@@ -228,6 +238,7 @@ export 'src/taxonomy/param_change_rules.dart';
 export 'src/taxonomy/param_opposites.dart';
 export 'src/taxonomy/param_types.dart';
 export 'src/taxonomy/taxonomy.dart';
+export 'src/taxonomy/taxonomy_registry.dart';
 export 'src/taxonomy/user_figure_definition.dart';
 export 'src/taxonomy/user_figure_seed.dart';
 export 'src/taxonomy/user_figure_switch.dart';

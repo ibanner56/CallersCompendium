@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import '../widgets/reorder_move_buttons.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -7,10 +8,15 @@ import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
 import '../data/repositories_scope.dart';
 import '../diagnostics/error_log.dart';
+import '../theme/app_motion.dart';
 import '../theme/app_spacing.dart';
-import '../theme/destructive_button_style.dart';
+import '../utils/confirm_delete.dart';
+import '../utils/undo_snack_bar.dart';
 import '../widgets/confirm_discard_changes.dart';
+import '../widgets/empty_state.dart';
+import '../widgets/load_error_view.dart';
 import 'settings/settings_keys.dart';
+import '../widgets/adaptive_fab.dart';
 
 /// Localized label for a [CustomFieldType]. Mirrors the app-side enum-label
 /// helper pattern (see `search/facet_labels.dart`): the enum lives in the
@@ -142,6 +148,7 @@ class _CustomFieldsScreenState extends State<CustomFieldsScreen> {
         inUse: inUse,
         usedChoiceValues: usedChoiceValues,
       ),
+      sheetAnimationStyle: AppMotion.styleFor(context),
     );
     if (result != null) {
       final isNew = existing == null;
@@ -233,43 +240,43 @@ class _CustomFieldsScreenState extends State<CustomFieldsScreen> {
           ),
         ],
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
   }
 
+  /// Deletes [def] at once and offers Undo, asking first only when "Confirm
+  /// before delete" is on (see `confirm_delete.dart`). A field still holding a
+  /// value on a live dance is not deleted: the repository refuses, and the
+  /// snackbar says why instead.
   Future<void> _delete(CustomFieldDef def) async {
+    if (!await confirmDeleteIfEnabled(context, itemLabel: def.label)) return;
+    if (!mounted) return;
     final l10n = AppLocalizations.of(context);
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.customFieldsDeleteTitle),
-        content: Text(l10n.customFieldsDeleteBody(def.label)),
-        actions: [
-          TextButton(
-            key: const ValueKey('delete-cancel'),
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text(l10n.commonCancel),
-          ),
-          FilledButton(
-            style: destructiveFilledButtonStyle(Theme.of(ctx).colorScheme),
-            key: const ValueKey('delete-confirm'),
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text(l10n.commonDelete),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true || !mounted) return;
-
     final messenger = ScaffoldMessenger.of(context);
+    final accessibleNavigation = MediaQuery.accessibleNavigationOf(context);
+    final repos = _repos;
     try {
-      await _repos.customFieldDefs.delete(def.id);
-      messenger.showSnackBar(
-        SnackBar(
-          key: const ValueKey('delete-success-snackbar'),
-          content: Text(l10n.commonDeletedSnack(def.label)),
+      await repos.customFieldDefs.delete(def.id);
+      // No reload: the delete tombstones the row and the stream re-emits;
+      // Undo's restore clears the tombstone and it re-emits again.
+      showUndoSnackBar(
+        messenger,
+        key: const ValueKey('delete-success-snackbar'),
+        actionKey: const ValueKey('custom-field-delete-undo'),
+        message: l10n.commonDeletedSnack(def.label),
+        undoLabel: l10n.commonUndo,
+        undoFailedMessage: l10n.commonUndoFailed,
+        accessibleNavigation: accessibleNavigation,
+        // A new field given the same key since takes over this row (the key
+        // is unique, and creating adopts the tombstone), so a live row here
+        // is that new field: the restore refuses, in its own transaction,
+        // rather than report an Undo that brought nothing back.
+        onUndo: () => repos.customFieldDefs.restore(
+          def.id,
+          at: DateTime.now().toUtc(),
+          onlyIfDeleted: true,
         ),
       );
-      // No reload: the delete tombstones the row and the stream re-emits.
     } on CustomFieldInUseException catch (e, st) {
       logCaughtError(e, st, source: 'custom_fields_screen._delete');
       if (!mounted) return;
@@ -317,13 +324,18 @@ class _CustomFieldsScreenState extends State<CustomFieldsScreen> {
               ),
       ),
       body: _buildBody(),
-      floatingActionButton: FloatingActionButton.extended(
-        key: const ValueKey('add-field'),
-        heroTag: 'add-field',
-        onPressed: () => _openForm(),
-        icon: const Icon(Icons.add),
-        label: Text(l10n.customFieldsNewField),
-      ),
+      // The floating New is for a list: the empty message carries its own
+      // New field button, so it waits until there is a field.
+      floatingActionButton: _loading || _loadError != null || _defs.isEmpty
+          ? null
+          : adaptiveExtendedFab(
+              context,
+              key: const ValueKey('add-field'),
+              heroTag: 'add-field',
+              onPressed: () => _openForm(),
+              icon: const Icon(Icons.add),
+              label: l10n.customFieldsNewField,
+            ),
     );
   }
 
@@ -333,25 +345,26 @@ class _CustomFieldsScreenState extends State<CustomFieldsScreen> {
       return const Center(child: CircularProgressIndicator());
     }
     if (_loadError != null) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.error_outline, size: 48),
-            const SizedBox(height: 8),
-            Text(l10n.customFieldsLoadError),
-            const SizedBox(height: 8),
-            FilledButton(onPressed: _retry, child: Text(l10n.commonRetry)),
-          ],
-        ),
+      return LoadErrorView(
+        icon: LoadErrorView.errorGlyph(context),
+        message: l10n.customFieldsLoadError,
+        onRetry: _retry,
       );
     }
     if (_defs.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Text(l10n.customFieldsEmpty, textAlign: TextAlign.center),
-        ),
+      return EmptyState(
+        key: const ValueKey('custom-fields-empty'),
+        icon: EmptyState.glyph(context, Icons.tune_outlined),
+        title: l10n.customFieldsEmptyTitle,
+        body: l10n.customFieldsEmptyBody,
+        actions: [
+          FilledButton.icon(
+            key: const ValueKey('custom-fields-empty-add'),
+            onPressed: () => _openForm(),
+            icon: const Icon(Icons.add),
+            label: Text(l10n.customFieldsNewField),
+          ),
+        ],
       );
     }
     return ListView.separated(
@@ -587,7 +600,12 @@ class _CustomFieldFormState extends State<_CustomFieldForm> {
       builder: (context, child) =>
           DiscardChangesGuard(dirty: _dirty, child: child!),
       child: Padding(
-        padding: EdgeInsets.fromLTRB(24, 24, 24, 24 + insets.bottom),
+        padding: EdgeInsets.fromLTRB(
+          AppSpacing.lg,
+          AppSpacing.lg,
+          AppSpacing.lg,
+          AppSpacing.lg + insets.bottom,
+        ),
         child: Form(
           key: _formKey,
           child: SingleChildScrollView(
@@ -782,7 +800,7 @@ class _ChoicesEditorState extends State<_ChoicesEditor> {
         ),
         if (widget.error != null)
           Padding(
-            padding: const EdgeInsets.only(top: 4),
+            padding: const EdgeInsets.only(top: AppSpacing.xxs),
             child: Text(
               widget.error!,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -806,7 +824,9 @@ class _ChoicesEditorState extends State<_ChoicesEditor> {
               return ListTile(
                 key: ValueKey('choice-$choice'),
                 dense: true,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.xxs,
+                ),
                 leading: ReorderableDragStartListener(
                   index: index,
                   child: const Icon(Icons.drag_handle),
@@ -824,6 +844,32 @@ class _ChoicesEditorState extends State<_ChoicesEditor> {
                           color: Theme.of(context).colorScheme.secondary,
                         ),
                       ),
+                    ReorderMoveButtons(
+                      keyPrefix: 'choice-$choice',
+                      name: choice,
+                      onMoveUp: index == 0
+                          ? null
+                          : () {
+                              widget.onReorder(index, index - 1);
+                              announceMoved(
+                                context,
+                                name: choice,
+                                position: index,
+                                count: widget.choices.length,
+                              );
+                            },
+                      onMoveDown: index == widget.choices.length - 1
+                          ? null
+                          : () {
+                              widget.onReorder(index, index + 1);
+                              announceMoved(
+                                context,
+                                name: choice,
+                                position: index + 2,
+                                count: widget.choices.length,
+                              );
+                            },
+                    ),
                     IconButton(
                       key: ValueKey('remove-choice-$choice'),
                       icon: const Icon(Icons.remove_circle_outline),

@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../glossary/cc_term_import.dart';
+import '../theme/app_motion.dart';
+import '../theme/app_spacing.dart';
+import '../widgets/dirty_dialog_guard.dart';
 
 /// The opt-in step, after a Caller's Companion file is imported, that offers
 /// its terms for the user's Glossary (#1023, maintainer decision 7), each as a
@@ -108,6 +111,7 @@ class _ImportCcTermsScreenState extends State<ImportCcTermsScreen> {
     final edited = await showDialog<CcTermDraft>(
       context: context,
       builder: (_) => _EditTermDialog(draft: _drafts[index]),
+      animationStyle: AppMotion.styleFor(context),
     );
     if (edited == null || !mounted) return;
     setState(() {
@@ -130,7 +134,12 @@ class _ImportCcTermsScreenState extends State<ImportCcTermsScreen> {
       body: ListView(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.md,
+              AppSpacing.md,
+              AppSpacing.md,
+              AppSpacing.xs,
+            ),
             child: Text(
               l10n.importCcTermsIntro,
               style: theme.textTheme.bodyMedium,
@@ -142,7 +151,7 @@ class _ImportCcTermsScreenState extends State<ImportCcTermsScreen> {
       ),
       bottomNavigationBar: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(AppSpacing.md),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -223,7 +232,10 @@ class _ImportCcTermsScreenState extends State<ImportCcTermsScreen> {
           ),
         ),
         Padding(
-          padding: const EdgeInsetsDirectional.only(start: 56, bottom: 8),
+          padding: const EdgeInsetsDirectional.only(
+            start: AppSpacing.xxl + AppSpacing.xs,
+            bottom: AppSpacing.xs,
+          ),
           child: TextButton.icon(
             key: ValueKey('cc-term-import-edit-$index'),
             onPressed: () => _edit(index),
@@ -262,6 +274,12 @@ class _EditTermDialogState extends State<_EditTermDialog> {
     text: widget.draft.description,
   );
 
+  /// Whether any field differs from the term the dialog opened with.
+  bool _isDirty() =>
+      _name.text != widget.draft.name ||
+      _definition.text != widget.draft.definition ||
+      _description.text != widget.draft.description;
+
   @override
   void dispose() {
     _name.dispose();
@@ -273,60 +291,64 @@ class _EditTermDialogState extends State<_EditTermDialog> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return AlertDialog(
-      title: Text(l10n.importCcTermsEditTitle),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              key: const ValueKey('cc-term-edit-name'),
-              controller: _name,
-              maxLength: maxUserGlossaryNameLength,
-              decoration: InputDecoration(labelText: l10n.compoundEditorName),
-            ),
-            TextField(
-              key: const ValueKey('cc-term-edit-definition'),
-              controller: _definition,
-              minLines: 1,
-              maxLines: 6,
-              decoration: InputDecoration(
-                labelText: l10n.compoundEditorDefinition,
+    return DirtyDialogGuard(
+      listenable: Listenable.merge([_name, _definition, _description]),
+      isDirty: _isDirty,
+      child: AlertDialog(
+        title: Text(l10n.importCcTermsEditTitle),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                key: const ValueKey('cc-term-edit-name'),
+                controller: _name,
+                maxLength: maxUserGlossaryNameLength,
+                decoration: InputDecoration(labelText: l10n.compoundEditorName),
               ),
-            ),
-            TextField(
-              key: const ValueKey('cc-term-edit-description'),
-              controller: _description,
-              minLines: 1,
-              maxLines: 6,
-              decoration: InputDecoration(
-                labelText: l10n.compoundEditorDescription,
+              TextField(
+                key: const ValueKey('cc-term-edit-definition'),
+                controller: _definition,
+                minLines: 1,
+                maxLines: 6,
+                decoration: InputDecoration(
+                  labelText: l10n.compoundEditorDefinition,
+                ),
               ),
-            ),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(l10n.commonCancel),
-        ),
-        FilledButton(
-          key: const ValueKey('cc-term-edit-save'),
-          onPressed: () => Navigator.of(context).pop(
-            widget.draft.copyWith(
-              name: _name.text.replaceAll(RegExp(r'\s+'), ' ').trim(),
-              definition: _definition.text,
-              // A description left blank is the definition, as a term's
-              // starts (maintainer, 2026-10-16).
-              description: _description.text.trim().isEmpty
-                  ? _definition.text
-                  : _description.text,
-            ),
+              TextField(
+                key: const ValueKey('cc-term-edit-description'),
+                controller: _description,
+                minLines: 1,
+                maxLines: 6,
+                decoration: InputDecoration(
+                  labelText: l10n.compoundEditorDescription,
+                ),
+              ),
+            ],
           ),
-          child: Text(l10n.commonSave),
         ),
-      ],
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(l10n.commonCancel),
+          ),
+          FilledButton(
+            key: const ValueKey('cc-term-edit-save'),
+            onPressed: () => Navigator.of(context).pop(
+              widget.draft.copyWith(
+                name: _name.text.replaceAll(RegExp(r'\s+'), ' ').trim(),
+                definition: _definition.text,
+                // A description left blank is the definition, as a term's
+                // starts (maintainer, 2026-10-16).
+                description: _description.text.trim().isEmpty
+                    ? _definition.text
+                    : _description.text,
+              ),
+            ),
+            child: Text(l10n.commonSave),
+          ),
+        ],
+      ),
     );
   }
 }

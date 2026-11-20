@@ -4,8 +4,12 @@ import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
 import '../data/active_dialect_scope.dart';
 import '../data/walkthrough_snippet_library_scope.dart';
-import '../theme/destructive_button_style.dart';
+import '../theme/app_motion.dart';
+import '../theme/app_spacing.dart';
+import '../utils/confirm_delete.dart';
+import '../utils/undo_snack_bar.dart';
 import '../widgets/dirty_dialog_guard.dart';
+import '../widgets/empty_state.dart';
 
 /// Manager for the user's personal walkthrough snippet library (#411), reached
 /// from Settings › Defaults. Lists each saved per-figure snippet (a readable
@@ -21,8 +25,8 @@ class WalkthroughSnippetsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final controller = WalkthroughSnippetLibraryScope.of(context);
-    final dialect = ActiveDialectScope.of(context);
-    final renderer = FigureRenderer(contraTaxonomy);
+    final dialect = ActiveDialectScope.contraOf(context);
+    final renderer = FigureRenderer(shippedTaxonomies.anyForm);
     final l10n = AppLocalizations.of(context);
 
     // Precompute each snippet's display label ONCE (describeFigureSignature
@@ -36,7 +40,7 @@ class WalkthroughSnippetsScreen extends StatelessWidget {
                 text: e.value,
                 label: describeFigureSignature(
                   e.key,
-                  contraTaxonomy,
+                  shippedTaxonomies.anyForm,
                   renderer,
                   dialect,
                 ),
@@ -52,19 +56,24 @@ class WalkthroughSnippetsScreen extends StatelessWidget {
       body: ListView(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.md,
+              AppSpacing.md,
+              AppSpacing.md,
+              AppSpacing.xs,
+            ),
             child: Text(
               l10n.settingsWalkthroughSnippetsDescription,
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ),
           if (entries.isEmpty)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-              child: Text(
-                l10n.settingsWalkthroughSnippetsEmpty,
-                key: const ValueKey('walkthrough-snippets-empty'),
-              ),
+            EmptyState(
+              key: const ValueKey('walkthrough-snippets-empty'),
+              inline: true,
+              icon: EmptyState.glyph(context, Icons.notes_outlined),
+              title: l10n.settingsWalkthroughSnippetsEmptyTitle,
+              body: l10n.settingsWalkthroughSnippetsEmptyBody,
             )
           else
             for (final entry in entries)
@@ -89,44 +98,41 @@ class WalkthroughSnippetsScreen extends StatelessWidget {
     final result = await showDialog<String>(
       context: context,
       builder: (ctx) => _EditSnippetDialog(initial: current),
+      animationStyle: AppMotion.styleFor(context),
     );
     if (result == null) return;
     await controller.setSnippet(signature, result);
   }
 
+  /// Deletes the snippet at once and offers Undo, asking first only when
+  /// "Confirm before delete" is on (see `confirm_delete.dart`). Undo puts back
+  /// the stored text, read from the library at the moment of the delete.
   Future<void> _delete(
     BuildContext context,
     String signature,
     String label,
   ) async {
     final controller = WalkthroughSnippetLibraryScope.controllerOf(context);
+    if (!await confirmDeleteIfEnabled(context, itemLabel: label)) return;
+    if (!context.mounted) return;
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.maybeOf(context);
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.settingsWalkthroughSnippetDeleteTitle),
-        content: Text(l10n.settingsWalkthroughSnippetDeleteBody),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text(MaterialLocalizations.of(ctx).cancelButtonLabel),
-          ),
-          FilledButton(
-            style: destructiveFilledButtonStyle(Theme.of(ctx).colorScheme),
-            key: const ValueKey('walkthrough-snippet-delete-confirm'),
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text(MaterialLocalizations.of(ctx).deleteButtonTooltip),
-          ),
-        ],
-      ),
+    final accessibleNavigation = MediaQuery.accessibleNavigationOf(context);
+    // Read after the confirmation, so Undo puts back what was removed; a
+    // snippet already gone (removed elsewhere meanwhile) offers no Undo.
+    final stored = controller.library.snippets[signature];
+    if (stored == null) return;
+    await controller.removeSnippet(signature);
+    if (messenger == null) return;
+    showUndoSnackBar(
+      messenger,
+      actionKey: const ValueKey('walkthrough-snippet-delete-undo'),
+      message: l10n.commonDeletedSnack(label),
+      undoLabel: l10n.commonUndo,
+      undoFailedMessage: l10n.commonUndoFailed,
+      accessibleNavigation: accessibleNavigation,
+      onUndo: () => controller.restoreSnippet(signature, stored),
     );
-    if (confirm == true) {
-      await controller.removeSnippet(signature);
-      messenger?.showSnackBar(
-        SnackBar(content: Text(l10n.commonDeletedSnack(label))),
-      );
-    }
   }
 }
 

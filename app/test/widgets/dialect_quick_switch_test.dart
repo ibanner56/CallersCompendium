@@ -16,8 +16,9 @@ class _ActiveDialectLabel extends StatelessWidget {
   const _ActiveDialectLabel();
 
   @override
-  Widget build(BuildContext context) =>
-      Text('active: ${ActiveDialectScope.of(context).name}');
+  Widget build(BuildContext context) => Text(
+    'active: ${ActiveDialectScope.of(context).forForm(DanceForm.contra).name}',
+  );
 }
 
 void main() {
@@ -49,12 +50,15 @@ void main() {
           supportedLocales: testSupportedLocales,
 
           home: DialectLibraryScope(
-            controller: controller,
+            libraries: DialectLibraries.withContra(controller),
             child: ActiveDialectScope(
               notifier: notifier,
               child: const Scaffold(
                 body: Column(
-                  children: [DialectQuickSwitch(), _ActiveDialectLabel()],
+                  children: [
+                    DialectQuickSwitch(form: DanceForm.contra),
+                    _ActiveDialectLabel(),
+                  ],
                 ),
               ),
             ),
@@ -124,10 +128,12 @@ void main() {
           supportedLocales: testSupportedLocales,
 
           home: DialectLibraryScope(
-            controller: controller,
+            libraries: DialectLibraries.withContra(controller),
             child: ActiveDialectScope(
               notifier: notifier,
-              child: const Scaffold(body: DialectQuickSwitch()),
+              child: const Scaffold(
+                body: DialectQuickSwitch(form: DanceForm.contra),
+              ),
             ),
           ),
         ),
@@ -157,9 +163,10 @@ void main() {
         localizationsDelegates: testLocalizationsDelegates,
         supportedLocales: testSupportedLocales,
         home: DialectLibraryScope(
-          controller: controller,
+          libraries: DialectLibraries.withContra(controller),
           child: Scaffold(
             body: DialectQuickSwitch(
+              form: DanceForm.contra,
               selectedName: Dialect.leadsFollows.name,
               onSelected: (name) => picked = name,
             ),

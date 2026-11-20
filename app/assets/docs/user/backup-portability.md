@@ -87,8 +87,9 @@ A backup holds **everything** you've built, including:
   including fields marked **Include in sharing** off, along with where each
   dance was imported from.
 - All your programs, with their [slots](./glossary.md#slot),
-  [alternates](./glossary.md#alt), event details, pay, Perform dialect, and
-  which dances you've marked as performed.
+  [alternates](./glossary.md#alt), event details, pay, Perform dialect,
+  which dances you've marked as performed, and which programs you've
+  [archived](./programs.md#create-and-manage-programs).
 - The dances and programs in **Recently deleted**, so you can still restore
   them after bringing the backup back.
 - Your custom fields, tags, authors, published sources, difficulty levels,
@@ -131,7 +132,10 @@ setting up a new device or recovering after a problem.
    or paste the backup text into **Or paste backup JSON**. A chosen file is
    shown as a short summary (its date, how many dances and programs it
    holds, and its size) rather than as text in the box; the box is for
-   pasted text only. Choose **Clear** to forget the file.
+   pasted text only. Choose **Clear** to forget the file. Once the box
+   holds text or a file is chosen, a tap outside the dialog, **Esc** or
+   **Back** will not close it, so a stray tap can't lose what you pasted;
+   choose **Cancel** to close it on purpose.
 5. Confirm with **Replace all data**. A progress bar counts the restore
    from start to finish; it can't be dismissed, so wait for it to close.
 
@@ -154,6 +158,13 @@ backup is refused the same way, with its size and the limit.
 > dialects: a backup can't tell them apart from 0.5.2 to 0.5.4, which would
 > restore it without them. Versions before 0.5.2 don't check, and may restore it
 > without those details. Install the current version before you restore.
+>
+> The same goes for a backup that holds an English country dance formation
+> (such as duple minor), a dance marked improper, a dance's meter or key, or
+> who interpreted a dance and when: versions without them refuse it as coming
+> from a newer version. A backup that holds an archived program needs version
+> 0.11.0 or later to replace your library: versions 0.5.2 to 0.10.0 refuse
+> that, rather than bring your archived programs back unarchived.
 
 ### Restoring while Device Sync is connected
 

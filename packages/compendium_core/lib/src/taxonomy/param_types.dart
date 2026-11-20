@@ -10,6 +10,13 @@ enum ParamKind {
   /// A pairing of dancers valid for a paired move (subset of dancerSet).
   dancerPair,
 
+  /// An ordered list of dancer tokens, such as `["twos", "threes"]` for "2s
+  /// and 3s circle left": ECD's `who` (ADR-006 §5.2). The list holds at
+  /// least one token, each from [ParamSpec.choices] (default
+  /// [ParamVocab.dancerSets]), none twice, and a token in
+  /// [ParamVocab.soloDancerTokens] only on its own.
+  dancerList,
+
   /// `right` / `left` hand.
   handedness,
 
@@ -25,6 +32,9 @@ enum ParamKind {
   /// Distance travelled around a ring/star, 1–10 "places" (circle, star,
   /// facing star, square through). Stored as places directly (not ContraDB's
   /// degrees), analogous to [rotation] being stored in turns.
+  ///
+  /// A spec may opt into [ParamVocab.unspecified] by listing it in
+  /// [ParamSpec.choices], as `circle.places` and `star.places` do (v39).
   ///
   /// Also the 1–10 whole-number kind for `circular_hey.changes`, a count of
   /// changes rather than a distance; the renderer words that param "N changes"
@@ -149,6 +159,11 @@ abstract final class ParamVocab {
     'fifthPartners',
   ];
 
+  /// The tokens a [ParamKind.dancerList] holds only on its own: `everyone`
+  /// and the [unspecified] sentinel can't be combined with another selector
+  /// (ADR-006 §5.2, Q1b).
+  static const Set<String> soloDancerTokens = {'everyone', unspecified};
+
   /// All dancer tokens (pair/group + single-dancer identities). The default
   /// domain for [ParamKind.dancerSet] / [ParamKind.dancerPair].
   static const List<String> dancerSets = [...pairDancerSets, ...singleDancers];
@@ -160,7 +175,8 @@ abstract final class ParamVocab {
   /// The rule, deliberately stated instead of enumerated: a param admits the
   /// sentinel **iff** it names it explicitly in [ParamSpec.choices] and its
   /// [ParamKind]'s validator consults `choices` — every kind with a closed
-  /// vocabulary does, plus [ParamKind.rotation] by an explicit opt-in. Nothing
+  /// vocabulary does, plus [ParamKind.rotation] and [ParamKind.places] by an
+  /// explicit opt-in. Nothing
   /// admits it implicitly. That includes the semantically typed kinds, which is
   /// why `form_long_waves.hand` can be a [ParamKind.handedness] and still mean
   /// "not stated" (issue #739); a param does NOT have to be laundered through
@@ -404,6 +420,8 @@ class ParamSpec {
       case ParamKind.dancerPair:
         return value is String &&
             (choices ?? ParamVocab.dancerSets).contains(value);
+      case ParamKind.dancerList:
+        return isValidDancerList(value, choices ?? ParamVocab.dancerSets);
       case ParamKind.handedness:
       case ParamKind.shoulder:
         // `choices` is optional here too (issue #726): when a spec narrows
@@ -432,6 +450,14 @@ class ParamSpec {
             value <= 2.5 &&
             (value * 4) % 1 == 0;
       case ParamKind.places:
+        // Like a rotation, a count of places MAY opt into the "source stated
+        // nothing" sentinel by listing it in [choices] (taxonomy v39:
+        // `circle.places` and `star.places`, which a dance may leave unstated).
+        if (value is String) {
+          return choices != null &&
+              value == ParamVocab.unspecified &&
+              choices!.contains(value);
+        }
         return value is int && value >= 1 && value <= 10;
       case ParamKind.number:
         return value is int && value >= 0 && value <= 99;
@@ -451,4 +477,18 @@ class ParamSpec {
         return value is bool;
     }
   }
+}
+
+/// Whether [value] is a valid [ParamKind.dancerList] over [domain]: a
+/// non-empty list of tokens from [domain], none repeated, with a token of
+/// [ParamVocab.soloDancerTokens] only as the list's one entry (ADR-006 §5.2).
+bool isValidDancerList(Object? value, List<String> domain) {
+  if (value is! List || value.isEmpty) return false;
+  final seen = <String>{};
+  for (final token in value) {
+    if (token is! String || !domain.contains(token) || !seen.add(token)) {
+      return false;
+    }
+  }
+  return value.length == 1 || !value.any(ParamVocab.soloDancerTokens.contains);
 }

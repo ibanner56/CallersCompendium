@@ -2,9 +2,11 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../theme/app_motion.dart';
 import '../../theme/app_spacing.dart';
 import '../../widgets/lingo_text_editing_controller.dart';
 import 'choice_option.dart' show AddChoiceResult;
+import '../../widgets/dirty_dialog_guard.dart';
 import '../../widgets/dropdown_selection.dart';
 import 'lingo_discouraged_hint.dart';
 
@@ -107,6 +109,9 @@ class CustomFieldEditor extends StatelessWidget {
         );
       case CustomFieldType.choice:
         final dropdown = DropdownButtonFormField<String?>(
+          // Field values read at the same weight as typed text; the dropdown's
+          // default is the bolder titleMedium.
+          style: Theme.of(context).textTheme.bodyLarge,
           key: ValueKey('custom-${def.id}-choice'),
           initialValue: currentValue as String?,
           // A user-typed option is unbounded: fill the slot, ellipsize the
@@ -168,6 +173,7 @@ Future<void> showAddChoiceOptionDialog(
   context: context,
   builder: (dialogContext) =>
       _AddChoiceOptionDialog(label: label, onAddOption: onAddOption),
+  animationStyle: AppMotion.styleFor(context),
 );
 
 /// Modal for adding a new option to a `choice` custom field from the dance
@@ -231,37 +237,41 @@ class _AddChoiceOptionDialogState extends State<_AddChoiceOptionDialog> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return AlertDialog(
-      title: Text(l10n.customFieldsAddOptionTitle(widget.label)),
-      content: Form(
-        key: _formKey,
-        child: TextFormField(
-          key: const ValueKey('add-option-input'),
-          controller: _controller,
-          autofocus: true,
-          maxLength: kMaxCustomFieldChoiceLength,
-          decoration: InputDecoration(
-            labelText: l10n.customFieldsNewChoiceHint,
-            counterText: '',
-            errorText: _asyncError,
+    return DirtyDialogGuard(
+      listenable: _controller,
+      isDirty: () => _controller.text.isNotEmpty,
+      child: AlertDialog(
+        title: Text(l10n.customFieldsAddOptionTitle(widget.label)),
+        content: Form(
+          key: _formKey,
+          child: TextFormField(
+            key: const ValueKey('add-option-input'),
+            controller: _controller,
+            autofocus: true,
+            maxLength: kMaxCustomFieldChoiceLength,
+            decoration: InputDecoration(
+              labelText: l10n.customFieldsNewChoiceHint,
+              counterText: '',
+              errorText: _asyncError,
+            ),
+            validator: (value) => (value == null || value.trim().isEmpty)
+                ? l10n.customFieldsChoiceEmpty
+                : null,
+            onFieldSubmitted: (_) => _submit(),
           ),
-          validator: (value) => (value == null || value.trim().isEmpty)
-              ? l10n.customFieldsChoiceEmpty
-              : null,
-          onFieldSubmitted: (_) => _submit(),
         ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(l10n.commonCancel),
+          ),
+          FilledButton(
+            key: const ValueKey('add-option-confirm'),
+            onPressed: _submit,
+            child: Text(l10n.commonAdd),
+          ),
+        ],
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(l10n.commonCancel),
-        ),
-        FilledButton(
-          key: const ValueKey('add-option-confirm'),
-          onPressed: _submit,
-          child: Text(l10n.commonAdd),
-        ),
-      ],
     );
   }
 }

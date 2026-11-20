@@ -18,12 +18,14 @@ import '../../sync/sync_coordinator.dart'
     show SyncFailureCauseTier, SyncPassResult, SyncPassStatus;
 import '../../sync/sync_http_client.dart' show isDefaultSyncEndpoint;
 import '../../sync/sync_scope.dart';
+import '../../theme/app_motion.dart';
 import '../../theme/app_spacing.dart';
 import '../../widgets/collapsible_section.dart';
 import '../../widgets/notice_card.dart';
 import '../../widgets/section_header.dart';
 import '../sync_conflict_sheet.dart';
 import '../sync_review_screen.dart';
+import '../../theme/destructive_button_style.dart';
 import 'sync_device_labels.dart';
 import 'sync_devices_screen.dart';
 import 'sync_failure_labels.dart';
@@ -257,6 +259,7 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
           ),
         ],
       ),
+      animationStyle: AppMotion.styleFor(context),
     ).whenComplete(() => _replacementDialogShowing = false);
   }
 
@@ -400,12 +403,16 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
             ),
           ),
           FilledButton(
+            style: destructiveFilledButtonStyle(
+              Theme.of(dialogContext).colorScheme,
+            ),
             key: const ValueKey('sync-disconnect-confirm'),
             onPressed: () => Navigator.of(dialogContext).pop(true),
             child: Text(l10n.settingsSyncDisconnectConfirmAction),
           ),
         ],
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
     if (confirmed != true || !mounted) return;
     final messenger = ScaffoldMessenger.maybeOf(context);

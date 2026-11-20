@@ -317,6 +317,9 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String get colorEditHexInvalid => 'Gib sechs Hex-Ziffern ein, z. B. #804020.';
+
+  @override
   String get colorEditHexLabel => 'Hex';
 
   @override
@@ -1508,8 +1511,11 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
-  String get settingsSyncDevicesEmpty =>
-      'Mit diesem Speicher sind keine anderen Geräte verbunden.';
+  String get settingsSyncDevicesEmptyTitle => 'Noch keine anderen Geräte';
+
+  @override
+  String get settingsSyncDevicesEmptyBody =>
+      'Andere mit diesem Speicher verbundene Geräte erscheinen hier.';
 
   @override
   String get settingsSyncDevicesFailed =>
@@ -1859,7 +1865,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsAboutLicenseBody =>
-      'Caller\'s Compendium ist freie Software, lizenziert unter der GNU Affero General Public License, Version 3 (AGPL-3.0). Sie dürfen es unter dieser Lizenz frei verwenden, studieren, teilen und modifizieren. Da die AGPL es vorschreibt, wird der vollständige entsprechende Quellcode jedem angeboten, der die App verwendet.';
+      'Caller\'s Compendium ist freie Software, lizenziert unter der GNU Affero General Public License, Version 3 (AGPL-3.0-only). Sie dürfen es unter dieser Lizenz frei verwenden, studieren, teilen und modifizieren. Da die AGPL es vorschreibt, wird der vollständige entsprechende Quellcode jedem angeboten, der die App verwendet.';
 
   @override
   String get settingsAboutViewSourceTitle => 'Quellcode auf GitHub ansehen';
@@ -1909,7 +1915,10 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsAboutLegalese =>
-      '© Die Caller\'s Compendium-Mitwirkenden. Lizenziert unter AGPL-3.0.';
+      '© Die Caller\'s Compendium-Mitwirkenden. Lizenziert unter AGPL-3.0-only.';
+
+  @override
+  String get settingsAboutTagline => 'Deine Caller-Kiste in deiner Hand';
 
   @override
   String settingsAboutVersion(String version, String codename) {
@@ -1919,11 +1928,10 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String settingsAboutVersionLine(
     String appName,
-    String version,
     String codename,
     String license,
   ) {
-    return '$appName · Version $version, “$codename” · $license';
+    return '$appName · “$codename” · $license';
   }
 
   @override
@@ -2063,6 +2071,10 @@ class AppLocalizationsDe extends AppLocalizations {
   String get settingsDialectHeader => 'Dialekte';
 
   @override
+  String get settingsDialectFormHelper =>
+      'Jeder Tanztyp hat seine eigenen Dialekte. Wähle einen Typ, um seine Dialekte zu sehen und einzurichten.';
+
+  @override
   String get settingsDialectDanceDetailsHeader => 'Tanzdetails und Kurzformen';
 
   @override
@@ -2104,14 +2116,6 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsDialectDuplicateToCustomize => 'Duplizieren zum Anpassen';
-
-  @override
-  String get settingsDialectDeleteTitle => 'Dialekt löschen?';
-
-  @override
-  String settingsDialectDeleteConfirmBody(String name) {
-    return '„$name“ wird dauerhaft entfernt.';
-  }
 
   @override
   String settingsDialectEditConflictSnack(String name) {
@@ -2505,14 +2509,6 @@ class AppLocalizationsDe extends AppLocalizations {
       'Aktuelles Design kopieren und beliebige Farben anpassen. Benutzerdefinierte Designs werden mit Ihren anderen Geräten synchronisiert, wenn die Synchronisierung aktiviert ist.';
 
   @override
-  String get settingsAppearanceDeleteThemeTitle => 'Design löschen?';
-
-  @override
-  String settingsAppearanceDeleteThemeBody(String name) {
-    return '„$name“ wird dauerhaft entfernt.';
-  }
-
-  @override
   String settingsAppearanceCustomThemeSemantic(String name) {
     return 'Benutzerdefiniertes Design $name';
   }
@@ -2768,6 +2764,9 @@ class AppLocalizationsDe extends AppLocalizations {
       'Der Tanztyp, mit dem ein neuer Tanz beginnt. Pro Tanz noch änderbar.';
 
   @override
+  String get settingsDefaultsFormLastUsed => 'Zuletzt verwendet';
+
+  @override
   String get settingsDefaultsFormationTitle => 'Formation';
 
   @override
@@ -2855,8 +2854,11 @@ class AppLocalizationsDe extends AppLocalizations {
       'Geben Sie einem Tag eine eigene Farbe, damit es auf Tanzkarten und in den Tanzdetails hervorsticht. Der Name des Tags wird immer mit angezeigt, sodass Tags auch ohne Farbe lesbar bleiben.';
 
   @override
-  String get settingsTagColoursEmpty =>
-      'Sie haben noch keine Tags erstellt. Fügen Sie einem Tanz ein Tag hinzu, dann erscheint es hier.';
+  String get settingsTagColoursEmptyTitle => 'Noch keine Tags';
+
+  @override
+  String get settingsTagColoursEmptyBody =>
+      'Fügen Sie einem Tanz ein Tag hinzu, dann erscheint es hier.';
 
   @override
   String get settingsTagColoursSaveError =>
@@ -2921,8 +2923,11 @@ class AppLocalizationsDe extends AppLocalizations {
   String get authorManagerNameLabel => 'Name des Autors';
 
   @override
-  String get authorManagerEmpty =>
-      'Noch keine Autoren. Autoren, die Sie bei einem Tanz angeben, erscheinen hier.';
+  String get authorManagerEmptyTitle => 'Noch keine Autoren';
+
+  @override
+  String get authorManagerEmptyBody =>
+      'Autoren, die Sie bei einem Tanz angeben, erscheinen hier.';
 
   @override
   String get authorManagerLoadError =>
@@ -2943,8 +2948,11 @@ class AppLocalizationsDe extends AppLocalizations {
   String get sourceManagerTitleLabel => 'Titel der Quelle';
 
   @override
-  String get sourceManagerEmpty =>
-      'Noch keine Quellen. Bücher und Websites, die Sie bei einem Tanz angeben, erscheinen hier.';
+  String get sourceManagerEmptyTitle => 'Noch keine Quellen';
+
+  @override
+  String get sourceManagerEmptyBody =>
+      'Bücher und Websites, die Sie bei einem Tanz zitieren, erscheinen hier.';
 
   @override
   String get sourceManagerLoadError =>
@@ -3219,18 +3227,6 @@ class AppLocalizationsDe extends AppLocalizations {
       'Parametrisierte Spalte löschen';
 
   @override
-  String get settingsMatrixColumnsParameterizedDeleteTitle =>
-      'Parametrisierte Spalte löschen?';
-
-  @override
-  String get settingsMatrixColumnsParameterizedDeleteBody =>
-      'Dies entfernt die Spalte und ihre Abgleichregeln aus der Matrix. Dies kann nicht rückgängig gemacht werden.';
-
-  @override
-  String get settingsMatrixColumnsParameterizedDeleteConfirm =>
-      'Spalte löschen';
-
-  @override
   String get settingsMatrixColumnsCompoundAdd =>
       'Zusammengesetzte Spalte hinzufügen';
 
@@ -3276,17 +3272,6 @@ class AppLocalizationsDe extends AppLocalizations {
       'Zusammengesetzte Spalte löschen';
 
   @override
-  String get settingsMatrixColumnsCompoundDeleteTitle =>
-      'Zusammengesetzte Spalte löschen?';
-
-  @override
-  String get settingsMatrixColumnsCompoundDeleteBody =>
-      'Dadurch werden die Spalte und ihre passende Sequenz aus der Matrix entfernt. Dies kann nicht rückgängig gemacht werden.';
-
-  @override
-  String get settingsMatrixColumnsCompoundDeleteConfirm => 'Spalte löschen';
-
-  @override
   String get settingsGeneralPerformanceHeader => 'Perform-Modus';
 
   @override
@@ -3295,7 +3280,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsGeneralAutoSizePerformSubtitle =>
-      'Jede Karte so skalieren, dass der vollständige Tanz oder Slot ohne Scrollen auf den Bildschirm passt. Deaktivieren, um die Größe selbst mit A− / A+ einzustellen.';
+      'Jede Karte so skalieren, dass sie auf den Bildschirm passt, aber nie kleiner als deine übliche Textgröße: Ein längerer Tanz oder Slot wird stattdessen gescrollt. Deaktivieren, um die Größe selbst mit A− / A+ einzustellen.';
 
   @override
   String get settingsShowIndividualPerformTimerTitle =>
@@ -3304,6 +3289,14 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get settingsShowIndividualPerformTimerSubtitle =>
       'Verstrichene Zeit beim Ausführen eines einzelnen Tanzes anzeigen. Der Timer startet, sobald er angezeigt wird, und kann pausiert werden.';
+
+  @override
+  String get settingsConfirmPerformExitTitle =>
+      'Vor dem Verlassen von Perform bestätigen';
+
+  @override
+  String get settingsConfirmPerformExitSubtitle =>
+      'Nachfragen, bevor die Schließen-Schaltfläche oder Zurück dich aus Perform führt. Deaktivieren, um mit einem Tippen zu verlassen; die Programm-Perform-Ansicht behält deine Position in jedem Fall.';
 
   @override
   String get settingsShowProgramSlotCallerNotesTitle =>
@@ -3471,7 +3464,28 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsGeneralConfirmBeforeDeleteSubtitle =>
-      'Vor dem Löschen eines Tanzes oder Programms um Bestätigung bitten. Löschvorgänge können noch rückgängig gemacht werden; dies fügt nur eine explizite Abfrage vorweg hinzu.';
+      'Vor dem Löschen von allem nachfragen, was sich rückgängig machen lässt. Löschvorgänge, die sich nicht rückgängig machen lassen, fragen immer vorher nach.';
+
+  @override
+  String get settingsGeneralUndoPromptTitle => 'Rückgängig-Hinweis';
+
+  @override
+  String get settingsGeneralUndoPromptSubtitle =>
+      'Wie lange der Hinweis „Rückgängig“ nach dem Löschen oder Ändern sichtbar bleibt. Er bleibt auch, solange Sie mit dem Zeiger darauf zeigen oder ihn mit der Tastatur ansteuern.';
+
+  @override
+  String settingsGeneralUndoPromptSeconds(int seconds) {
+    String _temp0 = intl.Intl.pluralLogic(
+      seconds,
+      locale: localeName,
+      other: '$seconds Sekunden',
+      one: '1 Sekunde',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get settingsGeneralUndoPromptUntilClosed => 'Bis ich ihn schließe';
 
   @override
   String get settingsGeneralDeletedItemsHeader => 'Zuletzt gelöscht';
@@ -3659,6 +3673,16 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsGeneralReparseCustomFiguresAction => 'Erneut prüfen…';
+
+  @override
+  String get settingsGeneralEcdMigrationTitle => 'Englische Tänze umwandeln';
+
+  @override
+  String get settingsGeneralEcdMigrationSubtitle =>
+      'Englische Country Dances, die gespeichert wurden, bevor die App englische Figuren kannte, verwenden noch Contra-Bewegungen. Wandeln Sie die Bewegungen um, die im englischen Tanz dasselbe bedeuten, lesen Sie nicht erkannte Figuren erneut und geben Sie jedem Tanz seine englische Formation. Sie wählen die Tänze aus und bestätigen, bevor sich etwas ändert.';
+
+  @override
+  String get settingsGeneralEcdMigrationAction => 'Umwandeln…';
 
   @override
   String get settingsGeneralBackupRestoreHeader =>
@@ -4048,6 +4072,10 @@ class AppLocalizationsDe extends AppLocalizations {
   String get commonFormationDupleImproper => 'Improper';
 
   @override
+  String get commonFormationProgressedImproper =>
+      'Improper, bereits weitergerückt';
+
+  @override
   String get commonFormationReverseProgressionImproper =>
       'Improper mit umgekehrter Progression';
 
@@ -4102,6 +4130,47 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String get commonFormationDupleMinor => 'Duple minor';
+
+  @override
+  String get commonFormationThreeCoupleLongways => 'Three-couple longways';
+
+  @override
+  String get commonFormationFourCoupleLongways => 'Four-couple longways';
+
+  @override
+  String get commonFormationFiveCoupleLongways => 'Five-couple longways';
+
+  @override
+  String get commonFormationSixCoupleLongways => 'Six-couple longways';
+
+  @override
+  String get commonFormationCircle => 'Kreis';
+
+  @override
+  String get commonFormationSquare => 'Square';
+
+  @override
+  String get commonFormationTwoCoupleSet => 'Two-couple set';
+
+  @override
+  String commonFormationImproperFlag(String shape) {
+    return '$shape, improper';
+  }
+
+  @override
+  String get danceEditorMeterLabel => 'Taktart';
+
+  @override
+  String get danceEditorMusicalKeyLabel => 'Tonart';
+
+  @override
+  String get danceEditorMeterHint => 'z. B. 3/2';
+
+  @override
+  String get danceEditorMusicalKeyHint => 'z. B. g-Moll';
+
+  @override
   String get commonMixedLevel => 'Gemischtes Niveau';
 
   @override
@@ -4116,6 +4185,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String commonDeletedSnack(String title) {
     return '„$title“ gelöscht.';
   }
+
+  @override
+  String get commonCantBeUndone => 'Das lässt sich nicht rückgängig machen.';
 
   @override
   String get importGapMessage =>
@@ -4133,15 +4205,6 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get collectionNewDance => 'Neuer Tanz';
-
-  @override
-  String collectionSearchTooltip(String platform) {
-    String _temp0 = intl.Intl.selectLogic(platform, {
-      'apple': 'Suchen (⌘K)',
-      'other': 'Suchen (Strg+K)',
-    });
-    return '$_temp0';
-  }
 
   @override
   String get collectionSelectDancesTooltip => 'Tänze auswählen';
@@ -5002,6 +5065,60 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String danceFigureBars(String bars, int halfBars) {
+    String _temp0 = intl.Intl.pluralLogic(
+      halfBars,
+      locale: localeName,
+      other: '$bars Takte',
+      two: '$bars Takt',
+      one: '$bars Takt',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get danceEditorBarsLabel => 'Takte';
+
+  @override
+  String get danceEditorStepUntimed => 'Ohne eigene Taktangabe';
+
+  @override
+  String danceEditorBarsRangeError(int max) {
+    return 'Ganze oder halbe Takte eingeben, bis $max';
+  }
+
+  @override
+  String danceEditorHalfBarRefused(int beatsPerBar) {
+    return 'Nur ganze Takte bei $beatsPerBar Schlägen pro Takt';
+  }
+
+  @override
+  String get danceEditorSequenceSpanLabel => 'Takte für alle';
+
+  @override
+  String get danceEditorSequenceSpanEmptyHelp =>
+      'Leer lassen, um die Takte der Schritte zu addieren, oder die Takte der ganzen Sequenz angeben, etwa „A, B und C in Takt 1–4“.';
+
+  @override
+  String get danceEditorSequenceSpanHelp =>
+      'Die Schritte teilen sich diese Takte, und jeder darf seine eigenen Takte leer lassen.';
+
+  @override
+  String danceEditorSequenceSpanMismatch(String steps, String span) {
+    return 'Die Schritte dauern $steps, die Sequenz aber $span.';
+  }
+
+  @override
+  String danceEditorSequenceSpanNoRoom(String steps, String span) {
+    return 'Die Schritte mit eigenen Takten dauern $steps der $span der Sequenz, sodass für die übrigen nichts bleibt.';
+  }
+
+  @override
+  String danceEditorSequenceOverPhraseTimed(String length, String limit) {
+    return 'Diese Sequenz dauert $length, länger als eine Phrase ($limit).';
+  }
+
+  @override
   String get danceFigureProgressionSemantic => 'Progression';
 
   @override
@@ -5106,6 +5223,10 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get danceCanonicalToggleLabel => 'Kanonisch';
+
+  @override
+  String get danceRoleTermsOverrideNote =>
+      'Mit larks und robins angezeigt: Der Autor bzw. die Autorin hat darum gebeten, diesen Tanz nur mit diesen Rollenbezeichnungen anzusagen, daher werden die Rollenbezeichnungen deines Dialekts hier nicht verwendet.';
 
   @override
   String danceProvenanceVia(String source) {
@@ -5315,9 +5436,6 @@ class AppLocalizationsDe extends AppLocalizations {
   String get programsNoLongerExists => 'Dieses Programm existiert nicht mehr.';
 
   @override
-  String get programsFallbackTitle => 'Programm';
-
-  @override
   String get programsUntitledDanceFallback => 'Tanz';
 
   @override
@@ -5377,6 +5495,37 @@ class AppLocalizationsDe extends AppLocalizations {
   String programsDeletedSnack(String title) {
     return '„$title“ gelöscht.';
   }
+
+  @override
+  String get programsArchive => 'Archivieren';
+
+  @override
+  String get programsUnarchive => 'Aus dem Archiv holen';
+
+  @override
+  String programsArchivedSnack(String title) {
+    return '„$title“ archiviert.';
+  }
+
+  @override
+  String programsUnarchivedSnack(String title) {
+    return '„$title“ aus dem Archiv geholt.';
+  }
+
+  @override
+  String get programsArchivedLabel => 'Archiviert';
+
+  @override
+  String get programsShowArchived => 'Archivierte anzeigen';
+
+  @override
+  String get programsHideArchived => 'Archivierte ausblenden';
+
+  @override
+  String get programsAllArchivedTitle => 'Keine Programme anzuzeigen';
+
+  @override
+  String get programsAllArchivedBody => 'Alle deine Programme sind archiviert.';
 
   @override
   String get programsDiscardTitle => 'Änderungen verwerfen?';
@@ -5612,6 +5761,12 @@ class AppLocalizationsDe extends AppLocalizations {
   String get programsTitle => 'Programme';
 
   @override
+  String get programsSearchTooltip => 'Programme suchen';
+
+  @override
+  String get programsSearchHint => 'Programme suchen…';
+
+  @override
   String get programsSortTitle => 'Titel';
 
   @override
@@ -5736,8 +5891,11 @@ class AppLocalizationsDe extends AppLocalizations {
   String get programsSlotNoteFallback => 'Notiz';
 
   @override
-  String get programsSlotEditorEmpty =>
-      'Noch keine Slots. Fügen Sie einen Tanz oder eine Notiz hinzu, um loszulegen.';
+  String get programsSlotEditorEmptyTitle => 'Noch keine Slots';
+
+  @override
+  String get programsSlotEditorEmptyBody =>
+      'Fügen Sie einen Tanz oder eine Notiz hinzu, um loszulegen.';
 
   @override
   String get programsSlotMovedUp => 'Slot nach oben verschoben.';
@@ -6254,6 +6412,12 @@ class AppLocalizationsDe extends AppLocalizations {
   String performSlotPosition(int current, int total) {
     return 'Slot $current von $total';
   }
+
+  @override
+  String get performProgramClockLabel => 'Programm';
+
+  @override
+  String get performSlotClockLabel => 'Slot';
 
   @override
   String performShowingSlot(String label) {
@@ -8281,6 +8445,9 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String get importReviewEditOverwriteConfirm => 'Ersetzen';
+
+  @override
   String get importReviewEditReimportTitle =>
       'Jetzt auf den vorhandenen Tanz neu importieren?';
 
@@ -8491,8 +8658,12 @@ class AppLocalizationsDe extends AppLocalizations {
       'Diese Schrittbeschreibungen pro Figur füllen Abläufe vor, wenn du einen Tanz bearbeitest. Eine hier zu bearbeiten aktualisiert den überall verwendeten Standard.';
 
   @override
-  String get settingsWalkthroughSnippetsEmpty =>
-      'Noch keine gespeicherten Ausschnitte. Füge Ablaufschritt-Beschreibungen hinzu, während du die Figuren eines Tanzes bearbeitest.';
+  String get settingsWalkthroughSnippetsEmptyTitle =>
+      'Noch keine gespeicherten Ausschnitte';
+
+  @override
+  String get settingsWalkthroughSnippetsEmptyBody =>
+      'Fügen Sie Beschreibungen für Ablaufschritte hinzu, während Sie die Figuren eines Tanzes bearbeiten.';
 
   @override
   String settingsWalkthroughSnippetsCount(int count) {
@@ -8504,13 +8675,6 @@ class AppLocalizationsDe extends AppLocalizations {
     );
     return '$_temp0';
   }
-
-  @override
-  String get settingsWalkthroughSnippetDeleteTitle => 'Ausschnitt löschen?';
-
-  @override
-  String get settingsWalkthroughSnippetDeleteBody =>
-      'Dies entfernt den gespeicherten Standard für diese Figur. Tänze behalten jeden bereits geschriebenen Ablauftext.';
 
   @override
   String get settingsWalkthroughSnippetEditTitle => 'Ausschnitt bearbeiten';
@@ -8530,11 +8694,28 @@ class AppLocalizationsDe extends AppLocalizations {
       'Tänzer wechseln bei jedem Durchgang den Partner';
 
   @override
+  String get danceEditorImproperLabel => 'Beginnt improper';
+
+  @override
+  String get danceEditorImproperSubtitle =>
+      'Leer lassen für einen Tanz, der proper beginnt.';
+
+  @override
   String get danceEditorComposedLabel => 'Komponiert';
 
   @override
   String get danceEditorComposedHelper =>
       'Wann der Tanz komponiert wurde (Jahr oder Monat/Tag hinzufügen)';
+
+  @override
+  String get danceEditorInterpretedByLabel => 'Interpretiert von';
+
+  @override
+  String get danceEditorInterpretedOnLabel => 'Interpretiert';
+
+  @override
+  String get danceEditorInterpretedOnHelper =>
+      'Wann der Tanz interpretiert wurde (Jahr oder Monat/Tag hinzufügen)';
 
   @override
   String get danceEditorRevisedLabel => 'Überarbeitet';
@@ -8693,6 +8874,36 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String validationSequenceSpanMismatch(
+    int position,
+    int actual,
+    int expected,
+  ) {
+    return 'Die Schritte der Sequenz in Figur $position dauern $actual Schläge; die Sequenz dauert $expected.';
+  }
+
+  @override
+  String validationSequenceSpanNoRoom(int position, int actual, int expected) {
+    return 'Die Schritte mit Zeitangabe in der Sequenz in Figur $position dauern $actual Schläge, sodass von ihren $expected für die übrigen nichts bleibt.';
+  }
+
+  @override
+  String validationOtherFormFigures(
+    int count,
+    String danceForm,
+    String figureForm,
+    String pickerForm,
+  ) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Figuren stammen',
+      one: '1 Figur stammt',
+    );
+    return 'Dies ist ein Tanz der Art $danceForm, aber $_temp0 aus $figureForm. Sie bleiben, wie sie sind, aber die Figurenauswahl bietet nur Figuren der Art $pickerForm an.';
+  }
+
+  @override
   String validationIncompleteFigure(int position) {
     return 'Figur $position ist nicht vollständig, daher lässt Speichern sie weg.';
   }
@@ -8723,6 +8934,11 @@ class AppLocalizationsDe extends AppLocalizations {
     String substitution,
   ) {
     return '„$source“ und „$existing“ werden beide auf „$substitution“ abgebildet – die Umkehrung wäre mehrdeutig.';
+  }
+
+  @override
+  String validationGenderedRoleTerm(String word) {
+    return '„$word“ ist ein geschlechtsbezogenes Rollenwort, das die App nie anzeigt. Verwende stattdessen ein rollenneutrales Wort.';
   }
 
   @override
@@ -9191,6 +9407,24 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get danceEditorMoveDown => 'Nach unten';
+
+  @override
+  String commonMoveItemUp(String name) {
+    return '$name nach oben verschieben';
+  }
+
+  @override
+  String commonMoveItemDown(String name) {
+    return '$name nach unten verschieben';
+  }
+
+  @override
+  String commonMovedItemPosition(String name, int position, int count) {
+    return '$name an Position $position von $count verschoben';
+  }
+
+  @override
+  String get danceEditorFigureCutState => 'Ausgeschnitten';
 
   @override
   String get danceEditorCut => 'Ausschneiden';
@@ -9742,7 +9976,7 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
-  String get collectionPickerSearchLabel => 'Tanz zum Hinzufügen suchen';
+  String get collectionPickerSearchLabel => 'Tanz suchen';
 
   @override
   String collectionPickerFilters(int count) {
@@ -9833,19 +10067,15 @@ class AppLocalizationsDe extends AppLocalizations {
   String get shorthandMappingsNew => 'Neue Abkürzung';
 
   @override
-  String get shorthandMappingsEmpty => 'Noch keine Abkürzungen.';
+  String get shorthandMappingsEmptyTitle => 'Noch keine Abkürzungen';
+
+  @override
+  String get shorthandMappingsEmptyBody =>
+      'Wählen Sie „Neue Abkürzung“, um eine hinzuzufügen.';
 
   @override
   String shorthandMappingsLimitReached(int max) {
     return 'Du hast das Limit von $max Abkürzungen erreicht. Lösche eine, um eine weitere hinzuzufügen.';
-  }
-
-  @override
-  String get shorthandMappingsDeleteTitle => 'Abkürzung löschen?';
-
-  @override
-  String shorthandMappingsDeleteBody(String token) {
-    return '„$token“ wird dauerhaft entfernt.';
   }
 
   @override
@@ -10244,12 +10474,100 @@ class AppLocalizationsDe extends AppLocalizations {
       'Beim Scannen Ihrer Sammlung ist etwas schiefgelaufen. Es wurde nichts geändert. Sie können es erneut versuchen.';
 
   @override
-  String get customFieldsDeleteTitle => 'Benutzerdefiniertes Feld löschen';
+  String get ecdMigrationScreenTitle => 'Englische Tänze umwandeln';
 
   @override
-  String customFieldsDeleteBody(String label) {
-    return '„$label“ löschen? Dies kann nicht rückgängig gemacht werden.';
+  String ecdMigrationIntro(int danceCount) {
+    String _temp0 = intl.Intl.pluralLogic(
+      danceCount,
+      locale: localeName,
+      other: '$danceCount englische Tänze verwenden',
+      one: '1 englischer Tanz verwendet',
+    );
+    return '$_temp0 noch Contra-Bewegungen, nicht erkannte Figuren oder eine Contra-Formation. Wählen Sie die Tänze zum Umwandeln aus und bestätigen Sie dann. Eine Bewegung ohne klare englische Entsprechung bleibt, wie sie ist.';
   }
+
+  @override
+  String ecdMigrationPreviewMoves(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Bewegungen umzuwandeln',
+      one: '1 Bewegung umzuwandeln',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String ecdMigrationPreviewLines(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count nicht erkannte Figuren jetzt gelesen',
+      one: '1 nicht erkannte Figur jetzt gelesen',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get ecdMigrationPreviewShape => 'Englische Formation';
+
+  @override
+  String ecdMigrationConvertButton(int danceCount) {
+    String _temp0 = intl.Intl.pluralLogic(
+      danceCount,
+      locale: localeName,
+      other: '$danceCount Tänze umwandeln',
+      one: '1 Tanz umwandeln',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get ecdMigrationConfirmTitle => 'Diese englischen Tänze umwandeln?';
+
+  @override
+  String ecdMigrationConfirmBody(int danceCount) {
+    String _temp0 = intl.Intl.pluralLogic(
+      danceCount,
+      locale: localeName,
+      other: '$danceCount Tänzen',
+      one: '1 Tanz',
+    );
+    return 'Dies ändert die Figuren und die Formation von $_temp0. Tags, Bewertungen, Notizen und alles andere bleiben erhalten. Dies kann nicht rückgängig gemacht werden, daher sollten Sie vorher eine Sicherung erstellen.';
+  }
+
+  @override
+  String get ecdMigrationConfirmAction => 'Umwandeln';
+
+  @override
+  String ecdMigrationDoneSnack(int danceCount) {
+    String _temp0 = intl.Intl.pluralLogic(
+      danceCount,
+      locale: localeName,
+      other: '$danceCount Tänze umgewandelt.',
+      one: '1 Tanz umgewandelt.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get ecdMigrationNothingSnack => 'Nichts umzuwandeln.';
+
+  @override
+  String get ecdMigrationFailed =>
+      'Die Tänze konnten nicht umgewandelt werden. Es wurde nichts geändert. Bitte versuchen Sie es erneut.';
+
+  @override
+  String get ecdMigrationEmptyTitle => 'Nichts umzuwandeln';
+
+  @override
+  String get ecdMigrationEmptyBody =>
+      'Keiner Ihrer englischen Country Dances enthält etwas, das sich umwandeln lässt. Eine Figur ohne klare englische Bedeutung bleibt, wie sie ist.';
+
+  @override
+  String get ecdMigrationErrorTitle =>
+      'Ihre englischen Tänze konnten nicht geprüft werden';
 
   @override
   String customFieldsDeleteInUse(String label, int count) {
@@ -10288,8 +10606,11 @@ class AppLocalizationsDe extends AppLocalizations {
       'Benutzerdefinierte Felder konnten nicht geladen werden.';
 
   @override
-  String get customFieldsEmpty =>
-      'Noch keine benutzerdefinierten Felder.\nTippen Sie auf +, um eines zu definieren.';
+  String get customFieldsEmptyTitle => 'Noch keine benutzerdefinierten Felder';
+
+  @override
+  String get customFieldsEmptyBody =>
+      'Wählen Sie „Neues Feld“, um eines hinzuzufügen.';
 
   @override
   String get customFieldsFlagInList => 'In Liste';
@@ -10520,7 +10841,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String recentlyDeletedDeleteBody(String title) {
-    return '„$title“ wird sofort gelöscht und kann nicht wiederhergestellt werden.';
+    return '„$title“ wird jetzt gelöscht.';
   }
 
   @override
@@ -10655,19 +10976,6 @@ class AppLocalizationsDe extends AppLocalizations {
       one: '1 Programm verknüpft.',
     );
     return '$_temp0';
-  }
-
-  @override
-  String get venueManagerDeleteTitle => 'Veranstaltungsort löschen?';
-
-  @override
-  String venueManagerDeleteBody(String name) {
-    return '„$name“ dauerhaft löschen? Dies kann nicht rückgängig gemacht werden.';
-  }
-
-  @override
-  String venueManagerDeletedSnack(String name) {
-    return '„$name“ gelöscht';
   }
 
   @override
@@ -10856,6 +11164,10 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get publishedCollectionsUnavailable =>
       'Veröffentlichte Sammlungen sind vorübergehend nicht verfügbar.';
+
+  @override
+  String get publishedCollectionsUnverified =>
+      'Veröffentlichte Sammlungen konnten nicht überprüft werden, daher wurde nichts geladen. Aktualisieren Sie die App, wenn das weiterhin passiert.';
 
   @override
   String get publishedCollectionsOffline =>
@@ -11051,6 +11363,9 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get glossaryAddCustomFigure => 'Eigene Figur hinzufügen';
+
+  @override
+  String get customFiguresNewFigure => 'Neue Figur';
 
   @override
   String get glossaryCustomMarker => 'Eigene';

@@ -11,7 +11,6 @@ import '../data/date_format_scope.dart';
 import '../data/refresh_coalescer.dart';
 import '../data/regional_formats.dart';
 import '../data/repositories_scope.dart';
-import '../data/app_theme_scope.dart';
 import '../data/callersbox_online.dart';
 import '../data/contradb_online.dart';
 import '../data/import_io.dart';
@@ -30,9 +29,11 @@ import '../search/collection_data.dart';
 import '../search/dance_detail_data.dart';
 import '../search/facet_labels.dart';
 import '../theme/app_spacing.dart';
+import '../theme/app_theme_extension.dart';
 import '../theme/set_list_accents.dart';
 import '../utils/confirm_delete.dart';
 import '../utils/undo_snack_bar.dart';
+import '../widgets/load_error_view.dart';
 import '../widgets/program_export_menu.dart';
 import '../widgets/program_status_chip.dart';
 import 'dance_detail_screen.dart';
@@ -42,6 +43,8 @@ import '../utils/slot_dance_title.dart';
 import 'perform_program_screen.dart';
 import 'recently_deleted_screen.dart';
 import 'program_editor_screen.dart';
+import '../theme/app_breakpoints.dart';
+import '../widgets/adaptive_fab.dart';
 
 /// How many times a row toggle re-reads and retries after losing a race with
 /// another writer before it gives up and says so.
@@ -60,8 +63,9 @@ const int _kTogglePerformedAttempts = 3;
 ///
 /// The programs list reloads unconditionally when this route pops, so the
 /// screen only self-manages what it must: **Edit** opens the builder (reloading
-/// in place, or popping if the builder deleted the program), **Delete** pops
-/// back to the list, and **Duplicate** re-targets this screen at the new copy.
+/// in place, or popping if the builder deleted or archived the program),
+/// **Delete** and **Archive** pop back to the list, and **Duplicate** re-targets
+/// this screen at the new copy.
 class ProgramSummaryScreen extends StatefulWidget {
   const ProgramSummaryScreen({
     super.key,
@@ -108,9 +112,9 @@ class _ProgramSummaryScreenState extends State<ProgramSummaryScreen> {
       ),
     );
     if (!mounted) return;
-    if (result == 'deleted') {
-      // The builder deleted the program; leave the summary and return to the
-      // list (which reloads and drops the stale row).
+    if (result == 'deleted' || result == 'archived') {
+      // The builder deleted or archived the program; leave the summary and
+      // return to the list (which reloads and drops the stale row).
       Navigator.of(context).pop();
     }
     // A save under the same id needs no tick: it writes `programs` /
@@ -176,6 +180,10 @@ class ProgramSummaryPane extends StatefulWidget {
 
   final String programId;
   final VoidCallback onOpenBuilder;
+
+  /// Called when the program leaves this view from one of its own actions:
+  /// Delete, or Archive, which leaves the way Delete does. The host closes the
+  /// pane (wide) or pops the route (narrow).
   final VoidCallback onDeleted;
   final void Function(String id) onNavigateTo;
 
@@ -197,11 +205,6 @@ class ProgramSummaryPane extends StatefulWidget {
   final OnlineSearchService? callersBoxOnline;
   final OnlineSearchService? contraDbOnline;
   final ImportPicker? reimportPicker;
-
-  /// Pane width (logical pixels) below which the actions (in the top bar, or
-  /// the body's title row when there is none) keep Perform and Export and
-  /// move Mark all performed, Duplicate and Delete into a "⋮" menu. Matches `DanceDetailScreen.compactActionsBreakpoint`.
-  static const double compactActionsBreakpoint = 600;
 
   @override
   State<ProgramSummaryPane> createState() => _ProgramSummaryPaneState();
@@ -253,6 +256,11 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
   /// layout's `onDeleted` pop that dialog instead of this route. Same pattern
   /// as the editor's `_deleting`.
   bool _deleting = false;
+
+  /// Re-entrancy guard for [_archive] and [_unarchive], as [_deleting] is for
+  /// [_delete]: a second tap before the first write lands must not leave the
+  /// view twice or announce twice.
+  bool _archiving = false;
   Object? _error;
 
   /// In-memory Perform resume state (issue #434), used when the host passes no
@@ -269,7 +277,9 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
   /// For prose and formation labels only; a dance's figures go to
   /// `UserFiguresScope.rendererOf`, which shows uses of the user's own
   /// figures live (#1023).
-  static final FigureRenderer _proseRenderer = FigureRenderer(contraTaxonomy);
+  static final FigureRenderer _proseRenderer = FigureRenderer(
+    shippedTaxonomies.anyForm,
+  );
   ScaffoldFeatureController<SnackBar, SnackBarClosedReason>? _bulkUndoSnackBar;
 
   /// Collapses a burst of refresh requests into a single [_load].
@@ -669,9 +679,72 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     widget.onNavigateTo(copy.id);
   }
 
+  /// Archives the program and leaves this view, as Delete does, with an Undo.
+  Future<void> _archive() async {
+    final source = _program;
+    if (source == null || _archiving || _deleting) return;
+    _archiving = true;
+    try {
+      final archived = await _repos.programs.archive(
+        source.id,
+        at: DateTime.now().toUtc(),
+      );
+      if (!mounted) return;
+      if (archived) {
+        final l10n = AppLocalizations.of(context);
+        // Nothing captured for the Undo beyond the repositories: the unarchive
+        // is a write every view of the program watches, as for Delete below.
+        showUndoSnackBar(
+          ScaffoldMessenger.of(context),
+          message: l10n.programsArchivedSnack(source.title),
+          undoLabel: l10n.commonUndo,
+          undoFailedMessage: l10n.commonUndoFailed,
+          accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
+          onUndo: () async {
+            await _repos.programs.unarchive(
+              source.id,
+              at: DateTime.now().toUtc(),
+            );
+          },
+        );
+      }
+      // Leaves even when nothing was written: `false` means the program was
+      // archived or deleted elsewhere meanwhile, and either way it is no
+      // longer one this view should hold open.
+      widget.onDeleted();
+    } finally {
+      _archiving = false;
+    }
+  }
+
+  /// Unarchives the program. The view stays open: nothing leaves it.
+  Future<void> _unarchive() async {
+    final source = _program;
+    if (source == null || _archiving) return;
+    _archiving = true;
+    try {
+      final unarchived = await _repos.programs.unarchive(
+        source.id,
+        at: DateTime.now().toUtc(),
+      );
+      if (!unarchived || !mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(context).programsUnarchivedSnack(source.title),
+          ),
+        ),
+      );
+    } finally {
+      _archiving = false;
+    }
+  }
+
   Future<void> _delete() async {
     final source = _program;
-    if (source == null || _deleting) return;
+    // Both guards, as in the builder: an Archive still in flight would leave the
+    // view as well, and two exits pop the route underneath.
+    if (source == null || _deleting || _archiving) return;
     _deleting = true;
     try {
       await _deleteConfirmed(source);
@@ -714,9 +787,9 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     widget.onDeleted();
   }
 
-  /// Launches the large-print Perform view for the current saved program,
-  /// mirroring [ProgramEditorScreen]'s perform launch. No-op when there is
-  /// nothing to perform or the reference data has not finished loading.
+  /// Launches the large-print Perform view for the current saved program: the
+  /// app's only way into program Perform. No-op when there is nothing to
+  /// perform or the reference data has not finished loading.
   Future<void> _performProgram() async {
     final program = _program;
     final data = _collectionData;
@@ -862,8 +935,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     // disagree about whether the secondary actions are inline or folded.
     return LayoutBuilder(
       builder: (context, constraints) {
-        final compact =
-            constraints.maxWidth < ProgramSummaryPane.compactActionsBreakpoint;
+        final compact = constraints.maxWidth < AppBreakpoints.compact;
         final program = _loading || _error != null ? null : _program;
         return Scaffold(
           // D-11 "(B) Actions to top bar" (UX6-2): with a top bar, it keeps
@@ -880,12 +952,13 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
               : null,
           body: _buildBody(compact: compact),
           floatingActionButton: (_program != null)
-              ? FloatingActionButton.extended(
+              ? adaptiveExtendedFab(
+                  context,
                   key: const ValueKey('open-builder'),
                   heroTag: 'open-builder',
                   onPressed: _openBuilder,
                   icon: const Icon(Icons.edit_outlined),
-                  label: Text(l10n.programsEditProgram),
+                  label: l10n.programsEditProgram,
                 )
               : null,
         );
@@ -894,9 +967,10 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
   }
 
   /// The record actions, in tab order: Perform (only when it is not the
-  /// prominent body button), Export, then Mark all performed, Duplicate and
-  /// Delete. Below [ProgramSummaryPane.compactActionsBreakpoint] the last
-  /// three fold into [_secondaryActionsMenu]. Shown in the top bar when there
+  /// prominent body button), Export, then Mark all performed, Duplicate,
+  /// Archive (Unarchive for an archived program) and Delete. Below
+  /// [AppBreakpoints.compact] the last four fold into [_secondaryActionsMenu].
+  /// Shown in the top bar when there
   /// is one, else at the end of the body's title row.
   List<Widget> _buildActions(Program program, {required bool compact}) {
     final l10n = AppLocalizations.of(context);
@@ -934,6 +1008,18 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
           onPressed: _duplicate,
         ),
         IconButton(
+          key: const ValueKey('summary-archive'),
+          tooltip: program.isArchived
+              ? l10n.programsUnarchive
+              : l10n.programsArchive,
+          icon: Icon(
+            program.isArchived
+                ? Icons.unarchive_outlined
+                : Icons.archive_outlined,
+          ),
+          onPressed: program.isArchived ? _unarchive : _archive,
+        ),
+        IconButton(
           key: const ValueKey('summary-delete'),
           tooltip: l10n.commonDelete,
           icon: const Icon(Icons.delete_outline),
@@ -952,11 +1038,15 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     }
     final program = _program;
     if (_error != null || program == null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Text(l10n.programsSummaryUnavailable),
-        ),
+      // A failed read can succeed on a second try; a program that is gone
+      // cannot, so it offers the way out instead.
+      return LoadErrorView(
+        icon: LoadErrorView.errorGlyph(context),
+        message: _error != null
+            ? l10n.programsLoadError
+            : l10n.programsSummaryUnavailable,
+        onRetry: _error != null ? _load : null,
+        onBack: _error != null ? null : widget.onDeleted,
       );
     }
 
@@ -995,7 +1085,15 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
             ],
           ),
         const SizedBox(height: 8),
-        ProgramStatusChip(status: program.status),
+        _statusLine(program),
+        if (program.isArchived)
+          const Padding(
+            padding: EdgeInsets.only(top: AppSpacing.xxs),
+            child: Align(
+              alignment: AlignmentDirectional.centerStart,
+              child: ProgramArchivedChip(),
+            ),
+          ),
         if (widget.prominentPerform) ...[
           const SizedBox(height: 16),
           _buildProminentPerform(program),
@@ -1042,13 +1140,14 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
         ),
         const SizedBox(height: 8),
         ..._buildSetList(program),
-        const SizedBox(height: 80),
+        const SizedBox(height: AppSpacing.fabClearance),
       ],
     );
   }
 
-  /// The narrow layout's "⋮" menu: Mark all performed, Duplicate and
-  /// Delete, under the keys and labels of the buttons they replace.
+  /// The narrow layout's "⋮" menu: Mark all performed, Duplicate, Archive (or
+  /// Unarchive) and Delete, under the keys and labels of the buttons they
+  /// replace.
   Widget _secondaryActionsMenu(Program program) {
     final l10n = AppLocalizations.of(context);
     return PopupMenuButton<void>(
@@ -1076,6 +1175,23 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
           ),
         ),
         PopupMenuItem<void>(
+          key: const ValueKey('summary-archive'),
+          onTap: program.isArchived ? _unarchive : _archive,
+          child: ListTile(
+            leading: Icon(
+              program.isArchived
+                  ? Icons.unarchive_outlined
+                  : Icons.archive_outlined,
+            ),
+            title: Text(
+              program.isArchived
+                  ? l10n.programsUnarchive
+                  : l10n.programsArchive,
+            ),
+            contentPadding: EdgeInsets.zero,
+          ),
+        ),
+        PopupMenuItem<void>(
           key: const ValueKey('summary-delete'),
           onTap: _delete,
           child: ListTile(
@@ -1088,11 +1204,10 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     );
   }
 
-  /// "Perform this program" action shown in the summary's top action Row,
-  /// mirroring the program builder's `perform-program` AppBar action. Disabled
+  /// "Perform this program" action shown in the summary's top action Row, the
+  /// way into Perform for a saved program (the builder has none). Disabled
   /// (with an explanatory tooltip) when the program has no slots or the
-  /// reference data has not loaded yet, mirroring the editor's `_slots.isEmpty`
-  /// guard — never a dead button. The disabled state is exposed to assistive
+  /// reference data has not loaded yet — never a dead button. The disabled state is exposed to assistive
   /// technology via the button's own disabled semantics, not colour alone.
   Widget _buildPerformAction(Program program) {
     final l10n = AppLocalizations.of(context);
@@ -1444,7 +1559,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     if (program.slots.isEmpty) {
       return [
         Padding(
-          padding: const EdgeInsets.symmetric(vertical: 16),
+          padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
           child: Text(
             AppLocalizations.of(context).programsSummaryEmptySetList,
             key: const ValueKey('summary-set-list-empty'),
@@ -1474,11 +1589,32 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     return rows;
   }
 
+  /// [dance]'s form's dialect, with lark and robin for the roles when [dance]'s
+  /// choreographer asked for them (`dialectForDance`), credited as the
+  /// exports credit it.
+  Dialect _danceDialect(Dance dance) => dialectForDance(
+    (ActiveDialectScope.maybeOf(context) ?? DialectsByForm.defaults).forDance(
+      dance,
+    ),
+    title: dance.title,
+    authorNames:
+        _authorNamesOverride[dance.id] ??
+        [
+          for (final id in dance.authorIds)
+            if (_collectionData?.choreographersById[id]?.name
+                case final String name)
+              name,
+        ],
+  );
+
   String _displayProse(String text) {
     if (!CanonicalDiscouragedTermsScope.of(context)) return text;
-    final dialect = ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins;
+    // Program prose (slot and program notes) has no dance form: contra's.
+    final dialect =
+        (ActiveDialectScope.maybeOf(context) ?? DialectsByForm.defaults)
+            .forForm(DanceForm.contra);
     return FigureRenderer(
-      contraTaxonomy,
+      shippedTaxonomies.anyForm,
     ).renderFreeTextWithCanonicalDiscouragedTerms(text, dialect);
   }
 
@@ -1491,13 +1627,11 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     final theme = Theme.of(context);
     final danceId = slot.danceId;
     // Colour-code accent (issue #270): a *redundant* cue paired with the
-    // formation text below. Suppressed when the user disables it. High contrast
-    // is either the app's high-contrast theme or the OS setting, in which case
-    // we use the brighter high-contrast palette.
+    // formation text below. Suppressed when the user disables it. Dark and
+    // high-contrast themes (the app's or the OS setting) use the brighter
+    // palette.
     final colorCodingEnabled = SetListColorCodingScope.of(context);
-    final highContrast =
-        (AppThemeScope.maybeOf(context)?.isHighContrast ?? false) ||
-        MediaQuery.highContrastOf(context);
+    final brightAccents = setListAccentsBright(context);
 
     Widget leading = SizedBox(
       width: 28,
@@ -1557,7 +1691,11 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
         // The dance no longer resolves (deleted/tombstoned). Render a graceful,
         // non-interactive fallback rather than a broken tappable row.
         return Padding(
-          padding: EdgeInsets.only(left: indented ? 32 : 0, top: 4, bottom: 4),
+          padding: EdgeInsets.only(
+            left: indented ? AppSpacing.xl : 0,
+            top: AppSpacing.xxs,
+            bottom: AppSpacing.xxs,
+          ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -1594,7 +1732,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
             l10n,
             dance.formation,
             _proseRenderer,
-            ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins,
+            _danceDialect(dance),
             canonicalizeDiscouragedTerms: CanonicalDiscouragedTermsScope.of(
               context,
             ),
@@ -1623,7 +1761,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
               userColor: FormationColorsScope.of(
                 context,
               )?.overrideFor(dance.formation.shape),
-              highContrast: highContrast,
+              brightPalette: brightAccents,
             )
           : null;
       // Expose the formation and, for mixer-flagged dances, the mixer term to AT
@@ -1637,7 +1775,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
             l10n,
             dance.formation,
             _proseRenderer,
-            ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins,
+            _danceDialect(dance),
             canonicalizeDiscouragedTerms: CanonicalDiscouragedTermsScope.of(
               context,
             ),
@@ -1677,9 +1815,9 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
                       )
                     : null,
                 padding: EdgeInsets.only(
-                  left: accent != null ? 8 : 0,
-                  top: 8,
-                  bottom: 8,
+                  left: accent != null ? AppSpacing.xs : 0,
+                  top: AppSpacing.xs,
+                  bottom: AppSpacing.xs,
                 ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -1745,7 +1883,11 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
             )
           : null;
       return Padding(
-        padding: EdgeInsets.only(left: indented ? 32 : 0, top: 2, bottom: 2),
+        padding: EdgeInsets.only(
+          left: indented ? AppSpacing.xl : 0,
+          top: AppSpacing.xxxs,
+          bottom: AppSpacing.xxxs,
+        ),
         child: showToggle || restoreButton != null
             ? Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1765,7 +1907,11 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
         ? text
         : _displayProse(text);
     return Padding(
-      padding: EdgeInsets.only(left: indented ? 32 : 0, top: 6, bottom: 6),
+      padding: EdgeInsets.only(
+        left: indented ? AppSpacing.xl : 0,
+        top: AppSpacing.xs,
+        bottom: AppSpacing.xs,
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1813,10 +1959,37 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     return DifficultyLevel.knownForId(dance.difficultyLevelId);
   }
 
+  /// The program's status as a plain, start-aligned line under the title: the
+  /// icon and label with no fill, border or elevation, so it reads as a status
+  /// rather than a button. (The list row keeps the chip; there it is one more
+  /// piece of metadata on a tappable row, not a lone control.)
+  Widget _statusLine(Program program) {
+    final theme = Theme.of(context);
+    final presentation = programStatusPresentation(
+      program.status,
+      AppLocalizations.of(context),
+    );
+    final color = programStatusColor(program.status, theme);
+    return Row(
+      key: const ValueKey('program-summary-status'),
+      children: [
+        Icon(
+          presentation.icon,
+          size: 18,
+          color: AppThemeExtension.statusIconColor(color, theme.colorScheme),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(presentation.label, style: theme.textTheme.bodyMedium),
+        ),
+      ],
+    );
+  }
+
   Widget _summaryRow(IconData icon, String text) {
     final theme = Theme.of(context);
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxs),
       child: Row(
         children: [
           Icon(icon, size: 18, color: theme.colorScheme.onSurfaceVariant),

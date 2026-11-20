@@ -26,8 +26,8 @@ takes it over the whole display (see [Set the stage](#set-the-stage)).
 - To call a **single dance**, open it from your
   [collection](./collection.md#what-you-can-do-with-a-dance) and choose
   **Perform this dance**.
-- To call a **whole evening**, choose **Perform this program** in the program
-  editor or on the program's summary.
+- To call a **whole evening**, choose **Perform this program** on the
+  program's summary. The program builder is for editing and has no Perform.
 
 When you exit, the app takes you back to wherever you came from.
 
@@ -48,8 +48,9 @@ progression happens is marked with an icon labeled *Progression*. Break and
 note slots in a program get a card of their own, with the text in the same
 large type.
 
-Your [dialect](./dialects.md) is applied — or the program's own dialect, if you
-gave it one (see [Programs](./programs.md)) — so the card speaks in your words.
+Your [dialect](./dialects.md) for the dance's type is applied — or the
+program's own dialect, if you gave it one (see [Programs](./programs.md)) — so
+the card speaks in your words.
 To see the shared wording, choose **Canonical** under **Switch dialect** below
 (that section says how long the change lasts). Figure
 detail you recorded shows here too: when a swing ends facing somewhere other
@@ -65,8 +66,9 @@ so the toolbar can't crowd a narrow screen. Wherever a control lives it does the
 same thing, and every toggle says which state it is in rather than relying on
 how it looks.
 
-**Switch dialect.** Changes your active dialect for the whole app — handy when
-tonight's hall uses different role names. The change stays after you leave
+**Switch dialect.** Changes your active dialect for the type of the dance on
+screen (contra, English, or square), across the whole app — handy when tonight's
+hall uses different role names. The change stays after you leave
 Perform: later screens, PDFs and shared text use that dialect too, and it syncs to
 your other devices. **Canonical** is one of the choices, for when a dancer or
 another caller asks what a figure is in the shared wording; switch back the same
@@ -82,10 +84,14 @@ lighting. Toggle it off to fall back to your usual app theme. Its tooltip reads
 so there is no guessing, and it stays where you put it — next time too.
 
 **Auto-size text to screen.** Out of the box this is on: the card scales so the
-current dance's full text fits the screen without scrolling, recomputing whenever
-you move to a new dance or slot, rotate the device, or resize the window. So the
-text is always as large as it can be while still fitting. It starts however you
-set **Auto-size Perform cards** in
+current dance's full text fits the screen, recomputing whenever you move to a
+new dance or slot, rotate the device, or resize the window. So the text is as
+large as it can be while still fitting. It never shrinks the figure lines, their
+notes or the dance's status line below the size of ordinary text in the rest of
+the app, which follows your device's text-size setting: a dance too long to fit
+at that size scrolls instead of getting smaller. The beat count beside each
+figure has a fixed largest size, so it doesn't crowd the figure: at a large
+device text size it can be smaller than your usual text. It starts however you set **Auto-size Perform cards** in
 [Settings › Program › Performance](./settings.md#performance), and the in-view
 toggle flips it until you leave Perform.
 
@@ -103,7 +109,8 @@ walkthrough written — lays it over the card until you close it.
 **Full screen.** On a computer, this takes the window over the whole display,
 covering the taskbar or Dock, and back again. The keyboard does the same:
 **F11** on Windows and Linux, **Ctrl-Cmd-F** on macOS. **Esc** also leaves full
-screen. It never leaves Perform, which always asks first. When you exit Perform,
+screen. It never leaves Perform, which asks first unless you have turned that
+off (see [Leaving Perform](#leaving-perform)). When you exit Perform,
 the window goes back to how it was when you came in. If you close the app while
 it is full screen, it opens in its usual window next time. Phones and tablets
 have no button for this, because Perform is always full screen there.
@@ -176,8 +183,9 @@ single dance, it shows:
 
 For a program, the status area additionally shows:
 
-- a **running program clock** for the whole evening;
-- a **per-slot elapsed timer** that resets each time you move to a new slot;
+- a **running program clock** for the whole evening, labelled **Program**;
+- a **per-slot elapsed timer** that resets each time you move to a new slot,
+  labelled **Slot**;
 - the slot's planned length, when you have set one, shown as **planned N min
   (W:D)** — where W is the walkthrough minutes and D is the dance minutes;
 - once the slot's walkthrough minutes have passed, the words **walkthrough
@@ -237,11 +245,10 @@ From it you can:
 - **mark the current slot performed** (choose it again to clear the mark).
 
 An inserted dance and an ad-hoc note both land right after the current slot, so
-"play this next" is one action away. Every change offers **Undo**, and a change
-to a saved program is saved right away. Only the change you made in Perform is
-saved: if you opened Perform from the builder with unsaved edits, those edits
-stay unsaved in the builder, for you to save or discard when you return (unless
-**Auto-save program changes** is on, which saves them as it always does). The
+"play this next" is one action away. Your changes are kept however you close
+the sheet — **Done**, swiping it down, tapping outside it, or **Back** — so a
+hurried swipe never throws away a reorder or a performed mark. Every change offers **Undo**, and a change
+to a saved program is saved right away. The
 Undo is still offered for a moment after you leave Perform (for as long as you
 need with a screen reader), but only while the program is as the change left
 it. So if the program has been changed since, for example edited in the
@@ -254,11 +261,7 @@ somewhere else while Perform is open — most often when
 — your next change is saved on top of that edit rather than replacing it.
 Perform then switches to the newer program and says so: *This program had
 changed elsewhere since Perform opened. Perform now shows the latest version,
-with your change.* Undo still takes back only your own change. If you opened Perform from the
-builder with unsaved edits, the builder takes the newer program too: each
-detail you have not edited, such as the title or the band, takes the version
-from elsewhere, so saving later does not put the old one back, and each detail
-you have edited keeps your edit. If you have set calling history to count
+with your change.* Undo still takes back only your own change. If you have set calling history to count
 only slots marked performed, this is where you mark them — see
 [Programs & matrix](./programs.md#track-what-you-have-called).
 
@@ -289,24 +292,37 @@ ask the same question. **Esc** never leaves Perform: when you are calling a
 program it closes an open walkthrough, and otherwise it takes the window out of
 full screen.
 
+When the stage theme is on, this question — like the other panels Perform
+opens, such as **Tap tempo** and **Adjust program** — appears in the stage theme
+too, rather than as a bright panel over the dark stage.
+
 **Keep performing** returns you to the card; **Exit** leaves. When you are
 calling a program, your place and the clock are kept for as long as that
 program stays open, so you can step out to check something and choose **Perform
 this program** again to pick up where you left off. That holds when a tablet is
 rotated while you perform, too, even though the Programs screen switches
 between its one- and two-pane layouts: if it shows the list when you leave,
-open the program again. Closing the program — choosing another one, or going
-back from it to the list — or performing a single dance starts the next session
-fresh. For that reason the
+open the program again. Closing the program — choosing another one, going
+back from it to the list, or archiving it (a two-pane screen also closes an
+archived program the list stops showing, including when you leave Programs
+with **Show archived** on) — or performing a single dance starts the next
+session fresh. For that reason the
 exit check on a single dance says so instead of promising a resume: *Performing
 a single dance doesn't keep your place, so the next time starts fresh.*
+
+If you would rather leave in one tap, turn off **Confirm before leaving
+Perform** in [Settings › Program › Performance](./settings.md#performance).
+**Exit Perform mode**, **Ctrl-W** and **Back** then leave straight away. Leaving
+that way keeps exactly what the question describes above: a program's place and
+clock while the program stays open, and nothing for a single dance.
 
 ## Print or share a single dance
 
 You do not have to be on stage to hand someone a dance. From a dance's detail
 view you can export or print a single dance card as a PDF or as shareable text,
-and the export follows your active dialect. See
-[Share, print & export](./sharing.md#share-a-dance).
+and the export follows your active dialect (except the role terms of a dance
+whose author asked for larks and robins). See
+[Share, print & export](./sharing.md#which-words-a-dance-export-uses).
 
 ## Where to go next
 

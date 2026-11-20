@@ -9,11 +9,12 @@ import '../../data/walkthrough_snippet_library_controller.dart';
 import '../../data/walkthrough_snippet_library_scope.dart';
 import '../../editor/figure_draft.dart';
 import '../../search/facet_labels.dart';
+import '../../theme/app_motion.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/destructive_button_style.dart';
 import '../../theme/keyboard_dismiss.dart';
+import '../../widgets/bar_timing.dart';
 import '../../widgets/figure_list_editor.dart';
-import '../../widgets/readable_width.dart';
 import '../../widgets/section_header.dart';
 import '../../widgets/warnings_card.dart';
 import 'custom_field_editor.dart';
@@ -21,9 +22,14 @@ import 'dance_editor_controller.dart';
 import 'editor_fields.dart';
 import 'lingo_discouraged_hint.dart';
 import 'links_editor.dart';
+import '../../widgets/lingo_text_editing_controller.dart';
 import 'name_picker.dart';
 import 'source_citations_editor.dart';
 import '../../theme/app_shapes.dart';
+
+/// Narrowest form width at which the rating (five stars plus Clear) fits beside
+/// the Progression dropdown without wrapping.
+const double _ratingBesideMinWidth = 600;
 
 /// The dance editor's scrolling metadata form. Presentational only: it reads
 /// the working draft from [controller] and routes edits back through the
@@ -55,6 +61,7 @@ class DanceEditorForm extends StatelessWidget {
     required this.danceOptions,
     required this.danceNamesById,
     required this.onAddAuthor,
+    required this.onAddInterpreter,
     required this.onAddTag,
     required this.onAttachSource,
     required this.onCreateChoreographer,
@@ -110,6 +117,9 @@ class DanceEditorForm extends StatelessWidget {
 
   // Inline shared-entity flows (need the coordinator's context + `mounted`).
   final ValueChanged<String> onAddAuthor;
+
+  /// Adds a person, picked or just created, to the dance's interpreters.
+  final ValueChanged<String> onAddInterpreter;
   final ValueChanged<String> onAddTag;
   final ValueChanged<String> onAttachSource;
 
@@ -226,6 +236,7 @@ class DanceEditorForm extends StatelessWidget {
         taxonomy: taxonomy,
         shorthands: shorthandMappings,
         dialect: dialect,
+        formationShape: controller.formationShape,
       );
       if (figures.isEmpty ||
           (!_isPlainShorthandClause(clause) &&
@@ -265,14 +276,14 @@ class DanceEditorForm extends StatelessWidget {
     final snippetLib = WalkthroughSnippetLibraryScope.maybeOf(context);
     return Form(
       key: formKey,
-      child: ReadableListView(
+      child: ListView(
         controller: scrollController,
         keyboardDismissBehavior: textEntryKeyboardDismiss(),
         // Section headers carry their own padding; each section's content is
         // wrapped in horizontal AppSpacing.md so headers align with the fields
-        // they label. A trailing gap lets the last section scroll clear of the
-        // Save FAB.
-        padding: const EdgeInsets.only(bottom: AppSpacing.fabClearance),
+        // they label. Nothing floats over the form, so the trailing gap is an
+        // ordinary section gap.
+        padding: const EdgeInsets.only(bottom: AppSpacing.lg),
         children: [
           if (controller.hasInvalidCustomFieldNumber)
             Padding(
@@ -326,8 +337,19 @@ class DanceEditorForm extends StatelessWidget {
                   onEdit: onEditChoreographer,
                   sheetSemanticLabel: l10n.danceEditorAuthorsLabel,
                 ),
+                // An English dance usually credits its original and a later
+                // interpretation, so both are entered here, up front
+                // (ADR-006 §9.2, point 7). Other forms keep them in More
+                // details.
+                if (controller.showsCreditsUpFront) ...[
+                  const SizedBox(height: AppSpacing.md),
+                  ..._creditFields(context),
+                ],
                 const SizedBox(height: AppSpacing.md),
                 DropdownButtonFormField<DanceForm>(
+                  // Field values read at the same weight as typed text; the dropdown's
+                  // default is the bolder titleMedium.
+                  style: Theme.of(context).textTheme.bodyLarge,
                   key: const ValueKey('form-field'),
                   isExpanded: true,
                   decoration: InputDecoration(
@@ -347,6 +369,9 @@ class DanceEditorForm extends StatelessWidget {
                 ),
                 const SizedBox(height: AppSpacing.md),
                 DropdownButtonFormField<FormationShape>(
+                  // Field values read at the same weight as typed text; the dropdown's
+                  // default is the bolder titleMedium.
+                  style: Theme.of(context).textTheme.bodyLarge,
                   key: const ValueKey('formation-field'),
                   isExpanded: true,
                   decoration: InputDecoration(
@@ -354,7 +379,7 @@ class DanceEditorForm extends StatelessWidget {
                   ),
                   initialValue: controller.formationShape,
                   items: [
-                    for (final shape in FormationShape.values)
+                    for (final shape in controller.offeredFormationShapes)
                       DropdownMenuItem(
                         value: shape,
                         child: Text(formationShapeLabel(l10n, shape)),
@@ -378,6 +403,19 @@ class DanceEditorForm extends StatelessWidget {
                   dialect: dialect,
                   fieldKey: 'formation-detail',
                 ),
+                // ECD records proper or improper apart from its shape
+                // (ADR-006 §12.1, F2); proper is the default.
+                if (controller.offersImproper)
+                  CheckboxListTile(
+                    key: const ValueKey('improper-field'),
+                    value: controller.improper,
+                    onChanged: (v) => controller.setImproper(v ?? false),
+                    title: Text(l10n.danceEditorImproperLabel),
+                    subtitle: Text(l10n.danceEditorImproperSubtitle),
+                    secondary: const Icon(Icons.swap_horiz),
+                    controlAffinity: ListTileControlAffinity.leading,
+                    contentPadding: EdgeInsets.zero,
+                  ),
                 CheckboxListTile(
                   key: const ValueKey('mixer-field'),
                   value: controller.mixer,
@@ -389,28 +427,42 @@ class DanceEditorForm extends StatelessWidget {
                   contentPadding: EdgeInsets.zero,
                 ),
                 const SizedBox(height: AppSpacing.md),
-                // Progression and Rating share one line.
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: EnumDropdown<Progression>(
-                        fieldKey: 'progression',
-                        label: l10n.commonProgression,
-                        value: controller.progression,
-                        values: Progression.values,
-                        labelOf: (value) => progressionLabel(l10n, value),
-                        onChanged: controller.setProgression,
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.sm),
-                    Expanded(
-                      child: RatingField(
-                        value: controller.rating,
-                        onChanged: controller.setRating,
-                      ),
-                    ),
-                  ],
+                // Progression and Rating share one line when there is room for
+                // all five stars plus Clear beside the dropdown; on a phone the
+                // rating takes its own row so the stars never wrap.
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final progression = EnumDropdown<Progression>(
+                      fieldKey: 'progression',
+                      label: l10n.commonProgression,
+                      value: controller.progression,
+                      values: Progression.values,
+                      labelOf: (value) => progressionLabel(l10n, value),
+                      onChanged: controller.setProgression,
+                    );
+                    final rating = RatingField(
+                      value: controller.rating,
+                      onChanged: controller.setRating,
+                    );
+                    if (constraints.maxWidth < _ratingBesideMinWidth) {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          progression,
+                          const SizedBox(height: AppSpacing.md),
+                          rating,
+                        ],
+                      );
+                    }
+                    return Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(child: progression),
+                        const SizedBox(width: AppSpacing.sm),
+                        Expanded(child: rating),
+                      ],
+                    );
+                  },
                 ),
                 const SizedBox(height: AppSpacing.md),
                 TextFormField(
@@ -437,6 +489,13 @@ class DanceEditorForm extends StatelessWidget {
                   dialect: dialect,
                   fieldKey: 'phrase',
                 ),
+                // An English dance's tune is usually given with its meter and
+                // key, so they sit beside the phrase structure; other forms
+                // keep them in More details (ADR-006 §12.1, F3).
+                if (controller.showsCreditsUpFront) ...[
+                  const SizedBox(height: AppSpacing.md),
+                  _musicFields(context),
+                ],
               ],
             ),
           ),
@@ -471,80 +530,87 @@ class DanceEditorForm extends StatelessWidget {
                   ),
                 ],
                 const SizedBox(height: AppSpacing.xs),
-                FigureListEditor(
-                  drafts: controller.figureDrafts,
-                  taxonomy: taxonomy,
-                  phraseStructure: controller.phraseStructure,
-                  dialect: dialect,
-                  mixer: controller.mixer,
-                  moveParamDefaults: moveParamDefaults,
-                  onChanged: controller.onFiguresChanged,
-                  onAdd: controller.addFigure,
-                  onAddMeanwhile: controller.addMeanwhile,
-                  onAddModifier: controller.addModifier,
-                  onAddSequence: controller.addSequence,
-                  freeTextEntry: freeTextEntry,
-                  shorthandMappings: shorthandMappings,
-                  canonicalizeDiscouragedTerms:
-                      CanonicalDiscouragedTermsScope.of(context),
-                  onAddFreeText: controller.insertFreeTextFigures,
-                  freeTextComposerController: controller.freeTextComposer,
-                  pendingMoveTextController: controller.pendingMoveText,
-                  onReplaceWithFreeText: controller.replaceWithFreeTextFigures,
-                  onSubmitCompoundShorthand: _shorthandSubmit(context),
-                  onReplaceWithShorthand: _shorthandSubmit(context) == null
-                      ? null
-                      : (draft, line) =>
-                            _shorthandSubmit(context, replacing: draft)!(line),
-                  isOwnShorthandToken: _shorthandSubmit(context) == null
-                      ? null
-                      : _isOwnShorthandToken,
-                  onDelete: controller.deleteFigure,
-                  onDuplicate: controller.duplicateFigure,
-                  onReorder: controller.reorderFigure,
-                  showWordingOverride: true,
-                  onGroupWithNext: controller.groupFigureWithNext,
-                  onGroupWithNextAsModifier:
-                      controller.groupFigureWithNextAsModifier,
-                  onGroupWithNextAsSequence:
-                      controller.groupFigureWithNextAsSequence,
-                  onCollapseMeanwhileGroup: controller.collapseMeanwhileGroup,
-                  onConvertToMeanwhile: controller.convertContainerToMeanwhile,
-                  onConvertToModifier: controller.convertContainerToModifier,
-                  onConvertToSequence: controller.convertContainerToSequence,
-                  onUngroupContainer: controller.ungroupContainer,
-                  // The user's own compounds are offered while Custom Figures
-                  // is on; a placeholder already in the draft still expands
-                  // with it off (#709).
-                  compoundOptions: customFiguresShown(context)
-                      ? controller.compoundEntries
-                      : null,
-                  resolveCompound: controller.resolveCompound,
-                  // And so are their new figures (#1023); a use already in
-                  // the draft still renders and edits with it off.
-                  userFigureOptions: customFiguresShown(context)
-                      ? controller.userFigureEntries
-                      : null,
-                  snippetLibraryDefaultFor: snippetLib == null
-                      ? null
-                      : (draft) {
-                          // A placeholder has no walkthrough step of its own.
-                          if (draft.isCompoundPlaceholder) return null;
-                          final figure = draft.toFigure();
-                          if (figure == null) return null;
-                          return snippetLib.resolve(
-                            figureSnippetSignature(figure, taxonomy),
-                          );
-                        },
-                  onSnippetCommitted: snippetLib == null
-                      ? null
-                      : (draft) => _handleWalkthroughSnippetCommit(
-                          context,
-                          draft,
-                          controller,
-                          taxonomy,
-                          snippetLib,
-                        ),
+                _withBarTiming(
+                  FigureListEditor(
+                    drafts: controller.figureDrafts,
+                    taxonomy: taxonomy,
+                    phraseStructure: controller.phraseStructure,
+                    dialect: dialect,
+                    mixer: controller.mixer,
+                    formationShape: controller.formationShape,
+                    moveParamDefaults: moveParamDefaults,
+                    onChanged: controller.onFiguresChanged,
+                    onAdd: controller.addFigure,
+                    onAddMeanwhile: controller.addMeanwhile,
+                    onAddModifier: controller.addModifier,
+                    onAddSequence: controller.addSequence,
+                    freeTextEntry: freeTextEntry,
+                    shorthandMappings: shorthandMappings,
+                    canonicalizeDiscouragedTerms:
+                        CanonicalDiscouragedTermsScope.of(context),
+                    onAddFreeText: controller.insertFreeTextFigures,
+                    freeTextComposerController: controller.freeTextComposer,
+                    pendingMoveTextController: controller.pendingMoveText,
+                    onReplaceWithFreeText:
+                        controller.replaceWithFreeTextFigures,
+                    onSubmitCompoundShorthand: _shorthandSubmit(context),
+                    onReplaceWithShorthand: _shorthandSubmit(context) == null
+                        ? null
+                        : (draft, line) => _shorthandSubmit(
+                            context,
+                            replacing: draft,
+                          )!(line),
+                    isOwnShorthandToken: _shorthandSubmit(context) == null
+                        ? null
+                        : _isOwnShorthandToken,
+                    onDelete: controller.deleteFigure,
+                    onDuplicate: controller.duplicateFigure,
+                    onReorder: controller.reorderFigure,
+                    showWordingOverride: true,
+                    onGroupWithNext: controller.groupFigureWithNext,
+                    onGroupWithNextAsModifier:
+                        controller.groupFigureWithNextAsModifier,
+                    onGroupWithNextAsSequence:
+                        controller.groupFigureWithNextAsSequence,
+                    onCollapseMeanwhileGroup: controller.collapseMeanwhileGroup,
+                    onConvertToMeanwhile:
+                        controller.convertContainerToMeanwhile,
+                    onConvertToModifier: controller.convertContainerToModifier,
+                    onConvertToSequence: controller.convertContainerToSequence,
+                    onUngroupContainer: controller.ungroupContainer,
+                    // The user's own compounds are offered while Custom Figures
+                    // is on; a placeholder already in the draft still expands
+                    // with it off (#709).
+                    compoundOptions: customFiguresShown(context)
+                        ? controller.compoundEntries
+                        : null,
+                    resolveCompound: controller.resolveCompound,
+                    // And so are their new figures (#1023); a use already in
+                    // the draft still renders and edits with it off.
+                    userFigureOptions: customFiguresShown(context)
+                        ? controller.userFigureEntries
+                        : null,
+                    snippetLibraryDefaultFor: snippetLib == null
+                        ? null
+                        : (draft) {
+                            // A placeholder has no walkthrough step of its own.
+                            if (draft.isCompoundPlaceholder) return null;
+                            final figure = draft.toFigure();
+                            if (figure == null) return null;
+                            return snippetLib.resolve(
+                              figureSnippetSignature(figure, taxonomy),
+                            );
+                          },
+                    onSnippetCommitted: snippetLib == null
+                        ? null
+                        : (draft) => _handleWalkthroughSnippetCommit(
+                            context,
+                            draft,
+                            controller,
+                            taxonomy,
+                            snippetLib,
+                          ),
+                  ),
                 ),
                 if (controller.warnings.isNotEmpty) ...[
                   const SizedBox(height: AppSpacing.md),
@@ -642,6 +708,112 @@ class DanceEditorForm extends StatelessWidget {
     );
   }
 
+  /// [child] timed in bars where the dance is ([BarTimingScope.beatsPerBarFor]):
+  /// an English dance whose tune has one meter throughout.
+  Widget _withBarTiming(Widget child) {
+    final beatsPerBar = BarTimingScope.beatsPerBarFor(
+      controller.form,
+      controller.phraseStructure,
+    );
+    return beatsPerBar == null
+        ? child
+        : BarTimingScope(beatsPerBar: beatsPerBar, child: child);
+  }
+
+  /// The Composed date, then who interpreted the dance and when: in More
+  /// details, or up front for a form whose dances usually credit both
+  /// ([DanceEditorController.showsCreditsUpFront]).
+  List<Widget> _creditFields(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return [
+      PartialDateField(
+        key: controller.composedOnFieldKey,
+        fieldKey: 'composed-on',
+        label: l10n.danceEditorComposedLabel,
+        helperText: l10n.danceEditorComposedHelper,
+        value: controller.composedOn,
+        onChanged: controller.setComposedOn,
+      ),
+      const SizedBox(height: AppSpacing.md),
+      FieldLabel(l10n.danceEditorInterpretedByLabel),
+      NamePicker(
+        fieldKey: 'interpreter',
+        selectedIds: controller.interpreterIds,
+        namesById: choreographerNames,
+        options: authorOptions,
+        onAdd: onAddInterpreter,
+        onRemove: controller.removeInterpreter,
+        onCreate: onCreateChoreographer,
+        onEdit: onEditChoreographer,
+        sheetSemanticLabel: l10n.danceEditorInterpretedByLabel,
+      ),
+      const SizedBox(height: AppSpacing.md),
+      PartialDateField(
+        key: controller.interpretedOnFieldKey,
+        fieldKey: 'interpreted-on',
+        label: l10n.danceEditorInterpretedOnLabel,
+        helperText: l10n.danceEditorInterpretedOnHelper,
+        value: controller.interpretedOn,
+        onChanged: controller.setInterpretedOn,
+      ),
+    ];
+  }
+
+  /// The tune's written meter and key, side by side.
+  Widget _musicFields(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    Widget field({
+      required String key,
+      required LingoTextEditingController textController,
+      required String label,
+      required String hint,
+    }) => Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        TextFormField(
+          key: ValueKey('$key-field'),
+          controller: textController,
+          maxLength: kMaxMusicLabelLength,
+          decoration: InputDecoration(
+            labelText: label,
+            hintText: hint,
+            // The cap is generous for a short label, so the counter would
+            // only be noise.
+            counterText: '',
+          ),
+          onChanged: (_) => controller.onTextEdited(),
+        ),
+        LingoDiscouragedHint(
+          controller: textController,
+          dialect: dialect,
+          fieldKey: key,
+        ),
+      ],
+    );
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: field(
+            key: 'meter',
+            textController: controller.meterController,
+            label: l10n.danceEditorMeterLabel,
+            hint: l10n.danceEditorMeterHint,
+          ),
+        ),
+        const SizedBox(width: AppSpacing.sm),
+        Expanded(
+          child: field(
+            key: 'musical-key',
+            textController: controller.musicalKeyController,
+            label: l10n.danceEditorMusicalKeyLabel,
+            hint: l10n.danceEditorMusicalKeyHint,
+          ),
+        ),
+      ],
+    );
+  }
+
   /// The collapsible "More details" drawer (Tier 2). Holds the less-frequently
   /// used metadata; collapsed by default so the always-visible Tier 1 fields
   /// stay above the fold. Its form children stay mounted while collapsed so
@@ -661,7 +833,7 @@ class DanceEditorForm extends StatelessWidget {
       leading: Icon(Icons.tune, color: colorScheme.primary),
       title: Text(
         l10n.danceEditorMoreDetailsTitle,
-        style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+        style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
       ),
       initiallyExpanded: false,
       maintainState: true,
@@ -704,14 +876,10 @@ class DanceEditorForm extends StatelessWidget {
           contentPadding: EdgeInsets.zero,
         ),
         const SizedBox(height: AppSpacing.md),
-        PartialDateField(
-          fieldKey: 'composed-on',
-          label: l10n.danceEditorComposedLabel,
-          helperText: l10n.danceEditorComposedHelper,
-          value: controller.composedOn,
-          onChanged: controller.setComposedOn,
-        ),
-        const SizedBox(height: AppSpacing.md),
+        if (!controller.showsCreditsUpFront) ...[
+          ..._creditFields(context),
+          const SizedBox(height: AppSpacing.md),
+        ],
         PartialDateField(
           fieldKey: 'revised-on',
           label: l10n.danceEditorRevisedLabel,
@@ -732,6 +900,10 @@ class DanceEditorForm extends StatelessWidget {
           sheetSemanticLabel: l10n.danceEditorTagsLabel,
         ),
         const SizedBox(height: AppSpacing.md),
+        if (!controller.showsCreditsUpFront) ...[
+          _musicFields(context),
+          const SizedBox(height: AppSpacing.md),
+        ],
         FieldLabel(l10n.danceEditorTunesLabel),
         // An empty tune list here would otherwise read as "this dance has no
         // tunes", when the stored text could not be decoded and is being
@@ -905,6 +1077,7 @@ Future<bool?> _promptSnippetDivergence(BuildContext context) {
         ),
       ],
     ),
+    animationStyle: AppMotion.styleFor(context),
   );
 }
 
@@ -957,6 +1130,7 @@ Future<void> _fillWalkthroughFromSnippets(
           ),
         ],
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
     if (replace != true) return;
   }

@@ -215,7 +215,7 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 
 ### Database columns
 
-**249 columns**: 168 shareable, 21 device-local, 33 device-scoped, 25 derived, 2 protocol-identifier. 30 personal data by category.
+**257 columns**: 176 shareable, 21 device-local, 33 device-scoped, 25 derived, 2 protocol-identifier. 30 personal data by category.
 
 | Table | Column | Category | Path | Subject | Egress | Why |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -276,6 +276,9 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 | `dance_fts` | `notes` | `dpv:NonPersonalData` | NonPersonalData | — | derived | Rebuilt from authoritative columns on write; recomputed on arrival. |
 | `dance_fts` | `sources` | `dpv:NonPersonalData` | NonPersonalData | — | derived | Rebuilt from authoritative columns on write; recomputed on arrival. |
 | `dance_fts` | `title` | `dpv:NonPersonalData` | NonPersonalData | — | derived | Rebuilt from authoritative columns on write; recomputed on arrival. |
+| `dance_interpreters` | `choreographer_id` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Opaque identifier; meaningless alone, required for relational integrity across a transfer. |
+| `dance_interpreters` | `dance_id` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Opaque identifier; meaningless alone, required for relational integrity across a transfer. |
+| `dance_interpreters` | `position` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `dance_links` | `dance_id` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Opaque identifier; meaningless alone, required for relational integrity across a transfer. |
 | `dance_links` | `id` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Opaque identifier; meaningless alone, required for relational integrity across a transfer. |
 | `dance_links` | `kind` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
@@ -306,12 +309,16 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 | `dances` | `figures_json` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `dances` | `form` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `dances` | `formation_detail` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
+| `dances` | `formation_improper` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `dances` | `formation_shape` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `dances` | `hook` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `dances` | `id` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Opaque identifier; meaningless alone, required for relational integrity across a transfer. |
+| `dances` | `interpreted_on` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `dances` | `level_id` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Opaque identifier; meaningless alone, required for relational integrity across a transfer. |
+| `dances` | `meter` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `dances` | `mixed_level` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `dances` | `mixer` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
+| `dances` | `musical_key` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `dances` | `phrase_structure` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `dances` | `progression` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `dances` | `rating` | `dpv:NonPersonalData` | NonPersonalData | app user | shareable | The caller's own curatorial star rating (1..5) of the dance: their opinion, not choreography, so the subject is the app user. Egress: own devices and backups yes, share files no. The app omits it from every dance and program share file (maintainer decision R2-out2-export, 2026-10-30), but Device Sync and Backup keep it. Kept shareable rather than deviceLocal because deviceLocal means never serialised and would stop sync, which the maintainer wants to keep; the share-file strip lives in the share bundle builders (sanitizeDanceForShare), not in the archive codec. Sync can still reach another person when a store is shared (ADR-004 storeAddress), so "travels in sync" is not "stays on my devices". |
@@ -365,6 +372,7 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 | `program_slots` | `program_id` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Opaque identifier; meaningless alone, required for relational integrity across a transfer. |
 | `program_slots` | `text` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Freeform text attached to an event plan, not to a person, place or source, so it does not take _freeformNote's third-party subject. Classified by intent (running order, choreography), not by what a user might type — see "Freeform fields are classified by intent, not by content" in docs/dev/data-classification.md. Names on a program belong in programs.caller, programs.band and program_slots.guest_caller, which are third-party performer credits. Maintainer decision (2026 audit). |
 | `program_slots` | `walkthrough_minutes` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
+| `programs` | `archived_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | When the caller archived the program (schema v42); NULL means not archived. A lifecycle stamp like programs.deleted_at, classified the same way: it says when the program left the list, not anything about a person. Egress: own devices and backups yes, share files no (the maintainer chose "sync and backups keep it, share files drop it" when archiving was added, 2026-11-18, recorded in #2218; sanitizeProgramForShare), so a recipient always gets an unarchived program. Kept shareable because deviceLocal would stop sync. |
 | `programs` | `band` | `pd:Name` | Identifying → Name | third party | shareable | Performer credit for a public event. CONTESTED — see the performer-names section of docs/dev/data-classification.md. |
 | `programs` | `caller` | `pd:Name` | Identifying → Name | third party | shareable | Performer credit for a public event. CONTESTED — see the performer-names section of docs/dev/data-classification.md. |
 | `programs` | `created_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Record stamp, not author-supplied. Required for ordering across devices. |
@@ -473,7 +481,7 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 
 Declared as a `const String …Key` in `app/lib` or a `packages/*/lib` library; classified here so the catalogue has one source of truth. `settings.value_json` is `deviceLocal` at the column level so a blanket sync cannot happen by accident — these entries decide what actually travels.
 
-**117 settings keys**: 74 shareable, 12 device-local, 29 device-scoped, 1 protocol-identifier, 1 store-address. 4 personal data by category.
+**125 settings keys**: 81 shareable, 12 device-local, 30 device-scoped, 1 protocol-identifier, 1 store-address. 4 personal data by category.
 
 | Key | Category | Subject | Egress | Why |
 | --- | --- | --- | --- | --- |
@@ -483,6 +491,7 @@ Declared as a `const String …Key` in `app/lib` or a `packages/*/lib` library; 
 | `__custom_field_index_repair_done__` | `dpv:NonPersonalData` | — | device-scoped | Belongs to this installation, not the user. Applying it on another device would be wrong rather than merely useless. |
 | `__custom_number_index_repair_done__` | `dpv:NonPersonalData` | — | device-scoped | Belongs to this installation, not the user. Applying it on another device would be wrong rather than merely useless. |
 | `__derived_rebuild_required__` | `dpv:NonPersonalData` | — | device-scoped | Belongs to this installation, not the user. Applying it on another device would be wrong rather than merely useless. |
+| `__ecd_taxonomy_canonical_rebuild_done__` | `dpv:NonPersonalData` | — | device-scoped | Belongs to this installation, not the user. Applying it on another device would be wrong rather than merely useless. |
 | `__grip_single_file_canonical_inclusion_done__` | `dpv:NonPersonalData` | — | device-scoped | Belongs to this installation, not the user. Applying it on another device would be wrong rather than merely useless. |
 | `__inverse_pair_normalisation_done__` | `dpv:NonPersonalData` | — | device-scoped | Belongs to this installation, not the user. Applying it on another device would be wrong rather than merely useless. |
 | `__modifier_container_canonical_rebuild_done__` | `dpv:NonPersonalData` | — | device-scoped | Belongs to this installation, not the user. Applying it on another device would be wrong rather than merely useless. |
@@ -501,6 +510,8 @@ Declared as a `const String …Key` in `app/lib` or a `packages/*/lib` library; 
 | `active_custom_theme` | `dpv:NonPersonalData` | app user | shareable |  |
 | `active_dialect` | `dpv:NonPersonalData` | app user | shareable |  |
 | `active_dialect_ref` | `dpv:NonPersonalData` | app user | shareable |  |
+| `active_dialect_ref_ecd` | `dpv:NonPersonalData` | app user | shareable |  |
+| `active_dialect_ref_square` | `dpv:NonPersonalData` | app user | shareable |  |
 | `aggressive_beats_update` | `dpv:NonPersonalData` | app user | shareable |  |
 | `app_locale` | `dpv:NonPersonalData` | app user | **device-local** | Screen-bound: a phone and the laptop driving a projector can want different interface languages, and a synced change would re-render the other device mid-session. deviceLocal, not deviceScoped: it is withheld for what it means on another screen, not for what it contains, and deviceScoped would also drop it from the user's own backups, which should give it back on restore. Per-device by the maintainer's decision (settings-sync-scope, 2026-10-29). |
 | `auto_commit_program_changes` | `dpv:NonPersonalData` | app user | shareable |  |
@@ -515,7 +526,10 @@ Declared as a `const String …Key` in `app/lib` or a `packages/*/lib` library; 
 | `colour_dance_theme` | `dpv:NonPersonalData` | app user | shareable |  |
 | `compound_shorthands` | `dpv:NonPersonalData` | app user | shareable | The user's shorthands for their own compound figures (#709): tokens they chose, a figure's id and name, and values. Shareable like the figure shorthands; held back until every device can read it (SyncCapabilityPolicy.build). |
 | `confirm_before_delete` | `dpv:NonPersonalData` | app user | shareable |  |
+| `confirm_perform_exit` | `dpv:NonPersonalData` | app user | shareable | Whether leaving Perform asks first. A habit of the caller rather than a property of the screen, like confirm_before_delete, so it travels with their other preferences; unlike auto_size_perform_cards it does not depend on screen size. |
 | `custom_dialects` | `dpv:NonPersonalData` | app user | shareable |  |
+| `custom_dialects_ecd` | `dpv:NonPersonalData` | app user | shareable |  |
+| `custom_dialects_square` | `dpv:NonPersonalData` | app user | shareable |  |
 | `custom_fields.sharing.disclosed` | `dpv:NonPersonalData` | — | **device-local** | Non-shareable installation state intentionally retained in a user-controlled local backup, but not sent to project infrastructure. |
 | `custom_themes` | `dpv:NonPersonalData` | app user | shareable |  |
 | `date_format` | `dpv:NonPersonalData` | app user | shareable |  |
@@ -547,6 +561,7 @@ Declared as a `const String …Key` in `app/lib` or a `packages/*/lib` library; 
 | `last_backup_at` | `dpv:NonPersonalData` | — | device-scoped | Belongs to this installation, not the user. Applying it on another device would be wrong rather than merely useless. |
 | `last_used_collection_sort` | `dpv:NonPersonalData` | app user | shareable |  |
 | `last_used_collection_sort_direction` | `dpv:NonPersonalData` | app user | shareable |  |
+| `last_used_dance_form` | `dpv:NonPersonalData` | app user | shareable |  |
 | `last_used_program_sort` | `dpv:NonPersonalData` | app user | shareable |  |
 | `last_used_program_sort_direction` | `dpv:NonPersonalData` | app user | shareable |  |
 | `mark_all_sets_status` | `dpv:NonPersonalData` | app user | shareable | A behaviour preference: whether Mark all performed also sets the program's status (GIG-12). It names no person and holds no content, and it follows the caller rather than the screen, so it travels like the other calling-history rules beside it. |
@@ -584,6 +599,7 @@ Declared as a `const String …Key` in `app/lib` or a `packages/*/lib` library; 
 | `sync_wifi_only` | `dpv:NonPersonalData` | — | device-scoped | Per-installation preference to sync only on WiFi. It is a statement about this device's connection, so it never syncs or travels in a backup. |
 | `theme_mode` | `dpv:NonPersonalData` | app user | shareable |  |
 | `track_history_for_all_callers` | `dpv:NonPersonalData` | app user | shareable |  |
+| `undo_prompt_seconds` | `dpv:NonPersonalData` | app user | shareable |  |
 | `update_auto_check` | `dpv:NonPersonalData` | — | **device-local** | Non-shareable installation state intentionally retained in a user-controlled local backup, but not sent to project infrastructure. |
 | `update_beta_channel` | `dpv:NonPersonalData` | — | **device-local** | Non-shareable installation state intentionally retained in a user-controlled local backup, but not sent to project infrastructure. |
 | `update_dismissed_version` | `dpv:NonPersonalData` | — | **device-local** | Non-shareable installation state intentionally retained in a user-controlled local backup, but not sent to project infrastructure. |

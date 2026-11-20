@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../sync/sync_scope.dart';
+import '../theme/app_motion.dart';
 import '../theme/app_spacing.dart';
 import '../widgets/confirm_discard_changes.dart';
 import '../widgets/notice_card.dart';
@@ -52,6 +53,7 @@ class VenueEditorSheet extends StatefulWidget {
       // unsaved changes; see the class comment.
       enableDrag: false,
       builder: (_) => VenueEditorSheet(initial: initial, seedName: seedName),
+      sheetAnimationStyle: AppMotion.styleFor(context),
     );
   }
 
@@ -243,7 +245,12 @@ class _VenueEditorSheetState extends State<VenueEditorSheet> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Padding(
-                padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.lg,
+                  AppSpacing.lg,
+                  AppSpacing.lg,
+                  0,
+                ),
                 child: Row(
                   children: [
                     Expanded(
@@ -257,7 +264,12 @@ class _VenueEditorSheetState extends State<VenueEditorSheet> {
               ),
               Flexible(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.lg,
+                    AppSpacing.md,
+                    AppSpacing.lg,
+                    AppSpacing.md,
+                  ),
                   child: Form(
                     key: _formKey,
                     child: Column(
@@ -401,7 +413,12 @@ class _VenueEditorSheetState extends State<VenueEditorSheet> {
               ),
               const Divider(height: 1),
               Padding(
-                padding: const EdgeInsets.fromLTRB(24, 12, 24, 12),
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.lg,
+                  AppSpacing.sm,
+                  AppSpacing.lg,
+                  AppSpacing.sm,
+                ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
@@ -479,7 +496,7 @@ class _VenueEditorSheetState extends State<VenueEditorSheet> {
     String? Function(String?)? validator,
   }) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
       child: TextFormField(
         key: ValueKey(keyName),
         controller: controller,

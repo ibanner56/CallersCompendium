@@ -266,6 +266,7 @@ String _dateVenue(
 String _englishFormationLabel(Formation formation) {
   final base = switch (formation.shape) {
     FormationShape.dupleImproper => 'Improper',
+    FormationShape.progressedImproper => 'Progressed improper',
     FormationShape.reverseProgressionImproper => 'Reverse progression improper',
     FormationShape.becketCw => 'Becket (CW)',
     FormationShape.becketCcw => 'Becket (CCW)',
@@ -282,7 +283,16 @@ String _englishFormationLabel(Formation formation) {
     FormationShape.grid => 'Grid',
     FormationShape.quadruplet => 'Quadruplet',
     FormationShape.other => 'Other',
+    FormationShape.dupleMinor => 'Duple minor',
+    FormationShape.threeCoupleLongways => 'Three-couple longways',
+    FormationShape.fourCoupleLongways => 'Four-couple longways',
+    FormationShape.fiveCoupleLongways => 'Five-couple longways',
+    FormationShape.sixCoupleLongways => 'Six-couple longways',
+    FormationShape.circle => 'Circle',
+    FormationShape.square => 'Square',
+    FormationShape.twoCoupleSet => 'Two-couple set',
   };
+  final shape = formation.improper ? '$base, improper' : base;
   final detail = formation.detail?.trim();
-  return (detail == null || detail.isEmpty) ? base : '$base — $detail';
+  return (detail == null || detail.isEmpty) ? shape : '$shape — $detail';
 }

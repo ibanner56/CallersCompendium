@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart' show ValueListenable, kDebugMode;
 import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../theme/app_motion.dart';
 import '../../theme/destructive_button_style.dart';
 import 'settings_keys.dart';
 import '../../data/sync_writer_lifecycle_scope.dart';
@@ -21,6 +22,7 @@ import '../../data/backup_io.dart';
 import '../../data/backup_reminder.dart';
 import '../../data/backup_service.dart';
 import '../../data/confirm_before_delete_scope.dart';
+import '../../data/undo_prompt_duration_scope.dart';
 import '../../data/import_io.dart';
 import '../../data/reduce_motion_scope.dart';
 import '../../data/regional_formats.dart';
@@ -36,12 +38,13 @@ import '../../diagnostics/error_log.dart';
 import '../../published_collections/published_collection_service.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/keyboard_dismiss.dart';
-import '../../widgets/readable_width.dart';
 import '../../widgets/section_header.dart';
+import '../../widgets/dirty_dialog_guard.dart';
 import '../../widgets/settings_action_row.dart';
 import '../../widgets/settings_dropdown_row.dart';
 import '../import_review_screen.dart';
 import '../published_collection_navigation.dart';
+import '../ecd_migration_screen.dart';
 import '../reparse_custom_figures_screen.dart';
 import '../reference_manager_screen.dart';
 import '../tag_manager_screen.dart';
@@ -286,6 +289,7 @@ class _GeneralSectionState extends State<GeneralSection> {
           idleLabel: idleLabel,
           progressLabel: progressLabel,
         ),
+        animationStyle: AppMotion.styleFor(context),
       ),
     );
     var closed = false;
@@ -320,6 +324,7 @@ class _GeneralSectionState extends State<GeneralSection> {
       final choice = await showDialog<_RestoreChoice>(
         context: context,
         builder: (_) => _RestoreBackupDialog(picker: picker),
+        animationStyle: AppMotion.styleFor(context),
       );
       if (choice == null || choice.json.trim().isEmpty || !mounted) return;
 
@@ -583,6 +588,14 @@ class _GeneralSectionState extends State<GeneralSection> {
     );
   }
 
+  /// Opens the opt-in conversion of English dances stored with contra moves
+  /// (ADR-006 §12.1 F5), which previews and asks before it writes.
+  Future<void> _onEcdMigration() async {
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute<void>(builder: (_) => const EcdMigrationScreen()));
+  }
+
   Future<void> _onPublishedCollections() =>
       pushPublishedCollectionCatalog(context);
 
@@ -626,6 +639,12 @@ class _GeneralSectionState extends State<GeneralSection> {
     await persistSetting(repos.settings, kConfirmBeforeDeleteKey, value);
   }
 
+  Future<void> _onUndoPromptSecondsChanged(int value) async {
+    UndoPromptDurationScope.notifierOf(context).value = value;
+    final repos = RepositoriesScope.of(context);
+    await persistSetting(repos.settings, kUndoPromptSecondsKey, value);
+  }
+
   @override
   Widget build(BuildContext context) {
     _ensureSoftDeleteRetentionLoaded(context);
@@ -643,6 +662,8 @@ class _GeneralSectionState extends State<GeneralSection> {
       onDecimalTurnsChanged: _onDecimalTurnsChanged,
       confirmBeforeDelete: ConfirmBeforeDeleteScope.of(context),
       onConfirmBeforeDeleteChanged: _onConfirmBeforeDeleteChanged,
+      undoPromptSeconds: UndoPromptDurationScope.secondsOf(context),
+      onUndoPromptSecondsChanged: _onUndoPromptSecondsChanged,
       softDeleteRetentionDays:
           _softDeleteRetentionDays ?? kSoftDeleteRetentionDefaultDays,
       onSoftDeleteRetentionChanged: _onSoftDeleteRetentionChanged,
@@ -654,6 +675,7 @@ class _GeneralSectionState extends State<GeneralSection> {
       onImportDances: _onImportDances,
       onPublishedCollections: _onPublishedCollections,
       onReparseCustomFigures: _onReparseCustomFigures,
+      onEcdMigration: _onEcdMigration,
     );
   }
 }
@@ -677,6 +699,8 @@ class _GeneralView extends StatelessWidget {
     required this.onDecimalTurnsChanged,
     required this.confirmBeforeDelete,
     required this.onConfirmBeforeDeleteChanged,
+    required this.undoPromptSeconds,
+    required this.onUndoPromptSecondsChanged,
     required this.softDeleteRetentionDays,
     required this.onSoftDeleteRetentionChanged,
     required this.backupCadence,
@@ -687,6 +711,7 @@ class _GeneralView extends StatelessWidget {
     required this.onImportDances,
     required this.onPublishedCollections,
     required this.onReparseCustomFigures,
+    required this.onEcdMigration,
   });
 
   final bool sortIgnoreArticles;
@@ -701,6 +726,11 @@ class _GeneralView extends StatelessWidget {
   final ValueChanged<bool> onDecimalTurnsChanged;
   final bool confirmBeforeDelete;
   final ValueChanged<bool> onConfirmBeforeDeleteChanged;
+
+  /// How long the Undo prompt stays, as the stored seconds
+  /// ([kUndoPromptUntilDismissed] = until closed).
+  final int undoPromptSeconds;
+  final ValueChanged<int> onUndoPromptSecondsChanged;
 
   /// Current soft-delete retention window as the stored `int` day count
   /// (`0` = never auto-purge — see [kSoftDeleteRetentionNever]).
@@ -722,11 +752,12 @@ class _GeneralView extends StatelessWidget {
 
   /// Opens the #417 re-check-custom-figures flow.
   final Future<void> Function() onReparseCustomFigures;
+  final Future<void> Function() onEcdMigration;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return ReadableListView(
+    return ListView(
       keyboardDismissBehavior: textEntryKeyboardDismiss(),
       children: [
         SectionHeader(title: l10n.settingsGeneralLibraryHeader),
@@ -813,6 +844,30 @@ class _GeneralView extends StatelessWidget {
           subtitle: Text(l10n.settingsGeneralConfirmBeforeDeleteSubtitle),
           isThreeLine: true,
         ),
+        SettingsDropdownRow(
+          title: Text(l10n.settingsGeneralUndoPromptTitle),
+          subtitle: Text(l10n.settingsGeneralUndoPromptSubtitle),
+          isThreeLine: true,
+          dropdownBuilder: (expanded) => DropdownButton<int>(
+            isExpanded: expanded,
+            key: const ValueKey('general-undo-prompt-seconds'),
+            value: undoPromptSeconds,
+            onChanged: (value) {
+              if (value != null) onUndoPromptSecondsChanged(value);
+            },
+            items: [
+              for (final seconds in kUndoPromptSecondOptions)
+                DropdownMenuItem(
+                  value: seconds,
+                  child: Text(l10n.settingsGeneralUndoPromptSeconds(seconds)),
+                ),
+              DropdownMenuItem(
+                value: kUndoPromptUntilDismissed,
+                child: Text(l10n.settingsGeneralUndoPromptUntilClosed),
+              ),
+            ],
+          ),
+        ),
         SectionHeader(title: l10n.settingsGeneralDeletedItemsHeader),
         SettingsDropdownRow(
           title: Text(l10n.settingsGeneralSoftDeleteRetentionTitle),
@@ -866,6 +921,16 @@ class _GeneralView extends StatelessWidget {
             onPressed: onReparseCustomFigures,
             icon: const Icon(Icons.auto_fix_high_outlined),
             label: Text(l10n.settingsGeneralReparseCustomFiguresAction),
+          ),
+        ),
+        SettingsActionRow(
+          title: Text(l10n.settingsGeneralEcdMigrationTitle),
+          subtitle: Text(l10n.settingsGeneralEcdMigrationSubtitle),
+          button: OutlinedButton.icon(
+            key: const ValueKey('ecd-migration-button'),
+            onPressed: onEcdMigration,
+            icon: const Icon(Icons.auto_fix_high_outlined),
+            label: Text(l10n.settingsGeneralEcdMigrationAction),
           ),
         ),
         SectionHeader(title: l10n.settingsGeneralBackupRestoreHeader),
@@ -1142,73 +1207,79 @@ class _RestoreBackupDialogState extends State<_RestoreBackupDialog> {
     final l10n = AppLocalizations.of(context);
     final holdsFile = _pickedJson != null;
     final hasContent = holdsFile || _controller.text.trim().isNotEmpty;
-    return AlertDialog(
-      key: const ValueKey('restore-backup-dialog'),
-      title: Text(l10n.backupRestoreTitle),
-      content: SizedBox(
-        width: 420,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(l10n.backupRestoreDialogBody),
-            // A restore is stamped at the backup's creation time, so on a
-            // paired device anything changed since on a synced device wins at
-            // the next sync and comes back (SYNC-1, sync-spec §6.11). Paired
-            // rather than enabled: turning sync back on later syncs the same.
-            if (SyncScope.maybeOf(context)?.paired ?? false) ...[
+    // Dirty as typed (not trimmed): whitespace the user pasted still counts.
+    // A chosen file counts too, so a stray tap does not drop it.
+    return DirtyDialogGuard(
+      listenable: _controller,
+      isDirty: () => _pickedJson != null || _controller.text.isNotEmpty,
+      child: AlertDialog(
+        key: const ValueKey('restore-backup-dialog'),
+        title: Text(l10n.backupRestoreTitle),
+        content: SizedBox(
+          width: 420,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(l10n.backupRestoreDialogBody),
+              // A restore is stamped at the backup's creation time, so on a
+              // paired device anything changed since on a synced device wins at
+              // the next sync and comes back (SYNC-1, sync-spec §6.11). Paired
+              // rather than enabled: turning sync back on later syncs the same.
+              if (SyncScope.maybeOf(context)?.paired ?? false) ...[
+                const SizedBox(height: AppSpacing.sm),
+                Text(
+                  l10n.backupRestoreDialogSyncNote,
+                  key: const ValueKey('restore-sync-note'),
+                ),
+              ],
+              const SizedBox(height: AppSpacing.md),
+              OutlinedButton.icon(
+                key: const ValueKey('restore-choose-file'),
+                onPressed: _picking ? null : _chooseFile,
+                icon: const Icon(Icons.folder_open_outlined),
+                label: Text(l10n.backupChooseFileAction),
+              ),
               const SizedBox(height: AppSpacing.sm),
-              Text(
-                l10n.backupRestoreDialogSyncNote,
-                key: const ValueKey('restore-sync-note'),
+              if (holdsFile) ...[
+                _fileSummary(l10n),
+                const SizedBox(height: AppSpacing.sm),
+              ],
+              TextField(
+                key: const ValueKey('restore-paste-field'),
+                controller: _controller,
+                enabled: !holdsFile,
+                minLines: 3,
+                maxLines: 6,
+                onChanged: (_) => setState(() {}),
+                decoration: InputDecoration(
+                  border: const OutlineInputBorder(),
+                  labelText: l10n.backupPasteJsonLabel,
+                ),
               ),
             ],
-            const SizedBox(height: AppSpacing.md),
-            OutlinedButton.icon(
-              key: const ValueKey('restore-choose-file'),
-              onPressed: _picking ? null : _chooseFile,
-              icon: const Icon(Icons.folder_open_outlined),
-              label: Text(l10n.backupChooseFileAction),
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            if (holdsFile) ...[
-              _fileSummary(l10n),
-              const SizedBox(height: AppSpacing.sm),
-            ],
-            TextField(
-              key: const ValueKey('restore-paste-field'),
-              controller: _controller,
-              enabled: !holdsFile,
-              minLines: 3,
-              maxLines: 6,
-              onChanged: (_) => setState(() {}),
-              decoration: InputDecoration(
-                border: const OutlineInputBorder(),
-                labelText: l10n.backupPasteJsonLabel,
-              ),
-            ),
-          ],
+          ),
         ),
+        actions: [
+          TextButton(
+            key: const ValueKey('restore-cancel'),
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(l10n.commonCancel),
+          ),
+          FilledButton(
+            style: destructiveFilledButtonStyle(Theme.of(context).colorScheme),
+            key: const ValueKey('restore-confirm'),
+            onPressed: hasContent
+                ? () => Navigator.of(context).pop(
+                    holdsFile
+                        ? _RestoreChoice(_pickedJson!, _read)
+                        : _RestoreChoice(_controller.text),
+                  )
+                : null,
+            child: Text(l10n.backupReplaceAllDataAction),
+          ),
+        ],
       ),
-      actions: [
-        TextButton(
-          key: const ValueKey('restore-cancel'),
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(l10n.commonCancel),
-        ),
-        FilledButton(
-          style: destructiveFilledButtonStyle(Theme.of(context).colorScheme),
-          key: const ValueKey('restore-confirm'),
-          onPressed: hasContent
-              ? () => Navigator.of(context).pop(
-                  holdsFile
-                      ? _RestoreChoice(_pickedJson!, _read)
-                      : _RestoreChoice(_controller.text),
-                )
-              : null,
-          child: Text(l10n.backupReplaceAllDataAction),
-        ),
-      ],
     );
   }
 }

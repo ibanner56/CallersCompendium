@@ -14,7 +14,9 @@ import '../../data/shorthand_mappings_scope.dart';
 import '../../editor/figure_draft.dart';
 import '../../editor/pending_move_text_controller.dart';
 import '../../search/facet_labels.dart';
+import '../../theme/app_motion.dart';
 import '../../theme/app_spacing.dart';
+import '../../theme/touch_density.dart';
 import '../../widgets/app_bar_text_action.dart';
 import '../../widgets/confirm_discard_changes.dart';
 import '../../widgets/figure_list_editor.dart';
@@ -219,7 +221,7 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
     _seeded = true;
     final initial = widget.initial ?? widget.copyOf;
     if (initial == null) return;
-    final dialect = ActiveDialectScope.of(context);
+    final dialect = ActiveDialectScope.contraOf(context);
     String shown(String text) => _renderer.renderFreeText(text, dialect);
     _name.text = shown(initial.name);
     _definition.text = shown(initial.definition);
@@ -442,7 +444,7 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
   /// rename shows it again keeping that meaning. It isn't rewritten while
   /// being typed.
   void _templateEdited() {
-    final dialect = ActiveDialectScope.of(context);
+    final dialect = ActiveDialectScope.contraOf(context);
     final stored = _templateCheck(dialect).stored;
     if (stored != null) {
       _readTemplate = (stored: stored, shown: _template.text);
@@ -469,7 +471,7 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
     if (read == null || read.shown != _template.text) return;
     final nodes = parseStoredWording(read.stored);
     if (nodes == null || !wordingHasConditions(nodes)) return;
-    final dialect = ActiveDialectScope.of(context);
+    final dialect = ActiveDialectScope.contraOf(context);
     final vocabulary = _templateVocabulary(dialect);
     final words = _wordsOf(vocabulary);
     if (words == _templateWords) return;
@@ -767,7 +769,7 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
   /// it is stored and the editor closed.
   Future<bool> _trySave() async {
     final l10n = AppLocalizations.of(context);
-    final dialect = ActiveDialectScope.of(context);
+    final dialect = ActiveDialectScope.contraOf(context);
     final repos = RepositoriesScope.of(context);
     final navigator = Navigator.of(context);
 
@@ -797,7 +799,7 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
         taxonomy: contraTaxonomy,
         dialects: [
           dialect,
-          ...?DialectLibraryScope.maybeOf(context)?.customDialects,
+          ...?DialectLibraryScope.maybeOf(context)?.allCustomDialects,
         ],
         shorthandTokens: ShorthandMappingsScope.tokensOf(context),
         userEntryNames: entries.map((e) => e.name),
@@ -942,6 +944,7 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
             ),
           ],
         ),
+        animationStyle: AppMotion.styleFor(context),
       );
       if (saveAnyway != true || !mounted) return false;
     }
@@ -1003,7 +1006,7 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final dialect = ActiveDialectScope.of(context);
+    final dialect = ActiveDialectScope.contraOf(context);
     final badFigureParams = _kind == UserGlossaryEntryKind.customFigure
         ? _badFigureParams()
         : const <int>{};
@@ -1263,7 +1266,7 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
                               decoration: InputDecoration(
                                 labelText: l10n.compoundEditorParamKind,
                                 border: const OutlineInputBorder(),
-                                isDense: true,
+                                isDense: denseControls(context),
                               ),
                               items: [
                                 for (final kind in compoundParamKinds)
@@ -1738,7 +1741,7 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
                       moveId: draft.move,
                     ),
                     border: const OutlineInputBorder(),
-                    isDense: true,
+                    isDense: denseControls(context),
                   ),
                   items: [
                     DropdownMenuItem<_Binding?>(

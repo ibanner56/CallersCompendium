@@ -86,9 +86,9 @@ void main() {
   // -------------------------------------------------------------------------
 
   group('A1 — star_promenade loses `hand` (taxonomy v26)', () {
-    test('contraTaxonomyVersion is 39', () {
-      expect(contraTaxonomyVersion, 39);
-      expect(tax.version, 39);
+    test('contraTaxonomyVersion is 40', () {
+      expect(contraTaxonomyVersion, 40);
+      expect(tax.version, 40);
     });
 
     // Mutation caught: re-declaring the param, in any form.

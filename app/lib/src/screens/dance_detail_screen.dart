@@ -4,6 +4,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../widgets/bar_timing.dart';
 import '../data/user_figures_scope.dart';
 import '../data/active_dialect_scope.dart';
 import '../data/calling_card_settings_scope.dart';
@@ -26,6 +27,7 @@ import '../export/share_file.dart';
 import '../search/dance_detail_data.dart';
 import '../search/facet_labels.dart';
 import '../theme/app_shapes.dart';
+import '../theme/app_theme_extension.dart';
 import '../theme/app_spacing.dart';
 import '../utils/confirm_delete.dart';
 import '../utils/launch_external_url.dart';
@@ -40,7 +42,6 @@ import '../widgets/figure_table.dart';
 import '../widgets/formation_color_badge.dart';
 import '../widgets/load_error_view.dart';
 import '../widgets/program_status_chip.dart';
-import '../widgets/readable_width.dart';
 import '../widgets/selectable_content.dart';
 import '../widgets/skeleton.dart';
 import '../widgets/tag_chip.dart';
@@ -49,6 +50,8 @@ import 'dance_editor_screen.dart';
 import 'perform_dance_screen.dart';
 import 'program_summary_screen.dart';
 import '../widgets/provenance_labels.dart';
+import '../theme/app_breakpoints.dart';
+import '../widgets/adaptive_fab.dart';
 
 /// Dance detail / card (`docs/design/ux.md` §2): header (title, authors,
 /// formation, hook, tags, status banner, provenance line), a figure table
@@ -182,14 +185,6 @@ class DanceDetailScreen extends StatefulWidget {
   /// Defaults to [Printing.layoutPdf]; tests use it to force a failure.
   final PdfLayouter? pdfLayouter;
 
-  /// App-bar action layout breakpoint (logical pixels). Below this width the
-  /// screen collapses its secondary actions (dialect switch, Export, Duplicate,
-  /// Delete) into a single overflow menu so the bar never overflows on a phone;
-  /// at or above it the full action row is shown. 600 mirrors Material 3's
-  /// compact window-size-class cutoff, so phones get the decluttered layout
-  /// while tablets/desktop keep the one-tap row.
-  static const double compactActionsBreakpoint = 600;
-
   @override
   State<DanceDetailScreen> createState() => _DanceDetailScreenState();
 }
@@ -268,7 +263,9 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
   /// For prose and formation labels only; the dance's figures go to
   /// `UserFiguresScope.rendererOf`, which shows uses of the user's own
   /// figures live (#1023).
-  static final FigureRenderer _proseRenderer = FigureRenderer(contraTaxonomy);
+  static final FigureRenderer _proseRenderer = FigureRenderer(
+    shippedTaxonomies.anyForm,
+  );
 
   @override
   void didChangeDependencies() {
@@ -638,12 +635,14 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
   );
 
   // --- App-bar actions -------------------------------------------------------
-  // The dance-detail bar carries seven affordances (dialect switch, Perform,
-  // Export, Duplicate, Add-to-program, Delete, plus the Edit FAB). On a phone
-  // that full row clips, so below [DanceDetailScreen.compactActionsBreakpoint]
-  // we keep the primary one-tap actions (Perform, Add-to-program; Edit stays
-  // the FAB) and fold the secondary actions into a single overflow menu. Every
-  // action keeps its key, tooltip/label and behaviour in both layouts.
+  // The dance-detail bar carries more affordances than a bar can hold (dialect
+  // switch, Perform, Share, Duplicate, Add-to-program, Re-import, Delete, plus
+  // the Edit FAB). At every width Duplicate, Re-import and Delete (last) and
+  // the dialect choice live in an overflow menu. Below [AppBreakpoints.compact]
+  // (Material 3's compact window-size-class cutoff) the Share actions fold
+  // into it too and Perform is an icon; at or above it Perform is a labelled
+  // button and Share stays on the bar. Every action keeps its key,
+  // tooltip/label and behaviour in both layouts.
 
   Widget _performButton(DanceDetailData detail) {
     final l10n = AppLocalizations.of(context);
@@ -665,9 +664,22 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
     );
   }
 
+  /// The dialect [detail]'s dance is shown and exported in: [active], with
+  /// lark and robin for the roles when the dance's choreographer asked for
+  /// them (`dialectForDance`). [active] itself when nothing is set aside.
+  Dialect _danceDialect(DanceDetailData detail, Dialect active) =>
+      dialectForDance(
+        active,
+        title: detail.dance.title,
+        authorNames: detail.authorNames,
+      );
+
   DanceExportMenu _exportMenu(BuildContext context, DanceDetailData detail) {
     final l10n = AppLocalizations.of(context);
-    final dialect = ActiveDialectScope.of(context);
+    final dialect = _danceDialect(
+      detail,
+      ActiveDialectScope.of(context).forDance(detail.dance),
+    );
     final canonicalDiscouragedTerms = CanonicalDiscouragedTermsScope.of(
       context,
     );
@@ -694,30 +706,31 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
     );
   }
 
-  /// Wide layout: the full one-tap action row.
+  /// Wide layout: Perform (labelled), Share and Add-to-program stay one tap
+  /// away; the dialect choice, Duplicate, Re-import and Delete live in the
+  /// overflow menu, with Delete last, as on the phone layout.
   Widget _fullActions(BuildContext context, DanceDetailData detail) {
-    final l10n = AppLocalizations.of(context);
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const DialectQuickSwitch(),
-        _performButton(detail),
+        _performLabelledButton(detail),
         _exportMenu(context, detail),
-        IconButton(
-          key: const ValueKey('duplicate-dance'),
-          tooltip: l10n.danceDuplicateTooltip,
-          icon: const Icon(Icons.copy_all_outlined),
-          onPressed: _duplicate,
-        ),
         _addToProgramButton(detail),
-        _reimportButton(detail),
-        IconButton(
-          key: const ValueKey('delete-dance'),
-          tooltip: l10n.danceDeleteTooltip,
-          icon: const Icon(Icons.delete_outline),
-          onPressed: _deleting ? null : _delete,
-        ),
+        _overflowMenu(context, detail, wide: true),
       ],
+    );
+  }
+
+  Widget _performLabelledButton(DanceDetailData detail) {
+    final l10n = AppLocalizations.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
+      child: TextButton.icon(
+        key: const ValueKey('perform-dance'),
+        icon: const Icon(Icons.slideshow),
+        label: Text(l10n.performTitle),
+        onPressed: () => _perform(detail),
+      ),
     );
   }
 
@@ -750,21 +763,33 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
     ],
   );
 
-  /// Single "⋮" menu holding the secondary actions on narrow widths. Every
-  /// entry is a first-class [PopupMenuItem] so it stays keyboard- and
+  /// Single "⋮" menu holding the secondary actions. On narrow widths it holds
+  /// the share actions too; with [wide] they stay on the bar and are left out.
+  /// Every entry is a first-class [PopupMenuItem] so it stays keyboard- and
   /// screen-reader-activatable: the dialect choices are [CheckedPopupMenuItem]s
   /// (mirroring [DialectQuickSwitch]), the five export items (share text, share dance
   /// file, copy, share JSON, PDF) are flattened in from [DanceExportMenu] and run through the same
-  /// [DanceExportActions], and Duplicate / Delete call the same handlers as
-  /// the wide layout. Nothing is a nested popup, so activating any row performs
+  /// [DanceExportActions], and Duplicate / Delete call the same handlers
+  /// whichever layout opens them. Nothing is a nested popup, so activating any row performs
   /// its action rather than dismissing the menu.
-  Widget _overflowMenu(BuildContext context, DanceDetailData detail) {
+  Widget _overflowMenu(
+    BuildContext context,
+    DanceDetailData detail, {
+    bool wide = false,
+  }) {
     final l10n = AppLocalizations.of(context);
-    final controller = DialectLibraryScope.maybeOf(context);
+    // The dance's own form's dialects: switching here changes that form's
+    // active dialect only (ADR-006 §9.1, point 1).
+    final controller = DialectLibraryScope.maybeOf(
+      context,
+    )?.forForm(detail.dance.form);
     final activeDialectName = controller == null
         ? null
         : (controller.activeName ?? controller.active.name);
-    final dialect = ActiveDialectScope.of(context);
+    final dialect = _danceDialect(
+      detail,
+      ActiveDialectScope.of(context).forDance(detail.dance),
+    );
     // Everything the export actions need is resolved here, before the menu
     // route pops: the `onTap`s below run after it has, and the actions run
     // across awaits.
@@ -823,85 +848,90 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
             ),
           const PopupMenuDivider(),
         ],
-        PopupMenuItem<void>(
-          key: const ValueKey('overflow-share-dance'),
-          onTap: () => exportActions.shareText(messenger, l10n),
-          child: ListTile(
-            leading: const Icon(Icons.mail_outline),
-            title: Text(l10n.exportShareDanceText),
-            contentPadding: EdgeInsets.zero,
-          ),
-        ),
-        PopupMenuItem<void>(
-          key: const ValueKey('overflow-share-dance-bundle'),
-          onTap: () =>
-              exportActions.shareBundle(messenger, l10n, origin: centerOrigin),
-          child: ListTile(
-            leading: Icon(
-              isBundleShareUnsupported()
-                  ? Icons.save_alt_outlined
-                  : Icons.share_outlined,
-            ),
-            title: Text(
-              isBundleShareUnsupported()
-                  ? l10n.exportSaveDanceBundle
-                  : l10n.exportShareDanceBundle,
-            ),
-            contentPadding: EdgeInsets.zero,
-          ),
-        ),
-        PopupMenuItem<void>(
-          key: const ValueKey('overflow-copy-dance'),
-          onTap: () => exportActions.copyText(messenger, l10n),
-          child: ListTile(
-            leading: const Icon(Icons.copy_outlined),
-            title: Text(l10n.exportCopyDance),
-            contentPadding: EdgeInsets.zero,
-          ),
-        ),
-        PopupMenuItem<void>(
-          key: const ValueKey('overflow-share-dance-json'),
-          onTap: () {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (mounted) {
-                // The State's context, not the popup item's: the item's route
-                // has popped by now, and the choice dialog needs a live one.
-                exportActions.exportJson(
-                  this.context,
-                  messenger,
-                  l10n,
-                  origin: centerOrigin,
-                );
-              }
-            });
-          },
-          child: ListTile(
-            leading: const Icon(Icons.data_object_outlined),
-            title: Text(l10n.exportShareDanceJson),
-            contentPadding: EdgeInsets.zero,
-          ),
-        ),
-        PopupMenuItem<void>(
-          key: const ValueKey('overflow-export-pdf'),
-          onTap: () => exportActions.exportPdf(messenger, l10n),
-          child: ListTile(
-            leading: const Icon(Icons.picture_as_pdf_outlined),
-            title: Text(l10n.exportPrintPdf),
-            contentPadding: EdgeInsets.zero,
-          ),
-        ),
-        if (callingCards.enabled)
+        if (!wide) ...[
           PopupMenuItem<void>(
-            key: const ValueKey('overflow-calling-card'),
-            onTap: () =>
-                exportActions.printCallingCard(messenger, l10n, callingCards),
+            key: const ValueKey('overflow-share-dance'),
+            onTap: () => exportActions.shareText(messenger, l10n),
             child: ListTile(
-              leading: const Icon(Icons.style_outlined),
-              title: Text(l10n.exportPrintCallingCard),
+              leading: const Icon(Icons.mail_outline),
+              title: Text(l10n.exportShareDanceText),
               contentPadding: EdgeInsets.zero,
             ),
           ),
-        const PopupMenuDivider(),
+          PopupMenuItem<void>(
+            key: const ValueKey('overflow-share-dance-bundle'),
+            onTap: () => exportActions.shareBundle(
+              messenger,
+              l10n,
+              origin: centerOrigin,
+            ),
+            child: ListTile(
+              leading: Icon(
+                isBundleShareUnsupported()
+                    ? Icons.save_alt_outlined
+                    : Icons.share_outlined,
+              ),
+              title: Text(
+                isBundleShareUnsupported()
+                    ? l10n.exportSaveDanceBundle
+                    : l10n.exportShareDanceBundle,
+              ),
+              contentPadding: EdgeInsets.zero,
+            ),
+          ),
+          PopupMenuItem<void>(
+            key: const ValueKey('overflow-copy-dance'),
+            onTap: () => exportActions.copyText(messenger, l10n),
+            child: ListTile(
+              leading: const Icon(Icons.copy_outlined),
+              title: Text(l10n.exportCopyDance),
+              contentPadding: EdgeInsets.zero,
+            ),
+          ),
+          PopupMenuItem<void>(
+            key: const ValueKey('overflow-share-dance-json'),
+            onTap: () {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) {
+                  // The State's context, not the popup item's: the item's route
+                  // has popped by now, and the choice dialog needs a live one.
+                  exportActions.exportJson(
+                    this.context,
+                    messenger,
+                    l10n,
+                    origin: centerOrigin,
+                  );
+                }
+              });
+            },
+            child: ListTile(
+              leading: const Icon(Icons.data_object_outlined),
+              title: Text(l10n.exportShareDanceJson),
+              contentPadding: EdgeInsets.zero,
+            ),
+          ),
+          PopupMenuItem<void>(
+            key: const ValueKey('overflow-export-pdf'),
+            onTap: () => exportActions.exportPdf(messenger, l10n),
+            child: ListTile(
+              leading: const Icon(Icons.picture_as_pdf_outlined),
+              title: Text(l10n.exportPrintPdf),
+              contentPadding: EdgeInsets.zero,
+            ),
+          ),
+          if (callingCards.enabled)
+            PopupMenuItem<void>(
+              key: const ValueKey('overflow-calling-card'),
+              onTap: () =>
+                  exportActions.printCallingCard(messenger, l10n, callingCards),
+              child: ListTile(
+                leading: const Icon(Icons.style_outlined),
+                title: Text(l10n.exportPrintCallingCard),
+                contentPadding: EdgeInsets.zero,
+              ),
+            ),
+        ],
+        if (!wide) const PopupMenuDivider(),
         if (widget.onReimport != null)
           PopupMenuItem<void>(
             key: const ValueKey('reimport-dance'),
@@ -964,8 +994,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
       title: detail?.dance.title,
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final compact =
-              constraints.maxWidth < DanceDetailScreen.compactActionsBreakpoint;
+          final compact = constraints.maxWidth < AppBreakpoints.compact;
           return Scaffold(
             appBar: AppBar(
               title: Text(l10n.danceScreenTitle),
@@ -995,10 +1024,11 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
                 : detail == null
                 ? (_loadFailed
                       ? LoadErrorView(
+                          icon: LoadErrorView.errorGlyph(context),
                           message: l10n.danceLoadError,
                           onRetry: _retryLoad,
                         )
-                      : Center(child: Text(l10n.danceNotFound)))
+                      : _buildNotFound(l10n))
                 : SelectableContent(child: _buildBody(detail)),
             // Edit mirrors the program preview's builder affordance: a bottom-right
             // extended FAB rather than an AppBar action, so opening the editor is
@@ -1007,21 +1037,23 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
             floatingActionButton: detail == null || _isReadOnly
                 ? null
                 : _isPreview
-                ? FloatingActionButton.extended(
+                ? adaptiveExtendedFab(
+                    context,
                     key: const ValueKey('import-dance'),
                     heroTag: 'import-dance',
                     onPressed: widget.onImport == null
                         ? null
                         : () => widget.onImport!(),
                     icon: const Icon(Icons.library_add_outlined),
-                    label: Text(l10n.importAction),
+                    label: l10n.importAction,
                   )
-                : FloatingActionButton.extended(
+                : adaptiveExtendedFab(
+                    context,
                     key: const ValueKey('edit-dance'),
                     heroTag: 'edit-dance',
                     onPressed: _openEditor,
                     icon: const Icon(Icons.edit_outlined),
-                    label: Text(l10n.danceEditFab),
+                    label: l10n.danceEditFab,
                   ),
           );
         },
@@ -1061,20 +1093,60 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
     );
   }
 
+  /// The body for a dance that is gone. Retrying would find nothing, so the
+  /// way forward is out of the pane: Back, when this screen can leave (a close
+  /// callback, or it is a route above another). The wide Collection pane can do
+  /// neither, since the list beside it is the way to another dance, and there
+  /// the plain message stands rather than a button that would do nothing.
+  ///
+  /// Reads the route, not `Navigator.canPop`: [ModalRoute.of] rebuilds this
+  /// when the route changes, and a route the pane sits on never stops being
+  /// first when something is pushed over it.
+  Widget _buildNotFound(AppLocalizations l10n) {
+    final route = ModalRoute.of(context);
+    final canLeave =
+        widget.onClose != null || (route != null && !route.isFirst);
+    if (!canLeave) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              LoadErrorView.errorGlyph(context),
+              const SizedBox(height: AppSpacing.md),
+              Text(l10n.danceNotFound, textAlign: TextAlign.center),
+            ],
+          ),
+        ),
+      );
+    }
+    return LoadErrorView(
+      icon: LoadErrorView.errorGlyph(context),
+      message: l10n.danceNotFound,
+      onRetry: null,
+      onBack: widget.onClose ?? () => Navigator.of(context).maybePop(),
+    );
+  }
+
   Widget _buildBody(DanceDetailData detail) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final dance = detail.dance;
-    final activeDialect = ActiveDialectScope.of(context);
+    final activeDialect = ActiveDialectScope.of(context).forDance(dance);
+    // The dialect this dance is shown in: the reader's, unless the dance's
+    // choreographer asked that it only be called with larks and robins.
+    final danceDialect = _danceDialect(detail, activeDialect);
+    final roleTermsOverridden = !identical(danceDialect, activeDialect);
     final canonicalDiscouragedTerms = CanonicalDiscouragedTermsScope.of(
       context,
     );
-    // When the active dialect is already canonical, _canonicalView is a no-op
+    // When the dance's dialect is already canonical, _canonicalView is a no-op
     // (both sides of the toggle are identical).  In that case hide the toggle.
-    final isCanonicalDialect = activeDialect == Dialect.canonical;
+    final isCanonicalDialect = danceDialect == Dialect.canonical;
     final dialect = _canonicalFigureTextEnabled && _canonicalView
         ? Dialect.canonical
-        : activeDialect;
+        : danceDialect;
     final visibleLinks = dance.links
         .where(
           (link) =>
@@ -1083,7 +1155,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
         )
         .toList();
 
-    return ReadableListView(
+    return ListView(
       // The bottom inset lets the last section scroll clear of the Edit FAB.
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.md,
@@ -1113,6 +1185,10 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
                       style: theme.textTheme.bodyLarge,
                     ),
                   ),
+                ],
+                if (roleTermsOverridden) ...[
+                  const SizedBox(height: AppSpacing.xs),
+                  const _RoleTermsOverrideNote(),
                 ],
                 const SizedBox(height: AppSpacing.sm),
                 Row(
@@ -1260,11 +1336,14 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
           ],
         ),
         switch (dance.figuresSource) {
-          DecodedFigures(:final figures) => FigureTable(
-            figures: figures,
-            phraseStructure: dance.phraseStructure,
-            renderer: UserFiguresScope.rendererOf(context),
-            dialect: dialect,
+          DecodedFigures(:final figures) => BarTimingScope.forDance(
+            dance,
+            child: FigureTable(
+              figures: figures,
+              phraseStructure: dance.phraseStructure,
+              renderer: UserFiguresScope.rendererOf(context),
+              dialect: dialect,
+            ),
           ),
           // An empty table would say the dance has no figures, which is false
           // and is the claim this whole change exists to stop making.
@@ -1390,6 +1469,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
           ),
           for (final link in visibleLinks)
             _LinkRow(
+              form: dance.form,
               key: ValueKey('link-row-${link.id}'),
               link: link,
               relatedDanceTitle: link.kind == LinkKind.relatedDance
@@ -1438,7 +1518,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
           ))
             Padding(
               // intentional: 2px optical inset, below the 4px AppSpacing grid
-              padding: const EdgeInsets.symmetric(vertical: 2),
+              padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxxs),
               child: Text(
                 '${field.label}: ${canonicalDiscouragedTerms ? _proseRenderer.renderFreeTextWithCanonicalDiscouragedTerms(field.text, dialect) : field.text}',
               ),
@@ -1479,6 +1559,39 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
       builder: (_) => ProgramSummaryScreen(programId: programId),
     ),
   );
+}
+
+/// Says the dance is shown with larks and robins rather than the role terms
+/// of the reader's dialect, because its choreographer asked for them
+/// (`dialectForDance`). Shown only when the reader's dialect calls the roles
+/// something else.
+class _RoleTermsOverrideNote extends StatelessWidget {
+  const _RoleTermsOverrideNote();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final color = theme.colorScheme.onSurfaceVariant;
+    // About the page, not the dance: it stays out of a copy of the dance.
+    return SelectionContainer.disabled(
+      child: Row(
+        key: const ValueKey('role-terms-override-note'),
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ExcludeSemantics(
+            child: Icon(Icons.info_outline, size: 18, color: color),
+          ),
+          const SizedBox(width: AppSpacing.xs),
+          Expanded(
+            child: Text(
+              AppLocalizations.of(context).danceRoleTermsOverrideNote,
+              style: theme.textTheme.bodySmall?.copyWith(color: color),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _DialectToggle extends StatelessWidget {
@@ -1524,18 +1637,22 @@ class _StatusBanner extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.xs),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
+        color: color.withValues(alpha: AppThemeExtension.statusTintAlpha),
         borderRadius: AppShapes.borderRadiusSmall,
       ),
       child: Row(
         children: [
-          Icon(icon, size: 18, color: color),
+          Icon(
+            icon,
+            size: 18,
+            color: AppThemeExtension.statusIconColor(color, theme.colorScheme),
+          ),
           const SizedBox(width: AppSpacing.xs),
           Flexible(
             child: Text(
               label,
               style: theme.textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w700,
               ),
             ),
           ),
@@ -1579,10 +1696,14 @@ class _ProvenanceLine extends StatelessWidget {
 class _LinkRow extends StatelessWidget {
   const _LinkRow({
     super.key,
+    required this.form,
     required this.link,
     this.relatedDanceTitle,
     this.onTap,
   });
+
+  /// The form of the dance the link belongs to, whose dialect it reads in.
+  final DanceForm form;
 
   final DanceLink link;
 
@@ -1600,8 +1721,10 @@ class _LinkRow extends StatelessWidget {
     final canonicalizeDiscouragedTerms = CanonicalDiscouragedTermsScope.of(
       context,
     );
-    final dialect = ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins;
-    final renderer = FigureRenderer(contraTaxonomy);
+    final dialect =
+        (ActiveDialectScope.maybeOf(context) ?? DialectsByForm.defaults)
+            .forForm(form);
+    final renderer = FigureRenderer(shippedTaxonomies.anyForm);
     final String display;
     if (label != null && label.isNotEmpty) {
       display = canonicalizeDiscouragedTerms
@@ -1645,7 +1768,7 @@ class _LinkRow extends StatelessWidget {
             child: ExcludeSemantics(
               child: Padding(
                 // intentional: 2px optical inset, below the 4px AppSpacing grid
-                padding: const EdgeInsets.symmetric(vertical: 2),
+                padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxxs),
                 child: Row(
                   children: [
                     Icon(icon, size: 16),
@@ -1663,7 +1786,7 @@ class _LinkRow extends StatelessWidget {
 
     Widget content = Padding(
       // intentional: 2px optical inset, below the 4px AppSpacing grid
-      padding: const EdgeInsets.symmetric(vertical: 2),
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxxs),
       child: Row(
         children: [
           Icon(icon, size: 16),
@@ -1757,7 +1880,7 @@ class _SourceCitationRow extends StatelessWidget {
         children: [
           const Padding(
             // intentional: 2px optical inset, below the 4px AppSpacing grid
-            padding: EdgeInsets.only(top: 2),
+            padding: EdgeInsets.only(top: AppSpacing.xxxs),
             child: Icon(Icons.menu_book_outlined, size: 16),
           ),
           const SizedBox(width: AppSpacing.xs),

@@ -118,5 +118,26 @@ void main() {
       );
       expect(syncSettingValueText(l10n, <Object?>[]), 'None');
     });
+
+    test('masks a gendered active dialect name, and only that', () {
+      for (final key in [
+        'active_dialect_ref',
+        'active_dialect_ref_ecd',
+        'active_dialect_ref_square',
+      ]) {
+        expect(
+          syncSettingValueText(l10n, 'Gents Night', key: key),
+          Dialect.customName,
+          reason: key,
+        );
+        expect(syncSettingValueText(l10n, 'Mine', key: key), 'Mine');
+      }
+      expect(
+        syncSettingValueText(l10n, [
+          {'name': 'Gents Night', 'roles': <String, Object?>{}},
+        ]),
+        Dialect.customName,
+      );
+    });
   });
 }

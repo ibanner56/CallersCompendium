@@ -9,6 +9,9 @@ class AppShapes {
   static const double radiusLarge = 16;
   static const double radiusDialog = 28;
 
+  /// Fully rounded ends, for round placeholders and pills.
+  static const double radiusFull = 999;
+
   static const BorderRadius borderRadiusSmall = BorderRadius.all(
     Radius.circular(radiusSmall),
   );
@@ -36,7 +39,8 @@ class AppShapes {
   );
 }
 
-/// The `builder:` for Flutter's own date picker. It sizes itself from the text
+/// The wrapper [showAppDatePicker] puts round Flutter's own date picker, which
+/// sizes itself from the text
 /// scale (496dp wide at 1×, wider as text grows), so [AppShapes.dialogConstraints]
 /// would crowd it from about 1.15× up. This lifts the cap for that one dialog.
 Widget uncappedDialogBuilder(BuildContext context, Widget? child) {

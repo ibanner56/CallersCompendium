@@ -1,8 +1,6 @@
-import 'package:compendium_app/src/data/reduce_motion_scope.dart';
 import 'package:compendium_app/src/widgets/program_matrix_table.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:compendium_core/testing.dart';
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import '../support/l10n_harness.dart';
@@ -96,6 +94,39 @@ void main() {
     expect(find.text('partner swing'), findsOneWidget);
     expect(find.text('neighbor swing'), findsOneWidget);
     expect(find.text('balance'), findsOneWidget);
+  });
+
+  testWidgets('the hide-column eye is a full-size target at full contrast', (
+    tester,
+  ) async {
+    await pump(
+      tester,
+      dances: [
+        dance('d1', 'A', [swing(), move('balance')]),
+      ],
+      onHideColumn: (_) {},
+    );
+
+    final eye = find.byKey(const ValueKey('program-matrix-hide-column-0'));
+    final size = tester.getSize(eye);
+    expect(size.width, greaterThanOrEqualTo(44));
+    expect(size.height, greaterThanOrEqualTo(44));
+
+    // Not faded at rest: nothing above it is a partly transparent Opacity.
+    for (final opacity in tester.widgetList<Opacity>(
+      find.ancestor(of: eye, matching: find.byType(Opacity)),
+    )) {
+      expect(opacity.opacity, 1.0);
+    }
+    for (final fade in tester.widgetList<FadeTransition>(
+      find.ancestor(of: eye, matching: find.byType(FadeTransition)),
+    )) {
+      expect(fade.opacity.value, 1.0);
+    }
+    expect(
+      tester.widget<IconButton>(eye).color,
+      Theme.of(tester.element(eye)).colorScheme.onSurfaceVariant,
+    );
   });
 
   testWidgets('renders split swing and hey headers present in the program', (
@@ -543,7 +574,7 @@ void main() {
       List<int?>? sections,
       Set<String> hiddenColumns = const {},
     }) async {
-      // A 360dp phone: below ProgramMatrixTable.compactBreakpoint (600), so the
+      // A 360dp phone: below AppBreakpoints.compact (600), so the
       // wide scrolling grid is replaced by the condensed by-move view.
       await tester.binding.setSurfaceSize(const Size(360, 720));
       addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -1265,18 +1296,15 @@ void main() {
         final tooltipFinder = find.byTooltip('Hide partner swing column');
         expect(tooltipFinder, findsOneWidget);
 
-        // Resting opacity is non-zero (touch users never trigger hover), so
-        // the glyph isn't invisible/undiscoverable without a mouse.
-        final restingOpacity = tester
-            .widget<AnimatedOpacity>(
-              find.ancestor(
-                of: tooltipFinder,
-                matching: find.byType(AnimatedOpacity),
-              ),
-            )
-            .opacity;
-        expect(restingOpacity, greaterThan(0));
-        expect(restingOpacity, lessThan(1));
+        // At rest the glyph is not faded at all: touch users never trigger
+        // hover, and a dimmed glyph fell to about 2:1 contrast.
+        expect(
+          find.ancestor(
+            of: tooltipFinder,
+            matching: find.byType(AnimatedOpacity),
+          ),
+          findsNothing,
+        );
 
         // No hover was simulated above, yet the button is still tappable —
         // proving the affordance isn't hover-gated for interaction.
@@ -1284,84 +1312,6 @@ void main() {
         await tester.pump();
       },
     );
-
-    testWidgets(
-      'hovering the column header reveals the glyph at full opacity',
-      (tester) async {
-        await pump(
-          tester,
-          dances: [
-            dance('d1', 'A', [swing()]),
-          ],
-          onHideColumn: (_) {},
-        );
-
-        final tooltipFinder = find.byTooltip('Hide partner swing column');
-        final gesture = await tester.createGesture(
-          kind: PointerDeviceKind.mouse,
-        );
-        addTearDown(gesture.removePointer);
-        await gesture.addPointer(location: Offset.zero);
-        await tester.pump();
-        await gesture.moveTo(tester.getCenter(find.text('partner swing')));
-        await tester.pumpAndSettle();
-
-        final hoveredOpacity = tester
-            .widget<AnimatedOpacity>(
-              find.ancestor(
-                of: tooltipFinder,
-                matching: find.byType(AnimatedOpacity),
-              ),
-            )
-            .opacity;
-        expect(hoveredOpacity, 1);
-      },
-    );
-
-    for (final reduce in [true, false]) {
-      testWidgets(
-        'the hide glyph fade ${reduce ? 'snaps' : 'animates'} when Reduce '
-        'motion is ${reduce ? 'on' : 'off'} (PRES-14)',
-        (tester) async {
-          final notifier = ValueNotifier<bool?>(reduce);
-          addTearDown(notifier.dispose);
-          await tester.binding.setSurfaceSize(const Size(1400, 900));
-          addTearDown(() => tester.binding.setSurfaceSize(null));
-          await tester.pumpWidget(
-            ReduceMotionScope(
-              notifier: notifier,
-              child: MaterialApp(
-                localizationsDelegates: testLocalizationsDelegates,
-                supportedLocales: testSupportedLocales,
-                home: Scaffold(
-                  body: ProgramMatrixTable(
-                    matrix: buildProgramMatrix([
-                      dance('d1', 'A', [swing()]),
-                    ]),
-                    taxonomy: contraTaxonomy,
-                    dialect: Dialect.canonical,
-                    omittedFreeTextCount: 0,
-                    onHideColumn: (_) {},
-                  ),
-                ),
-              ),
-            ),
-          );
-          await tester.pumpAndSettle();
-
-          final fade = tester.widget<AnimatedOpacity>(
-            find.ancestor(
-              of: find.byTooltip('Hide partner swing column'),
-              matching: find.byType(AnimatedOpacity),
-            ),
-          );
-          expect(
-            fade.duration,
-            reduce ? Duration.zero : const Duration(milliseconds: 120),
-          );
-        },
-      );
-    }
   });
 
   // UX4-3c: the chip's title was unflexed in a Row(min), so a long title ran

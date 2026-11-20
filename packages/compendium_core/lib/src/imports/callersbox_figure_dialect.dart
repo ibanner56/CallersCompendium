@@ -39,7 +39,7 @@ import 'while_container.dart';
 /// `()`/`[]` recognition-only annotation strip. Pass this as the `frontEnd` to
 /// [parseFigureLine]/[parseFigureLines] to recognize the full TCB dialect.
 ///
-/// **Pre-recognizer ordering.** The first sixteen entries (through
+/// **Pre-recognizer ordering.** The first seventeen entries (through
 /// `_singleFileCircleRecognizer`) all anchor on a move keyword, and all
 /// require a successful resolution to their own move, so in most cases
 /// order is not correctness-critical.  Four overlapping anchor pairs each
@@ -87,6 +87,10 @@ final FigureFrontEnd tcbFigureFrontEnd = FigureFrontEnd(
     _balancePairHandAnnotation,
     _gateAnnotation,
     _courtesyTurnAnnotation,
+    // Taxonomy v40 (#770): TCB's `(past …)` count on a cast. It fires only on
+    // a cast line carrying one, and reads the rest of the line through every
+    // other entry here, so its position is not correctness-critical.
+    _tcbCast,
     _walkForwardAnnotation,
     _chainAnnotation,
     _starPromenadeAnnotation,
@@ -171,7 +175,7 @@ final RegExp _roleSplitAmountRe = RegExp(
 ///   `Circle left 3/4; face up` yields `circle` plus the note `face up` instead
 ///   of one custom figure. Nothing is lost and no move is fabricated — the same
 ///   trade #729 made for annotations. Every clause outside the allowlist still
-///   collapses the whole line (`…; bend the line`, `…; cast down to place`, and
+///   collapses the whole line (`…; bend the line`, `…; separate`, and
 ///   every unapproved `form <formation>` label). Exact approved formation labels
 ///   use the note fallback, and `fall back` is consumed only after an approved
 ///   parent move. The note is the
@@ -479,8 +483,9 @@ const int _maxNoteFallbackClauses = 8;
 ///   wordings the maintainer did NOT rule on (`finish improper`,
 ///   `finish progressed`, `finish next to partner`, `finish with …`,
 ///   `return to original place`, `return to place. role2 one follow`) and,
-///   deliberately, the whole `cast up/down/back to place` family — those lines
-///   must keep falling to custom so a future census of `cast` counts them.
+///   deliberately, the whole `cast up/down/back to place` family. A cast is a
+///   move, never commentary: since taxonomy v40 (#770) such a clause reads as
+///   a `cast` figure of its own, so it must not be swept into a note.
 /// - **`role2s turn around` — 132**, and **`role1s turn around` — 96.** Matched
 ///   by [_turnAroundClause], a PREFIX rule mirroring [_facingClause], so the 17
 ///   annotated variants (`… (cw)`, `… [with n2]`, `… (by left)`) come with them
@@ -1046,6 +1051,130 @@ String _tcbRecognitionNormalize(String lowercased) {
 
 final RegExp _promenadeMajorSetTail = RegExp(
   r'\baround\s+the\s+major\s+set\b',
+  caseSensitive: false,
+);
+
+// --- Cast: the `(past …)` count (taxonomy v40, #770) --------------------------
+
+/// The Caller's Box's `(past twos; threes)` on a cast: the couples the cast goes
+/// past, which the glossary's "Cast down" entry gives as its distance. The count
+/// fills `places` and the text is kept as a note (the maintainer's call,
+/// 2026-11-19), on top of whatever the rest of this front end makes of the line.
+///
+/// Read only when every `;`-separated item is one dancer or group the notation
+/// uses ([_castPastItemRe]: `twos`, `N2`, `W1`, `N2 twos`, `shadow S1`, …), so
+/// the count is the number of items. Anything else keeps the line custom rather
+/// than guessing a count: `(past ones and threes)`, `(past twos, threes)`,
+/// `(past S; to partner)` (an endpoint, not a dancer passed), `(past top
+/// couple)`, a second `(past …)` in the same clause, or a count that disagrees
+/// with one the line states (`cast off 2 (past twos)`).
+///
+/// The run is removed and the remainder read through every other
+/// pre-recognizer of [tcbFigureFrontEnd], then the shared recognizers, so a
+/// `[with N2]` beside it is noted exactly as on any other cast. The remainder
+/// no longer carries the run, and this entry is skipped, so it cannot recurse.
+///
+/// It also reads a `(cw)`/`(ccw)` annotation on a cast as its shoulder (right
+/// and left, as "cast clockwise" and "cast counterclockwise" are), so a stated
+/// rotation is never overridden by the adapter's assumed one: `Men cast back
+/// (cw) || Women go forward`.
+///
+/// Returns null (the normal path) for a line with neither, and for one whose
+/// remainder is not a cast.
+FigureMatch? _tcbCast(String scrubbed) {
+  if (!_castWordRe.hasMatch(scrubbed)) return null;
+  final runs = _castPastRe.allMatches(scrubbed).take(2).toList();
+  final spins = _castSpinRe.allMatches(scrubbed).take(2).toList();
+  if (runs.isEmpty && spins.isEmpty) return null;
+
+  // Remove the runs this reads, back to front so earlier offsets hold.
+  final removed = [...runs.take(1), ...spins.take(1)]
+    ..sort((a, b) => b.start.compareTo(a.start));
+  var text = scrubbed;
+  for (final run in removed) {
+    text = '${text.substring(0, run.start)} ${text.substring(run.end)}';
+  }
+  text = text.replaceAll(_castWhitespaceRe, ' ').trim();
+  FigureMatch? inner;
+  for (final pre in tcbFigureFrontEnd.preRecognizers) {
+    if (identical(pre, _tcbCast)) continue;
+    inner = pre(text);
+    if (inner != null) break;
+  }
+  inner ??= recognizeSharedFigureLine(
+    text,
+    recognitionNormalize: _tcbRecognitionNormalize,
+  );
+  if (inner == null) return null;
+  if (inner.forceCustom) return inner;
+  if (inner.moveId != 'cast') return null;
+
+  final params = <String, Object?>{...inner.params};
+  var note = inner.note;
+  if (spins.isNotEmpty) {
+    // `(cw)` is the right shoulder and `(ccw)` the left, as "cast clockwise"
+    // and "cast counterclockwise" are. A second one, or one that disagrees
+    // with a direction the line states, keeps the line custom.
+    final spin = spins.first.group(1)!.toLowerCase();
+    final shoulder = spin == 'cw' || spin == 'clockwise' ? 'right' : 'left';
+    final stated = params['direction'];
+    if (spins.length > 1 ||
+        (stated != null &&
+            stated != ParamVocab.unspecified &&
+            stated != shoulder)) {
+      return const FigureMatch.customFallback();
+    }
+    params['direction'] = shoulder;
+  }
+  if (runs.isNotEmpty) {
+    final body = runs.first.group(1)!.trim();
+    final items = body.split(';').map((item) => item.trim()).toList();
+    final stated = params['places'];
+    if (runs.length > 1 ||
+        items.length > 10 ||
+        !items.every(_castPastItemRe.hasMatch) ||
+        (stated is int && stated != items.length)) {
+      return const FigureMatch.customFallback();
+    }
+    params['places'] = items.length;
+    note = combineFigureNotes(note, 'past $body');
+  }
+  return FigureMatch(
+    'cast',
+    params: params,
+    note: note,
+    assumedSubject: inner.assumedSubject,
+  );
+}
+
+/// A cast's `(cw)`/`(ccw)` annotation (also spelled out): its shoulder.
+final RegExp _castSpinRe = RegExp(
+  r'\(\s*(cw|ccw|clockwise|counterclockwise)\s*\)',
+  caseSensitive: false,
+);
+
+/// The word `cast`, but not `hand cast` (the `hand_cast` alias of gate).
+final RegExp _castWordRe = RegExp(
+  r'(?<!\bhand\s)\bcast\b',
+  caseSensitive: false,
+);
+
+final RegExp _castWhitespaceRe = RegExp(r'\s+');
+
+/// `(past …)`. Bounded like [_annotationRe], so a pathological parenthetical
+/// simply does not match.
+final RegExp _castPastRe = RegExp(
+  r'\(\s*past\s+([^()]{1,120})\)',
+  caseSensitive: false,
+);
+
+/// One item of a `(past …)` list: a numbered dancer code (`N2`, `W1`, `M3`,
+/// `S1`, `C1`, `P2`), a group (`ones` … `fives`, `partner`, `shadow`,
+/// `neighbor`), or a code and a group together in either order (`N2 twos`,
+/// `shadow S1`). Every form the 1,563 public dances that mention a cast write,
+/// except the ones [_tcbCast] deliberately leaves custom.
+final RegExp _castPastItemRe = RegExp(
+  r'^(?:(?:[mwnpsc]\d\s+)?(?:ones|twos|threes|fours|fives|partners?|shadows?|neighbors?)(?:\s+[mwnpsc]\d)?|[mwnpsc]\d)$',
   caseSensitive: false,
 );
 

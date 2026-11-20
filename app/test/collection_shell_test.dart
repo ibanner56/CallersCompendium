@@ -23,6 +23,7 @@ import 'package:compendium_app/src/search/collection_query.dart'
     show CollectionSort;
 import 'package:compendium_app/src/widgets/brand_mark.dart';
 
+import 'support/dance_detail_actions.dart';
 import 'support/test_repositories.dart';
 import 'support/l10n_harness.dart';
 
@@ -179,6 +180,8 @@ void main() {
 
       // DanceDetailScreen pushed — list is no longer visible
       expect(find.byType(DanceDetailScreen), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('dance-actions-overflow')));
+      await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('reimport-dance')), findsOneWidget);
       expect(find.text('Push Me'), findsWidgets);
     });
@@ -196,8 +199,7 @@ void main() {
       await tester.tap(find.text('Delete Narrow'));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byKey(const ValueKey('delete-dance')));
-      await tester.pumpAndSettle();
+      await tapDanceOverflowAction(tester, 'delete-dance');
 
       // Popped back to list; deleted dance gone
       expect(find.byType(DanceListScreen), findsOneWidget);
@@ -251,8 +253,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('A1 Reel'));
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('reimport-dance')));
-      await tester.pumpAndSettle();
+      await tapDanceOverflowAction(tester, 'reimport-dance');
       await tester.tap(find.byKey(const ValueKey('reimport-source-link')));
       await tester.pumpAndSettle();
       await tester.enterText(
@@ -523,8 +524,7 @@ void main() {
         expect(find.byType(DanceDetailScreen), findsOneWidget);
 
         // Delete from detail pane
-        await tester.tap(find.byKey(const ValueKey('delete-dance')));
-        await tester.pumpAndSettle();
+        await tapDanceOverflowAction(tester, 'delete-dance');
 
         // Detail clears back to empty-state placeholder
         expect(find.text('Select a dance'), findsOneWidget);
@@ -552,8 +552,7 @@ void main() {
       await tester.tap(find.text('Undo Wide'));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byKey(const ValueKey('delete-dance')));
-      await tester.pumpAndSettle();
+      await tapDanceOverflowAction(tester, 'delete-dance');
 
       // Dance is gone from list, placeholder shown
       expect(find.text('Undo Wide'), findsNothing);
@@ -600,8 +599,11 @@ void main() {
       expect(find.text('Select a dance'), findsOneWidget);
       expect(find.byType(DanceDetailScreen), findsNothing);
 
-      // Tap the new-dance FAB — DanceEditorScreen is pushed.
-      await tester.tap(find.byKey(const ValueKey('new-dance')));
+      // The Collection is empty, so New dance is the empty state's button
+      // (the floating one waits for a list) — DanceEditorScreen is pushed.
+      await tester.tap(
+        find.byKey(const ValueKey('collection-empty-new-dance')),
+      );
       await tester.pumpAndSettle();
       expect(find.byType(DanceEditorScreen), findsOneWidget);
 

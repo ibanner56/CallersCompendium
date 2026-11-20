@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 
+import '../theme/app_spacing.dart';
+
 /// What the user chose on [ImportUserFiguresScreen], by each shared figure's
 /// id as it came.
 @immutable
@@ -108,7 +110,12 @@ class _ImportUserFiguresScreenState extends State<ImportUserFiguresScreen> {
       body: ListView(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.md,
+              AppSpacing.md,
+              AppSpacing.md,
+              AppSpacing.xs,
+            ),
             child: Text(
               l10n.importUserFiguresIntro,
               style: theme.textTheme.bodyMedium,
@@ -130,7 +137,12 @@ class _ImportUserFiguresScreenState extends State<ImportUserFiguresScreen> {
                     subtitle: note(item.incoming),
                   ),
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                    padding: const EdgeInsets.fromLTRB(
+                      AppSpacing.md,
+                      0,
+                      AppSpacing.md,
+                      AppSpacing.xs,
+                    ),
                     // Named, so a screen reader says whose choice this is.
                     child: Semantics(
                       container: true,
@@ -181,7 +193,7 @@ class _ImportUserFiguresScreenState extends State<ImportUserFiguresScreen> {
       ),
       bottomNavigationBar: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(AppSpacing.md),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -212,7 +224,12 @@ class _SectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.md,
+        AppSpacing.md,
+        AppSpacing.md,
+        AppSpacing.xxs,
+      ),
       child: Text(
         label,
         style: theme.textTheme.labelLarge?.copyWith(
