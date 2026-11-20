@@ -189,7 +189,7 @@ older than the one you already imported cannot be imported from the catalog.
 
 Importing a newer version of a collection you already have offers
 **Re-import onto** for its dances, which updates only their figures, formation
-and progression, as for any other source (see
+and progression (with the dance form, meter and key they need), as for any other source (see
 [Re-import an archive dance to pick up a correction](#re-import-an-archive-dance-to-pick-up-a-correction)).
 A corrected title or credit in the new version reaches a dance you already have
 only if you tick **Also update title and credit** on its row; a corrected note
@@ -425,6 +425,31 @@ are read as English figures, and a "Duple Proper" or "Duple Improper"
 formation becomes a duple minor, proper or improper. A formation that doesn't
 say Improper comes across proper.
 
+Many Caller's Companion libraries of English dances type them all "Contra",
+so before reading a `.USR` file the app asks once: **Are these English country
+dances?** Choose **Yes, English dances** and every dance in the file but a
+square comes across as an English country dance; choose **No, read their
+types** and each dance comes across by its Type, as above. Closing the question reads nothing, and choosing the file
+again asks again. Re-importing a dance you first brought in with the other
+answer takes the form along with the figures, so a contra dance re-imported
+as English becomes English and takes the file's meter and key if it had none
+(see
+[Re-import an archive dance to pick up a correction](#re-import-an-archive-dance-to-pick-up-a-correction)).
+
+An English dance takes its meter and key from the dance's Music field ("Key:
+G, Meter: 3/2" gives the meter 3/2 and the key G). A line that starts with a
+bar range, such as `1-4 Partners set and turn single`, `(5-8) circle left` or
+`A1 1-8 lead up`, counts that many bars, and the dance's meter says how many
+beats a bar holds: two in 2/2, 2/4, 6/8 or 6/4, three in 3/2, 3/4, 9/8 or
+9/4, four in 4/4, 12/8 or 12/4. So `1-4` is 8 beats in 2/2 and 12 in 3/2.
+When the Music field gives no meter the app counts two beats a bar and says so
+in the review. The bars are the count: a line that also gives a count in beats,
+such as `1-4 (6) circle left` or `(6) 1-4 circle left`, comes across as
+written, with the bars' count.
+The dance's phrase structure is not changed to match its meter, so in a 3/2
+dance the A and B labels on the dance's page can fall in the wrong places
+until you set the phrase structure (for example 4*8*3).
+
 The app also reads Caller's Companion's abbreviations and wording. "Circle L",
 "pass R shoulder" and "alle R 1.5" keep their direction, shoulder and hand;
 "R&L" is a right and left through; "New Neighbor" and "Corner" mean your next
@@ -451,7 +476,7 @@ the custom fields settings before you share. Dances you imported in an earlier v
 values as lines in their calling notes.
 
 Re-importing a dance takes only its figures, formation and progression from
-the file (see
+the file, with the dance form, meter and key they need (see
 [Re-import an archive dance to pick up a correction](#re-import-an-archive-dance-to-pick-up-a-correction)),
 so it never changes the dance's custom-field values. A column you changed or
 emptied in Caller's Companion since is not applied; change it in the app.
@@ -689,7 +714,7 @@ source you pick:
    a particular dance.
 3. **Decide dance by dance** — each dance can be brought in as **new**, updated
    as a **re-import** of one you imported before (which refreshes only its
-   figures, formation and progression), **linked** to an existing dance, kept as a separate **duplicate**, or **skipped**. Anything the app is
+   figures, formation and progression, with the dance form, meter and key they need), **linked** to an existing dance, kept as a separate **duplicate**, or **skipped**. Anything the app is
    unsure about defaults to **skip**, so it never guesses its way into your
    library.
    If something is wrong with the **whole file** — an incomplete `.USR`, or a
@@ -795,6 +820,11 @@ formation, and progression** replace those of the dance you already have instead
 of adding a second copy, which is how you pick up a correction an archive has
 made since you first imported.
 
+The figures bring their dance form with them: figures from a contra source make
+the dance a contra dance, and English figures make it English. When the dance
+has no meter or key yet, the incoming ones fill them, since English figures are
+counted in bars of the meter; a meter or key you already set stays.
+
 Everything else on the dance is yours and stays as it is: its title, authors,
 calling notes, walkthrough, status, rating, tags, links, tunes, custom fields and
 source citations. Your own ratings, tags and notes are never overwritten by a
@@ -879,7 +909,9 @@ them for only some dances — the app tells you so and leaves your dance
 unchanged, rather than replacing your figures with an empty list.
 
 Review the preview, then import to replace only the dance's **figures,
-formation, and progression**. This keeps your title, notes, rating, tags,
+formation, and progression**, with the dance form they are written in, and the
+meter and key if the dance has none. The Caller's Box and ContraDB hold contra
+dances, so refreshing an English dance from them makes it a contra dance. This keeps your title, notes, rating, tags,
 links, custom fields, authors, citations, and other saved metadata. The import
 review's **Re-import onto** does the same. Its **Same dance — replace** choices
 are different: they replace the dance's content (see

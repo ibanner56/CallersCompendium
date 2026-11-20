@@ -8023,6 +8023,10 @@ class AppLocalizationsDe extends AppLocalizations {
       'Eine Progression wurde nicht erkannt; Standard ist einfach.';
 
   @override
+  String get importIssueBarsMeterUnstated =>
+      'Dieser Tanz zählt in Takten, nennt aber keine Taktart, daher wurde jeder Takt als 2 Schläge gezählt. Prüfen Sie die Zählungen.';
+
+  @override
   String get importIssueUnmappedType =>
       'Ein Tanztyp wurde nicht erkannt; als Contra importiert und in den Notizen erhalten.';
 
@@ -8459,6 +8463,19 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get importReviewEditError =>
       'Dieser Tanz konnte nicht zum Bearbeiten importiert werden. Versuche es erneut.';
+
+  @override
+  String get importUsrEnglishTitle => 'Sind das englische Country Dances?';
+
+  @override
+  String get importUsrEnglishBody =>
+      'Caller\'s Companion führt englische Country Dances oft als Contra. Enthält diese Datei englische Tänze, werden sie mit englischen Figuren, Aufstellungen und Taktzählungen gelesen. Square Dances bleiben Square Dances.';
+
+  @override
+  String get importUsrEnglishNo => 'Nein, nach Typ lesen';
+
+  @override
+  String get importUsrEnglishYes => 'Ja, englische Tänze';
 
   @override
   String get importReviewEditOverwriteTitle =>
