@@ -861,7 +861,7 @@ class DanceEditorForm extends StatelessWidget {
       children: [
         ExcludeFocusWhenCollapsed(
           controller: moreDetailsController,
-          child: Column(
+          builder: (context) => Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               EnumDropdown<DanceStatus>(

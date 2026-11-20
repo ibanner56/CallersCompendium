@@ -14,7 +14,8 @@ Widget _tile(ExpansibleController controller, FocusNode inside) => MaterialApp(
       children: [
         ExcludeFocusWhenCollapsed(
           controller: controller,
-          child: TextField(key: const ValueKey('inside'), focusNode: inside),
+          builder: (_) =>
+              TextField(key: const ValueKey('inside'), focusNode: inside),
         ),
       ],
     ),
@@ -66,6 +67,53 @@ void main() {
       inside.hasFocus,
       isFalse,
       reason: 'focus stayed in a field that was collapsed away',
+    );
+  });
+
+  testWidgets('a DropdownMenu built while collapsed can take focus once the '
+      'tile opens', (tester) async {
+    // DropdownMenu reads its focus node's effective canRequestFocus when it
+    // builds, and its text field writes what it read onto the node. Built under
+    // a collapsed tile that is false. The wrapper must build the field again
+    // when the tile opens, or the field stays unfocusable and typing in it does
+    // nothing (the Program builder's dialect picker did exactly that).
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: ExpansionTile(
+              controller: controller,
+              title: const Text('More details'),
+              maintainState: true,
+              children: [
+                ExcludeFocusWhenCollapsed(
+                  controller: controller,
+                  builder: (_) => DropdownMenu<int>(
+                    focusNode: inside,
+                    enableFilter: true,
+                    requestFocusOnTap: true,
+                    dropdownMenuEntries: const [
+                      DropdownMenuEntry(value: 1, label: 'One'),
+                      DropdownMenuEntry(value: 2, label: 'Two'),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    controller.expand();
+    await tester.pumpAndSettle();
+
+    expect(inside.canRequestFocus, isTrue);
+    await tester.enterText(find.byType(TextField), 'Tw');
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<TextField>(find.byType(TextField)).controller?.text,
+      'Tw',
+      reason: 'typing did not reach the field',
     );
   });
 }

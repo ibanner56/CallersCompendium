@@ -4457,7 +4457,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       children: [
         ExcludeFocusWhenCollapsed(
           controller: _moreDetailsController,
-          child: Column(
+          builder: (context) => Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               _buildVenueField(l10n),
