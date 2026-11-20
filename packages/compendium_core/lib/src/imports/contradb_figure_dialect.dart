@@ -1601,9 +1601,9 @@ bool _eatHeyRicochetClause(
   String? length,
   List<int> slots,
 ) {
-  // `others`: the display's name for the pair a `threes`/`fours` hey has no
-  // couple word for (see [_heyRicochetSlot]).
-  final who = s.eat('others') ? 'others' : _subject(s);
+  // `others`: the display's name for the dancers on the ends when no pair
+  // inverts the one that starts the hey (see [_heyRicochetSlot]).
+  final who = s.eat('others') ? 'others' : _displaySubject(s);
   if (who == null || !s.eat('ricochet')) return false;
 
   var meetingOffset = 0;
@@ -1632,7 +1632,7 @@ bool _eatHeyRicochetClause(
 
 bool _looksLikeHeyRicochetClause(_Scan s) {
   final save = s.pos;
-  if (!s.eat('others') && _subject(s) == null) {
+  if (!s.eat('others') && _displaySubject(s) == null) {
     s.reset(save);
     return false;
   }
@@ -1648,20 +1648,10 @@ int? _heyRicochetSlot(
   int meetingOffset,
 ) {
   final center = pass1;
-  final inverted = switch (pass1) {
-    'role1s' => 'role2s',
-    'role2s' => 'role1s',
-    'ones' => 'twos',
-    'twos' => 'ones',
-    'firstCorners' => 'secondCorners',
-    'secondCorners' => 'firstCorners',
-    // Taxonomy v40: the third and fourth couples pass in the center like the
-    // ones, but no couple word names the pair on the ends, so the display
-    // calls them `others` ("threes start a half hey … others ricochet").
-    'threes' || 'fours' => 'others',
-    _ => null,
-  };
-  if (inverted == null) return null;
+  // The renderer's ends pair: the pair [invertPairDancerSet] names, else
+  // `others`, for a dancer no pair inverts (`threes`, `partners`, a single
+  // dancer …): "partners start a full hey … others ricochet first time".
+  final inverted = invertPairDancerSet(pass1) ?? 'others';
   final subjectOffset = who == center
       ? 0
       : who == inverted
