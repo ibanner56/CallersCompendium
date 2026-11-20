@@ -413,6 +413,41 @@ jobs:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: python3 tools/ci/check_version_bump_policy.py "$BASE_SHA"
 
+  # PR-only advisory reports: they print and never fail. Deliberately not in
+  # Merge gate's needs, and the step is continue-on-error, so a bug in a report
+  # can never block a merge. Each needs the PR base, so each lives here rather
+  # than in _checks.yml. Their tests run in _checks.yml with the other tool suites.
+  advisories:
+    name: Advisory reports
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # full history so we can diff against the PR base
+      # A change under packages/compendium_core/lib/ with no `core` record in the
+      # PR's fragments: release prep compiles fragments and does not diff the
+      # tree, so the entry would be lost, and core's version bumps only when core
+      # entries exist. Advisory because a pure refactor owes none (maintainer's
+      # decision, #2230). See tools/ci/report_missing_core_changelog.py.
+      - name: Report core changes with no core changelog record (advisory)
+        continue-on-error: true
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: python3 tools/ci/report_missing_core_changelog.py "$BASE_SHA" "$HEAD_SHA"
+      # A changed figure definition with a same-named figure in another dance
+      # form's taxonomy (contra `box_the_gnat`, ECD `ecd_box_the_gnat`): the
+      # namesake may need the same change, or may legitimately differ, so this is
+      # a prompt to check and never a failure (maintainer's request, #2230). The
+      # forms come from taxonomy_registry.dart. See tools/ci/report_figure_namesakes.py.
+      - name: Report namesakes of changed figure definitions (advisory)
+        continue-on-error: true
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: python3 tools/ci/report_figure_namesakes.py "$BASE_SHA" "$HEAD_SHA"
+
   # A PR that changes the Claude review workflow changes nothing else (unless
   # its whole change bumps the action's pin, which claude.yml may then match):
   # claude-code-action refuses to run when its workflow differs from main's (and

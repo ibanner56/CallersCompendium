@@ -27,6 +27,7 @@ import '../../search/fts_query.dart';
 import '../../serialization/figure_codec.dart';
 import '../figure_reparse.dart';
 import '../../sync/sync_record_kind.dart';
+import '../../taxonomy/ecd_sequence_span.dart';
 import '../../taxonomy/param_types.dart';
 import '../../taxonomy/taxonomy.dart';
 import '../calling_history_scope.dart';
@@ -1133,12 +1134,14 @@ class DanceRepository {
       final groups = <({List<Figure> leaves, String section})>[];
       if (figure.isSequence && subFigures.isNotEmpty) {
         var beat = sectioned[i].startBeat;
-        for (final child in subFigures) {
+        final lengths = _sequenceStepBeats(figure, dance.form);
+        for (var s = 0; s < subFigures.length; s++) {
+          final child = subFigures[s];
           groups.add((
             leaves: _leafFigures(child),
-            section: labelForFigure(beat, child.beats, dance.phraseStructure),
+            section: labelForFigure(beat, lengths[s], dance.phraseStructure),
           ));
-          beat += child.beats;
+          beat += lengths[s];
         }
       } else {
         groups.add((
@@ -1198,6 +1201,45 @@ class DanceRepository {
         values,
       );
     }
+  }
+
+  /// The beats each step of [sequence] takes, for placing it in a phrase.
+  ///
+  /// A step that states its timing takes its own beats. In an English
+  /// sequence that states one span for steps with no timing of their own
+  /// ("A, B and C in bars 1–4", ADR-006 §5.5), those steps share what the
+  /// timed ones leave of the span, evenly and in order, so a step late in a
+  /// span that crosses a phrase is placed in the later phrase rather than
+  /// where the sequence starts. Where the order of the steps is all the
+  /// dance says, an even share is the guess that leaves no step out of its
+  /// span. Contra's steps always state their timing, so they are unchanged.
+  static List<int> _sequenceStepBeats(Figure sequence, DanceForm form) {
+    final steps = sequence.subFigures;
+    final untimed = steps.where((step) => !stepStatesTiming(step)).length;
+    if (form != DanceForm.ecd || untimed == 0) {
+      return [for (final step in steps) step.beats];
+    }
+    final timed = steps
+        .where(stepStatesTiming)
+        .fold<int>(0, (sum, step) => sum + step.beats);
+    final spare = sequence.beats - timed;
+    final share = spare > 0 ? spare : 0;
+    // The n-th untimed step ends at share * n ~/ untimed, so the shares add
+    // up to the whole of it.
+    var ended = 0;
+    var seen = 0;
+    final lengths = <int>[];
+    for (final step in steps) {
+      if (stepStatesTiming(step)) {
+        lengths.add(step.beats);
+      } else {
+        seen++;
+        final end = (share * seen) ~/ untimed;
+        lengths.add(end - ended);
+        ended = end;
+      }
+    }
+    return lengths;
   }
 
   /// The live figures of your own (#1023) [figures] use, read for indexing;
@@ -3494,6 +3536,8 @@ class DanceRepository {
                 _db.dances.id,
                 _db.dances.title,
                 _db.dances.form,
+                _db.dances.meter,
+                _db.dances.phraseStructure,
                 _db.dances.figuresJson,
               ])
               ..where(_db.dances.deletedAt.isNull()))
@@ -3517,6 +3561,12 @@ class DanceRepository {
       final outcome = reparse(
         figures,
         taxonomy: _parseTaxonomy(row.readWithConverter(_db.dances.form)!),
+        meter: row.read(_db.dances.meter),
+        // As the row mapper reads it: a value stored before the bounds
+        // existed loads as standard, so the dry run matches the apply.
+        phraseStructure: PhraseStructure.parseOrStandard(
+          row.read(_db.dances.phraseStructure) ?? '',
+        ),
       );
       if (outcome.upgradedCount > 0) {
         previews.add(
@@ -3568,7 +3618,12 @@ class DanceRepository {
           UnreadableFigures() => null,
         };
         if (figures == null) return null;
-        final outcome = reparse(figures, taxonomy: _parseTaxonomy(dance.form));
+        final outcome = reparse(
+          figures,
+          taxonomy: _parseTaxonomy(dance.form),
+          meter: dance.meter,
+          phraseStructure: dance.phraseStructure,
+        );
         if (outcome.upgradedCount == 0) return null;
         return dance.copyWith(figures: outcome.figures, updatedAt: now);
       },
@@ -3603,6 +3658,8 @@ class DanceRepository {
                 _db.dances.formationDetail,
                 _db.dances.formationImproper,
                 _db.dances.figuresJson,
+                _db.dances.meter,
+                _db.dances.phraseStructure,
               ])
               ..where(
                 _db.dances.deletedAt.isNull() &
@@ -3624,6 +3681,10 @@ class DanceRepository {
           row.readWithConverter(_db.dances.formationShape)!,
           detail: row.read(_db.dances.formationDetail),
           improper: row.read(_db.dances.formationImproper)!,
+        ),
+        meter: row.read(_db.dances.meter),
+        phraseStructure: PhraseStructure.parseOrStandard(
+          row.read(_db.dances.phraseStructure) ?? '',
         ),
       );
       if (!result.changed) continue;
@@ -3671,7 +3732,12 @@ class DanceRepository {
           UnreadableFigures() => null,
         };
         if (figures == null) return null;
-        final result = migrate(figures, dance.formation);
+        final result = migrate(
+          figures,
+          dance.formation,
+          meter: dance.meter,
+          phraseStructure: dance.phraseStructure,
+        );
         if (!result.changed) return null;
         return dance.copyWith(
           figures: result.figures,

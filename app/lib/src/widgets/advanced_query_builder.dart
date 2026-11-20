@@ -7,6 +7,7 @@ import '../search/collection_query.dart';
 import '../search/collection_query_labels.dart';
 import '../search/facet_labels.dart';
 import '../theme/app_spacing.dart';
+import 'app_dropdown_field.dart';
 import 'move_autocomplete.dart';
 
 /// The "Advanced" boolean-tree query builder (`docs/design/search.md`
@@ -436,23 +437,23 @@ class _TagRow extends StatelessWidget {
           Expanded(
             child: Semantics(
               label: l10n.collectionQueryTagLabel,
-              child: DropdownButtonFormField<String>(
+              child: AppDropdownField<String?>(
                 key: ValueKey('tag-${node.id}'),
-                isExpanded: true,
-                initialValue: value,
-                hint: Text(l10n.collectionQueryTagHint),
+                value: value,
+                // The user's own tags: a list that grows.
+                filterable: true,
+                decoration: InputDecoration(
+                  hintText: l10n.collectionQueryTagHint,
+                ),
                 onChanged: (id) {
                   if (id != null && id != node.tagId) {
                     node.tagId = id;
                     onChanged();
                   }
                 },
-                items: [
+                entries: [
                   for (final tag in tags)
-                    DropdownMenuItem(
-                      value: tag.id,
-                      child: Text(tag.name, overflow: TextOverflow.ellipsis),
-                    ),
+                    AppDropdownEntry<String?>(value: tag.id, label: tag.name),
                 ],
               ),
             ),
@@ -923,11 +924,18 @@ class _MoveField extends StatelessWidget {
         userFigureName,
         dialect,
       ),
-      // In the active dialect, as the suggestion that set it read.
+      // In the active dialect, as the suggestion that set it read, its form
+      // named when another form's figure is named alike ("circle · English
+      // (ECD)").
       final move =>
         taxonomy.resolve(move) == null
             ? move
-            : FigureRenderer(taxonomy).displayMoveName(move, dialect),
+            : moveLabelWithForm(
+                context,
+                taxonomy,
+                move,
+                FigureRenderer(taxonomy).displayMoveName(move, dialect),
+              ),
     };
     return MoveTypeAheadField(
       initialText: current,

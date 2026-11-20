@@ -135,12 +135,24 @@ wording, saved unchanged, reads as the default line. Imported
   whole-collection sync settings (conflicts go to review). Contra's library
   travels in the backup's `app.dialects` section and the other forms' as plain
   `app.settings` entries; older builds keep the unknown keys whole (ADR-004).
-  Surfaces that do not yet have a taxonomy per form (glossary, shorthands,
-  walkthrough snippets, the dialect editor's preview samples) stay on contra's
-  dialect until W5/W6. Program-wide text (notes, set lists, matrix columns) is
-  rendered in contra's dialect, while each dance in a program renders in its
-  own form's (implementer's call; the alternative, rendering program text in
-  the form of most of its dances, was rejected as unpredictable).
+  The Glossary shows each form's built-in figures in that form's dialect, as
+  the dialect editor's preview samples and each walkthrough snippet (by its
+  figure's form) are. Surfaces that do not yet have a form of their own (the
+  user's own figures and terms, wherever they are shown, shorthands, and the
+  Settings defaults) stay on contra's dialect until they gain one.
+  Program-wide text (notes, set lists) is rendered in contra's dialect, while
+  each dance in a program renders in its own form's (implementer's call; the
+  alternative, rendering program text in the form of most of its dances, was
+  rejected as unpredictable). The matrix names a figure's column in its
+  figure's form's dialect, and a column of the user's own figure in contra's,
+  and shows each dance's formation details in that dance's dialect. A figure
+  with no prefix is contra's, and a dance of another form can use it too
+  (squares have no taxonomy yet; an English dance may keep a contra figure):
+  its column reads in the dialect of the dances that use it when they are all
+  of one form, and in contra's when forms mix; a column no dance uses (a
+  baseline swing column) reads in the program's form when all its dances are
+  of one form (implementer's call; the alternative, always contra's, would
+  word a square-only program's columns unlike its rows).
 
   A program may also name its own dialect (`Program.dialectName`, issue #1554),
   which only that program's Perform view uses; the editor, summary and exports
@@ -204,13 +216,14 @@ wording, saved unchanged, reads as the default line. Imported
   resolves its form's dialect through it, and converts its drafts as the
   title or authors start or stop requiring it), Perform (single dance and
   each program slot), the Collection list tile, the program summary row, the
-  program editor's slot row, the import review preview, and every export
+  program editor's slot row and its matrix's formation column (on screen and
+  in the PDF), the import review preview, and every export
   built on `DanceCardContent`, which carries the dialect it rendered in
   (`DanceCardContent.dialect`) for its consumers' figure rendering. Program-level
   text keeps the reader's dialect: slot notes (Perform renders a slot's caller
   note in the reader's dialect beside the dance's own, `PerformCard.
   callerNoteDialect`), and the program matrix's column labels, which span
-  several dances. The sync-conflict comparison renders each
+  several dances (each in the reader's dialect for its figure's form). The sync-conflict comparison renders each
   field without the dance's authors, so it also keeps the reader's dialect.
   Storage is unaffected: the dance stays canonical.
 

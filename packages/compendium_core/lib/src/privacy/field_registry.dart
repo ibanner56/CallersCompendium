@@ -934,30 +934,45 @@ final Set<String> syncBookkeepingTables = {
       entry.key.substring(0, entry.key.indexOf('.')),
 };
 
+/// Shared by the five postal-address constants below (seven `venues` columns).
+const _venueAddressNote =
+    'A venue\'s postal address, classified third-party like the venue\'s '
+    'contacts: the people it identifies never use this app and cannot consent '
+    'to a transfer. Never reaches a share, a PDF, Device Sync or other '
+    'project-operated infrastructure: a program share or PDF always clears it, '
+    'with no opt-in (sanitizeVenueForShare, after issue #853 found shares '
+    'carrying it), and Device Sync carries only fields classified shareable. '
+    'Only the owner\'s own full backup holds it.';
+
 const _contactStreet = DataClassification(
   term: DpvTerm.street,
   subject: DataSubject.thirdParty,
   egress: EgressClass.deviceLocal,
+  note: _venueAddressNote,
 );
 const _contactCity = DataClassification(
   term: DpvTerm.city,
   subject: DataSubject.thirdParty,
   egress: EgressClass.deviceLocal,
+  note: _venueAddressNote,
 );
 const _contactRegion = DataClassification(
   term: DpvTerm.region,
   subject: DataSubject.thirdParty,
   egress: EgressClass.deviceLocal,
+  note: _venueAddressNote,
 );
 const _contactCountry = DataClassification(
   term: DpvTerm.country,
   subject: DataSubject.thirdParty,
   egress: EgressClass.deviceLocal,
+  note: _venueAddressNote,
 );
 const _contactPostal = DataClassification(
   term: DpvTerm.postalCode,
   subject: DataSubject.thirdParty,
   egress: EgressClass.deviceLocal,
+  note: _venueAddressNote,
 );
 
 /// Shared by the six `venues.contact*` columns: the one recorded exception to

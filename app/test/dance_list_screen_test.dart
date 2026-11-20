@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:compendium_app/src/widgets/app_dropdown_field.dart';
 import 'package:compendium_app/src/data/callersbox_online.dart';
 import 'package:compendium_app/src/data/contradb_online.dart';
 import 'package:compendium_app/src/data/import_io.dart';
@@ -30,6 +31,7 @@ import 'package:compendium_app/src/widgets/collection_search_controls.dart';
 import 'package:compendium_app/src/widgets/dance_list_tile.dart';
 import 'package:compendium_app/src/widgets/skeleton.dart';
 
+import 'support/dropdown.dart';
 import 'support/dance_detail_actions.dart';
 import 'support/fab_clearance.dart';
 import 'support/test_repositories.dart';
@@ -2411,7 +2413,7 @@ void main() {
 
       final tagDropdowns = find.byWidgetPredicate((w) {
         final key = w.key;
-        return w is DropdownButtonFormField<String> &&
+        return w is AppDropdownField<String?> &&
             key is ValueKey<String> &&
             key.value.startsWith('tag-');
       });
@@ -2419,7 +2421,7 @@ void main() {
         await _tapVisible(tester, find.text('Add'));
         await _tapVisible(tester, find.text('Has tag').last);
         await _tapVisible(tester, tagDropdowns.at(index));
-        await tester.tap(find.text(name).last);
+        await tester.tap(dropdownEntry(name));
         await tester.pumpAndSettle();
       }
 
@@ -2451,12 +2453,9 @@ void main() {
       await _tapVisible(tester, find.byKey(const ValueKey('advanced-panel')));
       await _tapVisible(tester, find.text('Add'));
       await _tapVisible(tester, find.text('Has tag').last);
-      expect(find.byType(DropdownButtonFormField<String>), findsOneWidget);
-      await _tapVisible(
-        tester,
-        find.byType(DropdownButtonFormField<String>).first,
-      );
-      await tester.tap(find.text('smooth').last);
+      expect(find.byType(AppDropdownField<String?>), findsOneWidget);
+      await _tapVisible(tester, find.byType(AppDropdownField<String?>).first);
+      await tester.tap(dropdownEntry('smooth'));
       await tester.pumpAndSettle();
 
       // Going online with The Caller's Box leaves the query alone: turning
@@ -2466,7 +2465,7 @@ void main() {
         find.byKey(const ValueKey('online-search-enable')),
       );
       expect(
-        find.byType(DropdownButtonFormField<String>),
+        find.byType(AppDropdownField<String?>),
         findsNothing,
         reason: 'the panel is closed while The Caller\'s Box is the source',
       );
@@ -2476,7 +2475,7 @@ void main() {
       );
       await _tapVisible(tester, find.byKey(const ValueKey('advanced-panel')));
       expect(
-        find.byType(DropdownButtonFormField<String>),
+        find.byType(AppDropdownField<String?>),
         findsOneWidget,
         reason: 'The Caller\'s Box has no Advanced panel to clean up',
       );
@@ -2492,7 +2491,7 @@ void main() {
       expect(
         find.byWidgetPredicate(
           (w) =>
-              w is DropdownButtonFormField<String> &&
+              w is AppDropdownField<String?> &&
               w.key is ValueKey<String> &&
               (w.key! as ValueKey<String>).value.startsWith('tag-'),
         ),
@@ -2509,10 +2508,10 @@ void main() {
         tester,
         find.byKey(const ValueKey('online-search-enable')),
       );
-      if (find.byType(DropdownButtonFormField<String>).evaluate().isEmpty) {
+      if (find.byType(AppDropdownField<String?>).evaluate().isEmpty) {
         await _tapVisible(tester, find.byKey(const ValueKey('advanced-panel')));
       }
-      expect(find.byType(DropdownButtonFormField<String>), findsOneWidget);
+      expect(find.byType(AppDropdownField<String?>), findsOneWidget);
       expect(find.text('smooth'), findsWidgets);
     },
   );
@@ -2543,11 +2542,8 @@ void main() {
       await _tapVisible(tester, find.byKey(const ValueKey('advanced-panel')));
       await _tapVisible(tester, find.text('Add'));
       await _tapVisible(tester, find.text('Has tag').last);
-      await _tapVisible(
-        tester,
-        find.byType(DropdownButtonFormField<String>).first,
-      );
-      await tester.tap(find.text('smooth').last);
+      await _tapVisible(tester, find.byType(AppDropdownField<String?>).first);
+      await tester.tap(dropdownEntry('smooth'));
       await tester.pumpAndSettle();
 
       await _tapVisible(
@@ -2561,10 +2557,10 @@ void main() {
       // library; the Advanced query's tag row comes back with it.
       filterController.filterByTag('t1');
       await tester.pumpAndSettle();
-      if (find.byType(DropdownButtonFormField<String>).evaluate().isEmpty) {
+      if (find.byType(AppDropdownField<String?>).evaluate().isEmpty) {
         await _tapVisible(tester, find.byKey(const ValueKey('advanced-panel')));
       }
-      expect(find.byType(DropdownButtonFormField<String>), findsOneWidget);
+      expect(find.byType(AppDropdownField<String?>), findsOneWidget);
     },
   );
 
@@ -2586,11 +2582,8 @@ void main() {
     await _tapVisible(tester, find.byKey(const ValueKey('advanced-panel')));
     await _tapVisible(tester, find.text('Add'));
     await _tapVisible(tester, find.text('Has tag').last);
-    await _tapVisible(
-      tester,
-      find.byType(DropdownButtonFormField<String>).first,
-    );
-    await tester.tap(find.text('smooth').last);
+    await _tapVisible(tester, find.byType(AppDropdownField<String?>).first);
+    await tester.tap(dropdownEntry('smooth'));
     await tester.pumpAndSettle();
 
     await _tapVisible(
@@ -2612,10 +2605,10 @@ void main() {
       tester,
       find.byKey(const ValueKey('online-search-enable')),
     );
-    if (find.byType(DropdownButtonFormField<String>).evaluate().isEmpty) {
+    if (find.byType(AppDropdownField<String?>).evaluate().isEmpty) {
       await _tapVisible(tester, find.byKey(const ValueKey('advanced-panel')));
     }
-    expect(find.byType(DropdownButtonFormField<String>), findsNothing);
+    expect(find.byType(AppDropdownField<String?>), findsNothing);
   });
 
   group('ContraDB scroll paging', () {
@@ -3124,7 +3117,7 @@ void main() {
     await _search(tester, 'chase');
 
     expect(
-      find.text('Something went wrong running the search.'),
+      find.text('Couldn\'t run the search. Nothing was changed. Try again.'),
       findsOneWidget,
     );
     // The stale count is cleared so the live region matches the error state.
@@ -3145,14 +3138,17 @@ void main() {
 
     expect(dances.fired, isTrue, reason: 'the injected failure must fire');
     expect(
-      find.text('Something went wrong running the search.'),
+      find.text('Couldn\'t run the search. Nothing was changed. Try again.'),
       findsOneWidget,
     );
 
     await tester.tap(find.byKey(const ValueKey('load-error-retry')));
     await tester.pumpAndSettle();
 
-    expect(find.text('Something went wrong running the search.'), findsNothing);
+    expect(
+      find.text('Couldn\'t run the search. Nothing was changed. Try again.'),
+      findsNothing,
+    );
     expect(find.byType(DanceListTile), findsOneWidget);
   });
 
@@ -3169,7 +3165,10 @@ void main() {
     // queries now match nothing gracefully instead of surfacing an error.
     await _search(tester, '"');
 
-    expect(find.text('Something went wrong running the search.'), findsNothing);
+    expect(
+      find.text('Couldn\'t run the search. Nothing was changed. Try again.'),
+      findsNothing,
+    );
     expect(find.text('No dances match your search.'), findsOneWidget);
     expect(find.text('0 dances'), findsOneWidget);
   });

@@ -377,7 +377,7 @@ void main() {
       await pump(tester, service);
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('could not be reached'), findsOneWidget);
+      expect(find.textContaining("Couldn't reach"), findsOneWidget);
       expect(find.textContaining('temporarily unavailable'), findsNothing);
       expect(sink.sources, [
         'published_collection_catalog_screen._loadCatalog',
@@ -386,10 +386,10 @@ void main() {
 
       // A rebuild does not log again; Retry fetches again and recovers.
       online = true;
-      await tester.tap(find.text('Retry'));
+      await tester.tap(find.text('Try again'));
       await tester.pumpAndSettle();
       expect(find.text('FODA'), findsOneWidget);
-      expect(find.text('Retry'), findsNothing);
+      expect(find.text('Try again'), findsNothing);
       expect(sink.sources, hasLength(1));
     });
 
@@ -407,7 +407,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.textContaining('need a newer app version'), findsOneWidget);
-      expect(find.text('Retry'), findsNothing);
+      expect(find.text('Try again'), findsNothing);
       expect(sink.errors.single, contains('unsupported'));
     });
 
@@ -426,11 +426,11 @@ void main() {
       await pump(tester, service);
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('could not be verified'), findsOneWidget);
+      expect(find.textContaining("Couldn't verify"), findsOneWidget);
       expect(find.textContaining('update the app'), findsOneWidget);
       expect(find.textContaining('temporarily unavailable'), findsNothing);
       // It may also be a transient bad response, so Retry stays available.
-      expect(find.text('Retry'), findsOneWidget);
+      expect(find.text('Try again'), findsOneWidget);
       expect(sink.errors.single, contains('invalidSignature'));
     });
 
@@ -448,16 +448,16 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.textContaining('temporarily unavailable'), findsOneWidget);
-      expect(find.textContaining('could not be verified'), findsNothing);
+      expect(find.textContaining("Couldn't verify"), findsNothing);
       expect(sink.errors.single, contains('missingSignature'));
     });
 
     // Every failure code, on both the catalog and the archive path, maps to
     // exactly one of the four messages. Written out by hand so that moving a
     // code between arms of the mapping fails here (#2161 review).
-    const reached = 'could not be reached';
+    const reached = "Couldn't reach";
     const newer = 'newer app version';
-    const unverified = 'could not be verified';
+    const unverified = "Couldn't verify";
     const unavailable = 'temporarily unavailable';
     const expected = <PublishedCollectionFetchFailure, String>{
       PublishedCollectionFetchFailure.unavailable: reached,
@@ -548,14 +548,14 @@ void main() {
 
       await tester.tap(find.text('Import collection'));
       await tester.pumpAndSettle();
-      expect(find.textContaining('could not be reached'), findsOneWidget);
+      expect(find.textContaining("Couldn't reach"), findsOneWidget);
       expect(sink.sources, ['published_collection_catalog_screen._import']);
 
       archiveOnline = true;
-      await tester.tap(find.text('Retry'));
+      await tester.tap(find.text('Try again'));
       await tester.pumpAndSettle();
       expect(imports, 1);
-      expect(find.textContaining('could not be reached'), findsNothing);
+      expect(find.textContaining("Couldn't reach"), findsNothing);
     });
   });
 }

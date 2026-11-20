@@ -508,7 +508,7 @@ class CollectionData {
       hasMixer: hasMixer,
       hasRating: hasRating,
       taxonomy: shippedTaxonomies.anyForm,
-      sectionLabels: PhraseStructure.standard.labels,
+      sectionLabels: sectionLabelsFor(dances),
     );
   }
 
@@ -551,3 +551,26 @@ class CollectionData {
     );
   }
 }
+
+/// The phrase labels the "By phrase" search offers for [dances]: the standard
+/// A1 A2 B1 B2, and every label an English dance's named phrases give, such
+/// as `A`, `B` or `C1`. Sorted by letter, then a plain letter before its
+/// numbered plays. A structure that is not named adds nothing, so a long
+/// contra structure doesn't add a row for each of its phrases.
+List<String> sectionLabelsFor(Iterable<Dance> dances) {
+  final labels = {
+    ...PhraseStructure.standard.labels,
+    for (final dance in dances)
+      if (dance.phraseStructure.isNamed) ...dance.phraseStructure.labels,
+  };
+  int number(String label) =>
+      int.tryParse(label.replaceFirst(_labelLetters, '')) ?? 0;
+  String letters(String label) => label.replaceFirst(_labelNumber, '');
+  return labels.toList()..sort((a, b) {
+    final byLetters = letters(a).compareTo(letters(b));
+    return byLetters != 0 ? byLetters : number(a).compareTo(number(b));
+  });
+}
+
+final RegExp _labelLetters = RegExp(r'^\D+');
+final RegExp _labelNumber = RegExp(r'\d+$');

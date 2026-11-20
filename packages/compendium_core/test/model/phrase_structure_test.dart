@@ -144,6 +144,92 @@ void main() {
     });
   });
 
+  group('named phrases (English dances)', () {
+    test('A, B and C played once each are labeled A, B, C', () {
+      final s = PhraseStructure.parse('A:1*4*2 + B:1*4*2 + C:1*8*2');
+      expect(s.isNamed, isTrue);
+      expect(s.labels, ['A', 'B', 'C']);
+      expect(s.totalBeats, 32);
+      expect(s.labelAtBeat(0), 'A');
+      expect(s.labelAtBeat(8), 'B');
+      expect(s.labelAtBeat(16), 'C');
+      expect(s.labelAtBeat(31), 'C');
+      expect(s.labelAtBeat(32), 'A');
+    });
+
+    test('a phrase played twice is labeled A1 and A2', () {
+      final s = PhraseStructure.parse('A:2*4*2 + B:1*8*2');
+      expect(s.labels, ['A1', 'A2', 'B']);
+      expect(s.labelAtBeat(8), 'A2');
+      expect(s.labelAtBeat(16), 'B');
+      expect(s.isPhraseBoundary(16), isTrue);
+      expect(s.isPhraseBoundary(20), isFalse);
+    });
+
+    test('a named phrase keeps its own meter', () {
+      final s = PhraseStructure.parse('A:2*8*3 + B:2*8*2');
+      expect(s.labels, ['A1', 'A2', 'B1', 'B2']);
+      expect(s.labelAtBeat(48), 'B1');
+      expect(s.componentAtBeat(48).beatsPerBar, 2);
+    });
+
+    test('a caller may name the phrases in any order', () {
+      expect(PhraseStructure.parse('B:1*8*2 + A:2*4*2').labels, [
+        'B',
+        'A1',
+        'A2',
+      ]);
+    });
+
+    test('named and plain phrases differ, and a name is part of equality', () {
+      final named = PhraseStructure.parse('A:2*8*2 + B:2*8*2');
+      expect(named.labels, ['A1', 'A2', 'B1', 'B2']);
+      expect(named, isNot(PhraseStructure.parse('2*8*2 + 2*8*2')));
+      expect(named, isNot(PhraseStructure.parse('B:2*8*2 + A:2*8*2')));
+      expect(named, PhraseStructure.parse('A:2*8*2 + B:2*8*2'));
+      expect(PhraseStructure.standard.isNamed, isFalse);
+      expect(PhraseStructure.standard.namedPhrases, isNull);
+    });
+
+    test('round-trips through named phrases', () {
+      final s = PhraseStructure.named(const [
+        NamedPhrase(name: 'A', plays: 2, bars: 4, beatsPerBar: 3),
+        NamedPhrase(name: 'B', plays: 1, bars: 8, beatsPerBar: 3),
+      ]);
+      expect(s.raw, 'A:2*4*3 + B:1*8*3');
+      expect(PhraseStructure.parse(s.raw).namedPhrases, s.namedPhrases);
+      expect(s.namedPhrases!.first.plays, 2);
+    });
+
+    test('a figure is labeled by the named phrase it starts in', () {
+      final s = PhraseStructure.parse('A:1*4*2 + B:1*4*2 + C:1*8*2');
+      final sections = deriveSections([
+        for (var i = 0; i < 4; i++)
+          Figure(move: 'ecd_circle', params: const {'beats': 8}),
+      ], s);
+      expect(sections.map((f) => f.label), ['A', 'B', 'C', 'C']);
+    });
+
+    test('refuses names it does not allow', () {
+      for (final raw in [
+        'A:1*8*2 + 1*8*2', // some named, some not
+        'A:1*8*2 + A:1*8*2', // a name used twice
+        'A:3*8*2', // played three times
+        'D:1*8*2', // only A, B and C
+        'a:1*8*2', // upper case only
+        'A:0*8*2',
+        'A:1*8',
+      ]) {
+        expect(
+          () => PhraseStructure.parse(raw),
+          throwsFormatException,
+          reason: raw,
+        );
+        expect(PhraseStructure.parseOrStandard(raw), PhraseStructure.standard);
+      }
+    });
+  });
+
   group('labelAtBeat', () {
     final std = PhraseStructure.standard;
 

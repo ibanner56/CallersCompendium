@@ -87,6 +87,13 @@ class CallersCompanionUsrAdapter implements SourceAdapter, BatchWarningSource {
   /// decoding the file a second time.
   CcUsrArchive? get discoveredArchive => _discovered;
 
+  /// The [ImportRequest.options] key that marks a file whose dances are
+  /// English Country Dances: the import asks the person once per `.USR`
+  /// (Hudson, 19 November 2026), since Caller's Companion types them
+  /// "Contra". Every dance that is not a square is then read as English
+  /// ([mapCallersCompanionDance]'s `englishDances`).
+  static const String englishDancesOption = 'englishDances';
+
   /// Structural bounds handed to [readCcUsrArchive]; exceeding one fails closed
   /// with a friendly "too large" [ImportError] (see [discover]). Defaults to the
   /// production ceilings; tests inject tiny values to exercise the guard.
@@ -132,6 +139,7 @@ class CallersCompanionUsrAdapter implements SourceAdapter, BatchWarningSource {
     _discovered = null;
     _batchWarnings = const [];
     final bytes = _bytesOf(request);
+    final english = request.options[englishDancesOption] == true;
     final CcUsrArchive archive;
     try {
       archive = await _reader(bytes, limits);
@@ -182,6 +190,7 @@ class CallersCompanionUsrAdapter implements SourceAdapter, BatchWarningSource {
             // so thread it through discover→fetch→parse explicitly — otherwise
             // `parse` would re-derive an empty body from the payload columns.
             'body': _encodeBody(entry.record.body),
+            if (english) 'english': true,
           },
         ),
     ];
@@ -198,6 +207,7 @@ class CallersCompanionUsrAdapter implements SourceAdapter, BatchWarningSource {
       );
     }
     final body = record.locator['body'];
+    final english = record.locator['english'] == true;
     final payload = jsonEncode({
       'rowId': rowId,
       'columns': columns.map((k, v) => MapEntry('$k', '$v')),
@@ -205,6 +215,7 @@ class CallersCompanionUsrAdapter implements SourceAdapter, BatchWarningSource {
       // than deriving an empty body from the columns. Absent on a legacy
       // locator — omitted so the payload stays backward compatible.
       if (body is List) 'body': body,
+      if (english) 'english': true,
     });
     return RawRecord(
       source: source,
@@ -219,6 +230,7 @@ class CallersCompanionUsrAdapter implements SourceAdapter, BatchWarningSource {
   StructuredDraft parse(RawRecord raw) {
     final Map<String, String> columns;
     List<CcBodySection>? bodyOverride;
+    var english = false;
     try {
       final decoded = jsonDecode(raw.payload);
       if (decoded is! Map || decoded['columns'] is! Map) {
@@ -233,6 +245,7 @@ class CallersCompanionUsrAdapter implements SourceAdapter, BatchWarningSource {
       // from the A1..C2 columns instead (backward compatible).
       final rawBody = decoded['body'];
       if (rawBody is List) bodyOverride = _decodeBody(rawBody);
+      english = decoded['english'] == true;
     } on FormatException {
       throw parseError(
         source,
@@ -261,7 +274,11 @@ class CallersCompanionUsrAdapter implements SourceAdapter, BatchWarningSource {
     }
     // Figure text is scrubbed + structured by the shared parser (the mapping's
     // default scrub is the core `scrubFigureText` chokepoint).
-    final mapping = mapCallersCompanionDance(record, lineCache: _lineCache);
+    final mapping = mapCallersCompanionDance(
+      record,
+      lineCache: _lineCache,
+      englishDances: english,
+    );
     return StructuredDraft(
       dance: mapping.dance,
       raw: raw,

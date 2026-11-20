@@ -93,7 +93,7 @@ class AppLocalizationsNl extends AppLocalizations {
   String get menuUserGuide => 'Gebruikersgids';
 
   @override
-  String get appBootstrapPreparing => 'Je collectie voorbereiden';
+  String get appBootstrapPreparing => 'Je bibliotheek voorbereiden';
 
   @override
   String get appBootstrapRebuildingIndex => 'Zoekindex opnieuw opbouwen';
@@ -104,7 +104,8 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
-  String get appBootstrapError => 'De collectie kon niet worden voorbereid.';
+  String get appBootstrapError =>
+      'Je bibliotheek kon niet worden voorbereid. Probeer het opnieuw.';
 
   @override
   String get appBootstrapCopyDetails => 'Details kopiëren';
@@ -191,7 +192,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get migrationSnapshotCauseUnwritableBackupsDir =>
-      'Naar de automatische back-upmap kon niet worden geschreven.';
+      'Naar de map voor automatische back-ups kon niet worden geschreven.';
 
   @override
   String get migrationSnapshotCauseDatabaseInUse =>
@@ -229,6 +230,14 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String migrationBelowFloorGetBridge(String bridgeTag) {
+    return '$bridgeTag ophalen';
+  }
+
+  @override
+  String get migrationBelowFloorStartFresh => 'Begin opnieuw';
+
+  @override
   String get migrationBelowFloorBackUpAndReset => 'Back-up maken + Resetten';
 
   @override
@@ -239,7 +248,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get migrationBelowFloorBackupFailedBody =>
-      'De back-up kon niet worden geschreven, dus je gegevens zijn niet gereset.';
+      'De back-up kon niet worden geschreven, dus je gegevens zijn niet gereset. Maak ruimte vrij en probeer het opnieuw.';
 
   @override
   String get migrationBelowFloorResetConfirmTitle => 'App-gegevens resetten?';
@@ -263,7 +272,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get migrationBelowFloorResetOnlyConfirmBody =>
-      'Er wordt geen back-up gemaakt. Door opnieuw in te stellen worden al je huidige gegevens definitief verwijderd en vervangen door een nieuwe, lege database. Dit kan niet ongedaan worden gemaakt.';
+      'Er wordt geen back-up gemaakt. Door te resetten worden al je huidige gegevens definitief verwijderd en vervangen door een nieuwe, lege database. Dit kan niet ongedaan worden gemaakt.';
 
   @override
   String get migrationBelowFloorWipeFailedTitle => 'Opnieuw instellen mislukt';
@@ -373,7 +382,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsDeveloperResetConfirmBody =>
-      'Hiermee worden alle dansen, programma’s, collecties, instellingen en notities op dit apparaat definitief verwijderd en start de app opnieuw alsof hij net is geïnstalleerd. Dit kan niet ongedaan worden gemaakt.';
+      'Hiermee wordt je hele bibliotheek op dit apparaat definitief verwijderd (elke dans, elk programma, elke instelling en notitie) en start de app opnieuw alsof hij net is geïnstalleerd. Dit kan niet ongedaan worden gemaakt.';
 
   @override
   String get settingsDeveloperResetConfirmSyncNote =>
@@ -392,7 +401,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsDeveloperResetFailed =>
-      'De database kon niet worden gereset, dus je gegevens zijn ongewijzigd. Als dit apparaat met een synchronisatieopslag was verbonden, heeft het die al verlaten.';
+      'De database kon niet worden gereset. Als dit apparaat met een synchronisatieopslag was verbonden, heeft het die al verlaten.';
 
   @override
   String get settingsExperimentalPlaceholder =>
@@ -414,7 +423,7 @@ class AppLocalizationsNl extends AppLocalizations {
       'Selecteer een figuur om de definitie te zien.';
 
   @override
-  String get glossaryCopyAsOwnFigure => 'Kopiëren als eigen figuur';
+  String get glossaryCopyAsOwnFigure => 'Kopiëren naar Eigen figuren';
 
   @override
   String glossaryCustomCopiedFrom(String name) {
@@ -951,7 +960,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsSyncFailureInternal =>
-      'Er ging iets mis in de app tijdens het synchroniseren.';
+      'Synchroniseren is gestopt door een probleem in de app.';
 
   @override
   String get settingsSyncFailureInternalAdvice =>
@@ -974,7 +983,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String settingsSyncFailureStatusCode(int code) {
-    return 'De server antwoordde met HTTP-status $code.';
+    return 'Statuscode van de server: $code.';
   }
 
   @override
@@ -1095,7 +1104,7 @@ class AppLocalizationsNl extends AppLocalizations {
   String get syncConflictApply => 'Selectie bewaren';
 
   @override
-  String get syncConflictDecideLater => 'Later beslissen';
+  String get syncConflictDecideLater => 'Annuleren';
 
   @override
   String get syncConflictShowDifferences => 'Verschillen tonen';
@@ -1356,7 +1365,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsSyncConflictsCheckFailed =>
-      'Conflicten konden niet worden gecontroleerd.';
+      'Kon niet controleren op conflicten. Probeer het opnieuw.';
 
   @override
   String commonSyncNowConflictsTooltip(int count) {
@@ -1561,7 +1570,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsSyncWipeConfirmBody =>
-      'Alles wat de opslag bevat wordt van de server verwijderd, voor alle apparaten tegelijk, en dit kan niet ongedaan worden gemaakt. Je bibliotheek blijft op dit apparaat en op elk van je andere apparaten staan — maar alles wat alleen via synchronisatie op een ander apparaat terecht was gekomen, komt hier niet aan. Dit apparaat wordt losgekoppeld en vergeet zijn synchronisatiezin; je andere apparaten zullen bij de volgende synchronisatie merken dat de opslag weg is en aanbieden een nieuwe zin in te stellen. Gebruik dit als je het adres van deze opslag niet meer wilt gebruiken: het is het enige dat meteen weghaalt wat de opslag bevat. Om te blijven synchroniseren stel je op elk apparaat een nieuwe zin in — opnieuw verbinden met de oude zet weer een nieuwe opslag op hetzelfde adres.';
+      'Alles wat de opslag bevat, wordt van de server verwijderd, voor alle apparaten tegelijk. Dit kan niet ongedaan worden gemaakt. Je bibliotheek blijft op dit apparaat en op elk van je andere apparaten staan, maar wat alleen via synchronisatie op een ander apparaat terecht was gekomen, komt hier niet aan. Dit apparaat wordt losgekoppeld en vergeet zijn synchronisatiezin; je andere apparaten merken bij de volgende synchronisatie dat de opslag weg is en bieden aan een nieuwe zin in te stellen. Gebruik dit als je het adres van deze opslag niet meer wilt gebruiken: het is het enige wat bewaarde gegevens meteen verwijdert. Wil je blijven synchroniseren, stel dan op elk apparaat een nieuwe zin in: opnieuw verbinden met de oude zin zet een nieuwe opslag terug op hetzelfde adres.';
 
   @override
   String get settingsSyncWipeConfirmAction => 'Opslag verwijderen';
@@ -1729,7 +1738,7 @@ class AppLocalizationsNl extends AppLocalizations {
   String get settingsSyncPairingBackupOfferAccept => 'Nu back-uppen';
 
   @override
-  String get settingsSyncPairingBackupOfferSkip => 'Overslaan';
+  String get settingsSyncPairingBackupOfferSkip => 'Niet nu';
 
   @override
   String get settingsSyncPairingContinue => 'Doorgaan';
@@ -1878,11 +1887,11 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsAboutFontFrauncesSubtitle =>
-      'SIL Open Font License 1.1 · © The Fraunces Project Authors — display & koppen';
+      'SIL Open Font License 1.1 · © The Fraunces Project Authors — display en koppen';
 
   @override
   String get settingsAboutFontAtkinsonSubtitle =>
-      'SIL Open Font License 1.1 · © Braille Institute of America, Inc. — tekst, UI & uitvoeren';
+      'SIL Open Font License 1.1 · © Braille Institute of America, Inc. — tekst, UI & Uitvoeren';
 
   @override
   String get settingsAboutFontRobotoSubtitle =>
@@ -1900,7 +1909,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsAboutDanceDataBody =>
-      'Dansgegevens zijn afkomstig van The Caller\'s Box (Chris Page & Michael Dyck), waarvan de collectie is gepubliceerd onder de Creative Commons Attribution-NonCommercial-licentie (CC BY-NC), met dankbaarheid.';
+      'Dansgegevens zijn afkomstig van The Caller\'s Box (Chris Page & Michael Dyck), waarvan de collectie is gepubliceerd onder de Creative Commons Attribution-NonCommercial-licentie (CC BY-NC), met dankbaarheid.';
 
   @override
   String get settingsAboutLicensesHeader => 'Licenties';
@@ -2057,7 +2066,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsUpdatesDownloadError =>
-      'De update kon niet worden gedownload.';
+      'De update kon niet worden gedownload. Probeer het opnieuw.';
 
   @override
   String settingsUpdatesDownloadSubtitle(String version) {
@@ -2541,9 +2550,8 @@ class AppLocalizationsNl extends AppLocalizations {
   String get settingsDefaultsStartingProgramMoveDown => 'Omlaag';
 
   @override
-  String settingsDefaultsStartingProgramUnavailableDance(String id) {
-    return 'Niet-beschikbare dans ($id)';
-  }
+  String get settingsDefaultsStartingProgramUnavailableDance =>
+      'Deze dans is niet meer beschikbaar';
 
   @override
   String get settingsDefaultsDifficultyLevelEmpty =>
@@ -2789,11 +2797,12 @@ class AppLocalizationsNl extends AppLocalizations {
   String get settingsDefaultsMoveDefaultsTitle => 'Standaardwaarden voor moves';
 
   @override
-  String get settingsDefaultsUserFiguresTitle => 'Standaarden van je figuren';
+  String get settingsDefaultsUserFiguresTitle =>
+      'Standaarden voor Eigen figuren';
 
   @override
   String get settingsDefaultsUserFiguresSubtitle =>
-      'Elk van je nieuwe figuren heeft zijn eigen standaarden: de waarden waarmee hij begint en zijn tellen. Kies er een om ze te wijzigen.';
+      'Elke figuur van jou heeft zijn eigen standaarden: de waarden waarmee hij begint en zijn tellen. Kies er een om ze te wijzigen.';
 
   @override
   String get settingsDefaultsMoveDefaultsSubtitle =>
@@ -2806,8 +2815,7 @@ class AppLocalizationsNl extends AppLocalizations {
   String get settingsDefaultsRemoveMoveTooltip => 'Verwijderen';
 
   @override
-  String get settingsDefaultsMoveGone =>
-      'Deze move bevindt zich niet meer in de taxonomie.';
+  String get settingsDefaultsMoveGone => 'Deze move is niet meer beschikbaar.';
 
   @override
   String get settingsDefaultsMoveNoParams =>
@@ -2853,10 +2861,11 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsTagColoursSaveError =>
-      'Kon die kleur niet opslaan. Probeer het opnieuw.';
+      'Die kleur kon niet worden opgeslagen. Probeer het opnieuw.';
 
   @override
-  String get settingsTagColoursLoadError => 'Kon je tags niet laden.';
+  String get settingsTagColoursLoadError =>
+      'Je tags konden niet worden geladen. Er is niets gewijzigd. Probeer het opnieuw.';
 
   @override
   String get tagManagerTitle => 'Tags';
@@ -2920,7 +2929,8 @@ class AppLocalizationsNl extends AppLocalizations {
       'Auteurs die u bij een dans vermeldt, verschijnen hier.';
 
   @override
-  String get authorManagerLoadError => 'Kon je auteurs niet laden.';
+  String get authorManagerLoadError =>
+      'Je auteurs konden niet worden geladen. Er is niets gewijzigd. Probeer het opnieuw.';
 
   @override
   String authorManagerMergedSeveralSnack(int count, String into) {
@@ -2944,7 +2954,8 @@ class AppLocalizationsNl extends AppLocalizations {
       'Boeken en websites die u bij een dans citeert, verschijnen hier.';
 
   @override
-  String get sourceManagerLoadError => 'Kon je bronnen niet laden.';
+  String get sourceManagerLoadError =>
+      'Je bronnen konden niet worden geladen. Er is niets gewijzigd. Probeer het opnieuw.';
 
   @override
   String get libraryManagerClearSearch => 'Zoekopdracht wissen';
@@ -3065,7 +3076,7 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
-  String get settingsGeneralLibraryHeader => 'Bibliotheek';
+  String get settingsGeneralLibraryHeader => 'Dansen';
 
   @override
   String get settingsGeneralSortIgnoreArticlesTitle =>
@@ -3260,7 +3271,7 @@ class AppLocalizationsNl extends AppLocalizations {
       'Samengestelde kolom verwijderen';
 
   @override
-  String get settingsGeneralPerformanceHeader => 'Uitvoering';
+  String get settingsGeneralPerformanceHeader => 'Uitvoeren';
 
   @override
   String get settingsGeneralAutoSizePerformTitle =>
@@ -3272,7 +3283,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsShowIndividualPerformTimerTitle =>
-      'Timer voor individuele Perform tonen';
+      'Timer tonen bij het uitvoeren van één dans';
 
   @override
   String get settingsShowIndividualPerformTimerSubtitle =>
@@ -3284,15 +3295,15 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsConfirmPerformExitSubtitle =>
-      'Vragen voordat de sluitknop of Terug je uit Uitvoeren haalt. Zet dit uit om met één tik te vertrekken; programma-Uitvoeren onthoudt je plek hoe dan ook.';
+      'Vragen voordat de sluitknop of Terug je uit Uitvoeren haalt. Zet dit uit om met één tik te vertrekken; Uitvoeren voor een programma onthoudt je plek in beide gevallen.';
 
   @override
   String get settingsShowProgramSlotCallerNotesTitle =>
-      'Callernotities in programma-Perform tonen';
+      'Callernotities tonen bij het uitvoeren van een programma';
 
   @override
   String get settingsShowProgramSlotCallerNotesSubtitle =>
-      'Niet-lege callernotities per slot boven de danstitel in programma-Perform tonen.';
+      'Toon niet-lege callernotities per slot boven de danstitel wanneer je een programma uitvoert.';
 
   @override
   String get settingsGeneralCallingHistoryHeader => 'Callerhistorie';
@@ -3517,14 +3528,14 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get syncReviewLoadFailed =>
-      'Synchronisatiebeslissingen konden niet worden geladen.';
+      'De synchronisatiekeuzes konden niet worden geladen. Probeer het opnieuw.';
 
   @override
   String get syncReviewResolved => 'Synchronisatiebeslissing toegepast.';
 
   @override
   String get syncReviewActionFailed =>
-      'Deze synchronisatiebeslissing kon niet worden toegepast. Het item is bewaard voor een nieuwe poging.';
+      'Die synchronisatiekeuze kon niet worden toegepast. Het item is bewaard, dus je kunt het opnieuw proberen.';
 
   @override
   String get syncReviewKindChoreographer => 'Auteur';
@@ -3554,7 +3565,7 @@ class AppLocalizationsNl extends AppLocalizations {
   String get syncReviewKindSetting => 'Instelling';
 
   @override
-  String get syncReviewKindGlossaryEntry => 'Je eigen figuur';
+  String get syncReviewKindGlossaryEntry => 'Je figuur';
 
   @override
   String get syncReviewKindFigureNote => 'Je notities bij een figuur';
@@ -3592,7 +3603,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get syncReviewMergeDiscardsContactsBody =>
-      'Er wordt maar één record bewaard. Het e-mailadres, de locatie en de markering voor overleden van het andere staan alleen op dit apparaat en kunnen daarna niet meer worden hersteld.';
+      'Er blijft maar één record bewaard. Het e-mailadres, de locatie en de overleden-markering van het andere record staan alleen op dit apparaat en gaan verloren. Dit kan niet ongedaan worden gemaakt.';
 
   @override
   String get syncReviewCounterpartDeleted =>
@@ -3656,7 +3667,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsGeneralReparseCustomFiguresSubtitle =>
-      'Controleer geïmporteerde dansen opnieuw waarvan de figuren als niet-herkende figuren zijn bewaard omdat ze niet herkend konden worden bij het importeren. Kan de app ze nu herkennen, dan worden ze ter plekke bijgewerkt — je tags, beoordelingen en notities blijven bewaard. Je bekijkt een voorbeeld en bevestigt voordat er iets wijzigt.';
+      'Controleer geïmporteerde dansen opnieuw waarvan de figuren alleen als onherkende figuren zijn bewaard omdat ze bij het importeren niet herkend werden. Kan de app ze nu wel herkennen, dan worden ze ter plekke bijgewerkt; je tags, beoordelingen en notities blijven behouden. Je ziet eerst een voorbeeld en bevestigt voordat er iets verandert.';
 
   @override
   String get settingsGeneralReparseCustomFiguresAction =>
@@ -3679,11 +3690,12 @@ class AppLocalizationsNl extends AppLocalizations {
   String get backupExported => 'Back-up geëxporteerd.';
 
   @override
-  String get backupExportFailed => 'Back-up kon niet worden geëxporteerd.';
+  String get backupExportFailed =>
+      'Er kon geen back-up worden geëxporteerd. Je gegevens zijn ongewijzigd. Probeer het opnieuw.';
 
   @override
   String get backupRestoreIntegrityFailed =>
-      'Deze back-up is niet door de integriteitscontrole gekomen, dus mogelijk is deze beschadigd of na het exporteren gewijzigd. Het herstel is geannuleerd en je gegevens zijn ongewijzigd.';
+      'Deze back-up is niet door de veiligheidscontrole gekomen, dus hij is mogelijk beschadigd of na het exporteren gewijzigd. Het herstellen is geannuleerd en je gegevens zijn ongewijzigd.';
 
   @override
   String get backupRestoreIncompatibleVersion =>
@@ -3706,14 +3718,15 @@ class AppLocalizationsNl extends AppLocalizations {
   String get backupRestored => 'Back-up hersteld.';
 
   @override
-  String get backupRestoreFailed => 'De back-up kon niet worden hersteld.';
+  String get backupRestoreFailed =>
+      'De back-up kon niet worden hersteld. Probeer het opnieuw.';
 
   @override
   String get backupRestoreSettingsFailed =>
-      'Je dansen en programma’s zijn hersteld, maar het toepassen van je opgeslagen instellingen is mislukt. Je herstelde inhoud is veilig — je kunt opnieuw proberen de instellingen toe te passen.';
+      'Je dansen en programma’s zijn hersteld, maar het toepassen van je opgeslagen instellingen is mislukt. Je herstelde inhoud is veilig; je kunt opnieuw proberen ze toe te passen.';
 
   @override
-  String get backupRestoreSettingsRetryAction => 'Opnieuw toepassen';
+  String get backupRestoreSettingsRetryAction => 'Opnieuw proberen';
 
   @override
   String get backupRestoreSettingsRetried => 'Instellingen toegepast.';
@@ -3723,7 +3736,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get backupExportSubtitle =>
-      'Sla je volledige collectie, programma\'s, aangepaste velden, dialecten, thema\'s en instellingen op in één JSON-bestand dat je veilig kunt bewaren of naar een ander apparaat kunt overzetten.';
+      'Sla je hele bibliotheek op in één JSON-bestand dat je veilig kunt bewaren of naar een ander apparaat kunt verplaatsen. Het bevat je dansen, programma’s, eigen velden, dialecten, thema’s en instellingen.';
 
   @override
   String get backupExportAction => 'Exporteren';
@@ -3733,7 +3746,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get backupRestoreSubtitle =>
-      'Vervang alles wat momenteel in de app staat door de inhoud van een back-upbestand. Dit kan niet ongedaan worden gemaakt.';
+      'Vervang alles wat nu in de app staat door de inhoud van een back-upbestand. Dit kan niet ongedaan worden gemaakt.';
 
   @override
   String get backupRestoreAction => 'Herstellen';
@@ -3764,7 +3777,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get backupReminderBannerText =>
-      'Je back-up is te oud. Exporteer er nu een om je collectie veilig te houden.';
+      'Je back-up is verlopen. Exporteer er nu een om je bibliotheek veilig te houden.';
 
   @override
   String get backupReminderBannerExport => 'Back-up exporteren';
@@ -3774,7 +3787,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get backupRestoreDialogBody =>
-      'Herstellen vervangt alles in de app — je collectie, programma’s, dialecten, thema’s en instellingen — met de inhoud van de back-up. Dit kan niet ongedaan worden gemaakt.';
+      'Bij het herstellen wordt alles wat nu in de app staat, zoals je dansen, programma’s, dialecten, thema’s en instellingen, vervangen door de inhoud van de back-up. Dit kan niet ongedaan worden gemaakt.';
 
   @override
   String get backupRestoreDialogSyncNote =>
@@ -3784,7 +3797,8 @@ class AppLocalizationsNl extends AppLocalizations {
   String get backupChooseFileAction => 'Bestand kiezen…';
 
   @override
-  String get backupChooseFileFailed => 'Dat bestand kon niet worden gelezen.';
+  String get backupChooseFileFailed =>
+      'Dat bestand kon niet worden gelezen. Kies het opnieuw of kies een ander bestand.';
 
   @override
   String get backupPasteJsonLabel => 'Of plak back-up JSON';
@@ -3824,7 +3838,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String backupExportTooLarge(String sizeMb, String limitMb) {
-    return 'Je collectie is te groot om als één back-up te exporteren ($sizeMb MB; limiet $limitMb MB), dus er is niets opgeslagen. Je gegevens zijn ongewijzigd.';
+    return 'Je bibliotheek is te groot om als één back-up te exporteren ($sizeMb MB; limiet $limitMb MB), dus er is niets opgeslagen. Je gegevens zijn ongewijzigd.';
   }
 
   @override
@@ -3849,7 +3863,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get diagnosticsScrubbedExportUnavailable =>
-      'Er kon geen veilige (geredigeerde) export worden voorbereid, dus er is niets opgeslagen. Probeer het opnieuw of gebruik volledige details met opzet.';
+      'Er kon geen veilige (opgeschoonde) export worden gemaakt, dus er is niets opgeslagen. Probeer het opnieuw, of kies bewust de volledige details.';
 
   @override
   String get diagnosticsLogExported => 'Diagnosticslog geëxporteerd.';
@@ -3859,18 +3873,18 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get diagnosticsExportFailed =>
-      'Het diagnosticslog kon niet worden geëxporteerd.';
+      'Het diagnoselog kon niet worden geëxporteerd. Probeer het opnieuw.';
 
   @override
   String get diagnosticsClearFailed =>
-      'Het diagnosticslog kon niet worden gewist.';
+      'Het diagnoselog kon niet worden gewist. Probeer het opnieuw.';
 
   @override
   String get diagnosticsClearLogTitle => 'Diagnosticslog wissen?';
 
   @override
   String get diagnosticsClearLogBody =>
-      'Dit verwijdert het lokale crashlog permanent van dit apparaat. Dit kan niet ongedaan worden gemaakt.';
+      'Hiermee wordt het lokale crashlog definitief van dit apparaat verwijderd. Dit kan niet ongedaan worden gemaakt.';
 
   @override
   String get diagnosticsClearAction => 'Wissen';
@@ -3933,11 +3947,12 @@ class AppLocalizationsNl extends AppLocalizations {
       'Het lokale crashlog van dit apparaat verwijderen.';
 
   @override
-  String get crashFallbackTitle => 'Er is hier iets misgegaan';
+  String get crashFallbackTitle =>
+      'Dit onderdeel van de app kon niet worden getoond';
 
   @override
   String get crashFallbackBody =>
-      'Dit deel van de app heeft een onverwachte fout ondervonden en kon niet worden weergegeven. De details zijn opgeslagen in een lokaal diagnosticslog (Instellingen ▸ Diagnostics) dat je apparaat nooit verlaat.';
+      'Dit onderdeel van de app heeft een onverwachte fout gehad. De details zijn bewaard in een lokaal diagnoselog (Instellingen ▸ Diagnostics) dat je apparaat nooit verlaat. Ga terug en probeer het opnieuw.';
 
   @override
   String get crashFallbackCopied => 'Gekopieerd';
@@ -3969,9 +3984,6 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get commonUndoFailed =>
       'Dat kon niet ongedaan worden gemaakt. Controleer het resultaat en probeer het opnieuw.';
-
-  @override
-  String get commonRetry => 'Opnieuw proberen';
 
   @override
   String get commonDelete => 'Verwijderen';
@@ -4330,7 +4342,8 @@ class AppLocalizationsNl extends AppLocalizations {
   String get collectionClearSearchTooltip => 'Zoekterm en filters wissen';
 
   @override
-  String get collectionLoadError => 'De collectie kon niet worden geladen.';
+  String get collectionLoadError =>
+      'De collectie kon niet worden geladen. Er is niets gewijzigd. Probeer het opnieuw.';
 
   @override
   String collectionDuplicatedSnack(String title) {
@@ -4395,7 +4408,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get collectionSearchError =>
-      'Er is iets misgegaan bij het uitvoeren van de zoekopdracht.';
+      'De zoekopdracht kon niet worden uitgevoerd. Er is niets gewijzigd. Probeer het opnieuw.';
 
   @override
   String get collectionNoResults =>
@@ -4727,7 +4740,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get collectionFacetAllHidden =>
-      'Alle filters zijn verborgen. Je kunt ze weer tonen via Instellingen → Standaardwaarden.';
+      'Alle filters zijn verborgen. Je kunt ze weer tonen via Instellingen ▸ Standaarden.';
 
   @override
   String get collectionFacetClear => 'Filters wissen';
@@ -4957,7 +4970,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get collectionBatchApplyError =>
-      'Batchwijzigingen konden niet worden toegepast. Probeer het opnieuw.';
+      'De batchwijzigingen konden niet worden toegepast. Probeer het opnieuw.';
 
   @override
   String get collectionBatchTagAddConfirm => 'Toevoegen';
@@ -5112,7 +5125,8 @@ class AppLocalizationsNl extends AppLocalizations {
   String get danceNotFound => 'Dans niet gevonden.';
 
   @override
-  String get danceLoadError => 'Deze dans kon niet worden geladen.';
+  String get danceLoadError =>
+      'Deze dans kon niet worden geladen. Er is niets gewijzigd. Probeer het opnieuw.';
 
   @override
   String get danceEditFab => 'Bewerken';
@@ -5152,7 +5166,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get danceEditorFiguresUnreadable =>
-      'De opgeslagen figuren kunnen niet worden gelezen en worden hier daarom niet getoond. Ze blijven zoals ze zijn, tenzij je eigen figuren toevoegt.';
+      'De opgeslagen figuren kunnen niet worden gelezen, dus ze worden hier niet getoond. Ze blijven zoals ze zijn, tenzij je zelf figuren toevoegt.';
 
   @override
   String get danceEditorTunesUnreadable =>
@@ -5183,7 +5197,8 @@ class AppLocalizationsNl extends AppLocalizations {
   String get danceCallingHistoryEmpty => 'Nog niet opgenomen in een programma.';
 
   @override
-  String get danceCallingHistoryError => 'Kan de callgeschiedenis niet laden.';
+  String get danceCallingHistoryError =>
+      'De callinggeschiedenis kon niet worden geladen. Er is niets gewijzigd. Probeer het opnieuw.';
 
   @override
   String danceVenueCallCount(int count, String venue) {
@@ -5454,15 +5469,16 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
-  String get programsSaveError => 'Het programma kon niet worden opgeslagen.';
+  String get programsSaveError =>
+      'Het programma kon niet worden opgeslagen. Je wijzigingen staan er nog. Probeer het opnieuw.';
 
   @override
   String get programsUndoPerformedError =>
-      'De markeringen konden niet ongedaan worden gemaakt; de uitgevoerde markeringen blijven opgeslagen.';
+      'Dat kon niet ongedaan worden gemaakt. De uitgevoerd-markeringen zijn nog opgeslagen.';
 
   @override
   String get programsUndoRefreshError =>
-      'Het ongedaan maken is opgeslagen, maar de editor kon niet worden vernieuwd.';
+      'Ongedaan maken is opgeslagen, maar de editor kon niet worden vernieuwd. Open het programma opnieuw om het te zien.';
 
   @override
   String programsDuplicatedSnack(String title) {
@@ -5562,7 +5578,12 @@ class AppLocalizationsNl extends AppLocalizations {
   String get programsLoading => 'Programma laden';
 
   @override
-  String get programsLoadError => 'Het programma kon niet worden geladen.';
+  String get programsLoadError =>
+      'Het programma kon niet worden geladen. Er is niets gewijzigd. Probeer het opnieuw.';
+
+  @override
+  String get programsUndoRecoveryFailed =>
+      'Het programma kon na het ongedaan maken niet opnieuw worden geladen. Ga terug en open het opnieuw om de huidige staat te zien.';
 
   @override
   String get programsDeletedDanceFallback => '(verwijderde dans)';
@@ -5580,6 +5601,10 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get programsSlotsLabel => 'Slots';
+
+  @override
+  String get programsSlotsHelper =>
+      'Elk slot is één plek in je setlijst: een dans, een notitie of een pauze.';
 
   @override
   String get programsAddDanceButton => 'Dans toevoegen';
@@ -5708,7 +5733,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get programsDialectHelper =>
-      'Alleen in de Uitvoeren-weergave van dit programma. Editor, samenvatting en exports blijven het app-dialect gebruiken.';
+      'Alleen in Uitvoeren van dit programma. Editor, samenvatting en exports blijven het app-dialect gebruiken.';
 
   @override
   String programsWarningCount(int count) {
@@ -5758,7 +5783,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get programsListLoadError =>
-      'Je programma\'s konden niet worden geladen.';
+      'Je programma\'s konden niet worden geladen. Er is niets gewijzigd. Probeer het opnieuw.';
 
   @override
   String get programsListEmptyBody =>
@@ -5921,11 +5946,11 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get programsSummaryPerformedToggleError =>
-      'De uitvoermarkering kon niet worden bijgewerkt. Probeer het opnieuw.';
+      'De uitgevoerd-markering kon niet worden bijgewerkt. Probeer het opnieuw.';
 
   @override
   String get programsSummaryUndoPerformedToggleError =>
-      'Die wijziging van de uitvoermarkering kon niet ongedaan worden gemaakt.';
+      'Die wijziging van de uitgevoerd-markering kon niet ongedaan worden gemaakt. Probeer het opnieuw.';
 
   @override
   String get programsPerformedCleared => 'Uitvoermarkering gewist.';
@@ -6655,16 +6680,18 @@ class AppLocalizationsNl extends AppLocalizations {
   String get exportDanceCopied => 'Dans gekopieerd naar klembord.';
 
   @override
-  String get exportShareDanceError => 'Deze dans kon niet worden gedeeld';
+  String get exportShareDanceError =>
+      'Deze dans kon niet worden gedeeld. Je dans is ongewijzigd. Probeer het opnieuw.';
 
   @override
-  String get exportDanceError => 'Deze dans kon niet worden geëxporteerd';
+  String get exportDanceError =>
+      'Deze dans kon niet worden geëxporteerd. Je dans is ongewijzigd. Probeer het opnieuw.';
 
   @override
   String get exportShareSetListText => 'Setlijst delen (tekst)';
 
   @override
-  String get exportShareProgramBundle => 'Delen (programma + dansen)';
+  String get exportShareProgramBundle => 'Programma en dansen delen';
 
   @override
   String get exportSaveProgramBundle => 'Programmabestand opslaan…';
@@ -6718,23 +6745,27 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get exportJsonSaveError =>
-      'Dit JSON-bestand kon niet worden opgeslagen.';
+      'Dit JSON-bestand kon niet worden opgeslagen. Probeer het opnieuw.';
 
   @override
-  String get exportJsonCopyError => 'Deze JSON kon niet worden gekopieerd.';
+  String get exportJsonCopyError =>
+      'Deze JSON kon niet worden gekopieerd. Probeer het opnieuw.';
 
   @override
   String get exportJsonShareError =>
-      'Dit JSON-bestand kon niet worden gedeeld.';
+      'Dit JSON-bestand kon niet worden gedeeld. Probeer het opnieuw.';
 
   @override
-  String get exportShareSetListError => 'Deze setlijst kon niet worden gedeeld';
+  String get exportShareSetListError =>
+      'Deze setlijst kon niet worden gedeeld. Probeer het opnieuw.';
 
   @override
-  String get exportShareProgramError => 'Dit programma kon niet worden gedeeld';
+  String get exportShareProgramError =>
+      'Dit programma kon niet worden gedeeld. Je programma is ongewijzigd. Probeer het opnieuw.';
 
   @override
-  String get exportSetListError => 'Deze setlijst kon niet worden geëxporteerd';
+  String get exportSetListError =>
+      'Deze setlijst kon niet worden geëxporteerd. Probeer het opnieuw.';
 
   @override
   String get exportIncludeFiguresTitle => 'Figuren opnemen?';
@@ -6999,15 +7030,16 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String onlineLoadError(String source) {
-    return 'Die dans kon niet worden geladen van $source.';
+    return 'Die dans kon niet van $source worden geladen. Probeer het opnieuw.';
   }
 
   @override
-  String get onlineImportError => 'Die dans kon niet worden geïmporteerd.';
+  String get onlineImportError =>
+      'Die dans kon niet worden geïmporteerd. Probeer het opnieuw.';
 
   @override
   String onlineSearchFailed(String source) {
-    return 'Kon $source niet doorzoeken. Probeer het opnieuw.';
+    return 'Zoeken in $source is niet gelukt. Probeer het opnieuw.';
   }
 
   @override
@@ -7113,7 +7145,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get importProgramCreateError =>
-      'Het geïmporteerde programma kon niet worden opgeslagen.';
+      'Het geïmporteerde programma kon niet worden opgeslagen. Probeer het opnieuw.';
 
   @override
   String importProgramCommitted(
@@ -7166,7 +7198,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get importContraDbListError =>
-      'De ContraDB-programmalijst kon niet worden geladen.';
+      'De ContraDB-programmalijst kon niet worden geladen. Er is niets geïmporteerd. Probeer het opnieuw.';
 
   @override
   String get importContraDbSearchPrompt =>
@@ -7201,7 +7233,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get importContraDbFetchGenericError =>
-      'Dat programma kon niet worden opgehaald.';
+      'Dat programma kon niet worden opgehaald. Probeer het opnieuw.';
 
   @override
   String get importContraDbPastePrompt =>
@@ -7213,7 +7245,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get importContraDbResolveError =>
-      'Het ContraDB-programma kon niet worden geïmporteerd.';
+      'Het ContraDB-programma kon niet worden geïmporteerd. Probeer het opnieuw.';
 
   @override
   String importContraDbProgramProgress(int done, int total) {
@@ -7275,7 +7307,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get importCollectionLoadError =>
-      'Je collectie kon niet worden geladen.';
+      'Je collectie kon niet worden geladen. Er is niets gewijzigd. Probeer het opnieuw.';
 
   @override
   String get importTitleListDancesLabel => 'Danstitels (één per regel)';
@@ -7309,7 +7341,8 @@ class AppLocalizationsNl extends AppLocalizations {
       'Geen overeenkomst — als notitie toegevoegd';
 
   @override
-  String get importPlaintextSearchError => 'Kon niet online zoeken.';
+  String get importPlaintextSearchError =>
+      'Online zoeken is niet gelukt. Probeer het opnieuw.';
 
   @override
   String importPlaintextSlotCount(int count) {
@@ -7628,7 +7661,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get archiveIntakeRejectedUnreadable =>
-      'Kon het gedeelde bestand niet lezen.';
+      'Het gedeelde bestand kon niet worden gelezen. Probeer het opnieuw, of vraag de afzender het opnieuw te delen.';
 
   @override
   String get archiveIntakeRejectedEmpty => 'Dat bestand is leeg.';
@@ -7643,7 +7676,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get archiveIntakeRejectedBackup =>
-      'Dat bestand is een back-up, geen deelbestand. Om het op dit apparaat te zetten, ga je naar Instellingen › Algemeen en kies je ‘Herstellen vanuit een back-up’.';
+      'Dat bestand is een back-up, geen deelbestand. Om het op dit apparaat te zetten, ga je naar Instellingen ▸ Algemeen en kies je Herstellen vanuit een back-up.';
 
   @override
   String get importErrorInsecureScheme =>
@@ -7651,7 +7684,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get importErrorBlockedHost =>
-      'Die URL verwijst naar een netwerklocatie waarvan niet kan worden geïmporteerd.';
+      'Die URL verwijst naar een netwerklocatie waaruit de app niet kan importeren. Controleer de URL en probeer het opnieuw.';
 
   @override
   String get importErrorInvalidUrl =>
@@ -7873,7 +7906,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get importIssueArchiveCustomFieldKeyConflictGeneric =>
-      'Een aangepast veld in dit bestand kon zijn sleutel niet gebruiken, omdat die al in gebruik is, dus de waarden ervan komen in plaats daarvan in een veld met een genummerde sleutel.';
+      'Een eigen veld in dit bestand kon zijn sleutel niet gebruiken, omdat die al in gebruik is, dus de waarden komen in een veld met een genummerde sleutel.';
 
   @override
   String get importIssueUsrFileTruncated =>
@@ -7961,6 +7994,10 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get importIssueUnmappedProgression =>
       'Een progressie werd niet herkend; standaard op enkel.';
+
+  @override
+  String get importIssueBarsMeterUnstated =>
+      'Deze dans telt in maten maar vermeldt geen maatsoort, dus elke maat is als 2 tellen geteld. Controleer de tellingen.';
 
   @override
   String get importIssueUnmappedType =>
@@ -8058,7 +8095,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get importRecordErrorNotUsrDatabase =>
-      'Dit is geen Caller\'s Companion-bibliotheekbestand (.USR). Zoek in Caller\'s Companion het .USR-bestand in de gegevensmap.';
+      'Dit is geen Caller\'s Companion-gegevensbestand (.USR). Zoek in Caller\'s Companion het .USR-bestand in de gegevensmap.';
 
   @override
   String get importRecordErrorFileTooLarge =>
@@ -8083,15 +8120,13 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get importReviewUsrSubtitle =>
-      'Kies het Caller\'s Companion .USR-bestand om de dansen en programmageschiedenis te migreren. Er wordt niets aan je collectie toegevoegd totdat je controleert en bevestigt.';
+      'Kies het Caller\'s Companion .USR-bestand om de dansen en programmageschiedenis te migreren. Er wordt niets aan je bibliotheek toegevoegd totdat je controleert en bevestigt.';
 
   @override
   String get importReviewChooseUsr => 'Kies .USR-bestand…';
 
   @override
-  String importReviewFileReady(int bytes) {
-    return 'Bestand klaar ($bytes bytes).';
-  }
+  String get importReviewFileReady => 'Bestand klaar.';
 
   @override
   String get importReviewGenericSubtitle =>
@@ -8143,7 +8178,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get importReviewPlanFailedBody =>
-      'Er ging iets mis bij het lezen van deze import. Probeer het opnieuw; als het blijft gebeuren, is het bestand mogelijk beschadigd.';
+      'Deze import kon niet worden gelezen. Er is niets toegevoegd. Probeer het opnieuw; blijft het gebeuren, dan is het bestand mogelijk beschadigd.';
 
   @override
   String get importReviewNoDancesTitle => 'Geen dansen gevonden';
@@ -8242,9 +8277,9 @@ class AppLocalizationsNl extends AppLocalizations {
       count,
       locale: localeName,
       other:
-          'Opnieuw importeren vervangt de figuren, formatie en progressie van $count bestaande dansen. Hun beoordelingen, tags en notities blijven.',
+          'Opnieuw importeren vervangt de figuren, formatie en progressie van $count bestaande dansen en kan hun dansvorm wijzigen. Hun beoordelingen, tags en notities blijven.',
       one:
-          'Opnieuw importeren vervangt de figuren, formatie en progressie van 1 bestaande dans. De beoordeling, tags en notities blijven.',
+          'Opnieuw importeren vervangt de figuren, formatie en progressie van 1 bestaande dans en kan de dansvorm wijzigen. De beoordeling, tags en notities blijven.',
     );
     return '$_temp0';
   }
@@ -8397,7 +8432,20 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get importReviewEditError =>
-      'Die dans kon niet worden geïmporteerd om te bewerken.';
+      'Die dans kon niet worden geïmporteerd om te bewerken. Probeer het opnieuw.';
+
+  @override
+  String get importUsrEnglishTitle => 'Zijn dit Engelse country dances?';
+
+  @override
+  String get importUsrEnglishBody =>
+      'Caller\'s Companion zet Engelse country dances vaak onder Contra. Bevat dit bestand Engelse dansen, dan worden ze gelezen met Engelse figuren, formaties en maattellingen. Squaredansen blijven squares.';
+
+  @override
+  String get importUsrEnglishNo => 'Nee, lees hun type';
+
+  @override
+  String get importUsrEnglishYes => 'Ja, Engelse dansen';
 
   @override
   String get importReviewEditOverwriteTitle => 'Bestaande dans nu vervangen?';
@@ -8416,16 +8464,17 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String importReviewEditReimportBody(String title) {
-    return 'Importeren om te bewerken vervangt de figuren, formatie en progressie van “$title” in je verzameling meteen. Ongedaan maken van de hele import herstelt ze niet.';
+    return 'Importeren om te bewerken vervangt de figuren, formatie en progressie van “$title” in je verzameling meteen en kan de dansvorm wijzigen. Ongedaan maken van de hele import herstelt ze niet.';
   }
 
   @override
   String importReviewEditReimportTitleAndCreditBody(String title) {
-    return 'Importeren om te bewerken vervangt de figuren, formatie, progressie, titel en auteur van “$title” in je verzameling meteen. Ongedaan maken van de hele import herstelt ze niet.';
+    return 'Importeren om te bewerken vervangt de figuren, formatie, progressie, titel en auteur van “$title” in je verzameling meteen en kan de dansvorm wijzigen. Ongedaan maken van de hele import herstelt ze niet.';
   }
 
   @override
-  String get importReviewImportError => 'De import kon niet worden voltooid.';
+  String get importReviewImportError =>
+      'De import kon niet worden voltooid. Probeer het opnieuw.';
 
   @override
   String get importFileNotText =>
@@ -8481,7 +8530,7 @@ class AppLocalizationsNl extends AppLocalizations {
   String get danceEditorDetailsSection => 'Details';
 
   @override
-  String get danceEditorTitleRequiredLabel => 'Titel *';
+  String get danceEditorTitleRequiredLabel => 'Titel';
 
   @override
   String get danceEditorTitleRequired => 'Titel is vereist';
@@ -8506,6 +8555,53 @@ class AppLocalizationsNl extends AppLocalizations {
       'Leeg = standaard A1 A2 B1 B2; anders bijv. 6*8*2';
 
   @override
+  String get danceEditorPhrasesNameThem => 'Frasen benoemen';
+
+  @override
+  String get danceEditorPhrasesTitle => 'Frasen';
+
+  @override
+  String get danceEditorPhrasesHelp =>
+      'Benoem elk deel van de melodie A, B of C, geef het aantal maten en kies of het één of twee keer gespeeld wordt. Een frase die twee keer gespeeld wordt, heet A1 en A2.';
+
+  @override
+  String get danceEditorPhrasesAdd => 'Frase toevoegen';
+
+  @override
+  String danceEditorPhrasesInvalid(int max) {
+    return 'Geef elke frase 1 tot $max maten. Tot dan houdt de dans zijn laatste geldige frasen, en Opslaan slaat die op.';
+  }
+
+  @override
+  String danceEditorPhraseBarsLabel(String name) {
+    return 'Maten in $name';
+  }
+
+  @override
+  String danceEditorPhraseBarsRange(int max) {
+    return '1 tot $max';
+  }
+
+  @override
+  String get danceEditorPhraseNameLabel => 'Naam van de frase';
+
+  @override
+  String danceEditorPhrasePlaysLabel(String name) {
+    return 'Hoe vaak $name speelt';
+  }
+
+  @override
+  String get danceEditorPhrasePlaysOnce => 'Eén keer';
+
+  @override
+  String get danceEditorPhrasePlaysTwice => 'Twee keer';
+
+  @override
+  String danceEditorPhraseRemove(String name) {
+    return 'Frase $name verwijderen';
+  }
+
+  @override
   String get danceEditorFiguresSection => 'Figuren';
 
   @override
@@ -8527,6 +8623,10 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get danceEditorHookHint => 'Één zin “waarom deze dans callen”';
+
+  @override
+  String get danceEditorHookHelper =>
+      'Waarom je deze dans zou callen, in één regel. Dit kan op callingkaarten en in wat je deelt verschijnen.';
 
   @override
   String get danceEditorWalkthroughLabel => 'Doorloop';
@@ -8843,6 +8943,38 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String validationPhraseCountMismatch(String actual, String expected) {
+    return 'De figuren duren samen $actual; de fraseopbouw verwacht $expected.';
+  }
+
+  @override
+  String validationSequenceExceedsPhraseCount(
+    int position,
+    String actual,
+    String limit,
+  ) {
+    return 'Een reeks in figuur $position duurt $actual, langer dan één frase ($limit).';
+  }
+
+  @override
+  String validationSequenceSpanNoRoomCount(
+    int position,
+    String actual,
+    String expected,
+  ) {
+    return 'De getimede stappen van de reeks in figuur $position duren $actual, zodat er van de $expected niets overblijft voor de rest.';
+  }
+
+  @override
+  String validationSequenceSpanMismatchCount(
+    int position,
+    String actual,
+    String expected,
+  ) {
+    return 'De stappen van de reeks in figuur $position duren $actual; de reeks duurt $expected.';
+  }
+
+  @override
   String validationSequenceSpanNoRoom(int position, int actual, int expected) {
     return 'De getimede stappen van de reeks in figuur $position duren $actual tellen, zodat er van de $expected niets overblijft voor de rest.';
   }
@@ -8870,6 +9002,10 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get validationPhraseInvalid => 'Die fraseopbouw is ongeldig.';
+
+  @override
+  String get validationPhraseNamedEnglishOnly =>
+      'Frasenamen (A:, B:, C:) zijn alleen voor Engelse dansen.';
 
   @override
   String validationOrphanedAlt(int position) {
@@ -8989,7 +9125,8 @@ class AppLocalizationsNl extends AppLocalizations {
       'Een bron citeren: typ om toe te voegen of aan te maken…';
 
   @override
-  String get danceEditorSaveError => 'De dans kon niet worden opgeslagen.';
+  String get danceEditorSaveError =>
+      'De dans kon niet worden opgeslagen. Je wijzigingen staan er nog. Probeer het opnieuw.';
 
   @override
   String danceEditorChoreographerDuplicate(String name) {
@@ -9080,7 +9217,8 @@ class AppLocalizationsNl extends AppLocalizations {
   String get danceEditorDeleteDanceTooltip => 'Dans verwijderen';
 
   @override
-  String get danceEditorLoadError => 'De dans kon niet worden geladen.';
+  String get danceEditorLoadError =>
+      'De dans kon niet worden geladen. Er is niets gewijzigd. Probeer het opnieuw.';
 
   @override
   String get danceEditorChoreographerDetailsTitle => 'Auteurdetails';
@@ -9090,7 +9228,7 @@ class AppLocalizationsNl extends AppLocalizations {
       'Deze details zijn gedeeld over elke dans op naam van deze auteur. E-mail, locatie en de markering “overleden” zijn privé — alleen opgeslagen op dit apparaat en nooit gedeeld of geëxporteerd.';
 
   @override
-  String get danceEditorNameRequiredLabel => 'Naam *';
+  String get danceEditorNameRequiredLabel => 'Naam';
 
   @override
   String get danceEditorNameRequired => 'Naam is vereist';
@@ -9282,7 +9420,7 @@ class AppLocalizationsNl extends AppLocalizations {
       'yes': ', kan niet worden uitgevouwen',
       'other': '',
     });
-    return '$summary, eigen figuur$_temp0';
+    return '$summary, je figuur$_temp0';
   }
 
   @override
@@ -9304,7 +9442,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get danceEditorCompoundUnavailable =>
-      'Deze eigen figuur kan niet worden uitgevouwen: hij is verwijderd of gewijzigd, of accepteert deze waarden niet. Bij het opslaan blijven alleen de naam, de beats, de notitie en de progressie bewaard.';
+      'Je figuur kan niet worden uitgevouwen: hij is verwijderd of gewijzigd, of accepteert deze waarden niet. Bij opslaan blijven alleen zijn naam, tellen, notitie en progressiemarkering behouden.';
 
   @override
   String get danceEditorIncompleteFigure =>
@@ -9601,7 +9739,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String danceEditorUnrecognizedMoveReadOnly(String move) {
-    return 'Niet-herkende move “$move” — niet in de taxonomie van deze versie. Alleen-lezen weergegeven zodat de gegevens bewaard blijven; de move kan weer normaal worden bewerkt als hij herkend wordt. Je kunt hem nog steeds herordenen of verwijderen.';
+    return 'Onbekende move \"$move\": deze versie van de app kent hem niet. Hij wordt alleen-lezen getoond zodat de gegevens behouden blijven, en hij is weer gewoon te bewerken als de move bekend wordt. Je kunt hem nog wel verplaatsen of verwijderen.';
   }
 
   @override
@@ -9730,11 +9868,11 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get updateBannerDownloadFailed =>
-      'De update kon niet worden gedownload.';
+      'De update kon niet worden gedownload. Probeer het opnieuw.';
 
   @override
   String get updateDownloadFailureDestination =>
-      'Er kon geen locatie worden gekozen om de update naartoe te downloaden.';
+      'Er kon geen plek voor het downloaden van de update worden gekozen. Probeer het opnieuw, of gebruik \"Release bekijken\".';
 
   @override
   String get updateDownloadFailureDestinationOccupied =>
@@ -9742,7 +9880,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get updateDownloadFailureIncomplete =>
-      'De download was onvolledig en is verwijderd. Probeer het opnieuw of gebruik „Release bekijken”.';
+      'De download kon niet worden voltooid en het onvolledige bestand is verwijderd. Probeer het opnieuw, of gebruik \"Release bekijken\".';
 
   @override
   String get updateDownloadFailureRefusedHost =>
@@ -9750,19 +9888,19 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get updateDownloadFailureUnreachable =>
-      'De update kon niet worden gedownload. Controleer je verbinding en probeer het opnieuw, of gebruik „Release bekijken”.';
+      'De update kon niet worden gedownload. Controleer je verbinding en probeer het opnieuw, of gebruik \"Release bekijken\".';
 
   @override
   String get updateDownloadFailureServerError =>
-      'De updateserver kon het bestand niet leveren. Probeer het later opnieuw, of gebruik „Release bekijken”.';
+      'De updateserver kon het bestand niet leveren. Probeer het later opnieuw, of gebruik \"Release bekijken\".';
 
   @override
   String get updateDownloadFailureDiskFull =>
-      'Er is niet genoeg vrije schijfruimte om de update op te slaan. Maak ruimte vrij en probeer het opnieuw, of gebruik „Release bekijken”.';
+      'Er is te weinig vrije schijfruimte om de update op te slaan. Maak ruimte vrij en probeer het opnieuw, of gebruik \"Release bekijken\".';
 
   @override
   String get updateDownloadFailureUnwritable =>
-      'De update kon niet worden opgeslagen omdat de downloadlocatie niet beschrijfbaar is. Controleer de rechten en probeer het opnieuw, of gebruik „Release bekijken”.';
+      'De update kon niet worden opgeslagen omdat er niet naar de downloadlocatie kan worden geschreven. Controleer de rechten en probeer het opnieuw, of gebruik \"Release bekijken\".';
 
   @override
   String get updateDownloadFailureChecksumMismatch =>
@@ -9770,19 +9908,19 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get updateDownloadFailureHandoffFailed =>
-      'De update is gedownload en geverifieerd, maar kon niet automatisch worden geopend. Gebruik „Release bekijken” om de installatie af te ronden.';
+      'De update is gedownload en gecontroleerd, maar kon niet automatisch worden geopend. Gebruik \"Release bekijken\" om de installatie af te ronden.';
 
   @override
   String get updateDownloadFailureInstallFailed =>
-      'Er ging iets mis bij het installeren van de update. Probeer het opnieuw of gebruik „Release bekijken” om de update handmatig te downloaden.';
+      'De update kon niet worden geïnstalleerd. Probeer het opnieuw, of gebruik \"Release bekijken\" om hem handmatig te downloaden.';
 
   @override
   String get startupIntegrityCheckIncomplete =>
-      'Een integriteitscontrole van de database kon niet worden voltooid, dus je gegevens konden bij deze start niet worden geverifieerd. Overweeg een back-up terug te zetten als de problemen aanhouden. Technische details zijn opgeslagen onder Instellingen ▸ Diagnostics.';
+      'Je gegevens konden deze keer niet volledig worden gecontroleerd, dus ze konden niet worden geverifieerd. Blijven er problemen, overweeg dan te herstellen vanuit een back-up. Technische details zijn bewaard in Instellingen ▸ Diagnostics.';
 
   @override
   String get startupIntegrityCheckFailed =>
-      'Een integriteitscontrole van de database is mislukt. Je lokale gegevens zijn mogelijk beschadigd – overweeg een back-up terug te zetten.';
+      'Je gegevens zijn niet door de veiligheidscontrole gekomen en zijn mogelijk beschadigd. Overweeg te herstellen vanuit een back-up.';
 
   @override
   String get startupEcdConvertTitle => 'ECD-dansen converteren?';
@@ -9851,7 +9989,7 @@ class AppLocalizationsNl extends AppLocalizations {
   String get retirementBannerGetUpdate => 'Update ophalen';
 
   @override
-  String get retirementBannerLater => 'Later';
+  String get retirementBannerLater => 'Sluiten';
 
   @override
   String installLocationBannerMessage(String appName) {
@@ -10004,7 +10142,8 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
-  String get userGuideLoadError => 'De gebruikersgids kon niet worden geladen.';
+  String get userGuideLoadError =>
+      'De gebruikersgids kon niet worden geladen. Probeer het opnieuw.';
 
   @override
   String get userGuideOpenOnline => 'De gids online openen';
@@ -10041,8 +10180,7 @@ class AppLocalizationsNl extends AppLocalizations {
   String get shorthandsCompoundTitle => 'Afkortingen voor je eigen figuren';
 
   @override
-  String get shorthandsUserFigureSyncLabel =>
-      'Afkortingen voor je nieuwe figuren';
+  String get shorthandsUserFigureSyncLabel => 'Afkortingen voor nieuwe figuren';
 
   @override
   String get shorthandsCompoundIntro =>
@@ -10066,7 +10204,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get shorthandsUserFigureShadowedByCompound =>
-      'Niet gebruikt: een afkorting voor een van je combinaties heeft dezelfde tekst.';
+      'Niet gebruikt: een afkorting voor een combinatie heeft dezelfde tekst.';
 
   @override
   String get compoundShorthandEditorFigureLabel => 'Je figuur';
@@ -10076,7 +10214,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get compoundShorthandEditorNoCompounds =>
-      'Je hebt nog geen eigen figuren. Voeg er eerst een toe in de woordenlijst.';
+      'Je hebt nog geen eigen figuren. Voeg er eerst een toe in de Woordenlijst.';
 
   @override
   String get compoundShorthandEditorInvalidValues =>
@@ -10222,8 +10360,8 @@ class AppLocalizationsNl extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count figuren konden niet in je woordenlijst worden opgeslagen.',
-      one: '1 figuur kon niet in je woordenlijst worden opgeslagen.',
+      other: '$count figuren konden niet in je Woordenlijst worden opgeslagen.',
+      one: '1 figuur kon niet in je Woordenlijst worden opgeslagen.',
     );
     return '$_temp0';
   }
@@ -10355,7 +10493,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get reparseFailed =>
-      'Figuren konden niet worden geüpgraded. Probeer het opnieuw.';
+      'De figuren konden niet worden bijgewerkt. Probeer het opnieuw.';
 
   @override
   String get reparseNothingUpgradedSnack => 'Niets te upgraden.';
@@ -10425,7 +10563,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get reparseErrorBody =>
-      'Er ging iets mis tijdens het scannen van je collectie. Er is niets gewijzigd. Je kunt het opnieuw proberen.';
+      'Je collectie kon niet worden gescand. Er is niets gewijzigd. Probeer het opnieuw.';
 
   @override
   String get ecdMigrationScreenTitle => 'Engelse dansen omzetten';
@@ -10557,7 +10695,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get customFieldsLoadError =>
-      'Aangepaste velden konden niet worden geladen.';
+      'Eigen velden konden niet worden geladen. Er is niets gewijzigd. Probeer het opnieuw.';
 
   @override
   String get customFieldsEmptyTitle => 'Nog geen aangepaste velden';
@@ -10599,13 +10737,13 @@ class AppLocalizationsNl extends AppLocalizations {
   String get customFieldsEditorEditTitle => 'Aangepast veld bewerken';
 
   @override
-  String get customFieldsLabelLabel => 'Label *';
+  String get customFieldsLabelLabel => 'Label';
 
   @override
   String get customFieldsLabelRequired => 'Label is vereist';
 
   @override
-  String get customFieldsKeyLabel => 'Sleutel *';
+  String get customFieldsKeyLabel => 'Sleutel';
 
   @override
   String get customFieldsKeyHelper =>
@@ -10621,6 +10759,10 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get customFieldsKeyInvalid =>
       'Sleutel moet beginnen met een letter of underscore en alleen letters, cijfers en underscores bevatten';
+
+  @override
+  String get customFieldsSaveFailed =>
+      'Het veld kon niet worden opgeslagen. Controleer de sleutel en keuzes en probeer het opnieuw.';
 
   @override
   String get customFieldsTypeFieldLabel => 'Type';
@@ -10645,7 +10787,7 @@ class AppLocalizationsNl extends AppLocalizations {
       'Bied dit veld aan in het paneel Filters';
 
   @override
-  String get customFieldsChoicesLabel => 'Keuzes *';
+  String get customFieldsChoicesLabel => 'Keuzes';
 
   @override
   String get customFieldsChoiceInUseTooltip =>
@@ -10786,7 +10928,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get recentlyDeletedLoadError =>
-      'Je onlangs verwijderde items konden niet worden geladen. Er is niets verwijderd.';
+      'Je onlangs verwijderde items konden niet worden geladen. Er is niets verwijderd. Probeer het opnieuw.';
 
   @override
   String get recentlyDeletedDeleteTitle => 'Permanent verwijderen?';
@@ -10871,7 +11013,8 @@ class AppLocalizationsNl extends AppLocalizations {
   String get venueNew => 'Nieuwe locatie';
 
   @override
-  String get venueLoadError => 'Locaties konden niet worden geladen.';
+  String get venueLoadError =>
+      'Locaties konden niet worden geladen. Er is niets gewijzigd. Probeer het opnieuw.';
 
   @override
   String get venueManagerTitle => 'Locaties';
@@ -10942,6 +11085,10 @@ class AppLocalizationsNl extends AppLocalizations {
   String get venueEditTitle => 'Locatie bewerken';
 
   @override
+  String get venueEditorSaveError =>
+      'De locatie kon niet worden opgeslagen. Je wijzigingen staan er nog. Probeer het opnieuw.';
+
+  @override
   String get venueEditorSharedNote =>
       'Een locatie is gedeeld over elk programma dat hier wordt gehouden, dus bewerkingen van het adres, contacten of schema zijn zichtbaar op al die programma’s.';
 
@@ -10950,7 +11097,7 @@ class AppLocalizationsNl extends AppLocalizations {
       'De adres- en contactvelden van deze locatie hieronder blijven op dit apparaat — Apparaatsynchronisatie draagt ze niet over naar je andere apparaten, dus daar kunnen ze leeg zijn. Het veld Notities synchroniseert wel, dus vermijd daar contactgegevens als je die liever privé op dit apparaat houdt.';
 
   @override
-  String get venueEditorNameLabel => 'Naam *';
+  String get venueEditorNameLabel => 'Naam';
 
   @override
   String get venueEditorNameRequired => 'Naam is vereist';
@@ -11081,7 +11228,11 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get danceReimportSourceFailed =>
-      'Kan geen dans uit die bron laden. Probeer het opnieuw.';
+      'Er kon geen dans van die bron worden geladen. Je dans is niet gewijzigd. Probeer het opnieuw.';
+
+  @override
+  String get danceReimportApplyFailed =>
+      'De dans kon niet vanuit die bron worden bijgewerkt. Je dans is niet gewijzigd. Probeer het opnieuw.';
 
   @override
   String get danceReimported => 'Choreografie bijgewerkt.';
@@ -11113,11 +11264,11 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get publishedCollectionsUnverified =>
-      'Gepubliceerde collecties konden niet worden geverifieerd, dus er is niets geladen. Werk de app bij als dit blijft gebeuren.';
+      'De gepubliceerde collecties konden niet worden geverifieerd, dus er is niets geladen. Blijft dit gebeuren, werk dan de app bij.';
 
   @override
   String get publishedCollectionsOffline =>
-      'Gepubliceerde collecties konden niet worden bereikt. Controleer je verbinding en probeer het opnieuw.';
+      'De gepubliceerde collecties zijn niet bereikbaar. Controleer je verbinding en probeer het opnieuw.';
 
   @override
   String get publishedCollectionsNeedsNewerApp =>
@@ -11291,7 +11442,7 @@ class AppLocalizationsNl extends AppLocalizations {
       'Laat je je eigen figuren toevoegen en bewerken, en biedt ze aan wanneer je een dans bewerkt. De woordenlijst is hiervoor niet nodig. Als je dit uitzet, worden ze verborgen, niet verwijderd.';
 
   @override
-  String get settingsExperimentalCustomFiguresManageTitle => 'Je figuren';
+  String get settingsExperimentalCustomFiguresManageTitle => 'Eigen figuren';
 
   @override
   String get settingsExperimentalCustomFiguresManageSubtitle =>
@@ -11311,7 +11462,7 @@ class AppLocalizationsNl extends AppLocalizations {
   String get glossaryAddCustomFigure => 'Eigen figuur toevoegen';
 
   @override
-  String get customFiguresNewFigure => 'Nieuwe figuur';
+  String get customFiguresNewFigure => 'Eigen figuur toevoegen';
 
   @override
   String get glossaryCustomMarker => 'Eigen';
@@ -11382,7 +11533,7 @@ class AppLocalizationsNl extends AppLocalizations {
       'Je woordenlijst heeft de maximale grootte bereikt, dus dit kon niet worden opgeslagen. Maak ruimte door andere figuren of notities te verwijderen of in te korten en probeer het opnieuw.';
 
   @override
-  String get compoundEditorTitleNew => 'Nieuwe figuur';
+  String get compoundEditorTitleNew => 'Eigen figuur toevoegen';
 
   @override
   String get compoundEditorTitleEdit => 'Figuur bewerken';
@@ -11718,7 +11869,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get danceEditorUserFigureUnavailable =>
-      'Je figuur is niet beschikbaar, dus deze rij houdt de formulering die hij heeft.';
+      'Je figuur is niet beschikbaar, dus deze rij behoudt zijn huidige tekst.';
 
   @override
   String get compoundEditorDiscardBody =>
@@ -12164,7 +12315,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get callingCardEditorPreviewError =>
-      'Het voorbeeld kon niet worden getekend.';
+      'Het voorbeeld kon niet worden getekend. Probeer het opnieuw.';
 
   @override
   String callingCardEditorPreviewShrunk(int percent) {
@@ -12223,7 +12374,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get callingCardHelpFields =>
-      'Een blok drukt alleen af wat de dans heeft, en alleen velden die aanstaan onder Instellingen › Standaardwaarden › Gedeelde dansvelden. Een rij zonder iets om af te drukken neemt geen ruimte in. Als een kaart te vol is, wordt alles erop gelijkmatig verkleind tot het past, tot halve grootte.';
+      'Een blok drukt alleen af wat de dans heeft, en alleen velden die zijn aangezet onder Instellingen ▸ Standaarden ▸ Gedeelde dansvelden. Een rij zonder iets om af te drukken neemt geen ruimte in. Is een kaart te vol, dan wordt alles erop gelijkmatig verkleind om te passen, tot op de helft van de grootte.';
 
   @override
   String get callingCardHelpTapToInsert =>
@@ -12260,7 +12411,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get callingCardHelpBlockFigures =>
-      'De figuren, gegroepeerd per frase (A1, A2, B1, B2), met hun tellen.';
+      'De figuren, gegroepeerd per frase (A1, A2, B1, B2), met hun lengte: in tellen, of in maten voor een Engelse dans.';
 
   @override
   String get callingCardHelpBlockNotes => 'Je callnotities.';
@@ -12327,7 +12478,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get callingCardHelpOptionFigures =>
-      'Voor figures: laat de tellen, de eigen notities van de figuren, de frasenamen of de lijnen tussen de frasen weg.';
+      'Voor figures: laat de lengtes, de eigen notities van de figuren, de frasenamen of de lijnen tussen de frasen weg.';
 
   @override
   String get callingCardHelpOptionThickness =>

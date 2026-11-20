@@ -54,6 +54,13 @@ error paths, and edge cases. UI changes include widget tests where practical
 and must satisfy the [accessibility baseline](docs/research/accessibility-baseline.md)
 (semantics, keyboard, contrast) — a11y is an acceptance criterion, not polish.
 
+CI holds a line-coverage floor on both packages, generated sources excluded:
+`compendium_core` at 80% (`tools/ci/check_core_coverage.py`) and the app at 90%
+(`tools/ci/check_app_coverage.py`, which fails when the report is missing or
+empty rather than skipping). Both gate only what the tests load, so a file no
+test imports is not measured. The floors are a backstop, not the target: raise
+one when the measured number rises, and do not lower one to land a change.
+
 ### Screenshots for UI changes
 A PR from an external contributor that changes anything a user can see includes
 screenshots of the change in its body. Without them the PR is not ready for
@@ -162,7 +169,10 @@ When you change the schema:
   README there covers regeneration — note that `drift_dev` cannot run from this
   workspace and is driven from a throwaway project.
 - **Never bump `schemaVersion` in a PATCH release.** A schema change is a
-  data-format change and rides at least a MINOR version bump.
+  data-format change and rides at least a MINOR version bump. The release
+  workflow enforces it (`tools/ci/check_changelog_promoted.py`): a release on
+  the same `X.Y` line as the previous published tag, with `Z` above zero, `-beta`
+  included, fails if the schema rose, and a release never lowers it.
 
 #### Adding to an unreleased version
 
@@ -235,8 +245,13 @@ an unclassified column or settings key. When you add one:
   declared as `const String somethingKeyPrefix = ...` instead, and classified
   in `settingsPrefixClassifications` — the ratchet matches both declaration
   shapes.
-- Say **why** in the entry's `note` when the call is not obvious. A reviewer
-  should never have to guess why a personal-data field is `shareable`.
+- Say **why** in the entry's `note`. A reviewer should never have to guess why a
+  personal-data field is `shareable`, so a test
+  (`data_classification_note_test.dart`) fails without a note on every entry
+  that is not `shareable`, every `shareable` entry whose subject is not `none`,
+  and every third-party entry, in the three `compendium_core` registries. The
+  app-user preference settings, which share one note-free classification, are
+  the only exemption (`preferenceSettingKeys`).
 - Regenerate the catalogue:
   `fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart`
 - If you added a whole new table — including a raw or virtual one drift does not
@@ -333,8 +348,9 @@ code as much as prose. Two rules:
 The hosted pages are **generated at publish time** by
 `tools/site/render_user_docs.py` and never committed, so there is nothing to
 regenerate for them — but a broken cross-link, an `#anchor` with no matching
-heading, two headings that collide on one anchor, or a link to a repo file that
-isn't in the tree all fail CI. Check your links locally with:
+heading, two headings that collide on one anchor, a link to a repo file that
+isn't in the tree, or an image with no alt text (or whose file is missing) all
+fail CI. Check your links and images locally with:
 
 ```sh
 python3 tools/site/render_user_docs.py --check

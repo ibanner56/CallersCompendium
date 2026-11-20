@@ -98,7 +98,17 @@ In an English country dance, the line is read as English figures (`1st
 corners set and turn single`, `Partner R shoulder round`, `circle left half
 way`), never as contra moves; anything it can't read exactly is kept as you
 typed it. A circle or star "half way" counts places from the dance's
-formation, two in a duple minor and three in a triple minor.
+formation, two in a duple minor and three in a triple minor. A line that
+starts with a bar range (`1-4 partners set and turn single`, `(5-8) circle
+left`, `A1 1-8 lead up`) counts those bars by the dance's **Meter**: `1-4` is
+8 beats in 2/2 and 12 in 3/2 or 3/4. With no meter, a bar counts the beats
+of the phrase structure, as the **Bars** field does.
+The bars are the count. A line that also states a count in beats
+(`1-4 (6) circle left`) is kept as you typed it, with the bars' count, so you
+can see the two disagree and fix whichever is wrong. A line with several bar
+ranges (`(5-8) circle left (9-12) circle right`) is kept as you typed it too,
+counted across all of them (or by its first range, past 64 beats); type
+each figure on its own line to have them read.
 A line under the
 box tells you how many figures it added and invites you to type another (a
 screen reader announces the count too); it goes away when you start typing.
@@ -167,7 +177,7 @@ robin`, `contra corners`, `give & take` (or `give and take`, `give-and-take`),
 in capitals or not, with or without a full stop, comma or exclamation mark
 after it (`hey.`). Your dialect's own name for a move works too. A name on its
 own gives the figure with its usual options, which you can then change.
-Put `ones`, `twos`, `partners`, `neighbors`, `everyone`, `role1s`, `role2s` (or
+Put `ones`, `twos`, `threes`, `fours`, `partners`, `neighbors`, `everyone`, `role1s`, `role2s` (or
 the singular `partner` or `neighbor`), or any other dancers the way the figure
 list names them (`same roles`, `third corners`, `prev neighbor`), in front of
 the name of a move that takes dancers and they are the dancers: `neighbor pass
@@ -385,7 +395,7 @@ typed them. "Leads chain" and "the lead on the left" still use the role. Text sa
 
 With **Custom Figures** on (see [Settings](./settings.md)), the figures you
 built for the dance's form, in the [Glossary](./glossary.md) or from
-**Settings › Experimental › Your figures**, are offered when
+**Settings ▸ Experimental ▸ Custom Figures**, are offered when
 you choose a figure's move, listed first and marked with a person icon
 (announced as **Custom** by screen readers). They are found by their name or by
 any of their other names. A figure you built has one of two kinds, and each
@@ -575,11 +585,15 @@ An **English (ECD)** dance is timed in bars, as English callers time it. Each
 figure's length is entered and shown in **Bars**: `2`, or `1.5` (or `1½`) for
 a bar and a half. Half a bar is taken only where it is a whole number of beats,
 so not in triple time: in a tune with three beats to the bar, the field asks
-for whole bars instead. The app still works in beats underneath, through the
-dance's phrase structure, so `4*8*3` (four 8-bar phrases of three beats) makes
-2 bars 6 beats. A tune whose parts have different numbers of beats to the bar
+for whole bars instead. The app still works in beats underneath. A bar holds
+the beats of the dance's **Meter**: 2/2, 2/4, 6/8 and 6/4 have two, 3/2, 3/4,
+9/8 and 9/4 three, 4/4, 12/8 and 12/4 four, so in 3/2 two bars are 6 beats. With no meter the
+phrase structure says, so `4*8*3` (four 8-bar phrases of three beats) makes 2
+bars 6 beats too. A tune whose parts have different numbers of beats to the bar
 keeps its figures in beats, since one count of bars would mean different
-lengths in different parts. The dance's page and Perform show bars too.
+lengths in different parts. The dance's page and Perform show bars too, and so
+do the dance's warnings, its calling card, and its figures when you share, copy
+or print it, alone or with a program.
 
 An English sequence can also take its bars as a whole, as in "A, B and C in
 bars 1–4". Fill in **Bars for all** at the top of the sequence, and leave the
@@ -655,6 +669,18 @@ nothing in it to lose.
 - **Phrase structure** — leave it blank for the standard A1 A2 B1 B2, or write
   your own (the field suggests `6*8*2` as an example). The app checks that what you
   write is a valid structure, and uses it for the beat count above.
+- **Phrases** (English dances) — choose **Name the phrases** to give the
+  tune's parts their own names instead: one row each for A, B and C, with
+  its **Bars** and whether it plays **Once** or **Twice**, the repeat
+  straight after it. A=4 played twice and B=8 played once labels the figures
+  A1, A2 and B; A=4, B=4 and C=8 each once labels them A, B and C. The bars
+  count in the dance's **Meter**, and changing the meter keeps each phrase's
+  bars. Each phrase has 1 to 1000 bars; while one is left empty or past
+  that, the dance keeps its last valid phrases, and **Save** saves those.
+  Remove every phrase to go back to unnamed phrases: the standard A1 A2 B1
+  B2, counted in the dance's meter. You can also
+  type names into the **Phrase structure** field (`A:2*4*2 + B:1*8*2`);
+  only an English dance can be saved with them.
 - **Meter** and **Key** — the tune's written meter, such as `3/2`, and its key,
   such as `G minor`, in your own words. They sit here for an English dance and
   in **More details** for other types.
@@ -665,7 +691,7 @@ nothing in it to lose.
 - **Hook** — one line on why you would call this dance. Printed and shared
   dance cards can show it, and the dance's published sources, once you turn on
   **Hook** and **Sources** under
-  [Settings › Defaults › Shared dance fields](./settings.md#shared-dance-fields).
+  [Settings ▸ Defaults ▸ Shared dance fields](./settings.md#shared-dance-fields).
 - **Walkthrough** — the step-by-step teach.
 
 ### Walkthrough
@@ -690,7 +716,9 @@ Two things follow from that:
 
 Your whole library of snippets lives at **Settings** ▸ **Dialect** ▸ **Dance
 details & shorthands** ▸ **Walkthrough snippets**, where you can review and edit
-them. Editing one there updates the default used everywhere.
+them. Each snippet is shown in the dialect of its figure's dance form, so an
+English figure's snippet reads in your English dialect. Editing one there
+updates the default used everywhere.
 
 ### More details
 
@@ -733,8 +761,8 @@ explicit about two things, and both matter:
   disagree. **Keep editing** takes you back to what you typed. After a merge,
   every dance that credited either author credits the one that's left, this
   dance included, and **Undo** in the message at the bottom of the screen puts
-  both back. The same merge is in **Settings → General → Library → Authors**;
-  see [Settings](./settings.md#library).
+  both back. The same merge is in **Settings ▸ General ▸ Dances ▸ Authors**;
+  see [Settings](./settings.md#dances).
 - **Email and location are private, and so is the deceased mark.** They are
   stored only on this device and are never shared or exported. See
   [Share, print & export](./sharing.md#what-stays-private) for exactly what
@@ -743,8 +771,8 @@ explicit about two things, and both matter:
 **Source details** works the same way: a source's details are shared across every
 dance that cites it, and editing them here updates the source everywhere it is
 referenced. To combine two copies of the same source, use **Merge into…** in
-**Settings → General → Library → Sources**; see
-[Settings](./settings.md#library).
+**Settings ▸ General ▸ Dances ▸ Sources**; see
+[Settings](./settings.md#dances).
 
 ## Undo, drafts, and saving
 

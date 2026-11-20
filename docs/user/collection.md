@@ -1,6 +1,6 @@
 # Collection & search
 
-Your [collection](./glossary.md#collection) is your whole library of
+Your [collection](./glossary.md#collection) is all your
 [dances](./glossary.md#dance) — every transcription you have typed in or
 brought in from elsewhere. This guide shows you how to browse and sort it, find
 exactly the dance you want (by words, by the [moves](./glossary.md#move) it
@@ -36,7 +36,7 @@ Select a tag chip on a row to add that tag to the **Tags** filter. The rest of
 your search stays as it was: the words in the search bar, your other filters,
 **By phrase** and **Advanced**. A tag chip on a dance's own page does the same,
 and takes you to the Collection. To choose which of these details appear on
-each row, open **Settings → Defaults → Collection card fields**.
+each row, open **Settings ▸ Defaults ▸ Collection card fields**.
 
 *The Collection screen with a search query, the Filters panel open, and matching
 dances visible.*
@@ -71,7 +71,7 @@ appears once your collection has a dance. You can sort by:
 
 The arrow button beside **Sort** flips between ascending and descending order.
 To have the list always open in one direction, set **Collection sort order**
-under [Settings › Defaults](./settings.md#display-defaults).
+under [Settings ▸ Defaults](./settings.md#display-defaults).
 When the toolbar runs out of room — on a narrow screen, or beside a long
 **Collection** title — the import, sort, arrow and group-by buttons move, one at
 a time, into the **More actions** (**⋮**) menu instead.
@@ -99,7 +99,7 @@ always have until you pick one, and the tag's name is always shown beside the
 color, so nothing depends on being able to tell the colors apart.
 
 Colors, and everything else about your tags, are in the **Tags** manager:
-**Settings → General → Library → Tags** (**Settings → Appearance → Tag
+**Settings ▸ General ▸ Dances ▸ Tags** (**Settings ▸ Appearance ▸ Tag
 colors** opens it too). It lists every tag with the number of dances that use
 it, and you can search, show only the tags no dance uses (**Not used**), and
 sort by name or by number of dances. Select a tag, or its **⋮** menu, to:
@@ -170,8 +170,13 @@ what is already there.
 Use **Search in**, beside the search bar (above it on a narrow screen or with
 large text), to choose where your words are looked for: **All fields**,
 **Title**, **Author**, or **Figure**. **All fields** looks at titles, authors,
-sources, custom field values, hooks and notes, and finds each word exactly as
-you typed it. It skips yes/no fields, which you find with their filter, and
+sources, custom field values, hooks and notes, and at each dance's meter, key
+and the people who interpreted it, and finds each word exactly as you typed
+it: `3/2`, `D minor` or `Sharp` each find the dances that have them. A word of
+one or two letters must start a word, so `D` finds the key "D minor" but `in`
+does not. A letter with an accent in a meter, key or interpreter's name must be
+typed as it was entered, capital included. **Author** looks only at the people
+who wrote a dance, not those who interpreted it. It skips yes/no fields, which you find with their filter, and
 any custom field with **Searchable** turned off (see
 [Make your own fields](#make-your-own-fields)).
 
@@ -265,7 +270,7 @@ A filter appears only when there is something to filter by — the **Source**
 filter, for example, appears once a dance cites a published source. If an
 author or source shows up twice under slightly different names, fix it once in
 the **Authors** or **Sources** manager under
-[Settings → General → Library](./settings.md#library): renaming or merging there
+[Settings ▸ General ▸ Dances](./settings.md#dances): renaming or merging there
 changes every dance that credits it.
 
 Two simple rules govern how filters combine, and knowing them makes the panel
@@ -355,7 +360,7 @@ Filters work alongside the search bar: whatever you type and whatever you tick
 apply together.
 
 If the panel is longer than you need, hide the filters you never use under
-**Settings → Defaults → Collection filters**. Hiding a filter only removes it from
+**Settings ▸ Defaults ▸ Collection filters**. Hiding a filter only removes it from
 the panel and clears anything you had selected in it; your dances are untouched.
 The same choice applies when you pick dances for a program.
 
@@ -410,7 +415,8 @@ tag.
 ### Ask per phrase with By phrase search
 
 If you think about dances the way The Caller's Box does — phrase by phrase — open
-the **By phrase** panel. For each phrase (A1, A2, B1, B2) you can require that
+the **By phrase** panel. For each phrase (A1, A2, B1, B2, and any your
+English dances name, such as A, B or C) you can require that
 certain moves **are present** ("figures match") or that certain moves **are
 absent** ("but do not match"). It is a quick way to say, for instance, "a swing
 in B1, but no hey anywhere in A." Each box is a type-ahead like the one in
@@ -715,7 +721,7 @@ way to reach a dance you can name. Accents are ignored (typing `ecole` finds
 "École"), and a title that is exactly what you typed, then one that starts with
 it, is listed ahead of titles that only contain it, so `hey` shows "Hey" before
 "Cheyenne". Within each, titles are alphabetical, and a leading "The", "A" or
-"An" is ignored when [Ignore leading articles when sorting](./settings.md#library)
+"An" is ignored when [Ignore leading articles when sorting](./settings.md#dances)
 is on. For searching *inside* dances — by move, by
 level, by tag — use the Collection search and filters above.
 

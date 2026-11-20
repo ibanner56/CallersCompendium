@@ -158,6 +158,12 @@ and produces no Android artifact.
      `v0.1.0-beta.1` already exist, because strict SemVer ranks the bare beta
      below them. Choose a newer `X.Y.Z` core instead.
    - **Never bump `schemaVersion` in a PATCH release** (ADR-002 §7).
+     `tools/ci/check_changelog_promoted.py` refuses one, `-beta` included: a
+     release on the previous published tag's `X.Y` line with `Z` above zero
+     whose schema rose fails, naming both tags and both values. Cut the change as
+     the next minor release instead: a patch release cut from `main` while
+     `main`'s schema is ahead of the last tag's is refused for this reason. A
+     minor's beta and its stable promotion (`Z` is 0) may differ in schema.
    - **Update the static build-version hints in every issue form.** GitHub issue
      forms cannot read the latest release tag dynamically. Set every explicit
      SemVer literal in `.github/ISSUE_TEMPLATE/*.yml` and `*.yaml` to the same
@@ -189,8 +195,10 @@ and produces no Android artifact.
    ```
 
    If no fragment has a `core` object, do not touch the core pubspec or core
-   CHANGELOG. If core entries exist, ask the maintainer for a new core version,
-   showing the current value for context:
+   CHANGELOG; the compiler fails a core pubspec version that has no section in
+   the core CHANGELOG while no core entry is pending. If core entries exist, ask
+   the maintainer for a new core version, showing the current value for
+   context:
 
    ```sh
    grep '^version:' packages/compendium_core/pubspec.yaml
@@ -267,7 +275,8 @@ and produces no Android artifact.
      not move at all, so a release with no version range can still owe this
      section.
 
-     `tools/ci/check_changelog_promoted.py` enforces the ranges and, for a new
+     `tools/ci/check_changelog_promoted.py` enforces the ranges, that a patch
+     release did not raise the schema (and no release lowered it), and, for a new
      `'__…_done__'` marker since the previous tag, that a non-empty Data /
      Migrations section exists. It cannot judge whether the prose describes
      the pass; that is the author's job. Nor does it see a pass that re-runs
@@ -306,8 +315,11 @@ and produces no Android artifact.
    tagged from `main`, never from the release branch. Use
    `docs(release): prepare vX.Y.Z` for a stable release or
    `docs(release): prepare vX.Y.Z-beta` for a beta release as both the
-   release-preparation commit subject and pull request title; the merged #937
-   precedent used `docs(release): prepare v0.1.0-beta.7`. Never use
+   release-preparation commit subject and pull request title, with X.Y.Z equal to
+   `app/pubspec.yaml`'s version (`docs(release): prepare v0.10.0-beta` for the
+   `v0.10.0-beta` tag); when the PR changes the pubspec version, CI checks the PR title, not the
+   commit subjects (a stable promotion of an existing beta changes no version, so
+   its title is not checked). Never use
    `chore(release)` unless a maintainer explicitly overrides the convention.
    This applies even when preparation changes version literals, issue-template
    metadata, or generated changelogs. This repo squash-merges, so what you want

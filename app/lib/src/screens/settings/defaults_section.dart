@@ -2703,9 +2703,7 @@ class _StartingProgramTemplateEditorState
                     entry.danceId == null
                         ? entry.text ?? ''
                         : widget.danceTitles[entry.danceId] ??
-                              l10n.settingsDefaultsStartingProgramUnavailableDance(
-                                entry.danceId!,
-                              ),
+                              l10n.settingsDefaultsStartingProgramUnavailableDance,
                   ),
                   subtitle: entry.danceId == null
                       ? null

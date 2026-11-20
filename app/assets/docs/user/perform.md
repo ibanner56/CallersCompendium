@@ -92,7 +92,7 @@ the app, which follows your device's text-size setting: a dance too long to fit
 at that size scrolls instead of getting smaller. The beat count beside each
 figure has a fixed largest size, so it doesn't crowd the figure: at a large
 device text size it can be smaller than your usual text. It starts however you set **Auto-size Perform cards** in
-[Settings › Program › Performance](./settings.md#performance), and the in-view
+[Settings ▸ Program ▸ Perform mode](./settings.md#perform-mode), and the in-view
 toggle flips it until you leave Perform.
 
 **A− and A+.** The **Decrease text size** and **Increase text size** controls step
@@ -117,8 +117,8 @@ have no button for this, because Perform is always full screen there.
 
 **Caller notes.** When you perform a program, a slot's caller note appears above
 the dance title, labeled *Caller note*. To hide these, turn off **Show caller
-notes in program Perform** in
-[Settings › Program › Performance](./settings.md#performance). The note is for
+notes when performing a program** in
+[Settings ▸ Program ▸ Perform mode](./settings.md#perform-mode). The note is for
 your eyes only: it does not change the dance's own calling notes, search, or
 exports.
 
@@ -229,8 +229,8 @@ the full time that passed. Only **Pause timers** stops them.
 
 Timing is display-only — it helps you keep an eye on the clock but never changes
 your program or your dances. The single-dance timer is on by default; to hide
-it, turn off **Show timer for individual Perform** in
-[Settings › Program › Performance](./settings.md#performance).
+it, turn off **Show timer when performing one dance** in
+[Settings ▸ Program ▸ Perform mode](./settings.md#perform-mode).
 
 ## Adjust on the fly
 
@@ -311,7 +311,7 @@ exit check on a single dance says so instead of promising a resume: *Performing
 a single dance doesn't keep your place, so the next time starts fresh.*
 
 If you would rather leave in one tap, turn off **Confirm before leaving
-Perform** in [Settings › Program › Performance](./settings.md#performance).
+Perform mode** in [Settings ▸ Program ▸ Perform mode](./settings.md#perform-mode).
 **Exit Perform mode**, **Ctrl-W** and **Back** then leave straight away. Leaving
 that way keeps exactly what the question describes above: a program's place and
 clock while the program stays open, and nothing for a single dance.

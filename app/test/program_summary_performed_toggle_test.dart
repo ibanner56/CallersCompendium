@@ -269,7 +269,7 @@ void main() {
     await tester.tap(find.text('Undo'));
     await tester.pumpAndSettle();
     expect(
-      find.text('Could not undo that change to the performed mark.'),
+      find.text('Couldn\'t undo that change to the performed mark. Try again.'),
       findsOneWidget,
     );
     // The later edit and the mark both survive.

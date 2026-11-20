@@ -24,6 +24,7 @@ import '../support/fmp_fixture_builder.dart';
 import '../support/test_repositories.dart';
 import '../support/l10n_harness.dart';
 import '../support/pump_until.dart';
+import '../support/usr_english_question.dart';
 
 /// A drift [drift.QueryInterceptor] that can hold the first write of a commit
 /// open on a caller-controlled gate. Used to freeze [ImportReviewScreen] in its
@@ -739,7 +740,8 @@ void main() {
 
       const reimportOne =
           'Re-import replaces the figures, formation and progression of 1 '
-          'existing dance. Its rating, tags and notes stay.';
+          'existing dance, and can change its dance form. Its rating, tags and '
+          'notes stay.';
       expect(
         find.byKey(const ValueKey('import-reimport-warning')),
         findsOneWidget,
@@ -822,7 +824,8 @@ void main() {
       expect(
         find.text(
           'Re-import replaces the figures, formation and progression of 1 '
-          'existing dance. Its rating, tags and notes stay.',
+          'existing dance, and can change its dance form. Its rating, tags and '
+          'notes stay.',
         ),
         findsOneWidget,
       );
@@ -832,7 +835,8 @@ void main() {
       await tester.pumpAndSettle();
       const reimportTwo =
           'Re-import replaces the figures, formation and progression of 2 '
-          'existing dances. Their ratings, tags and notes stay.';
+          'existing dances, and can change their dance form. Their ratings, '
+          'tags and notes stay.';
       expect(find.text(reimportTwo), findsOneWidget);
       expect(find.bySemanticsLabel('Warning: $reimportTwo'), findsOneWidget);
       expect(
@@ -2618,6 +2622,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('import-continue')));
       await tester.pumpAndSettle();
+      await answerUsrEnglishQuestion(tester);
     }
 
     // A dance carrying a CC user field could not be committed on its own, and
@@ -3101,6 +3106,7 @@ void main() {
         expect(find.byKey(const ValueKey('import-usr-chosen')), findsOneWidget);
         await tester.tap(find.byKey(const ValueKey('import-continue')));
         await tester.pumpAndSettle();
+        await answerUsrEnglishQuestion(tester);
         await tester.tap(find.byKey(const ValueKey('import-back-to-input')));
         await tester.pumpAndSettle();
       }
@@ -3148,6 +3154,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('import-continue')));
       await tester.pumpAndSettle();
+      await answerUsrEnglishQuestion(tester);
       expect(reads, 1, reason: 'planning reads the file once');
 
       await tester.tap(find.byKey(const ValueKey('import-commit-button')));
@@ -3172,6 +3179,8 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('import-choose-usr-file')));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('import-continue')));
+      await tester.pumpAndSettle();
+      await answerUsrEnglishQuestion(tester, settle: false);
       // The isolate needs real wall-clock time, which the fake-async test zone
       // does not give it on its own.
       await pumpUntilFound(tester, find.text('Simplicity Swing'));
@@ -3185,6 +3194,125 @@ void main() {
       );
       expect(find.text('Created: 2'), findsOneWidget);
       expect(find.text('Programs: 1'), findsOneWidget);
+    });
+
+    group('the English dances question (ADR-006 W6)', () {
+      Future<void> toQuestion(
+        WidgetTester tester,
+        CompendiumRepositories repos,
+      ) async {
+        await _pump(
+          tester,
+          repos,
+          payload: 'unused',
+          sources: sourcesFor(() async => ccUsrBytes()),
+          bytePicker: () async => ccUsrBytes(),
+        );
+        await selectUsr(tester);
+        await tester.tap(find.byKey(const ValueKey('import-choose-usr-file')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('import-continue')));
+        await tester.pumpAndSettle();
+      }
+
+      Future<List<DanceForm>> commitForms(
+        WidgetTester tester,
+        CompendiumRepositories repos,
+      ) async {
+        await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+        await tester.pumpAndSettle();
+        return [for (final d in await repos.dances.listAll()) d.form];
+      }
+
+      testWidgets('Yes imports the file\'s dances as English', (tester) async {
+        final repos = openTestRepositories();
+        await toQuestion(tester, repos);
+        await answerUsrEnglishQuestion(tester, english: true);
+        expect(await commitForms(tester, repos), [
+          DanceForm.ecd,
+          DanceForm.ecd,
+        ]);
+      });
+
+      testWidgets('No reads them by their Type', (tester) async {
+        final repos = openTestRepositories();
+        await toQuestion(tester, repos);
+        await answerUsrEnglishQuestion(tester);
+        expect(await commitForms(tester, repos), [
+          DanceForm.contra,
+          DanceForm.contra,
+        ]);
+      });
+
+      testWidgets('closing the question plans nothing', (tester) async {
+        final repos = openTestRepositories();
+        await toQuestion(tester, repos);
+        await tester.tapAt(const Offset(4, 4));
+        await tester.pumpAndSettle();
+        expect(
+          find.byKey(const ValueKey('import-usr-english-question')),
+          findsNothing,
+        );
+        expect(find.text('Simplicity Swing'), findsNothing);
+        expect(find.byKey(const ValueKey('import-continue')), findsOneWidget);
+      });
+
+      testWidgets('trying a file again after a failed plan does not ask '
+          'again but keeps the answer; choosing a file again asks', (
+        tester,
+      ) async {
+        final repos = openTestRepositories();
+        final notUsr = Uint8List.fromList(List<int>.filled(8192, 0x41));
+        // The English answer each plan was given.
+        final answers = <bool>[];
+        Uint8List pick() => Uint8List.fromList(notUsr);
+        await _pump(
+          tester,
+          repos,
+          payload: 'unused',
+          // Each choice reads the file afresh, as the real picker does.
+          sources: [
+            ImportSource(
+              kind: ImportSourceKind.genericJson,
+              adapterFactory: GenericJsonAdapter.new,
+            ),
+            ImportSource(
+              kind: ImportSourceKind.callersCompanionUsr,
+              adapterFactory: () => _AnswerSpyUsrAdapter(answers),
+              bytePicker: () async => pick(),
+            ),
+          ],
+          bytePicker: () async => pick(),
+        );
+        await selectUsr(tester);
+        await tester.tap(find.byKey(const ValueKey('import-choose-usr-file')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('import-continue')));
+        await tester.pumpAndSettle();
+        await answerUsrEnglishQuestion(tester, english: true);
+        await tester.tap(find.byKey(const ValueKey('import-back-to-input')));
+        await tester.pumpAndSettle();
+        expect(find.byKey(const ValueKey('import-usr-chosen')), findsOneWidget);
+
+        // The kept file again: no question.
+        await tester.tap(find.byKey(const ValueKey('import-continue')));
+        await tester.pumpAndSettle();
+        expect(
+          find.byKey(const ValueKey('import-usr-english-question')),
+          findsNothing,
+        );
+        await tester.tap(find.byKey(const ValueKey('import-back-to-input')));
+        await tester.pumpAndSettle();
+
+        // Chosen again, it is a new file to ask about.
+        await tester.tap(find.byKey(const ValueKey('import-choose-usr-file')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('import-continue')));
+        await tester.pumpAndSettle();
+        await answerUsrEnglishQuestion(tester);
+        // The kept file was planned with its Yes; the new one with its No.
+        expect(answers, [true, true, false]);
+      });
     });
 
     testWidgets('committing persists dances AND programs and surfaces the '
@@ -5744,5 +5872,21 @@ class _GatedJsonAdapter extends GenericJsonAdapter {
   Future<RawRecord> fetch(DiscoveredRecord record) async {
     if (++_fetches == gateAtFetch) await gate.future;
     return super.fetch(record);
+  }
+}
+
+/// A Caller's Companion adapter that records whether each plan was asked to
+/// read the file as English dances.
+class _AnswerSpyUsrAdapter extends CallersCompanionUsrAdapter {
+  _AnswerSpyUsrAdapter(this.answers);
+
+  final List<bool> answers;
+
+  @override
+  Future<List<DiscoveredRecord>> discover(ImportRequest request) {
+    answers.add(
+      request.options[CallersCompanionUsrAdapter.englishDancesOption] == true,
+    );
+    return super.discover(request);
   }
 }

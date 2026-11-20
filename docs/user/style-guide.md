@@ -72,7 +72,14 @@ on that definition rather than the top of the page.
 
 - **Caller's Compendium** — the app's full name; "the app" is fine after first use.
 - **dance** — a single transcription in your **collection**.
-- **collection** — your whole library of dances.
+- **library** — everything the app keeps for you: your collection, your
+  programs and your settings. Backup, restore, migration and Device Sync copy
+  the library, so their copy says "library". The maintainer chose this
+  (2026-11-18).
+- **collection** — your dances, and only your dances. It is what the
+  **Collection** screen lists. Copy that is about dances alone (importing into
+  it, searching it, a large imported collection) says "collection". The
+  maintainer chose this (2026-11-18).
 - **figure** / **move** — a single action in a dance (for example, "neighbors
   balance and swing"). Use "figure" for the entry in a dance; "move" for the
   underlying named action.
@@ -81,7 +88,10 @@ on that definition rather than the top of the page.
 - **program** — an ordered set list for an event; the individual entries are
   **slots**, and an alternate dance is an **alt**.
 - **matrix** — the figures-by-dances grid inside a program.
-- **Perform mode** — the large-print, stage-ready calling view.
+- **Perform mode** — the large-print, stage-ready calling view. This is its
+  only name: not "Perform view", "program Perform" or "individual Perform". The
+  nav label and the "Exit Perform?" question say **Perform**, "Perform cards"
+  are the cards it shows, and everything else says "Perform mode".
 - **dialect** — your personal choice of role names and wording (for example,
   **Larks/Robins** or **Leads/Follows**), applied everywhere the app shows text.
   Present it as *your words, your way* — not as a technical mapping.
@@ -129,6 +139,86 @@ for labels and headings, not for the guides' running prose.
 `app/test/l10n/us_spelling_sentence_case_test.dart` enforces the spelling and
 case rules on the English ARB.
 
+## App strings: names, buttons and errors
+
+More rules for the English strings in `app/lib/l10n/app_en.arb`. Where a rule
+names a decision, the maintainer made it; the rest are calls made while writing
+this guide, with the alternative they beat noted so a later change can reopen
+them. `app/test/l10n/one_name_each_test.dart` keeps the retired wordings out.
+
+**Names**
+
+- **Custom Figures** is the feature, wherever it is named as a feature (the
+  setting, its screen, the row that opens it). One of the user's own is "your
+  figure". "Combination", "new figure" and "term" name the three kinds of
+  Glossary entry, and are used for nothing else. Not "Your figures" as a
+  heading, "figures of your own", "your new figures" or "your combinations".
+  An earlier maintainer decision (2026-10-29) also keeps the plural "your own
+  figures" in running text and "No custom figures yet" in the empty state; those
+  stay.
+- **Library and collection** are defined in the terminology list above. A
+  Settings header must not call a subset the "library": the header over title
+  sorting, figure capitalization, tags, authors and sources is **Dances**.
+  (Call: "Tags, authors and sources" was rejected because it leaves out the
+  two display preferences under the same header.)
+- **Perform mode**: see the terminology list above.
+
+**Buttons**
+
+- **Cancel** abandons a dialog or sheet. **Not now** defers an offer. **Dismiss**
+  hides a banner. "Later", "Decide later" and "Skip" are not used for these.
+  **Skip** stays where it is one of several per-item choices in an import review
+  (skip this dance, skip all possible matches), and on the three offers made
+  once at the end of an import (terms, shorthands, figures to add), where the
+  offer does not come back, so "Not now" would promise too much.
+- **Try again** is the one name for repeating a failed action, on buttons and in
+  sentences. Not "Retry". (Call: "Retry" was rejected because the error
+  sentences already say "try again", so one name covers both.)
+- **Delete** destroys; **Remove** takes something out of a list.
+
+**Punctuation**
+
+- Irreversibility is always "This can't be undone." as its own sentence.
+- Menu paths use one arrow, ▸: "Settings ▸ Diagnostics". This guide's
+  prose uses it too.
+- Write "and" in running text, not "&" or "+". Kept on purpose, because the
+  space is short and they are fixed labels or names: the settings headings
+  "Language & region", "Backup & restore", "Dance details & shorthands",
+  "Surface & text" and "Outline & effects"; the button "Download & install";
+  "Back up + reset" on the startup recovery screen; "+" as the name of the add
+  icon; and "neighbor balance & swing", an example of text the user types.
+- Mark only optional fields, with "(optional)". Required fields have no
+  asterisk: the form's validator says "Title is required" when one is left
+  empty.
+
+**Errors**
+
+Every error message has one shape: what happened, whether the user's work is
+safe, and what to do next. "Couldn't save the program. Your changes are still
+here. Try again."
+
+- Say "Couldn't", never "Could not", and never "Please".
+- Say the work is safe only where the code guarantees it: a failed load or
+  search changed nothing, and a failed save that leaves the editor open keeps
+  the edits. Where nothing is guaranteed, leave the claim out and keep the
+  other two parts.
+- No "Something went wrong". Say what could not be done.
+- Keep implementation words out of the main sentence: no HTTP status, ids, byte
+  counts, "taxonomy" or "integrity check". A detail a support request needs goes
+  in a separate secondary line or behind **Copy details**.
+- Never show an exception's own message; map it to a localized string.
+
+**Success feedback**
+
+Returning to the list, or to a screen that shows the result, is confirmation
+enough, so saving a program or a venue from a screen that closes shows no
+message. A snackbar is for what the user cannot see afterwards: a save that
+leaves them on the same screen (the embedded program editor), a bulk action, and
+every delete or merge that offers Undo. A message is shown only after the write
+is seen to succeed. The autosave editor has no "saved" indicator: the maintainer
+ruled it out as too busy. (Call: "every save shows a snackbar" was rejected as
+noisier on the screens that already show the result.)
+
 ## Writing accessibly
 
 These docs are read by people using screen readers, high-contrast displays, and
@@ -151,6 +241,13 @@ text zoom — the same audience the app itself is built for. Model good practice
 ## Alt-text policy
 
 Every image in the user docs **must** have alt text. This is not optional.
+`python3 tools/site/render_user_docs.py --check` fails on an image written as
+`![alt](path)` with no alt text (code examples in fenced blocks are skipped), on
+alt text that is just the file name or a bare "image" or "screenshot", and on an
+image file that is missing. Always write images that way: a raw `<img>` tag or a
+`![alt][ref]` reference is not an image to the guide renderer and shows up as
+plain text. A purely decorative image is allowed only by name, in
+`DECORATIVE_IMAGES` in that script.
 
 - **Informative images (screenshots, diagrams):** write alt text that conveys the
   same information the image gives a sighted reader — what screen it is and what

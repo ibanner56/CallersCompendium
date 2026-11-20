@@ -17,6 +17,7 @@ Future<void> _pump(
   // wide inline overlay behaves the same as before its ResponsiveAutocomplete
   // migration.
   Size? screenSize,
+  Taxonomy? taxonomy,
   required VoidCallback onChanged,
 }) async {
   if (screenSize != null) {
@@ -31,7 +32,7 @@ Future<void> _pump(
           builder: (context, setState) => SingleChildScrollView(
             child: ByPhrasePanel(
               selections: selections,
-              taxonomy: contraTaxonomy,
+              taxonomy: taxonomy ?? contraTaxonomy,
               sectionLabels: sectionLabels,
               onChanged: () {
                 onChanged();
@@ -51,6 +52,40 @@ void main() {
   // Baseline coverage (this widget had none before the ResponsiveAutocomplete
   // migration added its first ValueKeys via MoveTypeAheadField.fieldKey).
   // ---------------------------------------------------------------------
+
+  testWidgets('a standard phrase keeps its place\'s caption beside named '
+      'ones, which are captioned by their label', (tester) async {
+    await _pump(
+      tester,
+      selections: ByPhraseSelections(),
+      sectionLabels: const ['A', 'A1', 'A2', 'B', 'B1', 'B2', 'C'],
+      onChanged: () {},
+    );
+    expect(find.text('first phrase (usually A1)'), findsOneWidget);
+    expect(find.text('third phrase (usually B1)'), findsOneWidget);
+    expect(find.text('fourth phrase (usually B2)'), findsOneWidget);
+    for (final label in ['A', 'B', 'C']) {
+      expect(find.text(label), findsOneWidget);
+    }
+  });
+
+  testWidgets('a chip for another form\'s figure names its form', (
+    tester,
+  ) async {
+    // A search over every dance tells contra's and ECD's circle apart, as
+    // its suggestions do (ADR-006).
+    final selections = ByPhraseSelections()
+      ..match['A1'] = ['circle', 'ecd_circle', 'ecd_hand_cast'];
+    await _pump(
+      tester,
+      selections: selections,
+      taxonomy: shippedTaxonomies.anyForm,
+      onChanged: () {},
+    );
+    expect(find.text('circle'), findsOneWidget);
+    expect(find.text('circle · English (ECD)'), findsOneWidget);
+    expect(find.text('hand cast · English (ECD)'), findsOneWidget);
+  });
 
   testWidgets('wide layout: adding a "match" move for A1 updates selections '
       'and shows a chip', (tester) async {

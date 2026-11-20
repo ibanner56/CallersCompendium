@@ -109,6 +109,87 @@ void main() {
       );
     });
 
+    group('counts read in bars for a dance timed in bars', () {
+      ValidationIssue issue(String code, Map<String, Object?> data) =>
+          ValidationIssue(
+            severity: ValidationSeverity.warning,
+            code: code,
+            message: 'x',
+            data: data,
+          );
+
+      test('a phrase mismatch', () {
+        final i = issue('phrase_overflow', {'actual': 66, 'expected': 64});
+        expect(
+          validationIssueMessage(l10n, i, beatsPerBar: 2),
+          'The figures total 33 bars; the phrase structure expects 32 bars.',
+        );
+        // Without a bar it is in beats, as before.
+        expect(
+          validationIssueMessage(l10n, i),
+          'The figures total 66 beats; the phrase structure expects 64.',
+        );
+      });
+
+      test('a sequence longer than a phrase', () {
+        expect(
+          validationIssueMessage(
+            l10n,
+            issue('sequence_exceeds_phrase', {
+              'position': 3,
+              'actual': 20,
+              'limit': 16,
+            }),
+            beatsPerBar: 2,
+          ),
+          'A sequence in figure 3 is 10 bars, longer than one phrase '
+          '(8 bars).',
+        );
+      });
+
+      test('a sequence span, timed or with room for none', () {
+        expect(
+          validationIssueMessage(
+            l10n,
+            issue('sequence_span_mismatch', {
+              'position': 2,
+              'actual': 3,
+              'expected': 8,
+              'allTimed': true,
+            }),
+            beatsPerBar: 2,
+          ),
+          'The steps of the sequence in figure 2 take 1½ bars; the sequence '
+          'takes 4 bars.',
+        );
+        expect(
+          validationIssueMessage(
+            l10n,
+            issue('sequence_span_mismatch', {
+              'position': 2,
+              'actual': 2,
+              'expected': 2,
+              'allTimed': false,
+            }),
+            beatsPerBar: 2,
+          ),
+          'The timed steps of the sequence in figure 2 take 1 bar, leaving '
+          'none of its 1 bar for the rest.',
+        );
+      });
+
+      test('a count that is no whole number of half bars stays in beats', () {
+        expect(
+          validationIssueMessage(
+            l10n,
+            issue('phrase_underflow', {'actual': 47, 'expected': 48}),
+            beatsPerBar: 3,
+          ),
+          'The figures total 47 beats; the phrase structure expects 48.',
+        );
+      });
+    });
+
     test('a sequence span that has no room for its untimed steps says so', () {
       expect(
         validationIssueMessage(
@@ -192,6 +273,7 @@ void main() {
       'cc_date_reduced_precision',
       'cc_missing_title',
       'cc_new_level',
+      'cc_bars_meter_unstated',
       'cc_inactive_level',
       'cc_program_deleted_dance',
       'cc_program_empty_slot',

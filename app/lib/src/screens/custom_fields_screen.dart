@@ -15,6 +15,7 @@ import '../utils/undo_snack_bar.dart';
 import '../widgets/confirm_discard_changes.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/load_error_view.dart';
+import '../widgets/app_dropdown_field.dart';
 import 'settings/settings_keys.dart';
 import '../widgets/adaptive_fab.dart';
 
@@ -553,9 +554,17 @@ class _CustomFieldFormState extends State<_CustomFieldForm> {
       Navigator.of(context).pop(def);
     } on ArgumentError catch (e, stackTrace) {
       logCaughtError(e, stackTrace, source: 'custom_fields_screen._save');
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(e.message.toString())));
+      if (!mounted) return;
+      // The model's message is developer English. The form validators catch
+      // an empty key and an empty choice list first, so this is the
+      // backstop: show the field's own localized error, or a generic one.
+      if (e.name == 'choices') {
+        setState(() => _choicesError = l10n.customFieldsValidatorMinChoice);
+      } else {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.customFieldsSaveFailed)));
+      }
     }
   }
 
@@ -653,9 +662,9 @@ class _CustomFieldFormState extends State<_CustomFieldForm> {
                   },
                 ),
                 const SizedBox(height: 12),
-                DropdownButtonFormField<CustomFieldType>(
+                AppDropdownField<CustomFieldType>(
                   key: const ValueKey('cf-type'),
-                  initialValue: _type,
+                  value: _type,
                   decoration: InputDecoration(
                     labelText: l10n.customFieldsTypeFieldLabel,
                     border: const OutlineInputBorder(),
@@ -663,17 +672,15 @@ class _CustomFieldFormState extends State<_CustomFieldForm> {
                         ? null
                         : l10n.customFieldsTypeLocked,
                   ),
-                  items: [
+                  entries: [
                     for (final t in CustomFieldType.values)
-                      DropdownMenuItem(
+                      AppDropdownEntry(
                         value: t,
-                        child: Text(customFieldTypeLabel(l10n, t)),
+                        label: customFieldTypeLabel(l10n, t),
                       ),
                   ],
                   onChanged: _typeEditable
-                      ? (v) {
-                          if (v != null) setState(() => _type = v);
-                        }
+                      ? (v) => setState(() => _type = v)
                       : null,
                 ),
                 if (_type == CustomFieldType.choice) ...[

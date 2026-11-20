@@ -2809,8 +2809,8 @@ class FigureRenderer {
   /// plural verb agrees with, which stays plural ("neighbors take right
   /// hands"; [_displaySubject]'s `plural`). Role tokens
   /// (`role1s`/`role2s`) and the group tokens `everyone`/`ones`/`twos`/
-  /// `centers`/`firstCorners`/`secondCorners`/`sameRoles` are intentionally
-  /// absent — they are never singularized.
+  /// `threes`/`fours`/`centers`/`firstCorners`/`secondCorners`/`sameRoles` are
+  /// intentionally absent — they are never singularized.
   static const Map<String, String> _singularDancerSets = {
     'partners': 'partner',
     'neighbors': 'neighbor',
@@ -3605,6 +3605,14 @@ class FigureRenderer {
           : '';
       // Ricochets: pick the pair pass as the ricochet subject; odd-index flags
       // reference the inverted (other) pair, matching ContraDB `heyWords`.
+      // When neither pass is a pair (`partners`, `neighbors`, a single dancer
+      // …) ContraDB prefixes an error and leaves the starting pair's ricochets
+      // blank ("Error (…) - … - ____ ricochet"), but already calls the other
+      // pair "others", its inversion of an empty pair. The app keeps the
+      // starting dancers' word and the same "others", as [_invertPair] names
+      // any pair it cannot invert: repeating the starting dancers' word for
+      // the other pair would make `rico1` and `rico2` read alike, and the line
+      // could not be read back (#2121).
       String center;
       if (_isPairToken(pass1)) {
         center = r._displaySubject(pass1, dialect);
@@ -3617,7 +3625,7 @@ class FigureRenderer {
           ? r._invertPair(pass1, dialect)
           : _isPairToken(pass2)
           ? r._invertPair(pass2, dialect)
-          : center;
+          : 'others';
       final ricoFlags = [
         params['rico1'],
         params['rico2'],
@@ -4163,11 +4171,16 @@ class FigureRenderer {
   /// treats as a "pair" for hey center/ends placement, mirroring
   /// [_invertPair]'s invert domain. Used by the `hey` base line to decide which
   /// pass dances "in center" vs "on ends".
+  ///
+  /// Plus `threes` and `fours` (taxonomy v40), which ContraDB does not have:
+  /// like the ones, the two dancers of a couple pass each other in the center.
   static const Set<String> _pairTokens = {
     'role1s',
     'role2s',
     'ones',
     'twos',
+    'threes',
+    'fours',
     'firstCorners',
     'secondCorners',
   };

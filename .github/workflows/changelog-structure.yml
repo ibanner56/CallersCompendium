@@ -27,6 +27,7 @@ on:
     paths:
       - 'app/CHANGELOG.md'
       - 'packages/compendium_core/CHANGELOG.md'
+      - 'packages/compendium_core/pubspec.yaml'
       - 'changelog.d/**'
       - 'tools/release/compile_changelog_fragments.py'
       - 'tools/release/test_compile_changelog_fragments.py'
@@ -37,6 +38,7 @@ on:
     paths:
       - 'app/CHANGELOG.md'
       - 'packages/compendium_core/CHANGELOG.md'
+      - 'packages/compendium_core/pubspec.yaml'
       - 'changelog.d/**'
       - 'tools/release/compile_changelog_fragments.py'
       - 'tools/release/test_compile_changelog_fragments.py'

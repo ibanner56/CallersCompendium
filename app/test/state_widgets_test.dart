@@ -62,7 +62,7 @@ void main() {
       await tester.pumpWidget(
         _app(LoadErrorView(message: 'Could not load.', onRetry: () {})),
       );
-      expect(find.text('Retry'), findsOneWidget);
+      expect(find.text('Try again'), findsOneWidget);
       expect(find.text('Back'), findsNothing);
     });
 
@@ -80,7 +80,7 @@ void main() {
           ),
         ),
       );
-      expect(find.text('Retry'), findsNothing);
+      expect(find.text('Try again'), findsNothing);
       expect(find.text('It was removed.'), findsOneWidget);
       await tester.tap(find.text('Back'));
       expect(left, isTrue);

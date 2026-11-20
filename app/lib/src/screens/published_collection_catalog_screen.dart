@@ -230,7 +230,7 @@ class _PublishedCollectionCatalogState
                   const SizedBox(height: AppSpacing.sm),
                   TextButton(
                     onPressed: _retryCatalog,
-                    child: Text(l10n.commonRetry),
+                    child: Text(l10n.commonTryAgain),
                   ),
                 ],
               ],
@@ -338,7 +338,7 @@ class _PublishedCollectionCatalogState
                   onPressed: _loadingEntry != null
                       ? null
                       : () => _import(entry),
-                  child: Text(l10n.commonRetry),
+                  child: Text(l10n.commonTryAgain),
                 ),
               ),
             ],

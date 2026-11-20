@@ -1338,8 +1338,7 @@ void main() {
         // brings that author back to life. Undo used to leave it live — the
         // author reappeared permanently after a rolled-back import — and the
         // revival had stamped `existence_at` strictly past the user's deletion,
-        // so once a sync client exists the resurrection would outrank that
-        // deletion on every peer.
+        // so the resurrection would outrank that deletion on every peer.
         //
         // Undo must return it to the state it was in (deleted), NOT erase it:
         // the row predates the import and the user may still restore it.

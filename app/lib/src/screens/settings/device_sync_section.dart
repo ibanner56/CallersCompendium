@@ -760,7 +760,7 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
                             key: const ValueKey('sync-conflicts-retry'),
                             onPressed: () =>
                                 setState(() => _conflictGeneration++),
-                            child: Text(l10n.commonRetry),
+                            child: Text(l10n.commonTryAgain),
                           ),
                         ],
                       ),

@@ -37,7 +37,7 @@ there's a very wide range beyond that.
 - **Auto-size** fits each card's text to the screen, but never shrinks the
   figure lines or their notes below your system text size; a card too long for
   that scrolls.
-  It's on by default. Set how it starts under **Settings › Program › Auto-size
+  It's on by default. Set how it starts under **Settings ▸ Program ▸ Auto-size
   Perform cards**, and flip it for the night with **Auto-size text to screen**
   in Perform itself.
 - The **Decrease text size** and **Increase text size** buttons — **A−** and
@@ -54,7 +54,7 @@ context — see the [Perform mode guide](./perform.md#set-the-stage).
 
 ## Themes, contrast, and the dark stage
 
-Open **Settings › Appearance** to choose how the app looks. You'll find:
+Open **Settings ▸ Appearance** to choose how the app looks. You'll find:
 
 - **System** — follows your device's light or dark setting automatically, and
   switches when your device does.
@@ -64,12 +64,14 @@ Open **Settings › Appearance** to choose how the app looks. You'll find:
   separation between text and background. Cards, dialogs, popup menus, bottom
   sheets, suggestion lists, the date and time pickers and buttons (icon buttons
   included) also get a visible outline, so you can see their edges without
-  relying on shading. The lists that open from drop-down fields are not
-  outlined yet.
+  relying on shading. So do the lists that open from the drop-down fields in
+  editors, dialogs and the **Collection**'s search. The small drop-downs that
+  sit at the end of a row in **Settings** (and a few like them elsewhere) are
+  not outlined yet.
 
 There are additional palettes and custom themes to explore as well, but those four
 are the ones most people reach for first — see
-[Settings › Appearance](./settings.md#appearance).
+[Settings ▸ Appearance](./settings.md#appearance).
 
 For calling on a dim stage, **Dark** and **High contrast** are the natural choices
 — they keep the screen from glaring at the room while staying readable for you. If
@@ -107,7 +109,7 @@ work, the app announces changes you'd otherwise have to see:
   reads as its full spoken wording along with its beat count and whether it
   progresses.
 
-**Verbose figure text.** Turn on **Settings › General › Always show verbose figure
+**Verbose figure text.** Turn on **Settings ▸ General ▸ Always show verbose figure
 text** to display the full spoken-style wording of each figure on screen in the
 dance view — not only through a screen reader. This helps screen-reader users
 confirm what's shown, and it's just as useful for anyone who prefers plain, spoken
@@ -214,6 +216,18 @@ one, and **Esc** closes the menu and returns focus to the **⋮** button.
 first choice: **Enter** picks **Add figure**, and the arrow keys reach **Add
 meanwhile**, **Add modifier** and **Add sequence**.
 
+**Drop-down fields.** Tab to a drop-down field in an editor, a dialog or the
+**Collection**'s search and press **Enter** to open its list, the **up** and
+**down** arrow keys to move through it, **Enter** to choose, and **Esc** to
+close it without changing anything. A field with a long list (a dozen entries or
+more, such as months, days, numbers and currencies), or one that grows with your
+own data (your dialects, tags, difficulty levels, custom fields and their
+options, every figure in the glossary), also lets you type: start typing and the
+list narrows to the entries that match. Only choosing an entry changes the
+field; text you typed without choosing is put back when you move on. On a phone
+or tablet those fields bring up the on-screen keyboard when you tap them; the
+others just open their list.
+
 **Always know where you are.** As you move through controls with the keyboard,
 the one with focus gets a solid outline drawn just outside it — in the theme's
 accent color, or a thicker yellow ring in **High contrast** — so you can always
@@ -224,7 +238,7 @@ outline appears only while you're using the keyboard, not when you tap or click.
 
 A few smaller settings and behaviors round out the experience:
 
-- **Reduce motion** (**Settings › General**) dampens non-essential animation. If
+- **Reduce motion** (**Settings ▸ General**) dampens non-essential animation. If
   you've already turned on *Reduce Motion* (or *Remove animations*) in your
   device's system accessibility settings, the app honors that automatically — you
   don't have to find this switch first. Turn the in-app switch on to
@@ -234,7 +248,7 @@ A few smaller settings and behaviors round out the experience:
   without animating. On iPhone and iPad you can still swipe in from the edge of
   the screen to go back. Turning it off stops the app removing its own animations, but
   cannot restore animations your device's setting has already shortened.
-- **Confirm before delete** (**Settings › General**) adds a prompt before any
+- **Confirm before delete** (**Settings ▸ General**) adds a prompt before any
   delete you can undo: a dance or a program from its **⋮** menu, from its own
   screen, or from Collection's selection mode, and a venue, custom field, tag,
   author, source, shorthand, dialect, custom theme, walkthrough snippet or
@@ -246,7 +260,7 @@ A few smaller settings and behaviors round out the experience:
   undone (permanently deleting from **Recently deleted**, or deleting one of
   your own Glossary entries or figures) always asks first and says "This can't
   be undone."
-- **Undo prompt** (**Settings › General**) sets how long the **Undo** message
+- **Undo prompt** (**Settings ▸ General**) sets how long the **Undo** message
   stays on screen: 2, 5, 10 (the default) or 15 seconds, or **Until I close
   it**. Whatever you choose, the message also stays while you point at it with
   a mouse or move to its **Undo** button with the keyboard, and its full time

@@ -18,6 +18,7 @@ import '../../theme/app_motion.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/touch_density.dart';
 import '../../widgets/app_bar_text_action.dart';
+import '../../widgets/app_dropdown_field.dart';
 import '../../widgets/confirm_discard_changes.dart';
 import '../../widgets/figure_list_editor.dart';
 import '../../widgets/user_figure_argument_editor.dart';
@@ -76,6 +77,7 @@ class CompoundEditorScreen extends StatefulWidget {
     this.figuresOnly = false,
     this.convertToFigure = false,
     this.copyOf,
+    this.initialForm,
   }) : assert(
          initial == null || copyOf == null,
          'a copy is a new entry, not an edit',
@@ -103,6 +105,12 @@ class CompoundEditorScreen extends StatefulWidget {
   /// own, [userFigureSeedFromMove]). Saved as a new entry, under a new id,
   /// with its `copiedFrom`; [copyOf]'s own id and creation time are not used.
   final UserGlossaryEntry? copyOf;
+
+  /// The dance form a new entry starts in: the one the Glossary was showing
+  /// when the user added it, so it is listed where they added it. `null`
+  /// starts in [defaultGlossaryEntryForm]. A stored entry or a copy keeps its
+  /// own.
+  final DanceForm? initialForm;
 
   @override
   State<CompoundEditorScreen> createState() => _CompoundEditorScreenState();
@@ -198,7 +206,7 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
         };
 
   /// The dance form the entry is offered in (#1023, maintainer decision 8).
-  String _form = defaultGlossaryEntryForm;
+  late String _form = widget.initialForm?.name ?? defaultGlossaryEntryForm;
 
   /// A new figure's wording template, shown in the active dialect, and its
   /// default beats.
@@ -1174,27 +1182,25 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
                 AppSpacing.md,
                 0,
               ),
-              child: DropdownButtonFormField<String>(
+              child: AppDropdownField<String>(
                 key: const ValueKey('glossary-entry-form'),
-                initialValue: _form,
-                isExpanded: true,
+                value: _form,
                 decoration: InputDecoration(
                   labelText: l10n.glossaryEntryFormLabel,
                   helperText: l10n.glossaryEntryFormHelper,
                   border: const OutlineInputBorder(),
                 ),
-                items: [
+                entries: [
                   for (final form in DanceForm.values)
-                    DropdownMenuItem(
+                    AppDropdownEntry(
                       value: form.name,
-                      child: Text(danceFormLabel(l10n, form)),
+                      label: danceFormLabel(l10n, form),
                     ),
                   // A form a later build added is kept, as written.
                   if (!DanceForm.values.any((f) => f.name == _form))
-                    DropdownMenuItem(value: _form, child: Text(_form)),
+                    AppDropdownEntry(value: _form, label: _form),
                 ],
                 onChanged: (form) {
-                  if (form == null) return;
                   _form = form;
                   _changed();
                 },
@@ -1259,26 +1265,22 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
                           const SizedBox(width: AppSpacing.sm),
                           Expanded(
                             flex: 2,
-                            child: DropdownButtonFormField<ParamKind>(
+                            child: AppDropdownField<ParamKind>(
                               key: ValueKey('compound-param-$i-kind'),
-                              initialValue: row.kind,
-                              isExpanded: true,
+                              value: row.kind,
                               decoration: InputDecoration(
                                 labelText: l10n.compoundEditorParamKind,
                                 border: const OutlineInputBorder(),
                                 isDense: denseControls(context),
                               ),
-                              items: [
+                              entries: [
                                 for (final kind in compoundParamKinds)
-                                  DropdownMenuItem(
+                                  AppDropdownEntry(
                                     value: kind,
-                                    child: Text(
-                                      compoundParamKindLabel(l10n, kind),
-                                    ),
+                                    label: compoundParamKindLabel(l10n, kind),
                                   ),
                               ],
                               onChanged: (kind) {
-                                if (kind == null) return;
                                 if (kind != row.kind) {
                                   // A default of the old kind means nothing
                                   // in the new one, and could even pass for
@@ -1730,10 +1732,12 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
             for (final MapEntry(key: slot, value: spec) in slots)
               Padding(
                 padding: const EdgeInsets.only(top: AppSpacing.xs),
-                child: DropdownButtonFormField<_Binding?>(
+                child: AppDropdownField<_Binding?>(
                   key: ValueKey('compound-binding-$index-$slot'),
-                  initialValue: bound[slot],
-                  isExpanded: true,
+                  value: bound[slot],
+                  // Two entries for each of the compound's own parameters: a
+                  // list that grows with them.
+                  filterable: true,
                   decoration: InputDecoration(
                     labelText: figureParamKeyLabel(
                       l10n,
@@ -1743,10 +1747,10 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
                     border: const OutlineInputBorder(),
                     isDense: denseControls(context),
                   ),
-                  items: [
-                    DropdownMenuItem<_Binding?>(
+                  entries: [
+                    AppDropdownEntry<_Binding?>(
                       value: null,
-                      child: Text(l10n.compoundBindingFixed),
+                      label: l10n.compoundBindingFixed,
                     ),
                     // Every choice is listed, the unavailable ones disabled
                     // with their reason, so a binding made unavailable by a
@@ -1778,7 +1782,7 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
     );
   }
 
-  DropdownMenuItem<_Binding?> _bindingItem(
+  AppDropdownEntry<_Binding?> _bindingItem(
     AppLocalizations l10n,
     FigureDraft draft,
     String slot,
@@ -1789,12 +1793,12 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
         ? candidate.param.key
         : l10n.compoundBindingOpposite(candidate.param.key);
     final reason = _unavailableReason(l10n, draft, slot, spec, candidate);
-    return DropdownMenuItem<_Binding?>(
+    return AppDropdownEntry<_Binding?>(
       value: candidate,
       enabled: reason == null,
-      child: Text(
-        reason == null ? label : l10n.compoundBindingUnavailable(label, reason),
-      ),
+      label: reason == null
+          ? label
+          : l10n.compoundBindingUnavailable(label, reason),
     );
   }
 }

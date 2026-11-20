@@ -170,10 +170,12 @@ user-adjustable size/weight/line-spacing).
   the menu tier too, and the date and time pickers on the dialog tier. The HC
   theme keeps the tiers and adds a visible outline to cards, dialogs, bottom
   sheets, popup menus, anchored (`MenuAnchor`) menus, autocomplete option
-  lists, the date and time pickers, and icon buttons. Legacy `DropdownButton`
-  menus are not covered: Flutter paints that menu with a fixed decoration and
-  offers no theme or constructor hook for a border, so outlining it means
-  moving those fields to `DropdownMenu`.
+  lists, the date and time pickers, icon buttons, and the menus of the form
+  dropdowns. Those dropdowns are `DropdownMenu`s, through the shared
+  `AppDropdownField`, whose closed field takes the app's filled input theme.
+  The plain `DropdownButton`s that sit inline in Settings rows and a few
+  editors are not covered: Flutter paints that menu with a fixed decoration
+  and offers no theme or constructor hook for a border.
 
 ### 1e. Structure — new `app/lib/src/theme/`
 

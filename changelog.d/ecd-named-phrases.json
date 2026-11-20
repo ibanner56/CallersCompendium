@@ -1,0 +1,17 @@
+{
+  "id": "ecd-named-phrases",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "An English dance's phrases can be named A, B and C, each with its own bars and played once or twice: choose Name the phrases in the dance editor. A=4 played twice and B=8 once labels the figures A1, A2 and B; A, B and C played once each label them A, B and C.",
+      "A Caller's Companion English dance whose sections are labeled A, B and C, with every line counted, comes across with those phrases named and their bars; otherwise one whose meter gives other than two beats a bar gets phrases of that many beats.",
+      "By phrase search offers the phrases your English dances name, such as A, B or C, beside A1, A2, B1 and B2."
+    ]
+  },
+  "core": {
+    "added": [
+      "`PhraseStructure` reads named phrases (`A:2*4*2 + B:1*8*2`): `isNamed`, `namedPhrases`, `PhraseStructure.named`, `NamedPhrase`, `PhraseComponent.name`, `phraseNames` and `maxNamedPlays`; their labels are `A` for once and `A1`, `A2` for twice.",
+      "`ecdPhraseStructureFor` gives an imported English dance's phrase structure from its sections' labels and counts (`EcdSectionBeats`), and `ecdStatedBeats` adds up the counts a line states; `mapCallersCompanionDance` sets an English dance's phrase structure from them."
+    ]
+  }
+}

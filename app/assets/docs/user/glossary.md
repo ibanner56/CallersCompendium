@@ -41,7 +41,7 @@ against what the dance's [phrase structure](#phrase-structure) expects.
 ## Bundle
 
 A single file holding a [program](#program) together with every [dance](#dance)
-it uses, and its [venue](#venue) — made with **Share (program + dances)**, and
+it uses, and its [venue](#venue) — made with **Share program and dances**, and
 saved as a `.ccshare` file (or a [JSON file](#json-file) with the same content).
 Handing someone a bundle gives them the whole evening, not just a list of titles.
 Opening one takes you to the [import](#import) review screen, so nothing is added
@@ -90,8 +90,9 @@ without switching — see
 
 ## Collection
 
-Your whole library of [dances](#dance) — everything you've typed in or brought in
-from elsewhere, all in one place to browse, search, and organize.
+Your [dances](#dance) — everything you've typed in or brought in from elsewhere,
+all in one place to browse, search, and organize. Together with your programs and
+settings, your collection is part of your library.
 
 ## ContraDB
 
@@ -114,7 +115,7 @@ A single dance transcription in your [collection](#collection): its title,
 
 An optional, experimental feature that keeps your library in step across your
 own devices. It is off until you turn it on in
-[Settings › Experimental](./settings.md#device-sync), and while it is off the app
+[Settings ▸ Experimental](./settings.md#device-sync), and while it is off the app
 sends nothing anywhere. Your devices connect using a sync phrase: it's the
 address of your shared library, so anyone who has it can open that library, and
 once someone else has it, it can't be taken back. Sync is not a backup — keep
@@ -196,7 +197,8 @@ read at arm's length in dim light, one-handed, while you're on the floor.
 How a dance's [beats](#beats) are grouped — the familiar A1 A2 B1 B2 of most
 contras, or something else. The app assumes the standard structure unless you
 write your own in the dance editor, and it uses whatever you set to tell you
-whether a dance's beats add up.
+whether a dance's beats add up. An English dance's phrases can be named A, B
+and C, each with its own bars and played once or twice.
 
 ## Program
 
@@ -237,7 +239,7 @@ saved as a [JSON file](#json-file). See [Share, print & export](./sharing.md).
 
 A short token you type during free-text figure entry that expands into one or more
 whole [figures](#figure) you have set up in advance. Shorthands are yours to
-define in **Settings › Dialect › Dance details & shorthands**, and an import from
+define in **Settings ▸ Dialect ▸ Dance details & shorthands**, and an import from
 [Caller's Companion](#callers-companion) can offer to create them from your old
 call buttons. See
 [Write & edit dances](./authoring.md#figure-shorthands).
@@ -253,7 +255,7 @@ backup choice.
 A saved sentence describing how you teach one particular [figure](#figure). Write
 one while editing a dance and the app remembers it, so **Fill from snippets** can
 pre-fill a [walkthrough](#walkthrough) for any dance using that figure. Your saved
-snippets live under **Walkthrough snippets** in **Settings › Dialect › Dance
+snippets live under **Walkthrough snippets** in **Settings ▸ Dialect ▸ Dance
 details & shorthands**. See
 [Write & edit dances](./authoring.md#walkthrough).
 
@@ -264,7 +266,7 @@ website. Like an [author](#author), a source is a shared record with its own
 details (its title, author and year among them), and each dance that cites it
 can add a page and number.
 You can filter your [collection](#collection) by source, and rename or merge
-sources in **Settings › General › Library › Sources**. See
+sources in **Settings ▸ General ▸ Dances ▸ Sources**. See
 [Write & edit dances](./authoring.md#author-and-source-details-are-shared).
 
 ## Tag
@@ -273,7 +275,7 @@ A label of your own that you give a [dance](#dance) — often its "vibe" or
 category, such as *smooth* or *easy*. A dance can carry any number of tags, and
 a tag can have a color. Use tags to filter and group your
 [collection](#collection), and rename, merge, color or delete them in the
-**Tags** manager under **Settings › General › Library › Tags**. See
+**Tags** manager under **Settings ▸ General ▸ Dances ▸ Tags**. See
 [Collection & search](./collection.md#group-by-category-a-dances-vibe).
 
 ## Unrecognized figure

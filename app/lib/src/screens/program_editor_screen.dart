@@ -49,6 +49,8 @@ import '../utils/confirm_delete.dart';
 import '../utils/safe_name.dart';
 import '../utils/undo_snack_bar.dart';
 import '../widgets/app_date_picker.dart';
+import '../widgets/app_dropdown_field.dart';
+import '../widgets/exclude_focus_when_collapsed.dart';
 import '../widgets/app_bar_text_action.dart';
 import '../widgets/app_shortcuts.dart';
 import '../widgets/collection_picker.dart';
@@ -601,9 +603,72 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   DialectsByForm _dialects = DialectsByForm.defaults;
 
   /// The dialect of the program's own text and of what spans dances (the
-  /// picker's query, the matrix's columns): contra's. A program has no form
+  /// picker's query; a matrix column whose figure has no single form, see
+  /// [_dialectForMatrixColumn]): contra's. A program has no form
   /// (ADR-006 §12.2, S5); each dance reads in its own form's ([_dialects]).
   Dialect get _dialect => _dialects.forForm(DanceForm.contra);
+
+  /// The dialect the dance [danceId] is shown in: its own form's, with lark
+  /// and robin when its choreographer asked for them. `null` when the dance
+  /// isn't loaded.
+  Dialect? _dialectForSlotDance(String danceId) =>
+      switch (_danceById(danceId)) {
+        final dance? => dialectForDance(
+          _dialects.forDance(dance),
+          title: dance.title,
+          authorNames: _slotDanceAuthorNames(dance),
+        ),
+        null => null,
+      };
+
+  /// The dialect a column of [matrix] is named in: its figure's form's. A
+  /// figure of a form with its own taxonomy (an `ecd_` move) reads in that
+  /// form's. A figure with no prefix is contra's, and a dance of any form
+  /// can use it (squares have no taxonomy of their own yet; an English dance
+  /// may keep a contra figure): it reads in the form of the dances that use
+  /// it when they are all of one form, and in [_dialect] when they mix forms. A column no dance uses (a baseline swing column the
+  /// matrix always shows) reads in the program's form when all its dances are
+  /// of one form. A column of a figure of the user's own, or one that isn't a
+  /// figure, reads in [_dialect].
+  Dialect _dialectForMatrixColumn(ProgramMatrix matrix, MatrixColumn column) {
+    switch (column.kind) {
+      case MatrixColumnKind.known ||
+          MatrixColumnKind.split ||
+          MatrixColumnKind.unknown:
+        final form = shippedTaxonomies.formOfMoveId(column.moveId);
+        if (form != DanceForm.contra) return _dialects.forForm(form);
+        var users = {
+          for (final row in matrix.rows)
+            if (row.contains(column)) _danceById(row.danceId)?.form,
+        };
+        if (users.isEmpty) {
+          users = {
+            for (final row in matrix.rows) _danceById(row.danceId)?.form,
+          };
+        }
+        return users.length == 1 && users.single != null
+            ? _dialects.forForm(users.single!)
+            : _dialect;
+      default:
+        return _dialect;
+    }
+  }
+
+  /// [_dialectForMatrixColumn] for every column of [matrix], by move ID, and
+  /// each row's dance's dialect ([_dialectForSlotDance]) by dance ID: worked
+  /// out once per matrix, not once per cell.
+  ({Map<String, Dialect> columns, Map<String, Dialect> rows}) _matrixDialects(
+    ProgramMatrix matrix,
+  ) => (
+    columns: {
+      for (final column in matrix.columns)
+        column.moveId: _dialectForMatrixColumn(matrix, column),
+    },
+    rows: {
+      for (final row in matrix.rows)
+        row.danceId: _dialectForSlotDance(row.danceId) ?? _dialect,
+    },
+  );
 
   /// The Programs "flag exact beat overlap only" matrix-collision setting
   /// (issue #962), read unconditionally in [didChangeDependencies] every
@@ -2860,8 +2925,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     if (_pickerImporting || _leaving) return;
     if (_parsedPay().isInvalid) {
       // The pay field lives in the collapsed "More details" drawer, whose
-      // fields are not built (so not validated) while it is closed: open it and
-      // show the error there instead of silently saving without the value.
+      // fields are hidden while it is closed, so an error on one could not be
+      // seen: open it and show the error there instead of silently saving
+      // without the value.
       _moreDetailsController.expand();
       WidgetsBinding.instance.addPostFrameCallback(
         (_) => _formKey.currentState?.validate(),
@@ -3473,9 +3539,11 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       );
     }
     if (_loadError != null) {
-      final message = _loadError == _ProgramLoadError.missing
-          ? l10n.programsNoLongerExists
-          : l10n.programsLoadError;
+      final message = switch (_loadError) {
+        _ProgramLoadError.missing => l10n.programsNoLongerExists,
+        _ProgramLoadError.undoRecoveryFailed => l10n.programsUndoRecoveryFailed,
+        _ => l10n.programsLoadError,
+      };
       // Only a failed read can be retried: a program that is gone, or an undo
       // that could not be recovered, would fail the same way again.
       return LoadErrorView(
@@ -3596,9 +3664,11 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       );
     }
     if (_loadError != null) {
-      final message = _loadError == _ProgramLoadError.missing
-          ? l10n.programsNoLongerExists
-          : l10n.programsLoadError;
+      final message = switch (_loadError) {
+        _ProgramLoadError.missing => l10n.programsNoLongerExists,
+        _ProgramLoadError.undoRecoveryFailed => l10n.programsUndoRecoveryFailed,
+        _ => l10n.programsLoadError,
+      };
       // Only a failed read can be retried: a program that is gone, or an undo
       // that could not be recovered, would fail the same way again.
       return LoadErrorView(
@@ -3670,6 +3740,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       config: _matrixColumnConfig,
       userFigures: UserFiguresScope.shownCatalogOf(context),
     );
+    final dialects = _matrixDialects(matrix);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -3752,11 +3823,13 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             showPhrases: _showMatrixPhrases,
             hiddenColumns: _hiddenMatrixColumns,
             onHideColumn: (id) => setState(() => _hiddenMatrixColumns.add(id)),
-            formationLabelBuilder: (formation) => formationDisplayLabel(
+            dialectForColumn: (column) =>
+                dialects.columns[column.moveId] ?? _dialect,
+            formationLabelBuilder: (row) => formationDisplayLabel(
               l10n,
-              formation,
+              row.formation,
               FigureRenderer(shippedTaxonomies.anyForm),
-              _dialect,
+              dialects.rows[row.danceId] ?? _dialect,
               canonicalizeDiscouragedTerms: CanonicalDiscouragedTermsScope.of(
                 context,
               ),
@@ -3786,6 +3859,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       context,
     );
     final dialect = _dialect;
+    final (columns: dialectForColumnId, rows: dialectForRow) = _matrixDialects(
+      matrix,
+    );
     final config = _matrixColumnConfig;
     final eventDate = _eventDate;
     final title = _titleController.text.trim();
@@ -3818,11 +3894,13 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           formatDate: (d) =>
               formatEventDate(d, dateSetting, localizations, l10n),
           labels: programMatrixExportLabels(l10n),
-          formatFormation: (formation) => formationDisplayLabel(
+          dialectForColumn: (column) =>
+              dialectForColumnId[column.moveId] ?? dialect,
+          formatFormation: (row) => formationDisplayLabel(
             l10n,
-            formation,
+            row.formation,
             FigureRenderer(shippedTaxonomies.anyForm),
-            dialect,
+            dialectForRow[row.danceId] ?? dialect,
             canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
           ),
           config: config,
@@ -3879,6 +3957,12 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
               ),
             ],
           ),
+          const SizedBox(height: 4),
+          Text(
+            l10n.programsSlotsHelper,
+            key: const ValueKey('program-slots-helper'),
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
@@ -3917,16 +4001,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             onRestoreDeletedDance: _restoreDeletedSlotDance,
             formationFor: _formationForDance,
             mixerFor: _mixerForDance,
+            formFor: (id) => _danceById(id)?.form,
             dialect: _dialect,
-            dialectFor: (id) => switch (_danceById(id)) {
-              // Lark and robin when the dance's choreographer asked for them.
-              final dance? => dialectForDance(
-                _dialects.forDance(dance),
-                title: dance.title,
-                authorNames: _slotDanceAuthorNames(dance),
-              ),
-              null => null,
-            },
+            dialectFor: _dialectForSlotDance,
             canonicalizeDiscouragedTerms: CanonicalDiscouragedTermsScope.of(
               context,
             ),
@@ -4379,141 +4456,113 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       ),
       expandedCrossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _buildVenueField(l10n),
-        const SizedBox(height: AppSpacing.md),
-        TextFormField(
-          key: const ValueKey('program-band'),
-          controller: _bandController,
-          textInputAction: TextInputAction.next,
-          onChanged: (_) => _markDirty(),
-          decoration: InputDecoration(
-            labelText: l10n.programsBandLabel,
-            hintText: l10n.programsBandHint,
-            border: const OutlineInputBorder(),
-          ),
-        ),
-        const SizedBox(height: AppSpacing.md),
-        TextFormField(
-          key: const ValueKey('program-caller'),
-          controller: _callerController,
-          textInputAction: TextInputAction.next,
-          onChanged: (_) => _markDirty(),
-          decoration: InputDecoration(
-            labelText: l10n.programsCallerLabel,
-            hintText: l10n.programsCallerHint,
-            border: const OutlineInputBorder(),
-          ),
-        ),
-        const SizedBox(height: AppSpacing.md),
-        TextFormField(
-          key: const ValueKey('program-dancer-level'),
-          controller: _levelController,
-          textInputAction: TextInputAction.next,
-          onChanged: (_) => _markDirty(),
-          decoration: InputDecoration(
-            labelText: l10n.programsDancerLevelLabel,
-            hintText: l10n.programsDancerLevelHint,
-            border: const OutlineInputBorder(),
-          ),
-        ),
-        const SizedBox(height: AppSpacing.md),
-        TextFormField(
-          key: const ValueKey('program-notes'),
-          controller: _notesController,
-          minLines: 3,
-          maxLines: 6,
-          onChanged: (_) => _markDirty(),
-          decoration: InputDecoration(
-            labelText: l10n.programsNotesLabel,
-            alignLabelWithHint: true,
-            border: const OutlineInputBorder(),
-          ),
-        ),
-        const SizedBox(height: AppSpacing.md),
-        _buildPayField(l10n),
-        const SizedBox(height: AppSpacing.md),
-        DropdownButtonFormField<ProgramStatus>(
-          // Field values read at the same weight as typed text; the dropdown's
-          // default is the bolder titleMedium.
-          style: Theme.of(context).textTheme.bodyLarge,
-          key: const ValueKey('program-status'),
-          initialValue: _status,
-          // Fill the field so a long translated status cannot overflow at
-          // large text: the closed field ellipsizes beside its icon and the
-          // open menu wraps, so the full label can always be read.
-          isExpanded: true,
-          itemHeight: null,
-          selectedItemBuilder: (context) => [
-            for (final status in ProgramStatus.values)
-              Row(
-                children: [
-                  Icon(programStatusPresentation(status, l10n).icon, size: 18),
-                  const SizedBox(width: 8),
-                  Flexible(
-                    child: Text(
-                      programStatusPresentation(status, l10n).label,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
-          ],
-          decoration: InputDecoration(
-            labelText: l10n.programsStatusFieldLabel,
-            // GIG-12: say what Performed writes, and that Mark all performed
-            // sets it while that setting is on.
-            helperText: MarkAllSetsStatusScope.of(context)
-                ? l10n.programsStatusHelperMarkAllSetsStatus
-                : l10n.programsStatusHelper,
-            helperMaxLines: 4,
-            border: const OutlineInputBorder(),
-          ),
-          items: [
-            for (final status in ProgramStatus.values)
-              DropdownMenuItem(
-                value: status,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      programStatusPresentation(status, l10n).icon,
-                      size: 18,
-                    ),
-                    const SizedBox(width: 8),
-                    Flexible(
-                      child: Text(
-                        programStatusPresentation(status, l10n).label,
-                      ),
-                    ),
-                  ],
+        ExcludeFocusWhenCollapsed(
+          controller: _moreDetailsController,
+          builder: (context) => Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildVenueField(l10n),
+              const SizedBox(height: AppSpacing.md),
+              TextFormField(
+                key: const ValueKey('program-band'),
+                controller: _bandController,
+                textInputAction: TextInputAction.next,
+                onChanged: (_) => _markDirty(),
+                decoration: InputDecoration(
+                  labelText: l10n.programsBandLabel,
+                  hintText: l10n.programsBandHint,
+                  border: const OutlineInputBorder(),
                 ),
               ),
-          ],
-          onChanged: (value) {
-            if (value != null) {
-              setState(() {
-                _status = value;
-              });
-              _markDirty();
-            }
-          },
-        ),
-        const SizedBox(height: AppSpacing.md),
-        _buildDialectField(l10n),
-        const SizedBox(height: AppSpacing.xs),
-        SwitchListTile(
-          key: const ValueKey('program-hide-alternates'),
-          contentPadding: EdgeInsets.zero,
-          title: Text(l10n.programsHideAlternatesTitle),
-          subtitle: Text(l10n.programsHideAlternatesSubtitle),
-          value: _hideAlternates,
-          onChanged: (value) {
-            setState(() {
-              _hideAlternates = value;
-            });
-            _markDirty();
-          },
+              const SizedBox(height: AppSpacing.md),
+              TextFormField(
+                key: const ValueKey('program-caller'),
+                controller: _callerController,
+                textInputAction: TextInputAction.next,
+                onChanged: (_) => _markDirty(),
+                decoration: InputDecoration(
+                  labelText: l10n.programsCallerLabel,
+                  hintText: l10n.programsCallerHint,
+                  border: const OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.md),
+              TextFormField(
+                key: const ValueKey('program-dancer-level'),
+                controller: _levelController,
+                textInputAction: TextInputAction.next,
+                onChanged: (_) => _markDirty(),
+                decoration: InputDecoration(
+                  labelText: l10n.programsDancerLevelLabel,
+                  hintText: l10n.programsDancerLevelHint,
+                  border: const OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.md),
+              TextFormField(
+                key: const ValueKey('program-notes'),
+                controller: _notesController,
+                minLines: 3,
+                maxLines: 6,
+                onChanged: (_) => _markDirty(),
+                decoration: InputDecoration(
+                  labelText: l10n.programsNotesLabel,
+                  alignLabelWithHint: true,
+                  border: const OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.md),
+              _buildPayField(l10n),
+              const SizedBox(height: AppSpacing.md),
+              AppDropdownField<ProgramStatus>(
+                key: const ValueKey('program-status'),
+                value: _status,
+                decoration: InputDecoration(
+                  labelText: l10n.programsStatusFieldLabel,
+                  // GIG-12: say what Performed writes, and that Mark all performed
+                  // sets it while that setting is on.
+                  helperText: MarkAllSetsStatusScope.of(context)
+                      ? l10n.programsStatusHelperMarkAllSetsStatus
+                      : l10n.programsStatusHelper,
+                  helperMaxLines: 4,
+                  border: const OutlineInputBorder(),
+                ),
+                // Each status shows its icon, in the menu and in the closed field.
+                entries: [
+                  for (final status in ProgramStatus.values)
+                    AppDropdownEntry(
+                      value: status,
+                      label: programStatusPresentation(status, l10n).label,
+                      leadingIcon: Icon(
+                        programStatusPresentation(status, l10n).icon,
+                      ),
+                    ),
+                ],
+                onChanged: (value) {
+                  setState(() {
+                    _status = value;
+                  });
+                  _markDirty();
+                },
+              ),
+              const SizedBox(height: AppSpacing.md),
+              _buildDialectField(l10n),
+              const SizedBox(height: AppSpacing.xs),
+              SwitchListTile(
+                key: const ValueKey('program-hide-alternates'),
+                contentPadding: EdgeInsets.zero,
+                title: Text(l10n.programsHideAlternatesTitle),
+                subtitle: Text(l10n.programsHideAlternatesSubtitle),
+                value: _hideAlternates,
+                onChanged: (value) {
+                  setState(() {
+                    _hideAlternates = value;
+                  });
+                  _markDirty();
+                },
+              ),
+            ],
+          ),
         ),
       ],
     );
@@ -4550,33 +4599,30 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           ),
         ),
         const SizedBox(width: AppSpacing.sm),
-        SizedBox(
-          width: 120,
-          child: DropdownButtonFormField<String>(
-            // Field values read at the same weight as typed text; the dropdown's
-            // default is the bolder titleMedium.
-            style: Theme.of(context).textTheme.bodyLarge,
-            key: ValueKey('program-pay-currency:$current'),
-            initialValue: current,
-            isExpanded: true,
-            decoration: InputDecoration(
-              labelText: l10n.programsPayCurrencyLabel,
-              border: const OutlineInputBorder(),
-            ),
-            items: [
-              for (final code in choices)
-                DropdownMenuItem(
-                  key: ValueKey('program-pay-currency-option:$code'),
-                  value: code,
-                  child: Text(code),
-                ),
-            ],
-            onChanged: (code) {
-              if (code == null) return;
-              setState(() => _payCurrency = code);
-              _markDirty();
-            },
+        AppDropdownField<String>(
+          key: const ValueKey('program-pay-currency'),
+          value: current,
+          // Currency codes: typing one is quicker than scrolling for it.
+          filterable: true,
+          // As wide as a code, at any text size, so the code is never cut
+          // off; the amount takes the rest of the row.
+          fillWidth: false,
+          decoration: InputDecoration(
+            labelText: l10n.programsPayCurrencyLabel,
+            border: const OutlineInputBorder(),
           ),
+          entries: [
+            for (final code in choices)
+              AppDropdownEntry(
+                key: ValueKey('program-pay-currency-option:$code'),
+                value: code,
+                label: code,
+              ),
+          ],
+          onChanged: (code) {
+            setState(() => _payCurrency = code);
+            _markDirty();
+          },
         ),
       ],
     );
@@ -4595,52 +4641,45 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         : resolveProgramDialectInAnyForm(stored, library);
     final unavailable = stored != null && resolved == null;
     final value = unavailable ? stored : resolved?.name;
-    return KeyedSubtree(
-      // `initialValue` only seeds the field, so rebuild it when the value
-      // changes from outside the picker (draft restore, Undo merge).
-      key: ValueKey('program-dialect-field:${value ?? ''}'),
-      child: DropdownButtonFormField<String?>(
-        // Field values read at the same weight as typed text; the dropdown's
-        // default is the bolder titleMedium.
-        style: Theme.of(context).textTheme.bodyLarge,
-        key: const ValueKey('program-dialect'),
-        initialValue: value,
-        isExpanded: true,
-        decoration: InputDecoration(
-          labelText: l10n.programsDialectFieldLabel,
-          helperText: l10n.programsDialectHelper,
-          helperMaxLines: 3,
-          border: const OutlineInputBorder(),
-        ),
-        items: [
-          DropdownMenuItem<String?>(
-            key: const ValueKey('program-dialect-use-app'),
-            value: null,
-            child: Text(l10n.programsDialectUseApp),
-          ),
-          for (final name
-              in library == null
-                  ? const <String>[]
-                  : programDialectNames(library))
-            DropdownMenuItem<String?>(
-              key: ValueKey('program-dialect-option:$name'),
-              value: name,
-              child: Text(name),
-            ),
-          if (unavailable)
-            DropdownMenuItem<String?>(
-              key: const ValueKey('program-dialect-unavailable'),
-              value: stored,
-              child: Text(
-                l10n.programsDialectUnavailable(shownDialectName(stored)),
-              ),
-            ),
-        ],
-        onChanged: (name) {
-          setState(() => _dialectName = name);
-          _markDirty();
-        },
+    // The field follows [value], including a change from outside the picker
+    // (draft restore, Undo merge).
+    return AppDropdownField<String?>(
+      key: const ValueKey('program-dialect'),
+      value: value,
+      // The user's dialects: a list that grows.
+      filterable: true,
+      decoration: InputDecoration(
+        labelText: l10n.programsDialectFieldLabel,
+        helperText: l10n.programsDialectHelper,
+        helperMaxLines: 3,
+        border: const OutlineInputBorder(),
       ),
+      entries: [
+        AppDropdownEntry<String?>(
+          key: const ValueKey('program-dialect-use-app'),
+          value: null,
+          label: l10n.programsDialectUseApp,
+        ),
+        for (final name
+            in library == null
+                ? const <String>[]
+                : programDialectNames(library))
+          AppDropdownEntry<String?>(
+            key: ValueKey('program-dialect-option:$name'),
+            value: name,
+            label: name,
+          ),
+        if (unavailable)
+          AppDropdownEntry<String?>(
+            key: const ValueKey('program-dialect-unavailable'),
+            value: stored,
+            label: l10n.programsDialectUnavailable(shownDialectName(stored)),
+          ),
+      ],
+      onChanged: (name) {
+        setState(() => _dialectName = name);
+        _markDirty();
+      },
     );
   }
 

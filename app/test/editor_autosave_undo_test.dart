@@ -17,6 +17,7 @@ import 'package:compendium_app/src/editor/figure_draft.dart';
 import 'package:compendium_app/src/editor/editor_undo_stack.dart';
 import 'package:compendium_app/src/screens/dance_editor_screen.dart';
 
+import 'support/dropdown.dart';
 import 'support/l10n_harness.dart';
 import 'support/test_repositories.dart';
 import 'support/new_dance_draft.dart';
@@ -110,24 +111,13 @@ String _titleText(WidgetTester tester) {
 
 /// Reads the value a dropdown's own [FormFieldState] is holding — what the
 /// closed field displays, and deliberately independent of how it is keyed.
-T? _dropdownValue<T>(WidgetTester tester) => tester
-    .state<FormFieldState<T>>(find.byType(DropdownButtonFormField<T>))
-    .value;
+T? _dropdownValue<T>(WidgetTester tester) =>
+    tester.state<FormFieldState<T>>(findDropdown<T>()).value;
 
 /// Opens a dropdown and picks the item carrying [value], matching on the item's
 /// value rather than its localized label.
-Future<void> _pickFromDropdown<T>(WidgetTester tester, T value) async {
-  final field = find.byType(DropdownButtonFormField<T>);
-  await tester.ensureVisible(field);
-  await tester.tap(field);
-  await tester.pumpAndSettle();
-  await tester.tap(
-    find
-        .byWidgetPredicate((w) => w is DropdownMenuItem<T> && w.value == value)
-        .last,
-  );
-  await tester.pumpAndSettle();
-}
+Future<void> _pickFromDropdown<T>(WidgetTester tester, T value) =>
+    pickDropdownValue<T>(tester, findDropdown<T>(), value);
 
 /// Minimal [EditorSnapshot] for unit-test construction.
 EditorSnapshot _snap({
@@ -649,10 +639,10 @@ void main() {
     });
 
     // Issue #775. Four dropdowns carried a value-based key justified by the
-    // claim that `DropdownButtonFormField` never re-reads `initialValue`, so
-    // undo/redo needed a fresh subtree to resync. The claim is false —
-    // `_DropdownButtonFormFieldState.didUpdateWidget` calls `setValue` — but
-    // until now nothing tested the scenario it named: every test in this group
+    // claim that the dropdown never re-reads its value, so undo/redo needed a
+    // fresh subtree to resync. The claim was false — the field's
+    // `didUpdateWidget` calls `setValue` — but until then nothing tested the
+    // scenario it named: every test in this group
     // drove text fields or figures, never a dropdown. These pin it through a
     // real undo, so the resync is checkable rather than asserted in a comment.
     //
@@ -743,7 +733,7 @@ void main() {
       await _pumpEditor(tester, repos, danceId: 'd1');
       await _expandMoreDetails(tester);
 
-      expect(find.byType(DropdownButtonFormField<String?>), findsOneWidget);
+      expect(findDropdown<String?>(), findsOneWidget);
       expect(_dropdownValue<String?>(tester), isNull);
 
       await _pickFromDropdown<String?>(tester, 'lyrical');

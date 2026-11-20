@@ -134,7 +134,7 @@ A few honest notes about these online imports:
 - Figures come in as recognized moves where the app can read them and as
   plain-text figures otherwise, the same as every other import.
 - To have every dance you import on its own tagged automatically — a "no card"
-  tag, say — choose the tags under **Settings → Defaults → Import defaults**.
+  tag, say — choose the tags under **Settings ▸ Defaults ▸ Import defaults**.
   See [Settings](./settings.md#import-defaults).
 
 ### What the app will and won't fetch
@@ -176,10 +176,10 @@ see where the dances came from.
 
 1. Open **Collection** and choose **Import dances**, choose **Browse published
    collections** on the card that shows while the sample dance is your only
-   dance, or open **Settings** → **General** → **Import…**.
+   dance, or open **Settings** ▸ **General** ▸ **Import…**.
 2. Under the source selector, choose a published collection to review its
    title, version, dance count, and availability. You can also browse the same
-   catalog from **Settings** → **General** → **Published collections**.
+   catalog from **Settings** ▸ **General** ▸ **Published collections**.
 3. Select **Import collection** and review what it contains.
 4. Confirm the import when you are ready. Nothing is added until you commit it,
    and the same review flow lets you skip items you do not want.
@@ -189,7 +189,7 @@ older than the one you already imported cannot be imported from the catalog.
 
 Importing a newer version of a collection you already have offers
 **Re-import onto** for its dances, which updates only their figures, formation
-and progression, as for any other source (see
+and progression (with the dance form, meter and key they need), as for any other source (see
 [Re-import an archive dance to pick up a correction](#re-import-an-archive-dance-to-pick-up-a-correction)).
 A corrected title or credit in the new version reaches a dance you already have
 only if you tick **Also update title and credit** on its row; a corrected note
@@ -201,10 +201,10 @@ connection), it **needs a newer app version** (update the app), it **could not
 be verified** (its signature did not match a key this app trusts; if it keeps
 happening, update the app, because the catalog may have moved to a newer
 signing key), or it is **temporarily unavailable** (it failed another safety
-check, so nothing was imported). Choose **Retry** to try again without leaving
+check, so nothing was imported). Choose **Try again** to run it again without leaving
 the screen (it is not offered when the catalog or collection is in a format
 only a newer app can read). Failures are
-recorded in **Settings** → **Diagnostics**.
+recorded in **Settings** ▸ **Diagnostics**.
 
 ## Bring in a list of dance titles
 
@@ -212,8 +212,8 @@ If you have a list of titles written down — an evening's set list, a workshop
 handout, dances a friend recommended — you can paste the whole list at once and
 let the app find them, **without** building a program.
 
-1. Open **Collection** and choose **Import dances**, or open **Settings** →
-   **General** → **Import…**.
+1. Open **Collection** and choose **Import dances**, or open **Settings** ▸
+   **General** ▸ **Import…**.
 2. In the source selector, choose **a list of titles**.
 3. Paste your titles, **one per line**, and choose **Review import**.
 4. The app checks each title against your own collection first, then searches
@@ -294,7 +294,7 @@ can't be opened
 ### Open a shared program someone sent you
 
 If another caller shares a **program bundle** with you — the
-**Share (program + dances)** file described in
+**Share program and dances** file described in
 [Share, print & export](./sharing.md#share-a-program-with-its-dances) — you can
 often open the file directly:
 
@@ -319,7 +319,7 @@ often open the file directly:
   symbolic link to a file or, on Windows, a file inside a folder that is a
   symbolic link or junction, the app says it couldn't read the shared file:
   copy the file itself to a local folder first.
-- **Any device**: go to **Settings › General** and choose **Import…**, then
+- **Any device**: go to **Settings ▸ General** and choose **Import…**, then
   pick the file.
   On Android the file picker lists every file of unknown type as well as share
   files, so choose the one you saved.
@@ -337,7 +337,7 @@ adds get your [default import tags](./settings.md#import-defaults), next to
 the tags the sender gave them.
 
 A full **backup** opened this way is not imported: the app says it is a
-backup, and that **Settings › General › Restore from a backup** is where to
+backup, and that **Settings ▸ General ▸ Restore from a backup** is where to
 bring it in (see [below](#move-your-whole-library-backup-and-restore)).
 
 This intake is deliberately safe. The file is treated as untrusted input: it is
@@ -425,6 +425,42 @@ are read as English figures, and a "Duple Proper" or "Duple Improper"
 formation becomes a duple minor, proper or improper. A formation that doesn't
 say Improper comes across proper.
 
+Many Caller's Companion libraries of English dances type them all "Contra",
+so before reading a `.USR` file the app asks once: **Are these English country
+dances?** Choose **Yes, English dances** and every dance in the file but a
+square comes across as an English country dance; choose **No, read their
+types** and each dance comes across by its Type, as above. Closing the question reads nothing, and choosing the file
+again asks again. Re-importing a dance you first brought in with the other
+answer takes the form along with the figures, so a contra dance re-imported
+as English becomes English and takes the file's meter and key if it had none
+(see
+[Re-import an archive dance to pick up a correction](#re-import-an-archive-dance-to-pick-up-a-correction)).
+
+An English dance takes its meter and key from the dance's Music field ("Key:
+G, Meter: 3/2" gives the meter 3/2 and the key G). A line that starts with a
+bar range, such as `1-4 Partners set and turn single`, `(5-8) circle left` or
+`A1 1-8 lead up`, counts that many bars, and the dance's meter says how many
+beats a bar holds: two in 2/2, 2/4, 6/8 or 6/4, three in 3/2, 3/4, 9/8 or
+9/4, four in 4/4, 12/8 or 12/4. So `1-4` is 8 beats in 2/2 and 12 in 3/2.
+When the Music field gives no meter the app counts two beats a bar and says so
+in the review. The bars are the count: a line that also gives a count in beats,
+such as `1-4 (6) circle left` or `(6) 1-4 circle left`, comes across as
+written, with the bars' count. So does a line with several bar ranges, such
+as `(5-8) circle left (9-12) circle right`, counted across all of them (or
+by its first range, if all of them would come to more than 64 beats).
+A number after a word like Track, CD or Disc ("Track 3/4 of CD") isn't taken
+for a meter unless a word like Meter names it, and "A 3/2 hornpipe" gives the
+meter 3/2 but no key ("A 3/2 hornpipe in G" gives the key G).
+When the dance's sections are labeled A, B and C (`A1 A2 B1`, `A1 B1 C1`)
+and every line in them is counted, the dance comes across with those
+phrases named, each with the bars its lines add up to: A1 and A2 of 4 bars
+and a B1 of 8 become A played twice and B played once (see **Phrases** in
+[Writing and editing dances](./authoring.md)). A section that counts no bars,
+such as an A2 that only says "Repeat to places", names no phrases. Otherwise
+an English dance whose meter gives other than two beats a bar, such as 3/2
+or 4/4, gets four 8-bar phrases of that many beats, so its A and B labels
+fall in the right places.
+
 The app also reads Caller's Companion's abbreviations and wording. "Circle L",
 "pass R shoulder" and "alle R 1.5" keep their direction, shoulder and hand;
 "R&L" is a right and left through; "New Neighbor" and "Corner" mean your next
@@ -451,7 +487,7 @@ the custom fields settings before you share. Dances you imported in an earlier v
 values as lines in their calling notes.
 
 Re-importing a dance takes only its figures, formation and progression from
-the file (see
+the file, with the dance form, meter and key they need (see
 [Re-import an archive dance to pick up a correction](#re-import-an-archive-dance-to-pick-up-a-correction)),
 so it never changes the dance's custom-field values. A column you changed or
 emptied in Caller's Companion since is not applied; change it in the app.
@@ -486,8 +522,8 @@ others reads "Choreography: others, not named". A dance you imported before
 keeps its credit; if you re-import it with **Also update title and credit**,
 it is credited to the named people only, without the note, and an author
 called "Others" from the earlier import stays in your list. Fix it in
-**Settings › General › Library › Authors** (see
-[Settings](./settings.md#library)): delete it once no dance credits it, or merge
+**Settings ▸ General ▸ Dances ▸ Authors** (see
+[Settings](./settings.md#dances)): delete it once no dance credits it, or merge
 it into another author.
 
 Your **notes and sources** come across with each dance. Your calling notes
@@ -557,7 +593,7 @@ open the app.
 
 An English country dance imported before the app knew English figures, or
 converted from the **ECD** tag above, still holds the contra moves it was
-read with. Those still show correctly, but **Settings → General → Import →
+read with. Those still show correctly, but **Settings ▸ General ▸ Import ▸
 Convert English dances** can turn them into English figures, so they read in your
 English dialect and can be edited with English options.
 
@@ -659,7 +695,7 @@ moving between devices is a clean round trip: what you save is what you get back
 For step-by-step backup and restore, see
 [Backup & portability](./backup-portability.md). In short:
 
-- **Export a backup** — open **Settings › General**, find **Export a backup**,
+- **Export a backup** — open **Settings ▸ General**, find **Export a backup**,
   and choose **Export**. The app writes one `.json` file containing your entire
   collection, programs, custom fields, dialects, themes, and settings. Keep it
   somewhere safe or copy it to another device.
@@ -689,7 +725,7 @@ source you pick:
    a particular dance.
 3. **Decide dance by dance** — each dance can be brought in as **new**, updated
    as a **re-import** of one you imported before (which refreshes only its
-   figures, formation and progression), **linked** to an existing dance, kept as a separate **duplicate**, or **skipped**. Anything the app is
+   figures, formation and progression, with the dance form, meter and key they need), **linked** to an existing dance, kept as a separate **duplicate**, or **skipped**. Anything the app is
    unsure about defaults to **skip**, so it never guesses its way into your
    library.
    If something is wrong with the **whole file** — an incomplete `.USR`, or a
@@ -795,6 +831,11 @@ formation, and progression** replace those of the dance you already have instead
 of adding a second copy, which is how you pick up a correction an archive has
 made since you first imported.
 
+The figures bring their dance form with them: figures from a contra source make
+the dance a contra dance, and English figures make it English. When the dance
+has no meter or key yet, the incoming ones fill them, since English figures are
+counted in bars of the meter; a meter or key you already set stays.
+
 Everything else on the dance is yours and stays as it is: its title, authors,
 calling notes, walkthrough, status, rating, tags, links, tunes, custom fields and
 source citations. Your own ratings, tags and notes are never overwritten by a
@@ -848,7 +889,8 @@ moves up to take its place, as when you remove a dance in the program editor,
 and the same happens to an empty slot's alternate.
 
 Re-importing replaces that dance's figures, formation, and progression with the
-incoming version's (and its title and credit, if you ticked the box), so if you
+incoming version's, with the dance form they need (and its title and credit, if
+you ticked the box), so if you
 have edited them in your copy, look before you commit. The **Undo** on the summary reverses the
 whole batch import if it was not what you wanted (but not a dance you brought in
 with **Import and edit**).
@@ -879,7 +921,9 @@ them for only some dances — the app tells you so and leaves your dance
 unchanged, rather than replacing your figures with an empty list.
 
 Review the preview, then import to replace only the dance's **figures,
-formation, and progression**. This keeps your title, notes, rating, tags,
+formation, and progression**, with the dance form they are written in, and the
+meter and key if the dance has none. The Caller's Box and ContraDB hold contra
+dances, so refreshing an English dance from them makes it a contra dance. This keeps your title, notes, rating, tags,
 links, custom fields, authors, citations, and other saved metadata. The import
 review's **Re-import onto** does the same. Its **Same dance — replace** choices
 are different: they replace the dance's content (see
@@ -897,7 +941,7 @@ your collection (or imports it for you) as it reads the list:
 Both live in the **Import program** menu on the **Programs** screen rather than
 the **Import…** flow here, because they build a program, not just add dances. For
 step-by-step instructions, see
-[Programs & matrix › Import a program from ContraDB](./programs.md#import-a-program-from-contradb)
+[Programs & matrix ▸ Import a program from ContraDB](./programs.md#import-a-program-from-contradb)
 and [Build from a list of titles](./programs.md#build-from-a-list-of-titles).
 
 If you want the dances but **not** a program, use

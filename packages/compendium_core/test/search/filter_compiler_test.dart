@@ -1,6 +1,23 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
 
+/// The three `LIKE` binds an All fields word adds for the meter, the key
+/// and the interpreters' names (`_musicAndInterpreterMatch`).
+List<String> _music(String word, {bool prefix = false}) {
+  final p = prefix ? '% $word%' : '%$word%';
+  return [p, p, p];
+}
+
+/// The SQL an All fields word of three or more characters adds for the
+/// meter, the key and the interpreters' names.
+const _musicSql =
+    "(id IN (SELECT id FROM dances WHERE (meter <> '' OR musical_key <> '') "
+    "AND (meter LIKE ? ESCAPE '\\' OR musical_key LIKE ? ESCAPE '\\')) "
+    'OR id IN (SELECT di.dance_id FROM dance_interpreters di '
+    'JOIN choreographers c ON c.id = di.choreographer_id '
+    'WHERE c.deleted_at IS NULL '
+    "AND c.name LIKE ? ESCAPE '\\'))";
+
 void main() {
   final compiler = FilterCompiler();
 
@@ -106,13 +123,14 @@ void main() {
         '(id IN (SELECT dance_id FROM dance_substring_fts '
         'WHERE dance_substring_fts MATCH ?) '
         'OR id IN (SELECT dance_id FROM dance_substring_fts '
-        'WHERE dance_substring_fts MATCH ?))',
+        'WHERE dance_substring_fts MATCH ?) OR $_musicSql)',
       );
       // Canonical bind first, then the raw bind restricted to the verbatim
       // columns (never figures_text).
       expect(c.binds, [
         '"swing"',
         '{title authors sources custom_values hook notes} : ("swing")',
+        ..._music('swing'),
       ]);
     });
 
@@ -634,13 +652,18 @@ void main() {
       );
       expect(
         c.sql,
-        'SELECT dance_fts.dance_id FROM dance_fts '
-        'JOIN dances ON dances.id = dance_fts.dance_id '
-        'WHERE dance_fts MATCH ? AND dances.deleted_at IS NULL '
-        'ORDER BY bm25(dance_fts)',
+        startsWith(
+          'SELECT dance_id FROM (SELECT dance_fts.dance_id AS dance_id, '
+          'bm25(dance_fts) AS score FROM dance_fts '
+          'JOIN dances ON dances.id = dance_fts.dance_id '
+          'WHERE dance_fts MATCH ? AND dances.deleted_at IS NULL '
+          'UNION ALL SELECT id, 0 FROM dances WHERE deleted_at IS NULL AND ',
+        ),
       );
+      expect(c.sql, endsWith('GROUP BY dance_id ORDER BY MIN(score)'));
       expect(c.binds, [
         '("re"* OR {title authors sources custom_values hook notes} : ("re"*))',
+        ..._music('re', prefix: true),
       ]);
     });
 
@@ -803,7 +826,7 @@ void main() {
               direction: SortDirection.descending,
             )
             .sql,
-        endsWith('ORDER BY bm25(dance_fts) DESC'),
+        endsWith('ORDER BY MIN(score) DESC'),
       );
     });
   });
@@ -817,13 +840,15 @@ void main() {
           '(id IN (SELECT dance_id FROM dance_substring_fts '
           'WHERE dance_substring_fts MATCH ?) '
           'OR id IN (SELECT dance_id FROM dance_substring_fts '
-          'WHERE dance_substring_fts MATCH ?))';
+          'WHERE dance_substring_fts MATCH ?) OR $_musicSql)';
       expect(c.sql, contains('($word AND $word)'));
       expect(c.binds, [
         '"Kaynor"',
         '$raw : ("Kaynor")',
+        ..._music('Kaynor'),
         '"petronella"',
         '$raw : ("petronella")',
+        ..._music('petronella'),
       ]);
     });
 
@@ -833,15 +858,17 @@ void main() {
         c.sql,
         contains(
           '((id IN (SELECT dance_id FROM dance_fts WHERE dance_fts MATCH ?) '
-          'OR id IN (SELECT dance_id FROM dance_fts WHERE dance_fts MATCH ?)) '
-          'AND (id IN (SELECT dance_id FROM dance_substring_fts',
+          'OR id IN (SELECT dance_id FROM dance_fts WHERE dance_fts MATCH ?) '
+          'OR (id IN (SELECT id FROM dances',
         ),
       );
       expect(c.binds, [
         '"of"*',
         '$raw : ("of"*)',
+        ..._music('of', prefix: true),
         '"Kaynor"',
         '$raw : ("Kaynor")',
+        ..._music('Kaynor'),
       ]);
     });
 
@@ -854,8 +881,10 @@ void main() {
       expect(c.binds, [
         '"dosido"',
         '$raw : ("do si do")',
+        ..._music('do si do'),
         '"Kaynor"',
         '$raw : ("Kaynor")',
+        ..._music('Kaynor'),
       ]);
     });
 
@@ -873,8 +902,10 @@ void main() {
       expect(c.binds, [
         '"role1s"',
         '$raw : ("Lady Birds")',
+        ..._music('Lady Birds'),
         '"chain"',
         '$raw : ("chain")',
+        ..._music('chain'),
       ]);
     });
 
@@ -884,10 +915,12 @@ void main() {
       expect(c.binds, [
         '"Kaynor"',
         '$raw : ("Kaynor")',
+        ..._music('Kaynor'),
         '$raw : ("ro"*)',
         '$raw : ("ro"*)',
         '"ro"*',
         '% ro%',
+        ..._music('ro', prefix: true),
       ]);
     });
 
@@ -935,8 +968,10 @@ void main() {
       expect(c.binds, [
         '"swing"',
         '$raw : ("buzz")',
+        ..._music('buzz'),
         '"buzz"',
         '$raw : ("buzz")',
+        ..._music('buzz'),
       ]);
       expect(c.sql, contains(') OR ('));
     });
@@ -990,8 +1025,10 @@ void main() {
       expect(c.binds, [
         '"role2s"',
         '{title authors sources custom_values hook notes} : ("robins")',
+        ..._music('robins'),
         '"allemande"',
         '{title authors sources custom_values hook notes} : ("allemande")',
+        ..._music('allemande'),
       ]);
     });
 

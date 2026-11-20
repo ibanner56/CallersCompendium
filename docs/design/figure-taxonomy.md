@@ -49,9 +49,10 @@ searchKeywords: [allemande, almond]
   any form, for code with no single dance in hand (programs, the repository,
   sync, search). It resolves IDs; it is not a vocabulary to parse a dance's
   text with, so the repository re-parses a dance's import-gap lines with
-  `forForm(dance.form)`. Glossary, dialect, shorthand and Settings defaults
-  surfaces, including decoding a stored compound's figures, still use
-  contra's taxonomy directly, until they gain a form of their own.
+  `forForm(dance.form)`. The Glossary lists each form's built-in figures
+  from `forForm(form)`; the user's own figures and terms, shorthand and
+  Settings defaults surfaces, including decoding a stored compound's figures,
+  still use contra's taxonomy directly, until they gain a form of their own.
 - **English Country Dance has its own taxonomy** (`ecdTaxonomy`,
   `ecd_taxonomy.dart`): the 52 movements of ADR-006 §7, each stored under an
   `ecd_` ID, and two aliases (`ecd_swat_the_flea`, and `ecd_hand_cast`,
@@ -94,11 +95,22 @@ searchKeywords: [allemande, almond]
   is outside its values. #417's re-parse and figure shorthands never take a
   use (`hasUserFigureReferenceKeys`).
 
+### Namesakes across dance forms
+
+A figure several dance forms name alike (contra `box_the_gnat`, ECD
+`ecd_box_the_gnat`) is defined once per taxonomy, and a change to one may need
+the same change to the other. Namesakes may legitimately differ, so nothing
+enforces it: a PR that changes a figure definition gets an advisory that lists
+the same-named figures in the other taxonomies, matched on display name and on
+the id after the form's prefix (`tools/ci/report_figure_namesakes.py`). It reads
+the forms from `danceFormMovePrefixes` and never fails the build; it is a prompt
+to look, not a claim of drift.
+
 ## Parameter types
 
 | Type | Values | Notes |
 |---|---|---|
-| dancerSet | everyone, larks*, robins*, ones, twos, partners, neighbors, sameRoles, shadows, secondShadows, prevNeighbors, nextNeighbors, thirdNeighbors, fourthNeighbors, firstCorners, secondCorners, thirdCorners, opposites, prevPartners, nextPartners, … | *canonical role IDs are `role1`/`role2` — see below. Positional/relational tokens (all except `role1s`/`role2s`) are also **dialect-substitutable** via the dialect `dancers` map. The five mixer partner-series tokens (`prevPartners`/`nextPartners`/`thirdPartners`/`fourthPartners`/`fifthPartners`) are offered in the **figure editor dropdown only when the dance is marked a mixer** — unless the figure already stores one of them, in which case it remains visible and selectable on that figure (see `offerableDancerSets`). The tokens are unrestricted everywhere else (dialect editor, search, etc.). |
+| dancerSet | everyone, larks*, robins*, ones, twos, threes, fours, partners, neighbors, sameRoles, shadows, secondShadows, prevNeighbors, nextNeighbors, thirdNeighbors, fourthNeighbors, firstCorners, secondCorners, thirdCorners, opposites, prevPartners, nextPartners, … | *canonical role IDs are `role1`/`role2` — see below. Positional/relational tokens (all except `role1s`/`role2s`) are also **dialect-substitutable** via the dialect `dancers` map. The five mixer partner-series tokens (`prevPartners`/`nextPartners`/`thirdPartners`/`fourthPartners`/`fifthPartners`) are offered in the **figure editor dropdown only when the dance is marked a mixer** — unless the figure already stores one of them, in which case it remains visible and selectable on that figure (see `offerableDancerSets`). The tokens are unrestricted everywhere else (dialect editor, search, etc.). |
 | dancerPair | subset of dancerSet valid for the move | |
 | handedness / shoulder | right, left | |
 | spinDirection | clockwise, counterclockwise | |
@@ -2236,7 +2248,8 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
   of Caller's Box lines the taxonomy could not hold. Of the 2,066 lines
   mentioning a cast in the 1,563 public dances whose figures mention one
   (fetched 2026-11-19; `docs/research/callersbox.md`), 2,060 were `custom`;
-  469 still are.
+  443 still are with all of v40 (469 with the cast move alone, before the
+  `threes`/`fours` and role-number dancers below).
   - **`cast`** (`who`, `direction`, `places`, `whom`, `destination`, `beats`
     4). Every param but `beats` defaults to `unspecified`, because the source
     writes casts with every part optional. The maintainer's rulings
@@ -2295,14 +2308,37 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
     clauses do not parse (207 lines, mostly `lead through …; separate; cast
     …`, which keeps the maintainer's "lead through; separate; cast back to
     place" group custom), "others follow"/"inverting lines" riders (95),
-    casts by dancers no move reads (`Threes`, `role1 one`, `Ends`, which
-    keeps "Ends cast back to P2" custom; 49), inside a double figure eight
+    casts by dancers no move reads (`Ends`, `Inside ends`, two named
+    dancers at once, which keeps "Ends cast back to P2" custom; 23), inside a
+    double figure eight
     (26), `around the major set` (25), endpoints outside the destination
     list ("to ends of line of four"; 22), `behind <dancer>` (13), and the 6
     `(past …)` lists above.
   - `cast.direction` takes no opposite in `ParamOpposites`: like
     `circle.direction` it is a free-form choice slot, and its values are two
     pairs on different axes.
+  - **`threes` and `fours`** join the dancer sets, after `twos`: the third and
+    fourth couples as groups, for triplets, triple minors and four-couple sets
+    (the maintainer's ruling, 2026-11-19). They are the tokens ECD's selectors
+    already use. Like their single dancers (`threesRole1` …, v39) they are
+    offered in every dance, not only one whose formation has a third couple,
+    and they have no opposite (`pairInverse` names none). Like the ones they
+    pass in the center of a hey they start, and a hey can run until they meet
+    (both the author's calls, as v24's and v38's meet targets were); a hey's
+    ricochet by the pair on the ends reads "others ricochet". The Caller's
+    Box's `Threes`/`Fours` read as them, including before a wave balance.
+  - **A role and a couple number name that couple's dancer**: The Caller's
+    Box's "Woman one" and "Man three", which reach the reader as `role2 one`
+    and `role1 three`, are `onesRole2` and `threesRole1`, shown as "first
+    robin" and "third lark" (the maintainer's ruling). "One" after a group
+    ("Women cast down one place") still counts places.
+  - **Older devices (v39)** render `threes`/`fours` as the bare word, and
+    keep it while the figure is only viewed or synced. Opening that figure's
+    editor there corrects the out-of-domain value to the param's default (the
+    dance editor's dropdown writes back any value it cannot offer), and the
+    edit syncs. Every dancer token added before (v38's corners, v39's single
+    dancers) has the same exposure. The maintainer accepted this for the beta
+    (2026-11-19), so no guard is added.
   - Migration: none, and no rebuild: a new move and alias, nothing renamed or
     removed, so no stored figure changes and every canonical text stays as it
     was. **Older devices (v39)** show a synced `cast` as the bare word "cast"

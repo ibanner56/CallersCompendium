@@ -113,6 +113,13 @@ jobs:
         run: python3 tools/ci/test_report_comment_weight.py
       - name: Report comment weight (informational)
         run: python3 tools/ci/report_comment_weight.py --top 10
+      # PR-only in ci.yml (the `advisories` job needs the base ref); only its own
+      # logic is exercised here. See tools/ci/report_missing_core_changelog.py.
+      - name: Test the core-changelog advisory report
+        run: python3 tools/ci/test_report_missing_core_changelog.py
+      # PR-only in ci.yml as well, for the same reason. See tools/ci/report_figure_namesakes.py.
+      - name: Test the figure-namesake advisory report
+        run: python3 tools/ci/test_report_figure_namesakes.py
       # Ratchet: no `debugPrint` may reach a release build unguarded. Debug
       # output here carries file paths, import URLs and user dance content, so
       # an unguarded call is an information leak — issue #617, cleaned up in
@@ -231,6 +238,9 @@ jobs:
       # See tools/ci/check_version_bump_policy.py.
       - name: Test the version-bump policy gate
         run: python3 tools/ci/test_check_version_bump_policy.py
+      # The gate itself is PR-only (release-pr-title.yml, which needs the title).
+      - name: Test the release-PR title gate
+        run: python3 tools/ci/test_check_release_pr_title.py
       - name: Test the CHANGELOG promotion gate
         run: python3 tools/ci/test_check_changelog_promoted.py
       # The structure gate itself runs in changelog-structure.yml, because
@@ -281,6 +291,8 @@ jobs:
         run: python3 tools/ci/test_check_core_flutter_free.py
       - name: Test the core coverage-floor guard
         run: python3 tools/ci/test_check_core_coverage.py
+      - name: Test the app coverage-floor guard
+        run: python3 tools/ci/test_check_app_coverage.py
       # Localization tooling: pure-stdlib, offline, and fast, so it runs before
       # the (slower) Flutter setup and fails fast. First self-test the assisted
       # translation tool, then gate every committed app_<locale>.arb against the
@@ -509,9 +521,15 @@ jobs:
         with:
           path: .dart_tool/hooks_runner/shared/sqlite3
           key: sqlite3-prebuilt-v2-${{ runner.os }}-${{ runner.arch }}-${{ steps.sqlite3.outputs.version }}
-      - name: Test app
-        working-directory: app
-        run: flutter test --concurrency=4
+      # With coverage, for the floor below. The wrapper deletes a stale
+      # app/coverage first. See tools/ci/run_app_tests_with_coverage.py.
+      - name: Test app (with coverage)
+        run: python3 tools/ci/run_app_tests_with_coverage.py -j 4
+      # Exits 2 when the report is missing or empty (unlike the core gate, which
+      # skips): a step that stopped producing coverage must not pass for ever.
+      # See tools/ci/check_app_coverage.py.
+      - name: App coverage floor
+        run: python3 tools/ci/check_app_coverage.py
 
   server-tests:
     name: Test server

@@ -32,11 +32,13 @@ import 'brand_mark.dart';
 /// indeterminate spinner that can look hung (#440). Ordinary launches (no
 /// rebuild owed) keep the plain spinner.
 ///
-/// Four errors are terminal, with neither Retry nor "Check again" (maintainer
+/// Four errors are terminal, with neither Try again nor "Check again" (maintainer
 /// decision R2-check-again, 2026-10-30, which overrode the audit's suggestion
 /// of Check again on the last two): whatever the user does to fix them, the app
 /// has to be reopened afterwards, and each screen's copy says so. Each offers
-/// **Copy details** and a link to the Releases page ([_TerminalScreen]).
+/// **Copy details** and a link to the Releases page ([_TerminalScreen]), except
+/// [DatabaseBelowFloorError], which offers Copy details and a button to the
+/// release that can update the data, in place of the generic link.
 /// - [DatabaseDowngradeError] (on-disk data written by a newer build): the only
 ///   fix is to update the app, so retrying would just fail again.
 /// - [DatabaseBelowFloorError] (on-disk data written by a build older than the
@@ -150,7 +152,7 @@ class AppBootstrap extends StatelessWidget {
           }
           // The one-time move of the database out of Documents could not be
           // completed safely, or could not be ruled out (Documents
-          // unreachable). Terminal, no Retry: nothing was deleted, and
+          // unreachable). Terminal, no Try again: nothing was deleted, and
           // opening a database now would create an empty one beside the real
           // library.
           if (error is DatabaseRelocationBlocked) {
@@ -352,7 +354,28 @@ class _BelowFloorRecoveryScreenState extends State<_BelowFloorRecoveryScreen> {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
-              FilledButton(
+              // Recovering the data is the primary action; the two resets
+              // abandon it, so they are outlined and sit under their own label.
+              FilledButton.icon(
+                key: const ValueKey('bootstrap-get-bridge'),
+                onPressed: () => launchExternalUrl(
+                  context,
+                  '$kReleasesPageUrl/tag/${widget.error.bridgeTag}',
+                ),
+                icon: const Icon(Icons.open_in_new),
+                label: Text(
+                  databaseBelowFloorGetBridge(l10n, widget.error.bridgeTag),
+                ),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                databaseBelowFloorStartFresh(l10n),
+                style: Theme.of(context).textTheme.titleSmall,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              OutlinedButton(
+                key: const ValueKey('bootstrap-back-up-and-reset'),
                 onPressed: _inFlight
                     ? null
                     : () => _run(widget.onBackUpAndReset),
@@ -360,11 +383,12 @@ class _BelowFloorRecoveryScreenState extends State<_BelowFloorRecoveryScreen> {
               ),
               const SizedBox(height: 8),
               OutlinedButton(
+                key: const ValueKey('bootstrap-reset-only'),
                 onPressed: _inFlight ? null : () => _run(widget.onResetOnly),
                 child: Text(databaseBelowFloorResetOnly(l10n)),
               ),
               const SizedBox(height: 16),
-              _TerminalHelpActions(
+              _CopyDetailsButton(
                 details: _terminalDetails('DatabaseBelowFloorError', [
                   'fileVersion: ${widget.error.fileVersion}',
                   'minSupportedVersion: ${widget.error.minSupportedVersion}',
@@ -422,7 +446,10 @@ class _BootstrapErrorScreen extends StatelessWidget {
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
                 const SizedBox(height: 16),
-                FilledButton(onPressed: onRetry, child: Text(l10n.commonRetry)),
+                FilledButton(
+                  onPressed: onRetry,
+                  child: Text(l10n.commonTryAgain),
+                ),
                 const SizedBox(height: 8),
                 _CopyDetailsButton(
                   details: _terminalDetails(errorType, const [], stackTrace),
@@ -457,7 +484,7 @@ String _terminalDetails(
   return buffer.toString();
 }
 
-/// One of the four terminal startup screens: an icon, [body], the log hint, and
+/// One of the three terminal startup screens other than below-floor: an icon, [body], the log hint, and
 /// [_TerminalHelpActions] (Copy details and the Releases link). There is no
 /// Retry and no "Check again" — see [AppBootstrap].
 class _TerminalScreen extends StatelessWidget {
@@ -513,8 +540,8 @@ class _TerminalScreen extends StatelessWidget {
   }
 }
 
-/// Copy details and a link to the Releases page, shared by the four terminal
-/// startup screens.
+/// Copy details and a link to the Releases page, shared by the three terminal
+/// startup screens other than below-floor.
 class _TerminalHelpActions extends StatelessWidget {
   const _TerminalHelpActions({required this.details});
 

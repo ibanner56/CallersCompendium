@@ -8,7 +8,7 @@ import '../screens/dance_editor/custom_field_editor.dart'
 import '../theme/app_motion.dart';
 import '../theme/app_spacing.dart';
 import 'dirty_dialog_guard.dart';
-import 'dropdown_selection.dart';
+import 'app_dropdown_field.dart';
 
 /// The outcome of the batch edit-custom-field dialog: the chosen [def] plus
 /// either a type-respecting [value] to upsert across the selection, or
@@ -187,24 +187,19 @@ class _BatchCustomFieldDialogState extends State<_BatchCustomFieldDialog> {
           onChanged: (v) => setState(() => _boolValue = v),
         );
       case CustomFieldType.choice:
-        final dropdown = DropdownButtonFormField<String>(
-          // Keyed by the option count too, so an option added here rebuilds the
-          // field around its new `initialValue` (which is read only once).
-          key: ValueKey(
-            'batch-custom-field-value-${def.id}-${def.choices?.length ?? 0}',
-          ),
-          initialValue: _choiceValue,
-          isExpanded: true,
-          itemHeight: null,
-          selectedItemBuilder: ellipsizedSelection(def.choices ?? const []),
+        final dropdown = AppDropdownField<String?>(
+          key: ValueKey('batch-custom-field-value-${def.id}'),
+          value: _choiceValue,
+          // Options the user typed: a list that grows.
+          filterable: true,
           decoration: InputDecoration(
             labelText: def.label,
             isDense: true,
             border: const OutlineInputBorder(),
           ),
-          items: [
+          entries: [
             for (final choice in def.choices ?? const <String>[])
-              DropdownMenuItem(value: choice, child: Text(choice)),
+              AppDropdownEntry<String?>(value: choice, label: choice),
           ],
           onChanged: (v) => setState(() => _choiceValue = v),
         );
@@ -254,22 +249,22 @@ class _BatchCustomFieldDialogState extends State<_BatchCustomFieldDialog> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    DropdownButtonFormField<CustomFieldDef>(
+                    AppDropdownField<CustomFieldDef?>(
                       key: const ValueKey('batch-custom-field-key'),
-                      initialValue: _selectedDef,
-                      isExpanded: true,
-                      itemHeight: null,
-                      selectedItemBuilder: ellipsizedSelection(
-                        _defs.map((d) => d.label),
-                      ),
+                      value: _selectedDef,
+                      // The user's own custom fields: a list that grows.
+                      filterable: true,
                       decoration: InputDecoration(
                         labelText: l10n.collectionBatchCustomFieldKeyLabel,
                         isDense: true,
                         border: const OutlineInputBorder(),
                       ),
-                      items: [
+                      entries: [
                         for (final d in _defs)
-                          DropdownMenuItem(value: d, child: Text(d.label)),
+                          AppDropdownEntry<CustomFieldDef?>(
+                            value: d,
+                            label: d.label,
+                          ),
                       ],
                       onChanged: _onDefChanged,
                     ),

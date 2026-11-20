@@ -98,7 +98,8 @@ Future<DiscardChangesChoice> confirmDiscardChanges(
 }
 
 /// Blocks leaving the route while [dirty], and asks [confirmDiscardChanges]
-/// first: Discard pops the route with no result, Keep editing stays.
+/// first: Discard pops the route with no result, Keep editing stays. While
+/// [busy] (a save in flight) it blocks leaving without asking.
 ///
 /// This catches every pop that goes through `Navigator.maybePop`: the system
 /// Back button or gesture, the app bar's back arrow, and a tap on a modal
@@ -114,20 +115,25 @@ class DiscardChangesGuard extends StatelessWidget {
   const DiscardChangesGuard({
     super.key,
     required this.dirty,
+    this.busy = false,
     required this.child,
   });
 
   /// Whether leaving now would lose changes.
   final bool dirty;
 
+  /// Whether the page is in the middle of saving: it cannot be left at all
+  /// then, and nothing is asked.
+  final bool busy;
+
   final Widget child;
 
   @override
   Widget build(BuildContext context) {
     return PopScope<Object?>(
-      canPop: !dirty,
+      canPop: !dirty && !busy,
       onPopInvokedWithResult: (didPop, _) async {
-        if (didPop) return;
+        if (didPop || busy) return;
         final choice = await confirmDiscardChanges(context);
         if (choice != DiscardChangesChoice.discard || !context.mounted) return;
         Navigator.of(context).pop();

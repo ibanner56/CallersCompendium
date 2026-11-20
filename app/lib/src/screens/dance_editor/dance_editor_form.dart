@@ -2,6 +2,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../widgets/exclude_focus_when_collapsed.dart';
 import '../../data/canonical_discouraged_terms_scope.dart';
 import '../../data/show_custom_figures_scope.dart';
 import '../../data/validation_issue_labels.dart';
@@ -24,6 +25,8 @@ import 'lingo_discouraged_hint.dart';
 import 'links_editor.dart';
 import '../../widgets/lingo_text_editing_controller.dart';
 import 'name_picker.dart';
+import '../../widgets/app_dropdown_field.dart';
+import 'named_phrases_editor.dart';
 import 'source_citations_editor.dart';
 import '../../theme/app_shapes.dart';
 
@@ -237,6 +240,7 @@ class DanceEditorForm extends StatelessWidget {
         shorthands: shorthandMappings,
         dialect: dialect,
         formationShape: controller.formationShape,
+        meter: _meterForBars,
       );
       if (figures.isEmpty ||
           (!_isPlainShorthandClause(clause) &&
@@ -346,48 +350,36 @@ class DanceEditorForm extends StatelessWidget {
                   ..._creditFields(context),
                 ],
                 const SizedBox(height: AppSpacing.md),
-                DropdownButtonFormField<DanceForm>(
-                  // Field values read at the same weight as typed text; the dropdown's
-                  // default is the bolder titleMedium.
-                  style: Theme.of(context).textTheme.bodyLarge,
+                AppDropdownField<DanceForm>(
                   key: const ValueKey('form-field'),
-                  isExpanded: true,
                   decoration: InputDecoration(
                     labelText: l10n.danceEditorFormLabel,
                   ),
-                  initialValue: controller.form,
-                  items: [
+                  value: controller.form,
+                  entries: [
                     for (final form in DanceForm.values)
-                      DropdownMenuItem(
+                      AppDropdownEntry(
                         value: form,
-                        child: Text(danceFormLabel(l10n, form)),
+                        label: danceFormLabel(l10n, form),
                       ),
                   ],
-                  onChanged: (value) {
-                    if (value != null) controller.setForm(value);
-                  },
+                  onChanged: controller.setForm,
                 ),
                 const SizedBox(height: AppSpacing.md),
-                DropdownButtonFormField<FormationShape>(
-                  // Field values read at the same weight as typed text; the dropdown's
-                  // default is the bolder titleMedium.
-                  style: Theme.of(context).textTheme.bodyLarge,
+                AppDropdownField<FormationShape>(
                   key: const ValueKey('formation-field'),
-                  isExpanded: true,
                   decoration: InputDecoration(
                     labelText: l10n.danceEditorFormationLabel,
                   ),
-                  initialValue: controller.formationShape,
-                  items: [
+                  value: controller.formationShape,
+                  entries: [
                     for (final shape in controller.offeredFormationShapes)
-                      DropdownMenuItem(
+                      AppDropdownEntry(
                         value: shape,
-                        child: Text(formationShapeLabel(l10n, shape)),
+                        label: formationShapeLabel(l10n, shape),
                       ),
                   ],
-                  onChanged: (value) {
-                    if (value != null) controller.setFormationShape(value);
-                  },
+                  onChanged: controller.setFormationShape,
                 ),
                 const SizedBox(height: AppSpacing.xs),
                 TextFormField(
@@ -465,25 +457,44 @@ class DanceEditorForm extends StatelessWidget {
                   },
                 ),
                 const SizedBox(height: AppSpacing.md),
-                TextFormField(
-                  key: const ValueKey('phrase-field'),
-                  controller: controller.phraseController,
-                  decoration: InputDecoration(
-                    labelText: l10n.danceEditorPhraseStructureLabel,
-                    hintText: l10n.danceEditorPhraseStructureHint,
+                // An English dance's phrases are named by the caller (A, B,
+                // C, each once or twice); the text stays for a structure
+                // they have not named, such as a tune of several meters.
+                if (controller.offersNamedPhrases)
+                  NamedPhrasesEditor(
+                    structure: controller.typedPhraseStructure,
+                    beatsPerBar: controller.statedBeatsPerBar,
+                    onChanged: controller.setPhraseStructureText,
                   ),
-                  onChanged: (_) => controller.onPhraseChanged(),
-                  validator: (value) {
-                    try {
-                      PhraseStructure.parse(value ?? '');
-                      return null;
-                    } on FormatException catch (e) {
-                      // diagnostics: silent — FormatException is the expected signal from PhraseStructure.parse
-                      // for invalid user input; this is intentional validation control flow, not an unexpected error
-                      return phraseStructureErrorMessage(l10n, e);
-                    }
-                  },
-                ),
+                if (!controller.offersNamedPhrases ||
+                    controller.typedPhraseStructure?.isNamed != true ||
+                    controller.phraseFocusNode.hasFocus)
+                  TextFormField(
+                    key: const ValueKey('phrase-field'),
+                    controller: controller.phraseController,
+                    focusNode: controller.phraseFocusNode,
+                    decoration: InputDecoration(
+                      labelText: l10n.danceEditorPhraseStructureLabel,
+                      hintText: l10n.danceEditorPhraseStructureHint,
+                    ),
+                    onChanged: (_) => controller.onPhraseChanged(),
+                    validator: (value) {
+                      try {
+                        final structure = PhraseStructure.parse(value ?? '');
+                        // Named phrases are for English dances only (Hudson,
+                        // 20 November 2026).
+                        if (structure.isNamed &&
+                            !controller.offersNamedPhrases) {
+                          return l10n.validationPhraseNamedEnglishOnly;
+                        }
+                        return null;
+                      } on FormatException catch (e) {
+                        // diagnostics: silent — FormatException is the expected signal from PhraseStructure.parse
+                        // for invalid user input; this is intentional validation control flow, not an unexpected error
+                        return phraseStructureErrorMessage(l10n, e);
+                      }
+                    },
+                  ),
                 LingoDiscouragedHint(
                   controller: controller.phraseController,
                   dialect: dialect,
@@ -538,6 +549,7 @@ class DanceEditorForm extends StatelessWidget {
                     dialect: dialect,
                     mixer: controller.mixer,
                     formationShape: controller.formationShape,
+                    meterOf: () => _meterForBars,
                     moveParamDefaults: moveParamDefaults,
                     onChanged: controller.onFiguresChanged,
                     onAdd: controller.addFigure,
@@ -614,7 +626,14 @@ class DanceEditorForm extends StatelessWidget {
                 ),
                 if (controller.warnings.isNotEmpty) ...[
                   const SizedBox(height: AppSpacing.md),
-                  WarningsCard(warnings: controller.warnings),
+                  WarningsCard(
+                    warnings: controller.warnings,
+                    beatsPerBar: BarTimingScope.beatsPerBarFor(
+                      controller.form,
+                      controller.phraseStructure,
+                      meter: controller.meterController.text,
+                    ),
+                  ),
                 ],
               ],
             ),
@@ -648,6 +667,8 @@ class DanceEditorForm extends StatelessWidget {
                   decoration: InputDecoration(
                     labelText: l10n.danceEditorHookLabel,
                     hintText: l10n.danceEditorHookHint,
+                    helperText: l10n.danceEditorHookHelper,
+                    helperMaxLines: 4,
                   ),
                   onChanged: (_) => controller.onTextEdited(),
                 ),
@@ -708,12 +729,20 @@ class DanceEditorForm extends StatelessWidget {
     );
   }
 
+  /// The meter a typed bar range counts by: the Meter field's, or with none
+  /// the phrase structure's beats per bar, as the bar timing does.
+  String get _meterForBars => ecdMeterForBars(
+    controller.meterController.text,
+    controller.phraseStructure,
+  );
+
   /// [child] timed in bars where the dance is ([BarTimingScope.beatsPerBarFor]):
   /// an English dance whose tune has one meter throughout.
   Widget _withBarTiming(Widget child) {
     final beatsPerBar = BarTimingScope.beatsPerBarFor(
       controller.form,
       controller.phraseStructure,
+      meter: controller.meterController.text,
     );
     return beatsPerBar == null
         ? child
@@ -781,7 +810,9 @@ class DanceEditorForm extends StatelessWidget {
             // only be noise.
             counterText: '',
           ),
-          onChanged: (_) => controller.onTextEdited(),
+          onChanged: (_) => key == 'meter'
+              ? controller.onMeterChanged()
+              : controller.onTextEdited(),
         ),
         LingoDiscouragedHint(
           controller: textController,
@@ -850,130 +881,138 @@ class DanceEditorForm extends StatelessWidget {
       ),
       expandedCrossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        EnumDropdown<DanceStatus>(
-          fieldKey: 'status',
-          label: l10n.danceEditorStatusLabel,
-          value: controller.status,
-          values: DanceStatus.values,
-          labelOf: (value) => danceStatusLabel(l10n, value),
-          onChanged: controller.setStatus,
-        ),
-        const SizedBox(height: AppSpacing.md),
-        LevelDropdown(
-          value: controller.level,
-          levels: controller.difficultyLevels,
-          onChanged: controller.setLevel,
-        ),
-        const SizedBox(height: AppSpacing.xs),
-        CheckboxListTile(
-          key: const ValueKey('mixed-level-field'),
-          value: controller.mixedLevel,
-          onChanged: (v) => controller.setMixedLevel(v ?? false),
-          title: Text(l10n.commonMixedLevel),
-          subtitle: Text(l10n.danceEditorMixedLevelSubtitle),
-          secondary: const Icon(Icons.swap_vert),
-          controlAffinity: ListTileControlAffinity.leading,
-          contentPadding: EdgeInsets.zero,
-        ),
-        const SizedBox(height: AppSpacing.md),
-        if (!controller.showsCreditsUpFront) ...[
-          ..._creditFields(context),
-          const SizedBox(height: AppSpacing.md),
-        ],
-        PartialDateField(
-          fieldKey: 'revised-on',
-          label: l10n.danceEditorRevisedLabel,
-          helperText: l10n.danceEditorRevisedHelper,
-          value: controller.revisedOn,
-          onChanged: controller.setRevisedOn,
-        ),
-        const SizedBox(height: AppSpacing.md),
-        FieldLabel(l10n.danceEditorTagsLabel),
-        NamePicker(
-          fieldKey: 'tag',
-          selectedIds: controller.tagIds,
-          namesById: tagNames,
-          options: tagOptions,
-          onAdd: onAddTag,
-          onRemove: controller.removeTag,
-          onCreate: onCreateTag,
-          sheetSemanticLabel: l10n.danceEditorTagsLabel,
-        ),
-        const SizedBox(height: AppSpacing.md),
-        if (!controller.showsCreditsUpFront) ...[
-          _musicFields(context),
-          const SizedBox(height: AppSpacing.md),
-        ],
-        FieldLabel(l10n.danceEditorTunesLabel),
-        // An empty tune list here would otherwise read as "this dance has no
-        // tunes", when the stored text could not be decoded and is being
-        // preserved untouched (#1347).
-        if (controller.openedWithUnreadableTunes) ...[
-          Text(
-            l10n.danceEditorTunesUnreadable,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: Theme.of(context).colorScheme.error,
-            ),
+        ExcludeFocusWhenCollapsed(
+          controller: moreDetailsController,
+          builder: (context) => Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              EnumDropdown<DanceStatus>(
+                fieldKey: 'status',
+                label: l10n.danceEditorStatusLabel,
+                value: controller.status,
+                values: DanceStatus.values,
+                labelOf: (value) => danceStatusLabel(l10n, value),
+                onChanged: controller.setStatus,
+              ),
+              const SizedBox(height: AppSpacing.md),
+              LevelDropdown(
+                value: controller.level,
+                levels: controller.difficultyLevels,
+                onChanged: controller.setLevel,
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              CheckboxListTile(
+                key: const ValueKey('mixed-level-field'),
+                value: controller.mixedLevel,
+                onChanged: (v) => controller.setMixedLevel(v ?? false),
+                title: Text(l10n.commonMixedLevel),
+                subtitle: Text(l10n.danceEditorMixedLevelSubtitle),
+                secondary: const Icon(Icons.swap_vert),
+                controlAffinity: ListTileControlAffinity.leading,
+                contentPadding: EdgeInsets.zero,
+              ),
+              const SizedBox(height: AppSpacing.md),
+              if (!controller.showsCreditsUpFront) ...[
+                ..._creditFields(context),
+                const SizedBox(height: AppSpacing.md),
+              ],
+              PartialDateField(
+                fieldKey: 'revised-on',
+                label: l10n.danceEditorRevisedLabel,
+                helperText: l10n.danceEditorRevisedHelper,
+                value: controller.revisedOn,
+                onChanged: controller.setRevisedOn,
+              ),
+              const SizedBox(height: AppSpacing.md),
+              FieldLabel(l10n.danceEditorTagsLabel),
+              NamePicker(
+                fieldKey: 'tag',
+                selectedIds: controller.tagIds,
+                namesById: tagNames,
+                options: tagOptions,
+                onAdd: onAddTag,
+                onRemove: controller.removeTag,
+                onCreate: onCreateTag,
+                sheetSemanticLabel: l10n.danceEditorTagsLabel,
+              ),
+              const SizedBox(height: AppSpacing.md),
+              if (!controller.showsCreditsUpFront) ...[
+                _musicFields(context),
+                const SizedBox(height: AppSpacing.md),
+              ],
+              FieldLabel(l10n.danceEditorTunesLabel),
+              // An empty tune list here would otherwise read as "this dance has no
+              // tunes", when the stored text could not be decoded and is being
+              // preserved untouched (#1347).
+              if (controller.openedWithUnreadableTunes) ...[
+                Text(
+                  l10n.danceEditorTunesUnreadable,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.error,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.xs),
+              ],
+              TuneEditor(
+                tunes: controller.tunes,
+                controller: controller.tuneController,
+                onAdd: controller.addTune,
+                onRemove: controller.removeTune,
+              ),
+              LingoDiscouragedHint(
+                controller: controller.tuneController,
+                dialect: dialect,
+                fieldKey: 'tune',
+              ),
+              const SizedBox(height: AppSpacing.md),
+              FieldLabel(l10n.danceEditorLinksLabel),
+              LinksEditor(
+                links: controller.links,
+                onAdd: controller.addLink,
+                onRemove: controller.removeLink,
+                onChanged: controller.onLinksChanged,
+              ),
+              const SizedBox(height: AppSpacing.md),
+              FieldLabel(l10n.danceEditorPublishedSourcesLabel),
+              SourceCitationsEditor(
+                citations: controller.sourceCitations,
+                sourcesById: sourcesById,
+                sourceOptions: publishedSources,
+                onAttach: onAttachSource,
+                onCreate: onCreateSource,
+                onEditSource: onEditSource,
+                onRemove: controller.removeSourceCitation,
+                onChanged: controller.onSourceCitationsChanged,
+              ),
+              const SizedBox(height: AppSpacing.md),
+              FieldLabel(l10n.danceEditorRelatedDancesLabel),
+              RelatedDancesEditor(
+                links: controller.links,
+                danceOptions: danceOptions,
+                danceNamesById: danceNamesById,
+                onAdd: controller.addRelatedDance,
+                onRemove: controller.removeLink,
+                onChanged: controller.onLinksChanged,
+              ),
+              if (controller.fieldDefs.isNotEmpty) ...[
+                const SizedBox(height: AppSpacing.md),
+                FieldLabel(l10n.danceEditorCustomFieldsLabel),
+                for (final def in controller.fieldDefs)
+                  CustomFieldEditor(
+                    def: def,
+                    dialect: dialect,
+                    textController: controller.customTextControllers[def.id],
+                    currentValue: controller.customValues[def.id],
+                    onTextChanged: controller.onTextEdited,
+                    onValueChanged: (v) => controller.setCustomValue(def.id, v),
+                    onAddOption: def.type == CustomFieldType.choice
+                        ? (raw) => controller.addChoiceOption(def.id, raw)
+                        : null,
+                  ),
+              ],
+            ],
           ),
-          const SizedBox(height: AppSpacing.xs),
-        ],
-        TuneEditor(
-          tunes: controller.tunes,
-          controller: controller.tuneController,
-          onAdd: controller.addTune,
-          onRemove: controller.removeTune,
         ),
-        LingoDiscouragedHint(
-          controller: controller.tuneController,
-          dialect: dialect,
-          fieldKey: 'tune',
-        ),
-        const SizedBox(height: AppSpacing.md),
-        FieldLabel(l10n.danceEditorLinksLabel),
-        LinksEditor(
-          links: controller.links,
-          onAdd: controller.addLink,
-          onRemove: controller.removeLink,
-          onChanged: controller.onLinksChanged,
-        ),
-        const SizedBox(height: AppSpacing.md),
-        FieldLabel(l10n.danceEditorPublishedSourcesLabel),
-        SourceCitationsEditor(
-          citations: controller.sourceCitations,
-          sourcesById: sourcesById,
-          sourceOptions: publishedSources,
-          onAttach: onAttachSource,
-          onCreate: onCreateSource,
-          onEditSource: onEditSource,
-          onRemove: controller.removeSourceCitation,
-          onChanged: controller.onSourceCitationsChanged,
-        ),
-        const SizedBox(height: AppSpacing.md),
-        FieldLabel(l10n.danceEditorRelatedDancesLabel),
-        RelatedDancesEditor(
-          links: controller.links,
-          danceOptions: danceOptions,
-          danceNamesById: danceNamesById,
-          onAdd: controller.addRelatedDance,
-          onRemove: controller.removeLink,
-          onChanged: controller.onLinksChanged,
-        ),
-        if (controller.fieldDefs.isNotEmpty) ...[
-          const SizedBox(height: AppSpacing.md),
-          FieldLabel(l10n.danceEditorCustomFieldsLabel),
-          for (final def in controller.fieldDefs)
-            CustomFieldEditor(
-              def: def,
-              dialect: dialect,
-              textController: controller.customTextControllers[def.id],
-              currentValue: controller.customValues[def.id],
-              onTextChanged: controller.onTextEdited,
-              onValueChanged: (v) => controller.setCustomValue(def.id, v),
-              onAddOption: def.type == CustomFieldType.choice
-                  ? (raw) => controller.addChoiceOption(def.id, raw)
-                  : null,
-            ),
-        ],
       ],
     );
   }

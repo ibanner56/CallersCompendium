@@ -19,7 +19,7 @@ import '../../theme/app_spacing.dart';
 import '../../theme/destructive_button_style.dart';
 import '../../utils/confirm_delete.dart';
 import '../../utils/undo_snack_bar.dart';
-import '../../widgets/dropdown_selection.dart';
+import '../../widgets/app_dropdown_field.dart';
 import '../../widgets/section_header.dart';
 import '../../widgets/dirty_dialog_guard.dart';
 import '../../widgets/figure_param_editors.dart';
@@ -849,27 +849,19 @@ class _ParameterizedColumnDialogState
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                DropdownButtonFormField<String>(
+                AppDropdownField<String>(
                   key: const ValueKey('matrix-parameterized-move'),
-                  initialValue: _baseMove,
-                  isExpanded: true,
-                  itemHeight: null,
-                  selectedItemBuilder: ellipsizedSelection(
-                    widget.taxonomy.moves.values.map((m) => m.displayName),
-                  ),
+                  value: _baseMove,
+                  // Every figure in the glossary: typing one finds it.
+                  filterable: true,
                   decoration: InputDecoration(
                     labelText: l10n.settingsMatrixColumnsParameterizedMove,
                   ),
-                  items: [
+                  entries: [
                     for (final move in widget.taxonomy.moves.values)
-                      DropdownMenuItem(
-                        value: move.id,
-                        child: Text(move.displayName),
-                      ),
+                      AppDropdownEntry(value: move.id, label: move.displayName),
                   ],
-                  onChanged: (value) {
-                    if (value != null) _changeMove(value);
-                  },
+                  onChanged: _changeMove,
                 ),
                 const SizedBox(height: AppSpacing.sm),
                 Text(
@@ -1251,27 +1243,22 @@ class _CompoundColumnDialogState extends State<_CompoundColumnDialog> {
                 ),
               ],
             ),
-            DropdownButtonFormField<String>(
+            AppDropdownField<String>(
               key: ValueKey('matrix-compound-step-move-$index'),
-              initialValue: step.move,
-              isExpanded: true,
-              itemHeight: null,
-              selectedItemBuilder: ellipsizedSelection(
-                widget.taxonomy.moves.values.map((m) => m.displayName),
-              ),
+              value: step.move,
+              // Every figure in the glossary: typing one finds it.
+              filterable: true,
               decoration: InputDecoration(
                 labelText: l10n.settingsMatrixColumnsCompoundMove,
               ),
-              items: [
+              entries: [
                 for (final candidate in widget.taxonomy.moves.values)
-                  DropdownMenuItem(
+                  AppDropdownEntry(
                     value: candidate.id,
-                    child: Text(candidate.displayName),
+                    label: candidate.displayName,
                   ),
               ],
-              onChanged: (value) {
-                if (value != null) _changeMove(index, value);
-              },
+              onChanged: (value) => _changeMove(index, value),
             ),
             if (params.isNotEmpty) ...[
               const SizedBox(height: AppSpacing.xs),

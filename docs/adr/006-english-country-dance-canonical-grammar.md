@@ -1267,6 +1267,26 @@ recommendation; the answer is quoted.
    `Dance.interpreterIds` and `Dance.interpretedOn` (storage.md, v42). The
    dance editor shows them, with the Composed date, beside the authors for
    an English dance, and in More details for other forms.
+8. **Named phrases** (20 November 2026). ECD music is not always the
+   standard A1 A2 B1 B2: the maintainer's cards give bars per phrase and
+   say whether a phrase repeats ("A=4, B=4, C=8", or "A=4, B=8" with an A1,
+   an A2 and a single B). Asked: "Callers will want to enter bars per phrase
+   and name their phrases themselves. … For now we need to support A, B,
+   and C." Follow-up answers: a repeat comes straight after its phrase
+   (A1 A2, never A1 B A2); named phrases are for English dances only; an
+   import takes beats per bar from the meter. Storage (decision card):
+   option A, the names in the existing phrase structure text, each
+   component prefixed by its name (`A:2*4*2 + B:1*8*2`); rejected, a
+   separate field that could disagree with the numbers. A phrase played
+   once is labeled by its name alone (`B`), one played twice `A1` and
+   `A2`; a structure with no names keeps §5.5's paired labels.
+   **Older builds** (decision card, 20 November 2026). A build from before
+   named phrases can't parse `A:`: it skips such a dance when it syncs or
+   restores an archive. Asked whether to gate it; answer: "Accept it, like
+   the new shapes" (point 1's cost), so nothing gates it (no sync
+   capability, no archive version, no published-collection capability).
+   Rejected: a sync capability that holds such dances back until every
+   attached device can read them.
 
 ### 9.3 Figures from a caller's notes
 

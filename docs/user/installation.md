@@ -28,7 +28,7 @@ before you begin:
   explains what to do.
 - **Keep a backup habit.** Your work lives on your own device, so export a
   backup from time to time — and before installing a new version. You can do
-  this any time from **Settings › General**; see
+  this any time from **Settings ▸ General**; see
   [Backup & portability](./backup-portability.md).
 
 ### Find the download
@@ -91,7 +91,7 @@ Neither Linux download sets up the `.ccshare` file type by itself, because
 neither has an installer. The AppImage carries the same file type inside it:
 an AppImage integration tool, such as AppImageLauncher, may register it when it
 adds the app to your menu, but that depends on the tool. Without it, open
-share files from **Settings › General › Import…**, or run the AppImage with the
+share files from **Settings ▸ General ▸ Import…**, or run the AppImage with the
 file's path.
 
 > **AppImage won't open?** The AppImage needs a `fusermount` (or `fusermount3`)
@@ -149,7 +149,7 @@ There are two downloads for Windows (x64).
   2. Open `compendium_app.exe` inside that folder to run it.
 
   The portable copy doesn't register `.ccshare` files; open them from
-  **Settings › General › Import…**.
+  **Settings ▸ General ▸ Import…**.
 
 ## Install on Android
 
@@ -244,7 +244,7 @@ checksum of the file you downloaded and compare it to the matching line in
 
 Caller's Compendium can tell you when a newer version is out, and nothing ever
 updates behind your back — you're always the one who chooses. You'll find the
-controls in **Settings › Updates**; the [Settings guide](./settings.md#updates)
+controls in **Settings ▸ Updates**; the [Settings guide](./settings.md#updates)
 explains them in full.
 
 During the beta, two things are worth knowing:
@@ -253,7 +253,7 @@ During the beta, two things are worth knowing:
   store; see below). Every release so far is a beta, and with the
   **Beta channel** switch off (its default) the app only looks for stable
   releases — so it won't find new betas. Switch on **Beta channel** in
-  **Settings › Updates**, and optionally **Check automatically**.
+  **Settings ▸ Updates**, and optionally **Check automatically**.
 - **The Releases page always has the newest version.** You can also watch the
   [Releases page](https://github.com/ibanner56/CallersCompendium/releases) and
   download a new version the same way you did the first time.
@@ -269,7 +269,7 @@ Two kinds of copy don't update this way, and the app knows which you have:
 - **Installed from an app store.** On **iOS** (TestFlight or the App Store) and
   on Android through **Google Play**, the store updates the app, so it never
   offers an update, a **Check for updates** button or a **Beta channel** switch,
-  and **Settings › Updates** says so. If you've turned on **Check automatically**, it still looks for an
+  and **Settings ▸ Updates** says so. If you've turned on **Check automatically**, it still looks for an
   end-of-support date, and **Get update** on that notice opens the store.
 - **Portable copy.** If you run the Windows **.zip** or the Linux **.tar.gz**
   (rather than the Windows installer or the Linux AppImage), the app tells you

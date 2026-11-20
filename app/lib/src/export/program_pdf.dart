@@ -155,6 +155,8 @@ Future<pw.Font> loadProgramMatrixMarkerFont() async {
 ///   contract as `programToPlainText`'s parameter of the same name. `null`
 ///   (the default) omits the suffix, preserving the pre-#1434 slot-line
 ///   format.
+/// - [formLabelFor] names a slot's dance form in its line, as
+///   `programToPlainText`'s parameter of the same name does.
 /// - [cardLabelsFor] resolves an appendix dance to the labels its card needs
 ///   (issue #1434). `null` (the default) preserves the pre-#1434 appendix
 ///   content exactly (title + figures only); when supplied, each appendix
@@ -176,6 +178,7 @@ Future<Uint8List> buildProgramPdf(
   FigureRenderer? renderer,
   bool canonicalizeDiscouragedTerms = false,
   List<String> Function(String danceId)? authorNamesFor,
+  String? Function(String danceId)? formLabelFor,
   DanceCardLabels Function(Dance dance)? cardLabelsFor,
   Set<DanceShareField> fields = DanceShareField.allExceptTunes,
   PdfPageFormat pageFormat = PdfPageFormat.a4,
@@ -261,6 +264,7 @@ Future<Uint8List> buildProgramPdf(
           dialect: resolvedDialect,
           canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
           authorNamesFor: authorNamesFor,
+          formLabelFor: formLabelFor,
         ),
         if (_has(program.notes)) ...[
           pw.SizedBox(height: 12),
@@ -443,6 +447,7 @@ List<pw.Widget> _slotWidgets(
   required Dialect dialect,
   bool canonicalizeDiscouragedTerms = false,
   List<String> Function(String danceId)? authorNamesFor,
+  String? Function(String danceId)? formLabelFor,
 }) {
   final widgets = <pw.Widget>[];
   var n = 0;
@@ -455,6 +460,7 @@ List<pw.Widget> _slotWidgets(
       dialect: dialect,
       canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
       authorNamesFor: authorNamesFor,
+      formLabelFor: formLabelFor,
     );
     // Slot lines are direct `pw.Text(overflow: span)` children, spaced with
     // `SizedBox`es: `pw.Padding` is not a `SpanningWidget`, so a note longer
@@ -477,6 +483,7 @@ List<pw.Widget> _slotWidgets(
         dialect: dialect,
         canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
         authorNamesFor: authorNamesFor,
+        formLabelFor: formLabelFor,
       );
       widgets.add(pw.SizedBox(height: 1));
       widgets.add(

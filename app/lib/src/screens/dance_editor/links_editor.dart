@@ -5,6 +5,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../theme/app_spacing.dart';
 import '../../widgets/responsive_autocomplete.dart';
 import 'link_draft.dart';
+import '../../widgets/app_dropdown_field.dart';
 import 'name_picker.dart';
 
 class LinksEditor extends StatelessWidget {
@@ -40,37 +41,32 @@ class LinksEditor extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                SizedBox(
-                  width: 120,
-                  child: DropdownButtonFormField<LinkKind>(
-                    // Field values read at the same weight as typed text; the dropdown's
-                    // default is the bolder titleMedium.
-                    style: Theme.of(context).textTheme.bodyLarge,
-                    key: ValueKey('link-kind-${draft.id}'),
-                    initialValue: draft.kind,
-                    isDense: true,
-                    isExpanded: true,
-                    items: [
-                      DropdownMenuItem(
-                        value: LinkKind.source,
-                        child: Text(l10n.danceEditorLinkKindSource),
-                      ),
-                      DropdownMenuItem(
-                        value: LinkKind.video,
-                        child: Text(l10n.danceEditorLinkKindVideo),
-                      ),
-                      DropdownMenuItem(
-                        value: LinkKind.other,
-                        child: Text(l10n.danceEditorLinkKindOther),
-                      ),
-                    ],
-                    onChanged: (value) {
-                      if (value != null) {
-                        draft.kind = value;
-                        onChanged();
-                      }
-                    },
-                  ),
+                AppDropdownField<LinkKind>(
+                  key: ValueKey('link-kind-${draft.id}'),
+                  value: draft.kind,
+                  // As wide as its longest kind, at any text size and in any
+                  // language, so the chosen kind is never cut off; the
+                  // address takes the rest of the row. Dense, as it was.
+                  fillWidth: false,
+                  decoration: const InputDecoration(isDense: true),
+                  entries: [
+                    AppDropdownEntry(
+                      value: LinkKind.source,
+                      label: l10n.danceEditorLinkKindSource,
+                    ),
+                    AppDropdownEntry(
+                      value: LinkKind.video,
+                      label: l10n.danceEditorLinkKindVideo,
+                    ),
+                    AppDropdownEntry(
+                      value: LinkKind.other,
+                      label: l10n.danceEditorLinkKindOther,
+                    ),
+                  ],
+                  onChanged: (value) {
+                    draft.kind = value;
+                    onChanged();
+                  },
                 ),
                 const SizedBox(width: AppSpacing.xs),
                 Expanded(

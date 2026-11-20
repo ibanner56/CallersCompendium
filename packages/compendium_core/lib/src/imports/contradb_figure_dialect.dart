@@ -1601,12 +1601,20 @@ bool _eatHeyRicochetClause(
   String? length,
   List<int> slots,
 ) {
-  final who = _subject(s);
+  // `others`: the display's name for the other pair when no pair inverts the
+  // dancers that start the hey (see [_heyRicochetSlot]).
+  final who = s.eat('others') ? 'others' : _displaySubject(s);
   if (who == null || !s.eat('ricochet')) return false;
 
   var meetingOffset = 0;
   if (length == 'half') {
-    if (s.peek() == 'first' || s.peek() == 'second') return false;
+    // A half hey's ricochet names no time. After a comma, though, `first` or
+    // `second` starts the next clause's subject ("first corners ricochet,
+    // second corners ricochet").
+    if (!s.previousTokenEndsWith(',') &&
+        (s.peek() == 'first' || s.peek() == 'second')) {
+      return false;
+    }
   } else {
     if (s.eat('first')) {
       if (!s.eat('time')) return false;
@@ -1630,7 +1638,7 @@ bool _eatHeyRicochetClause(
 
 bool _looksLikeHeyRicochetClause(_Scan s) {
   final save = s.pos;
-  if (_subject(s) == null) {
+  if (!s.eat('others') && _displaySubject(s) == null) {
     s.reset(save);
     return false;
   }
@@ -1646,16 +1654,10 @@ int? _heyRicochetSlot(
   int meetingOffset,
 ) {
   final center = pass1;
-  final inverted = switch (pass1) {
-    'role1s' => 'role2s',
-    'role2s' => 'role1s',
-    'ones' => 'twos',
-    'twos' => 'ones',
-    'firstCorners' => 'secondCorners',
-    'secondCorners' => 'firstCorners',
-    _ => null,
-  };
-  if (inverted == null) return null;
+  // The renderer's other pair: the pair [invertPairDancerSet] names, else
+  // `others`, for a dancer no pair inverts (`threes`, `partners`, a single
+  // dancer …): "partners start a full hey … others ricochet first time".
+  final inverted = invertPairDancerSet(pass1) ?? 'others';
   final subjectOffset = who == center
       ? 0
       : who == inverted
@@ -2998,6 +3000,10 @@ final List<MapEntry<String, String>> _subjectPhrases =
       MapEntry('role2s', 'role2s'),
       MapEntry('ones', 'ones'),
       MapEntry('twos', 'twos'),
+      // v40: the third and fourth couples. ContraDB renders neither; this is
+      // the app's own display, which free-text entry reads back here.
+      MapEntry('threes', 'threes'),
+      MapEntry('fours', 'fours'),
       MapEntry('everyone', 'everyone'),
       MapEntry('1st shadows', 'shadows'),
       MapEntry('2nd shadows', 'secondShadows'),

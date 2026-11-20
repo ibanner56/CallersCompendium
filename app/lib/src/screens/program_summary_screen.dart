@@ -1726,7 +1726,13 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
         );
       }
 
+      // The dance's form, named only when the program mixes forms, as the
+      // builder names it (ADR-006 S5).
+      final formLabel = dance != null && _mixesForms
+          ? danceFormLabel(l10n, dance.form)
+          : null;
       final secondaryParts = <String>[
+        ?formLabel,
         if (dance != null)
           formationDisplayLabel(
             l10n,
@@ -1770,6 +1776,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
       // mixer term to both the visible secondary text and the semantics label.
       final semanticsLabel = [
         slot.isAlt ? l10n.programsSummaryAlternateSemantic(title) : title,
+        ?formLabel,
         if (dance != null)
           formationDisplayLabel(
             l10n,
@@ -1946,6 +1953,17 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
         ],
       ),
     );
+  }
+
+  /// Whether the program's dances are of more than one form, when each
+  /// dance's row names its form (ADR-006 S5).
+  bool get _mixesForms {
+    final forms = <DanceForm>{
+      for (final slot in _program?.slots ?? const <ProgramSlot>[])
+        if (slot.danceId case final id?)
+          if (_dances[id] case final dance?) dance.form,
+    };
+    return forms.length > 1;
   }
 
   DifficultyLevel? _difficultyLevelFor(Dance? dance) {

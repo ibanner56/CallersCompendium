@@ -206,6 +206,10 @@ Documentation drift is this repo's most persistent defect class.
   - Neither is owed by a pure refactor, a test-only change, or a docs-only
     change. Say which of those applies rather than staying silent, so the
     omission reads as considered rather than forgotten.
+  - The `Advisory reports` CI job prints a `Core changelog advisory` when
+    `packages/compendium_core/lib/**` changed and no fragment in the PR has a
+    `core` record (`tools/ci/report_missing_core_changelog.py`). It enforces
+    nothing and never fails; treat it as a prompt to check, not a verdict.
 - Within one `##` section, a category (`### Added`, `### Fixed`, …) must appear
   **once**. Appending a second `### Fixed` renders as two lists and hides the
   first. `tools/ci/check_changelog_structure.py` gates this and the ordering of
@@ -219,10 +223,13 @@ Any new **database column, settings key, or data-entry surface** must be
 classified on all three privacy axes in the *same* PR, or a ratchet fails the
 build. The axis most often wrong is the **subject**: venue contacts and
 choreographers are `thirdParty` even though the app user typed them — they cannot
-consent to a transfer they do not know about. A classification with no `note` is
-indistinguishable from a guess. Do not accept a diff that *narrows a ratchet's
-detection pattern* to silence a false positive; exclusions go by name, with a
-reason. Detail:
+consent to a transfer they do not know about. A `note` is required where the
+classification is not `shareable`, is about a person, or is third-party, in the
+three `compendium_core` registries (`data_classification_note_test.dart`
+enforces it; the shared `_preference` settings are the one exemption, and the
+server registry is not covered). Do not accept a diff that
+*narrows a ratchet's detection pattern* to silence a false positive; exclusions
+go by name, with a reason. Detail:
 [`.github/instructions/privacy-registry.instructions.md`](../../../.github/instructions/privacy-registry.instructions.md),
 background:
 [the privacy boundary that was prose](../../../docs/dev/agents/incidents.md#the-privacy-boundary-that-was-prose).

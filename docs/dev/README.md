@@ -111,6 +111,6 @@ reproducible generated files.
 | Athenaeum sync server (pure Dart, a workspace member) | `server/` |
 | UI | `app/lib/src/screens/`, `app/lib/src/widgets/` |
 | Android share intake (size cap, staging, cold vs warm) | `app/android/app/src/main/kotlin/.../IncomingFileStager.kt`; JVM tests in `app/android/app/src/test/` |
-| CI ratchets | `tools/ci/` (each `check_*.py` / `report_*.py` should have a matching `test_*.py`; `check_l10n_drift.py`, a thin wrapper, has none. `tools/test_preflight.py` asserts every `test_*.py` under `tools/` is run by a workflow and by preflight) |
+| CI ratchets | `tools/ci/` (each `check_*.py` / `report_*.py` should have a matching `test_*.py`; `check_l10n_drift.py`, a thin wrapper, has none. `tools/ci/check_doc_gate_references.py` fails when a developer doc cites a `tools/` script that does not exist, or a cited `check_*.py` / `tools/release/*.py` with no sibling test, so renaming a gate means updating the docs that name it. `tools/test_preflight.py` asserts every `test_*.py` under `tools/` is run by a workflow and by preflight) |
 | Release tooling | `tools/release/` |
 | Site rendering | `tools/site/` |

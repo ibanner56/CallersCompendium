@@ -33,6 +33,7 @@ import 'package:compendium_app/src/widgets/program_export_menu.dart'
     show PdfLayouter, ProgramExportMenu;
 import 'package:compendium_app/src/widgets/program_slot_list_editor.dart';
 
+import 'support/dropdown.dart';
 import 'support/test_repositories.dart';
 import 'support/l10n_harness.dart';
 import 'support/pdf_probe.dart';
@@ -78,11 +79,14 @@ Future<void> _pumpBuilder(
   PdfLayouter? pdfLayouter,
   Size size = const Size(1200, 2000),
   Dialect? activeDialect,
+  DialectsByForm? dialects,
 }) async {
   await tester.binding.setSurfaceSize(size);
   addTearDown(() => tester.binding.setSurfaceSize(null));
   final notifier = ValueNotifier<Dialect>(activeDialect ?? Dialect.larksRobins);
   addTearDown(notifier.dispose);
+  final byForm = dialects == null ? null : ValueNotifier(dialects);
+  if (byForm != null) addTearDown(byForm.dispose);
   final autoCommitNotifier = ValueNotifier<bool>(autoCommit);
   addTearDown(autoCommitNotifier.dispose);
   final markAllSetsStatusNotifier = ValueNotifier<bool>(markAllSetsStatus);
@@ -93,9 +97,10 @@ Future<void> _pumpBuilder(
       supportedLocales: testSupportedLocales,
       builder: (context, child) => RepositoriesScope(
         repositories: repos,
-        child: ActiveDialectScope(
-          notifier: notifier,
-          child: ProgramAutoCommitScope(
+        child: _dialectScope(
+          notifier,
+          byForm,
+          ProgramAutoCommitScope(
             notifier: autoCommitNotifier,
             child: MarkAllSetsStatusScope(
               notifier: markAllSetsStatusNotifier,
@@ -117,6 +122,16 @@ Future<void> _pumpBuilder(
   );
   await tester.pumpAndSettle();
 }
+
+/// One dialect for every form from [notifier], or each form's own from
+/// [byForm] when given.
+Widget _dialectScope(
+  ValueNotifier<Dialect> notifier,
+  ValueNotifier<DialectsByForm>? byForm,
+  Widget child,
+) => byForm == null
+    ? ActiveDialectScope(notifier: notifier, child: child)
+    : ActiveDialectScope.byForm(dialects: byForm, child: child);
 
 /// Opens the collapsed Tier 2 metadata drawer when a test needs its fields.
 /// Repeated calls are safe, which keeps tests focused on their actual action.
@@ -700,14 +715,19 @@ void main() {
           reason: name,
         );
       }
+      // The picker offers valid input only: typing narrows the list, and a
+      // name that matches no dialect is not taken as one.
+      final field = find.byKey(const ValueKey('program-dialect'));
+      await tester.enterText(field, 'No such dialect');
+      await tester.pumpAndSettle();
       expect(
-        find.descendant(
-          of: find.byKey(const ValueKey('program-dialect')),
-          matching: find.byType(EditableText),
-        ),
+        find.byKey(const ValueKey('program-dialect-option:Mine')),
         findsNothing,
-        reason: 'the picker offers valid input only; no free text',
       );
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+      expect(dropdownShown(tester, field), 'Use app dialect');
+      await openPicker(tester);
       await tester.tap(
         find.byKey(const ValueKey('program-dialect-option:Mine')).last,
       );
@@ -819,10 +839,9 @@ void main() {
         find.byKey(const ValueKey('program-pay')),
         '250.5',
       );
-      await tester.tap(find.byKey(const ValueKey('program-pay-currency:USD')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('EUR').last);
-      await tester.pumpAndSettle();
+      final currency = find.byKey(const ValueKey('program-pay-currency'));
+      expect(dropdownShown(tester, currency), 'USD');
+      await pickDropdownEntry(tester, currency, 'EUR');
       await saveAndRead(tester);
 
       final saved = await repos.programs.getById('p1');
@@ -841,8 +860,11 @@ void main() {
         '250.50',
       );
       expect(
-        find.byKey(const ValueKey('program-pay-currency:EUR')),
-        findsOneWidget,
+        dropdownShown(
+          tester,
+          find.byKey(const ValueKey('program-pay-currency')),
+        ),
+        'EUR',
       );
     });
 
@@ -3179,7 +3201,12 @@ void main() {
     await tester.pump(const Duration(milliseconds: 600));
     await tester.pump();
 
-    expect(find.text('Could not save the program.'), findsOneWidget);
+    expect(
+      find.text(
+        'Couldn\'t save the program. Your changes are still here. Try again.',
+      ),
+      findsOneWidget,
+    );
     expect(find.byType(SnackBarAction), findsOneWidget);
     tester
         .state<ScaffoldMessengerState>(find.byType(ScaffoldMessenger))
@@ -3211,7 +3238,12 @@ void main() {
     failing.programs.failWrites = true;
     await tester.tap(find.byKey(const ValueKey('save-program')));
     await tester.pumpAndSettle();
-    expect(find.text('Could not save the program.'), findsOneWidget);
+    expect(
+      find.text(
+        'Couldn\'t save the program. Your changes are still here. Try again.',
+      ),
+      findsOneWidget,
+    );
     expect(find.byType(SnackBarAction), findsNothing);
   });
 
@@ -3296,7 +3328,12 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(SnackBarAction), findsOneWidget);
-    expect(find.text('Could not save the program.'), findsOneWidget);
+    expect(
+      find.text(
+        'Couldn\'t save the program. Your changes are still here. Try again.',
+      ),
+      findsOneWidget,
+    );
     failing.programs.failWrites = false;
     await tester.tap(find.byType(SnackBarAction));
     await tester.pumpAndSettle();
@@ -3437,49 +3474,48 @@ void main() {
     expect(saved.slots.single.performedAt, isNull);
   });
 
-  testWidgets(
-    'persisted Undo reports refresh failure after rollback succeeds',
-    (tester) async {
-      final delayed = openTestRepositoriesWithDelayedPrograms();
-      await delayed.repos.dances.create(
-        _dance(id: 'd1', title: 'Newly Called'),
-      );
-      await delayed.repos.programs.create(
-        _program(
-          id: 'p1',
-          slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
-        ),
-      );
-      await _pumpBuilder(
-        tester,
-        delayed.repos,
-        programId: 'p1',
-        autoCommit: true,
-      );
+  testWidgets('persisted Undo reports refresh failure after rollback succeeds', (
+    tester,
+  ) async {
+    final delayed = openTestRepositoriesWithDelayedPrograms();
+    await delayed.repos.dances.create(_dance(id: 'd1', title: 'Newly Called'));
+    await delayed.repos.programs.create(
+      _program(
+        id: 'p1',
+        slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+      ),
+    );
+    await _pumpBuilder(
+      tester,
+      delayed.repos,
+      programId: 'p1',
+      autoCommit: true,
+    );
 
-      await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
-      await tester.pump(const Duration(milliseconds: 600));
-      await tester.pumpAndSettle();
-      delayed.programs.failNextRead = true;
-      await tester.tap(find.byType(SnackBarAction));
-      await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pumpAndSettle();
+    delayed.programs.failNextRead = true;
+    await tester.tap(find.byType(SnackBarAction));
+    await tester.pumpAndSettle();
 
-      expect(
-        (await delayed.repos.programs.getById('p1'))!.slots.single.performedAt,
-        isNull,
-        reason: 'The conditional rollback committed before the refresh failed',
-      );
-      expect(
-        find.text('Undo was saved, but the editor could not refresh.'),
-        findsOneWidget,
-      );
-      expect(find.byType(SnackBarAction), findsNothing);
-      expect(find.byKey(const ValueKey('save-program')), findsNothing);
-      expect(find.byKey(const ValueKey('mark-all-performed')), findsNothing);
-      expect(find.byKey(const ValueKey('duplicate-program')), findsNothing);
-      expect(find.byKey(const ValueKey('delete-program')), findsNothing);
-    },
-  );
+    expect(
+      (await delayed.repos.programs.getById('p1'))!.slots.single.performedAt,
+      isNull,
+      reason: 'The conditional rollback committed before the refresh failed',
+    );
+    expect(
+      find.text(
+        'Undo was saved, but the editor couldn\'t refresh. Reopen the program to see it.',
+      ),
+      findsOneWidget,
+    );
+    expect(find.byType(SnackBarAction), findsNothing);
+    expect(find.byKey(const ValueKey('save-program')), findsNothing);
+    expect(find.byKey(const ValueKey('mark-all-performed')), findsNothing);
+    expect(find.byKey(const ValueKey('duplicate-program')), findsNothing);
+    expect(find.byKey(const ValueKey('delete-program')), findsNothing);
+  });
 
   testWidgets('Undo uses conditional rollback after a later auto-commit', (
     tester,
@@ -3601,6 +3637,23 @@ void main() {
     },
   );
 
+  testWidgets('the Slots heading is explained by a line of helper text', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.programs.create(_program(id: 'p1', slots: const []));
+
+    await _pumpBuilder(tester, repos, programId: 'p1');
+
+    expect(
+      find.text(
+        'Each slot is one place in your set list: a dance, a note or a break.',
+      ),
+      findsOneWidget,
+    );
+    expect(find.byKey(const ValueKey('program-slots-helper')), findsOneWidget);
+  });
+
   testWidgets('a failed program read offers Retry, and Retry loads it', (
     tester,
   ) async {
@@ -3610,13 +3663,19 @@ void main() {
 
     await _pumpBuilder(tester, delayed.repos, programId: 'p1');
 
-    expect(find.text('Could not load the program.'), findsOneWidget);
+    expect(
+      find.text('Couldn\'t load the program. Nothing was changed. Try again.'),
+      findsOneWidget,
+    );
     expect(find.byKey(const ValueKey('save-program')), findsNothing);
 
     await tester.tap(find.byKey(const ValueKey('load-error-retry')).first);
     await tester.pumpAndSettle();
 
-    expect(find.text('Could not load the program.'), findsNothing);
+    expect(
+      find.text('Couldn\'t load the program. Nothing was changed. Try again.'),
+      findsNothing,
+    );
     expect(find.byKey(const ValueKey('save-program')), findsOneWidget);
   });
 
@@ -3660,7 +3719,13 @@ void main() {
       await tester.tap(find.byType(SnackBarAction));
       await tester.pumpAndSettle();
 
-      expect(find.text('Could not load the program.'), findsOneWidget);
+      expect(
+        find.text(
+          'Couldn\'t reload the program after that undo. Go back and reopen '
+          'it to see its current state.',
+        ),
+        findsOneWidget,
+      );
       expect(find.byKey(const ValueKey('save-program')), findsNothing);
       expect(find.byKey(const ValueKey('mark-all-performed')), findsNothing);
       expect(find.byKey(const ValueKey('duplicate-program')), findsNothing);
@@ -3699,7 +3764,7 @@ void main() {
       await tester.tap(find.byType(SnackBarAction));
       await tester.pumpAndSettle();
       expect(
-        find.text('Could not undo marking; performed marks remain saved.'),
+        find.text('Couldn\'t undo that. The performed marks are still saved.'),
         findsOneWidget,
       );
       expect(find.byType(SnackBarAction), findsNothing);
@@ -4521,6 +4586,191 @@ void main() {
     expect(after.isAfter(before), isTrue);
   });
 
+  testWidgets('a program that mixes forms shows each dance in its own '
+      'form\'s dialect (ADR-006 S3, S5)', (tester) async {
+    final repos = openTestRepositories();
+    const detail = Formation(
+      FormationShape.dupleImproper,
+      detail: 'role1s face out',
+    );
+    await repos.dances.create(
+      _dance(
+        id: 'd1',
+        title: 'Contra Dance',
+        figures: [Figure(move: 'balance')],
+      ).copyWith(formation: detail),
+    );
+    await repos.dances.create(
+      _dance(
+        id: 'd2',
+        title: 'English Dance',
+        figures: [Figure(move: 'ecd_honor')],
+      ).copyWith(form: DanceForm.ecd, formation: detail),
+    );
+    await repos.programs.create(
+      _program(
+        id: 'p1',
+        title: 'Mixed night',
+        slots: [
+          ProgramSlot(id: 's1', position: 0, danceId: 'd1'),
+          ProgramSlot(id: 's2', position: 1, danceId: 'd2'),
+        ],
+      ),
+    );
+    final english = Dialect.canonical.copyWith(
+      name: 'English test',
+      moves: {'ecd_honor': 'bow and curtsey'},
+    );
+    await _pumpBuilder(
+      tester,
+      repos,
+      programId: 'p1',
+      dialects: DialectsByForm({
+        DanceForm.contra: Dialect.larksRobins,
+        DanceForm.ecd: english,
+      }),
+    );
+    final renderer = FigureRenderer(shippedTaxonomies.anyForm);
+    final contraDetail = renderer.renderFreeText(
+      'role1s face out',
+      Dialect.larksRobins,
+    );
+    final englishDetail = renderer.renderFreeText('role1s face out', english);
+    // A control: the two dialects word the detail differently.
+    expect(contraDetail, isNot(englishDetail));
+
+    // Build tab: each dance names its form, since the forms are mixed.
+    Finder slot(String id, String text) => find.descendant(
+      of: find.byKey(ValueKey('slot-$id')),
+      matching: find.textContaining(text),
+    );
+    expect(slot('s1', 'Contra · '), findsOneWidget);
+    expect(slot('s2', 'English (ECD) · '), findsOneWidget);
+    expect(slot('s1', contraDetail), findsOneWidget);
+    expect(slot('s2', englishDetail), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('program-matrix-tab')));
+    await tester.pumpAndSettle();
+    final table = find.byKey(const ValueKey('program-matrix-table'));
+    // The English figure's column is named in the English dialect.
+    expect(
+      find.descendant(of: table, matching: find.text('bow and curtsey')),
+      findsOneWidget,
+    );
+    // Each row's formation detail is in its own dance's dialect.
+    expect(
+      find.descendant(of: table, matching: find.textContaining(contraDetail)),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: table, matching: find.textContaining(englishDetail)),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('a contra figure shared by squares reads in the squares\' '
+      'dialect when only squares use it, and in contra\'s when forms mix '
+      '(ADR-006 S5)', (tester) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(
+      _dance(
+        id: 'sq',
+        title: 'Square Dance',
+        figures: [
+          Figure(move: 'balance'),
+          Figure(move: 'swing'),
+        ],
+      ).copyWith(form: DanceForm.square),
+    );
+    await repos.dances.create(
+      _dance(
+        id: 'co',
+        title: 'Contra Dance',
+        figures: [Figure(move: 'swing')],
+      ),
+    );
+    await repos.programs.create(
+      _program(
+        id: 'p1',
+        title: 'Squares and a contra',
+        slots: [
+          ProgramSlot(id: 's1', position: 0, danceId: 'sq'),
+          ProgramSlot(id: 's2', position: 1, danceId: 'co'),
+        ],
+      ),
+    );
+    final square = Dialect.canonical.copyWith(
+      name: 'Square test',
+      moves: {'balance': 'square balance', 'swing': 'square swing'},
+    );
+    await _pumpBuilder(
+      tester,
+      repos,
+      programId: 'p1',
+      dialects: DialectsByForm({
+        DanceForm.contra: Dialect.canonical,
+        DanceForm.square: square,
+      }),
+    );
+    await tester.tap(find.byKey(const ValueKey('program-matrix-tab')));
+    await tester.pumpAndSettle();
+    final table = find.byKey(const ValueKey('program-matrix-table'));
+    Finder header(String text) =>
+        find.descendant(of: table, matching: find.textContaining(text));
+
+    // Only the square dance balances: its column reads in the squares'
+    // dialect.
+    expect(header('square balance'), findsOneWidget);
+    // Both dances swing: the shared column reads in contra's.
+    expect(header('swing'), findsWidgets);
+    expect(header('square swing'), findsNothing);
+  });
+
+  testWidgets('a column no dance uses reads in a one-form program\'s '
+      'dialect (ADR-006 S5)', (tester) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(
+      _dance(
+        id: 'sq',
+        title: 'Square Dance',
+        figures: [
+          Figure(move: 'swing', params: const {'who': 'partners'}),
+        ],
+      ).copyWith(form: DanceForm.square),
+    );
+    await repos.programs.create(
+      _program(
+        id: 'p1',
+        title: 'Squares',
+        slots: [ProgramSlot(id: 's1', position: 0, danceId: 'sq')],
+      ),
+    );
+    final square = Dialect.canonical.copyWith(
+      name: 'Square test',
+      moves: {'swing': 'twirl'},
+    );
+    await _pumpBuilder(
+      tester,
+      repos,
+      programId: 'p1',
+      dialects: DialectsByForm({
+        DanceForm.contra: Dialect.canonical,
+        DanceForm.square: square,
+      }),
+    );
+    await tester.tap(find.byKey(const ValueKey('program-matrix-tab')));
+    await tester.pumpAndSettle();
+    final table = find.byKey(const ValueKey('program-matrix-table'));
+    Finder header(String text) =>
+        find.descendant(of: table, matching: find.textContaining(text));
+
+    // The partner swing the dance uses and the baseline neighbor swing it
+    // doesn't both read in the squares' dialect.
+    expect(header('partner twirl'), findsOneWidget);
+    expect(header('neighbor twirl'), findsOneWidget);
+    expect(header('swing'), findsNothing);
+  });
+
   testWidgets('Matrix tab renders the programming matrix from draft slots', (
     tester,
   ) async {
@@ -4994,7 +5244,10 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('program-matrix-export-pdf')));
     await tester.pumpAndSettle();
 
-    expect(find.text("Couldn't export this set list"), findsOneWidget);
+    expect(
+      find.text("Couldn't export this set list. Try again."),
+      findsOneWidget,
+    );
     expect(sink.sources, ['program_editor_screen._exportMatrixPdf']);
   });
 

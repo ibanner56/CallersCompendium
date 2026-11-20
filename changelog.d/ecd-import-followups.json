@@ -1,0 +1,18 @@
+{
+  "id": "ecd-import-followups",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "In an English dance, a line with several bar ranges, such as \"(5-8) circle left (9-12) circle right\", is counted across all of them, and kept as written.",
+      "An English dance imported from Caller's Companion takes its meter only from a real meter in the Music field, not a track number such as \"Track 3/4 of CD\", and reads \"A 3/2 hornpipe\" as a hornpipe rather than a tune in A.",
+      "The re-import warnings in the import review say that re-importing can change a dance's form.",
+      "A dialect's Move substitutions and Move wording templates offer only your own figures for that dialect's dance form."
+    ]
+  },
+  "core": {
+    "changed": [
+      "`splitEcdBarRange` counts a line's further bar ranges that follow on from the first and reports `several` and `firstBars`; `ecdBarCount` counts them all, or the first range's bars when all would pass 64 beats, and reports `several`; `parseEcdFigureLine` and `parseFreeTextFigureEntry` keep such a line as text.",
+      "`ccMusicMeterAndKey` takes a meter after its own word first, otherwise skips a number after a track, disc or page word or followed by `of`, and reads an opening `A` before a meter and a lower-case word or a kind of tune as no key, taking an `in G` key instead; it no longer slows down on a Music text with a long run of spaces."
+    ]
+  }
+}

@@ -926,7 +926,9 @@ class ImportPipeline {
           );
         } else if (action == CommitAction.reimport) {
           // A re-import refreshes only the choreography (figures, formation,
-          // progression) and the provenance, from every source: the caller's
+          // progression, and the form, meter and key they need; see
+          // [withReimportedChoreography]) and the provenance, from every
+          // source: the caller's
           // own title, notes, rating, tags, links, authors and custom fields
           // are never overwritten (maintainer decisions, 2026-10-29 and
           // 2026-10-30, INTAKE-7). The draft's links are not written either,
@@ -1264,7 +1266,7 @@ class ImportPipeline {
   /// reappeared permanently after a rolled-back import — and worse, the revival
   /// had stamped `existence_at` strictly *past* the user's deletion, which is
   /// the value existence is ordered by, so the resurrection would outrank that
-  /// deletion on every peer once a sync client exists.
+  /// deletion on every peer.
   ///
   /// The choreographer removal asks for a **hard** delete (`permanent: true`),
   /// not the tombstone `ChoreographerRepository.delete` writes by default since

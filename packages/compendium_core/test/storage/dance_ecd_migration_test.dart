@@ -143,4 +143,42 @@ void main() {
       reason: 'the migration must not cancel a pending tombstone',
     );
   });
+
+  test('a re-read bar range counts by the dance\'s meter, or its phrase '
+      'structure', () async {
+    final db = openTestDatabase();
+    addTearDown(db.close);
+    final repo = repoFor(db);
+    Dance barDance(String id, {String meter = '', String phrases = ''}) =>
+        sampleDance(
+          id: id,
+          title: id,
+          figures: [
+            customFigure('1-4 circle left', origin: CustomOrigin.importGap),
+          ],
+        ).copyWith(
+          form: DanceForm.ecd,
+          meter: meter,
+          phraseStructure: phrases,
+          formation: const Formation(FormationShape.dupleMinor),
+        );
+    await repo.create(barDance('by-meter', meter: '3/2'));
+    await repo.create(barDance('by-phrases', phrases: '4*8*3'));
+    expect(
+      await repo.previewEcdMigration(migrate: migrateEcdDanceForStorage),
+      hasLength(2),
+    );
+    await repo.migrateEcdDances(
+      ['by-meter', 'by-phrases'],
+      migrate: migrateEcdDanceForStorage,
+      now: now,
+    );
+    for (final id in ['by-meter', 'by-phrases']) {
+      final figure = ((await repo.getById(id))!.figuresSource as DecodedFigures)
+          .figures
+          .single;
+      expect(figure.move, 'ecd_circle', reason: id);
+      expect(figure.params['beats'], 12, reason: id);
+    }
+  });
 }

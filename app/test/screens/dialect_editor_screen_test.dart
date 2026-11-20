@@ -104,6 +104,26 @@ void main() {
     expect(validationError(), findsNothing);
   });
 
+  testWidgets('an English dialect previews English figures (ADR-006 W5)', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        home: DialectEditorScreen(
+          form: DanceForm.ecd,
+          initial: Dialect.larksRobins,
+        ),
+      ),
+    );
+    await reveal(tester, preview());
+    final text = previewText(tester).toLowerCase();
+    expect(text, contains('lead up'));
+    expect(text, isNot(contains('swing')));
+    expect(text, isNot(contains('do si do')));
+  });
+
   testWidgets('the preview reflects role-term edits live', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
@@ -522,6 +542,58 @@ void main() {
       containsAll(['long_lines', 'forward_and_back']),
     );
   });
+
+  testWidgets(
+    "an English dialect offers English figures only and names contra's entries as contra's",
+    (tester) async {
+      // An English dialect's taxonomy lays English figures over contra's.
+      // Offering both would list "circle" and "hand cast" twice with nothing
+      // to tell them apart, so only English figures are offered; an entry
+      // the dialect already holds for a contra figure names its form.
+      await setScreenSize(tester, const Size(1200, 2400));
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          home: DialectEditorScreen(
+            form: DanceForm.ecd,
+            initial: Dialect(
+              name: 'English',
+              moves: const {'circle': 'ring', 'ecd_circle': 'round'},
+            ),
+          ),
+        ),
+      );
+
+      final movesToggle = find.byKey(const ValueKey('dialect-moves-toggle'));
+      await reveal(tester, movesToggle);
+      await tester.tap(movesToggle);
+      await tester.pumpAndSettle();
+      // Each row's label is shown twice: as its title and its field's label.
+      expect(find.text('circle · Contra'), findsWidgets);
+      expect(find.text('circle'), findsWidgets);
+      expect(find.textContaining('English (ECD)'), findsNothing);
+      final moves = tester.widget<DropdownButton<String>>(
+        find.byKey(const ValueKey('dialect-add-move')),
+      );
+      final offered = moves.items!.map((item) => item.value!).toList();
+      expect(offered, contains('ecd_hand_cast'));
+      expect(offered.where((id) => !id.startsWith('ecd_')), isEmpty);
+
+      final wordingsToggle = find.byKey(
+        const ValueKey('dialect-wordings-toggle'),
+      );
+      await reveal(tester, wordingsToggle);
+      await tester.tap(wordingsToggle);
+      await tester.pumpAndSettle();
+      final wordings = tester.widget<DropdownButton<String>>(
+        find.byKey(const ValueKey('dialect-add-move-wording')),
+      );
+      final worded = wordings.items!.map((item) => item.value!).toList();
+      expect(worded, containsAll(['ecd_circle', 'ecd_hand_cast']));
+      expect(worded.where((id) => !id.startsWith('ecd_')), isEmpty);
+    },
+  );
 
   testWidgets('a forward and back wording previews a forward and back', (
     tester,

@@ -280,6 +280,34 @@ void main() {
       )..where((t) => t.id.equals('c1'))).getSingleOrNull();
       expect(row, isNull, reason: 'a rollback still leaves nothing behind');
     });
+
+    test(
+      'keeps a published, unreferenced choreographer as a tombstone',
+      () async {
+        // sync-spec §3.1: a row a peer holds cannot be erased, or the next pass
+        // downloads it back (#2266). No dance credits it, so the survivor-credit
+        // downgrade above does not apply: the publication marker alone decides.
+        // ignore: unused_result
+        await repo.upsert(Choreographer(id: 'c1', name: 'Published'));
+        await SyncLocalRepository(
+          db,
+        ).markPublished(kind: SyncRecordKind.choreographer, recordId: 'c1');
+
+        await repo.delete('c1', permanent: true);
+
+        expect(
+          await repo.getById('c1'),
+          isNull,
+          reason: 'gone from every view',
+        );
+        final row = await (db.select(
+          db.choreographers,
+        )..where((t) => t.id.equals('c1'))).getSingleOrNull();
+        expect(row, isNotNull, reason: 'a peer holds it, so the row stays');
+        expect(row!.deletedAt, isNotNull, reason: 'as a tombstone');
+        expect(row.name, 'Published');
+      },
+    );
   });
 
   group('creating onto a live natural key', _liveNameCollisionOnCreate);

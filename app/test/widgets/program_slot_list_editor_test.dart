@@ -70,6 +70,54 @@ void main() {
     expect(data['textDirection'], isNot(TextDirection.ltr.index));
   });
 
+  group('dance forms (ADR-006 S5)', () {
+    Future<void> pumpForms(WidgetTester tester, Map<String, DanceForm> forms) =>
+        tester.pumpWidget(
+          MaterialApp(
+            localizationsDelegates: testLocalizationsDelegates,
+            supportedLocales: testSupportedLocales,
+            home: Scaffold(
+              body: ProgramSlotListEditor(
+                slots: [
+                  ProgramSlot(id: 's1', position: 0, danceId: 'd1'),
+                  ProgramSlot(id: 's2', position: 1, text: 'Break'),
+                  ProgramSlot(id: 's3', position: 2, danceId: 'd2'),
+                ],
+                danceTitles: (id) => 'Dance $id',
+                formationFor: (_) => null,
+                mixerFor: (_) => false,
+                formFor: (id) => forms[id],
+                onReorder: (_, _) {},
+                onSlotChanged: (_, _) {},
+                onPromoteAlternate: (_, _) {},
+                onRemove: (_) {},
+                onCreateDance: (_) {},
+              ),
+            ),
+          ),
+        );
+
+    Finder subtitle(String slotId, String text) => find.descendant(
+      of: find.byKey(ValueKey('slot-$slotId')),
+      matching: find.text(text),
+    );
+
+    testWidgets('a program that mixes forms names each dance\'s form', (
+      tester,
+    ) async {
+      await pumpForms(tester, {'d1': DanceForm.contra, 'd2': DanceForm.ecd});
+
+      expect(subtitle('s1', 'Contra'), findsOneWidget);
+      expect(subtitle('s3', 'English (ECD)'), findsOneWidget);
+    });
+
+    testWidgets('a program of one form names none', (tester) async {
+      await pumpForms(tester, {'d1': DanceForm.ecd, 'd2': DanceForm.ecd});
+
+      expect(find.text('English (ECD)'), findsNothing);
+    });
+  });
+
   // A note's replacement is held locally until Save, just like a dance's
   // replacement. Saving converts the note slot into a dance slot.
   testWidgets('replacing a free-text slot converts it to a dance slot', (

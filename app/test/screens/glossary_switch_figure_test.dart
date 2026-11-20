@@ -13,6 +13,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:compendium_app/src/widgets/app_bar_text_action.dart';
 
+import '../support/dropdown.dart';
 import '../support/l10n_harness.dart';
 import '../support/test_repositories.dart';
 
@@ -391,18 +392,11 @@ void main() {
       find.byKey(const ValueKey('user-figure-switch-none-follow')),
       findsNothing,
     );
-    await tester.tap(
+    await pickDropdownValue<String?>(
+      tester,
       find.byKey(const ValueKey('user-figure-switch-param-lead')),
+      'who',
     );
-    await tester.pumpAndSettle();
-    await tester.tap(
-      find
-          .byWidgetPredicate(
-            (w) => w is DropdownMenuItem<String> && w.value == 'who',
-          )
-          .last,
-    );
-    await tester.pumpAndSettle();
     expect(
       tester
           .widget<Text>(
@@ -490,18 +484,11 @@ void main() {
       find.byKey(const ValueKey('glossary-custom-switch-to-shipped')),
     );
     await tester.pumpAndSettle();
-    await tester.tap(
+    await pickDropdownValue<String?>(
+      tester,
       find.byKey(const ValueKey('user-figure-switch-param-side')),
+      'who',
     );
-    await tester.pumpAndSettle();
-    await tester.tap(
-      find
-          .byWidgetPredicate(
-            (w) => w is DropdownMenuItem<String> && w.value == 'who',
-          )
-          .last,
-    );
-    await tester.pumpAndSettle();
     await tester.tap(
       find.byKey(const ValueKey('user-figure-switch-choice-side-l-who')),
     );

@@ -91,7 +91,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get menuUserGuide => 'User Guide';
 
   @override
-  String get appBootstrapPreparing => 'Preparing your collection';
+  String get appBootstrapPreparing => 'Preparing your library';
 
   @override
   String get appBootstrapRebuildingIndex => 'Rebuilding search index';
@@ -102,7 +102,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get appBootstrapError => 'Could not prepare the collection.';
+  String get appBootstrapError => 'Couldn\'t prepare your library. Try again.';
 
   @override
   String get appBootstrapCopyDetails => 'Copy details';
@@ -189,7 +189,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get migrationSnapshotCauseUnwritableBackupsDir =>
-      'The automatic backups folder could not be written to.';
+      'Couldn\'t write to the automatic backups folder.';
 
   @override
   String get migrationSnapshotCauseDatabaseInUse =>
@@ -227,6 +227,14 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String migrationBelowFloorGetBridge(String bridgeTag) {
+    return 'Get $bridgeTag';
+  }
+
+  @override
+  String get migrationBelowFloorStartFresh => 'Start fresh instead';
+
+  @override
   String get migrationBelowFloorBackUpAndReset => 'Back up + reset';
 
   @override
@@ -237,7 +245,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get migrationBelowFloorBackupFailedBody =>
-      'The backup could not be written, so your data has not been reset.';
+      'Couldn\'t write the backup, so your data hasn\'t been reset. Free up some space, then try again.';
 
   @override
   String get migrationBelowFloorResetConfirmTitle => 'Reset app data?';
@@ -261,14 +269,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get migrationBelowFloorResetOnlyConfirmBody =>
-      'No backup will be made. Resetting will permanently delete all your current data and replace it with a fresh, empty database. This cannot be undone.';
+      'No backup will be made. Resetting will permanently delete all your current data and replace it with a fresh, empty database. This can\'t be undone.';
 
   @override
   String get migrationBelowFloorWipeFailedTitle => 'Reset failed';
 
   @override
   String get migrationBelowFloorWipeFailedBody =>
-      'The database file could not be deleted. Your data has not been changed. Try closing other apps that may be using the file, then try again.';
+      'Couldn\'t delete the database file. Your data hasn\'t been changed. Try closing other apps that may be using the file, then try again.';
 
   @override
   String get confirmDeleteTitle => 'Delete?';
@@ -369,7 +377,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsDeveloperResetConfirmBody =>
-      'This permanently deletes every dance, program, collection, setting and note on this device and restarts the app as if it had just been installed. It cannot be undone.';
+      'This permanently deletes your whole library on this device (every dance, program, setting and note) and restarts the app as if it had just been installed. This can\'t be undone.';
 
   @override
   String get settingsDeveloperResetConfirmSyncNote =>
@@ -388,7 +396,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsDeveloperResetFailed =>
-      'Couldn\'t reset the database, so your data is unchanged. If this device was connected to a sync store, it has already left it.';
+      'Couldn\'t reset the database. If this device was connected to a sync store, it has already left it.';
 
   @override
   String get settingsExperimentalPlaceholder =>
@@ -409,7 +417,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get glossarySelectPrompt => 'Select a figure to see its definition.';
 
   @override
-  String get glossaryCopyAsOwnFigure => 'Copy as your own figure';
+  String get glossaryCopyAsOwnFigure => 'Copy to Custom Figures';
 
   @override
   String glossaryCustomCopiedFrom(String name) {
@@ -940,7 +948,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsSyncFailureInternal =>
-      'Something went wrong inside the app while syncing.';
+      'Syncing stopped because of a problem inside the app.';
 
   @override
   String get settingsSyncFailureInternalAdvice =>
@@ -961,7 +969,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String settingsSyncFailureStatusCode(int code) {
-    return 'The server answered with HTTP status $code.';
+    return 'Server status code: $code.';
   }
 
   @override
@@ -1081,7 +1089,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get syncConflictApply => 'Keep selected';
 
   @override
-  String get syncConflictDecideLater => 'Decide later';
+  String get syncConflictDecideLater => 'Cancel';
 
   @override
   String get syncConflictShowDifferences => 'Show differences';
@@ -1323,7 +1331,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Programs sort direction (default)';
 
   @override
-  String get syncSettingPerformStageTheme => 'Stage theme in Perform';
+  String get syncSettingPerformStageTheme => 'Stage theme in Perform mode';
 
   @override
   String settingsSyncConflictsSubtitle(int count) {
@@ -1338,7 +1346,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsSyncConflictsCheckFailed =>
-      'Couldn\'t check for conflicts.';
+      'Couldn\'t check for conflicts. Try again.';
 
   @override
   String commonSyncNowConflictsTooltip(int count) {
@@ -1540,7 +1548,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsSyncWipeConfirmBody =>
-      'Everything the store holds is deleted from the server, for every device at once, and this can\'t be undone. Your library stays on this device and on each of your other devices — but anything that had only ever reached another device through syncing will not arrive here. This device disconnects and forgets its sync phrase; your other devices will find the store gone the next time they sync, and will offer to set up a new phrase. Use this when you want to stop using this store\'s address: it is the only thing that removes what the store holds straight away. To keep syncing, set up a new phrase on each device — reconnecting with the old one puts a new store back at the same address.';
+      'Everything the store holds is deleted from the server, for every device at once. This can\'t be undone. Your library stays on this device and on each of your other devices — but anything that had only ever reached another device through syncing will not arrive here. This device disconnects and forgets its sync phrase; your other devices will find the store gone the next time they sync, and will offer to set up a new phrase. Use this when you want to stop using this store\'s address: it is the only thing that removes what the store holds straight away. To keep syncing, set up a new phrase on each device — reconnecting with the old one puts a new store back at the same address.';
 
   @override
   String get settingsSyncWipeConfirmAction => 'Delete the store';
@@ -1706,7 +1714,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsSyncPairingBackupOfferAccept => 'Back up now';
 
   @override
-  String get settingsSyncPairingBackupOfferSkip => 'Skip';
+  String get settingsSyncPairingBackupOfferSkip => 'Not now';
 
   @override
   String get settingsSyncPairingContinue => 'Continue';
@@ -1855,11 +1863,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsAboutFontFrauncesSubtitle =>
-      'SIL Open Font License 1.1 · © The Fraunces Project Authors — display & headings';
+      'SIL Open Font License 1.1 · © The Fraunces Project Authors — display and headings';
 
   @override
   String get settingsAboutFontAtkinsonSubtitle =>
-      'SIL Open Font License 1.1 · © Braille Institute of America, Inc. — body, UI & Perform';
+      'SIL Open Font License 1.1 · © Braille Institute of America, Inc. — body, UI and Perform mode';
 
   @override
   String get settingsAboutFontRobotoSubtitle =>
@@ -1877,7 +1885,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsAboutDanceDataBody =>
-      'Dance data draws on The Caller\'s Box (Chris Page & Michael Dyck), whose collection is published under the Creative Commons Attribution-NonCommercial license (CC BY-NC), with gratitude.';
+      'Dance data draws on The Caller\'s Box (Chris Page and Michael Dyck), whose collection is published under the Creative Commons Attribution-NonCommercial license (CC BY-NC), with gratitude.';
 
   @override
   String get settingsAboutLicensesHeader => 'Licenses';
@@ -2035,7 +2043,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsUpdatesDownloadError =>
-      'The update could not be downloaded.';
+      'Couldn\'t download the update. Try again.';
 
   @override
   String settingsUpdatesDownloadSubtitle(String version) {
@@ -2508,9 +2516,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsDefaultsStartingProgramMoveDown => 'Move down';
 
   @override
-  String settingsDefaultsStartingProgramUnavailableDance(String id) {
-    return 'Unavailable dance ($id)';
-  }
+  String get settingsDefaultsStartingProgramUnavailableDance =>
+      'This dance is no longer available';
 
   @override
   String get settingsDefaultsDifficultyLevelEmpty =>
@@ -2752,11 +2759,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsDefaultsMoveDefaultsTitle => 'Move defaults';
 
   @override
-  String get settingsDefaultsUserFiguresTitle => 'Your figures\' defaults';
+  String get settingsDefaultsUserFiguresTitle => 'Custom Figures defaults';
 
   @override
   String get settingsDefaultsUserFiguresSubtitle =>
-      'Each of your new figures keeps its own defaults: the values it starts with and its beats. Choose one to change them.';
+      'Each of your figures keeps its own defaults: the values it starts with and its beats. Choose one to change them.';
 
   @override
   String get settingsDefaultsMoveDefaultsSubtitle =>
@@ -2769,8 +2776,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsDefaultsRemoveMoveTooltip => 'Remove';
 
   @override
-  String get settingsDefaultsMoveGone =>
-      'This move is no longer in the taxonomy.';
+  String get settingsDefaultsMoveGone => 'This move is no longer available.';
 
   @override
   String get settingsDefaultsMoveNoParams =>
@@ -2816,10 +2822,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsTagColoursSaveError =>
-      'Couldn\'t save that color. Please try again.';
+      'Couldn\'t save that color. Try again.';
 
   @override
-  String get settingsTagColoursLoadError => 'Couldn\'t load your tags.';
+  String get settingsTagColoursLoadError =>
+      'Couldn\'t load your tags. Nothing was changed. Try again.';
 
   @override
   String get tagManagerTitle => 'Tags';
@@ -2883,7 +2890,8 @@ class AppLocalizationsEn extends AppLocalizations {
       'Authors you credit on a dance appear here.';
 
   @override
-  String get authorManagerLoadError => 'Couldn\'t load your authors.';
+  String get authorManagerLoadError =>
+      'Couldn\'t load your authors. Nothing was changed. Try again.';
 
   @override
   String authorManagerMergedSeveralSnack(int count, String into) {
@@ -2907,7 +2915,8 @@ class AppLocalizationsEn extends AppLocalizations {
       'Books and websites you cite on a dance appear here.';
 
   @override
-  String get sourceManagerLoadError => 'Couldn\'t load your sources.';
+  String get sourceManagerLoadError =>
+      'Couldn\'t load your sources. Nothing was changed. Try again.';
 
   @override
   String get libraryManagerClearSearch => 'Clear search';
@@ -2992,7 +3001,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get libraryManagerEditFailed =>
-      'Couldn\'t save that change. Please try again.';
+      'Couldn\'t save that change. Try again.';
 
   @override
   String get libraryManagerEditDetails => 'Edit details…';
@@ -3027,7 +3036,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get settingsGeneralLibraryHeader => 'Library';
+  String get settingsGeneralLibraryHeader => 'Dances';
 
   @override
   String get settingsGeneralSortIgnoreArticlesTitle =>
@@ -3211,7 +3220,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsMatrixColumnsCompoundDelete => 'Delete compound column';
 
   @override
-  String get settingsGeneralPerformanceHeader => 'Performance';
+  String get settingsGeneralPerformanceHeader => 'Perform mode';
 
   @override
   String get settingsGeneralAutoSizePerformTitle => 'Auto-size Perform cards';
@@ -3222,7 +3231,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsShowIndividualPerformTimerTitle =>
-      'Show timer for individual Perform';
+      'Show timer when performing one dance';
 
   @override
   String get settingsShowIndividualPerformTimerSubtitle =>
@@ -3230,19 +3239,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsConfirmPerformExitTitle =>
-      'Confirm before leaving Perform';
+      'Confirm before leaving Perform mode';
 
   @override
   String get settingsConfirmPerformExitSubtitle =>
-      'Ask before the close button or Back takes you out of Perform. Turn this off to leave in one tap; program Perform keeps your place either way.';
+      'Ask before the close button or Back takes you out of Perform mode. Turn this off to leave in one tap; Perform mode for a program keeps your place either way.';
 
   @override
   String get settingsShowProgramSlotCallerNotesTitle =>
-      'Show caller notes in program Perform';
+      'Show caller notes when performing a program';
 
   @override
   String get settingsShowProgramSlotCallerNotesSubtitle =>
-      'Show non-empty per-slot caller notes above the dance title in program Perform.';
+      'Show non-empty per-slot caller notes above the dance title when you perform a program.';
 
   @override
   String get settingsGeneralCallingHistoryHeader => 'Calling history';
@@ -3463,14 +3472,15 @@ class AppLocalizationsEn extends AppLocalizations {
       'These items need a decision before a change from another device can be applied.';
 
   @override
-  String get syncReviewLoadFailed => 'Sync decisions could not be loaded.';
+  String get syncReviewLoadFailed =>
+      'Couldn\'t load the sync decisions. Try again.';
 
   @override
   String get syncReviewResolved => 'Sync decision applied.';
 
   @override
   String get syncReviewActionFailed =>
-      'That sync decision could not be applied. The item was kept for another attempt.';
+      'Couldn\'t apply that sync decision. The item was kept, so you can try again.';
 
   @override
   String get syncReviewKindChoreographer => 'Author';
@@ -3500,7 +3510,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get syncReviewKindSetting => 'Setting';
 
   @override
-  String get syncReviewKindGlossaryEntry => 'Your own figure';
+  String get syncReviewKindGlossaryEntry => 'Your figure';
 
   @override
   String get syncReviewKindFigureNote => 'Your notes on a figure';
@@ -3537,7 +3547,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get syncReviewMergeDiscardsContactsBody =>
-      'Only one record will be kept. The email address, location, and deceased marker on the other one are stored only on this device, so they cannot be recovered afterwards.';
+      'Only one record will be kept. The email address, location, and deceased marker on the other one are stored only on this device and will be lost. This can\'t be undone.';
 
   @override
   String get syncReviewCounterpartDeleted =>
@@ -3601,7 +3611,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsGeneralReparseCustomFiguresSubtitle =>
-      'Re-check imported dances whose figures were kept as unrecognized figures only because they could not be recognized at import time. If the app can now recognize them, they are upgraded in place — your tags, ratings, and notes are preserved. You preview and confirm before anything changes.';
+      'Re-check imported dances whose figures were kept as unrecognized figures only because they couldn\'t be recognized at import time. If the app can now recognize them, they are upgraded in place — your tags, ratings, and notes are preserved. You preview and confirm before anything changes.';
 
   @override
   String get settingsGeneralReparseCustomFiguresAction => 'Re-check…';
@@ -3623,11 +3633,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get backupExported => 'Backup exported.';
 
   @override
-  String get backupExportFailed => 'Couldn\'t export a backup.';
+  String get backupExportFailed =>
+      'Couldn\'t export a backup. Your data is unchanged. Try again.';
 
   @override
   String get backupRestoreIntegrityFailed =>
-      'This backup failed its integrity check, so it may be corrupt or was changed after it was exported. The restore was canceled and your data is unchanged.';
+      'This backup failed its safety check, so it may be damaged or was changed after it was exported. The restore was canceled and your data is unchanged.';
 
   @override
   String get backupRestoreIncompatibleVersion =>
@@ -3650,14 +3661,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get backupRestored => 'Backup restored.';
 
   @override
-  String get backupRestoreFailed => 'Couldn\'t restore the backup.';
+  String get backupRestoreFailed => 'Couldn\'t restore the backup. Try again.';
 
   @override
   String get backupRestoreSettingsFailed =>
-      'Your dances and programs were restored, but applying your saved settings failed. Your restored content is safe — you can retry applying settings.';
+      'Your dances and programs were restored, but applying your saved settings failed. Your restored content is safe — you can try applying them again.';
 
   @override
-  String get backupRestoreSettingsRetryAction => 'Retry settings';
+  String get backupRestoreSettingsRetryAction => 'Try again';
 
   @override
   String get backupRestoreSettingsRetried => 'Settings applied.';
@@ -3667,7 +3678,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get backupExportSubtitle =>
-      'Save your entire collection, programs, custom fields, dialects, themes, and settings to a single JSON file you can keep safe or move to another device.';
+      'Save your entire library to a single JSON file you can keep safe or move to another device. It holds your dances, programs, custom fields, dialects, themes and settings.';
 
   @override
   String get backupExportAction => 'Export';
@@ -3677,7 +3688,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get backupRestoreSubtitle =>
-      'Replace everything currently in the app with the contents of a backup file. This cannot be undone.';
+      'Replace everything currently in the app with the contents of a backup file. This can\'t be undone.';
 
   @override
   String get backupRestoreAction => 'Restore';
@@ -3708,7 +3719,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get backupReminderBannerText =>
-      'Your backup is overdue. Export one now to keep your collection safe.';
+      'Your backup is overdue. Export one now to keep your library safe.';
 
   @override
   String get backupReminderBannerExport => 'Export backup';
@@ -3718,7 +3729,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get backupRestoreDialogBody =>
-      'Restoring replaces everything currently in the app — your collection, programs, dialects, themes, and settings — with the backup\'s contents. This cannot be undone.';
+      'Restoring replaces everything currently in the app — your collection, programs, dialects, themes, and settings — with the backup\'s contents. This can\'t be undone.';
 
   @override
   String get backupRestoreDialogSyncNote =>
@@ -3728,7 +3739,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get backupChooseFileAction => 'Choose file…';
 
   @override
-  String get backupChooseFileFailed => 'Couldn\'t read that file.';
+  String get backupChooseFileFailed =>
+      'Couldn\'t read that file. Choose it again, or pick another file.';
 
   @override
   String get backupPasteJsonLabel => 'Or paste backup JSON';
@@ -3768,7 +3780,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String backupExportTooLarge(String sizeMb, String limitMb) {
-    return 'Your collection is too large to export as a single backup ($sizeMb MB; limit $limitMb MB), so nothing was saved. Your data is unchanged.';
+    return 'Your library is too large to export as a single backup ($sizeMb MB; limit $limitMb MB), so nothing was saved. Your data is unchanged.';
   }
 
   @override
@@ -3792,7 +3804,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get diagnosticsScrubbedExportUnavailable =>
-      'Couldn\'t prepare a safe (scrubbed) export, so nothing was saved. Please try again, or use full detail deliberately.';
+      'Couldn\'t prepare a safe (scrubbed) export, so nothing was saved. Try again, or use full detail deliberately.';
 
   @override
   String get diagnosticsLogExported => 'Diagnostics log exported.';
@@ -3801,17 +3813,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get diagnosticsExportCancelled => 'Export canceled.';
 
   @override
-  String get diagnosticsExportFailed => 'Couldn\'t export the diagnostics log.';
+  String get diagnosticsExportFailed =>
+      'Couldn\'t export the diagnostics log. Try again.';
 
   @override
-  String get diagnosticsClearFailed => 'Couldn\'t clear the diagnostics log.';
+  String get diagnosticsClearFailed =>
+      'Couldn\'t clear the diagnostics log. Try again.';
 
   @override
   String get diagnosticsClearLogTitle => 'Clear diagnostics log?';
 
   @override
   String get diagnosticsClearLogBody =>
-      'This permanently deletes the local crash log from this device. This cannot be undone.';
+      'This permanently deletes the local crash log from this device. This can\'t be undone.';
 
   @override
   String get diagnosticsClearAction => 'Clear';
@@ -3873,11 +3887,11 @@ class AppLocalizationsEn extends AppLocalizations {
       'Delete the local crash log from this device.';
 
   @override
-  String get crashFallbackTitle => 'Something went wrong here';
+  String get crashFallbackTitle => 'Couldn\'t show this part of the app';
 
   @override
   String get crashFallbackBody =>
-      'This part of the app hit an unexpected error and couldn\'t be shown. The details were saved to a local diagnostics log (Settings ▸ Diagnostics) that never leaves your device.';
+      'This part of the app hit an unexpected error. The details were saved to a local diagnostics log (Settings ▸ Diagnostics) that never leaves your device. Go back and try again.';
 
   @override
   String get crashFallbackCopied => 'Copied';
@@ -3908,10 +3922,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get commonUndoFailed =>
-      'Couldn\'t undo that. Please check the result and try again.';
-
-  @override
-  String get commonRetry => 'Retry';
+      'Couldn\'t undo that. Check the result, then try again.';
 
   @override
   String get commonDelete => 'Delete';
@@ -4270,7 +4281,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get collectionClearSearchTooltip => 'Clear search and filters';
 
   @override
-  String get collectionLoadError => 'Could not load the collection.';
+  String get collectionLoadError =>
+      'Couldn\'t load the collection. Nothing was changed. Try again.';
 
   @override
   String collectionDuplicatedSnack(String title) {
@@ -4335,7 +4347,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get collectionSearchError =>
-      'Something went wrong running the search.';
+      'Couldn\'t run the search. Nothing was changed. Try again.';
 
   @override
   String get collectionNoResults => 'No dances match your search.';
@@ -4666,7 +4678,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get collectionFacetAllHidden =>
-      'All filters are hidden. You can show them again in Settings → Defaults.';
+      'All filters are hidden. You can show them again in Settings ▸ Defaults.';
 
   @override
   String get collectionFacetClear => 'Clear filters';
@@ -4894,7 +4906,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get collectionBatchApplyError =>
-      'Could not apply batch changes. Try again.';
+      'Couldn\'t apply the batch changes. Try again.';
 
   @override
   String get collectionBatchTagAddConfirm => 'Add';
@@ -5049,7 +5061,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get danceNotFound => 'Dance not found.';
 
   @override
-  String get danceLoadError => 'Couldn\'t load this dance.';
+  String get danceLoadError =>
+      'Couldn\'t load this dance. Nothing was changed. Try again.';
 
   @override
   String get danceEditFab => 'Edit';
@@ -5087,7 +5100,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get danceEditorFiguresUnreadable =>
-      'The saved figures can\'t be read, so they are not shown here. They are kept as they are unless you add figures of your own.';
+      'The saved figures can\'t be read, so they are not shown here. They are kept as they are unless you add figures yourself.';
 
   @override
   String get danceEditorTunesUnreadable =>
@@ -5118,7 +5131,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get danceCallingHistoryEmpty => 'Not yet included in any program.';
 
   @override
-  String get danceCallingHistoryError => 'Could not load the calling history.';
+  String get danceCallingHistoryError =>
+      'Couldn\'t load the calling history. Nothing was changed. Try again.';
 
   @override
   String danceVenueCallCount(int count, String venue) {
@@ -5385,15 +5399,16 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get programsSaveError => 'Could not save the program.';
+  String get programsSaveError =>
+      'Couldn\'t save the program. Your changes are still here. Try again.';
 
   @override
   String get programsUndoPerformedError =>
-      'Could not undo marking; performed marks remain saved.';
+      'Couldn\'t undo that. The performed marks are still saved.';
 
   @override
   String get programsUndoRefreshError =>
-      'Undo was saved, but the editor could not refresh.';
+      'Undo was saved, but the editor couldn\'t refresh. Reopen the program to see it.';
 
   @override
   String programsDuplicatedSnack(String title) {
@@ -5492,7 +5507,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get programsLoading => 'Loading program';
 
   @override
-  String get programsLoadError => 'Could not load the program.';
+  String get programsLoadError =>
+      'Couldn\'t load the program. Nothing was changed. Try again.';
+
+  @override
+  String get programsUndoRecoveryFailed =>
+      'Couldn\'t reload the program after that undo. Go back and reopen it to see its current state.';
 
   @override
   String get programsDeletedDanceFallback => '(deleted dance)';
@@ -5510,6 +5530,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get programsSlotsLabel => 'Slots';
+
+  @override
+  String get programsSlotsHelper =>
+      'Each slot is one place in your set list: a dance, a note or a break.';
 
   @override
   String get programsAddDanceButton => 'Add dance';
@@ -5637,7 +5661,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get programsDialectHelper =>
-      'Used only in this program\'s Perform view. The editor, summary and exports keep the app dialect.';
+      'Used only in this program\'s Perform mode. The editor, summary and exports keep the app dialect.';
 
   @override
   String programsWarningCount(int count) {
@@ -5686,7 +5710,8 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get programsListLoadError => 'Could not load your programs.';
+  String get programsListLoadError =>
+      'Couldn\'t load your programs. Nothing was changed. Try again.';
 
   @override
   String get programsListEmptyBody =>
@@ -5849,11 +5874,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get programsSummaryPerformedToggleError =>
-      'Could not update the performed mark. Please try again.';
+      'Couldn\'t update the performed mark. Try again.';
 
   @override
   String get programsSummaryUndoPerformedToggleError =>
-      'Could not undo that change to the performed mark.';
+      'Couldn\'t undo that change to the performed mark. Try again.';
 
   @override
   String get programsPerformedCleared => 'Performed mark cleared.';
@@ -6332,7 +6357,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get performProgramChangedElsewhere =>
-      'This program had changed elsewhere since Perform opened. Perform now shows the latest version, with your change.';
+      'This program had changed elsewhere since Perform mode opened. Perform mode now shows the latest version, with your change.';
 
   @override
   String get performProgramAdjustedSnack => 'Program adjusted.';
@@ -6578,16 +6603,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exportDanceCopied => 'Dance copied to clipboard.';
 
   @override
-  String get exportShareDanceError => 'Couldn\'t share this dance';
+  String get exportShareDanceError =>
+      'Couldn\'t share this dance. Your dance is unchanged. Try again.';
 
   @override
-  String get exportDanceError => 'Couldn\'t export this dance';
+  String get exportDanceError =>
+      'Couldn\'t export this dance. Your dance is unchanged. Try again.';
 
   @override
   String get exportShareSetListText => 'Share set list (text)';
 
   @override
-  String get exportShareProgramBundle => 'Share (program + dances)';
+  String get exportShareProgramBundle => 'Share program and dances';
 
   @override
   String get exportSaveProgramBundle => 'Save program file…';
@@ -6639,22 +6666,25 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get exportJsonSaveError => 'Couldn\'t save this JSON file.';
+  String get exportJsonSaveError => 'Couldn\'t save this JSON file. Try again.';
 
   @override
-  String get exportJsonCopyError => 'Couldn\'t copy this JSON.';
+  String get exportJsonCopyError => 'Couldn\'t copy this JSON. Try again.';
 
   @override
-  String get exportJsonShareError => 'Couldn\'t share this JSON file.';
+  String get exportJsonShareError =>
+      'Couldn\'t share this JSON file. Try again.';
 
   @override
-  String get exportShareSetListError => 'Couldn\'t share this set list';
+  String get exportShareSetListError =>
+      'Couldn\'t share this set list. Try again.';
 
   @override
-  String get exportShareProgramError => 'Couldn\'t share this program';
+  String get exportShareProgramError =>
+      'Couldn\'t share this program. Your program is unchanged. Try again.';
 
   @override
-  String get exportSetListError => 'Couldn\'t export this set list';
+  String get exportSetListError => 'Couldn\'t export this set list. Try again.';
 
   @override
   String get exportIncludeFiguresTitle => 'Include figures?';
@@ -6920,15 +6950,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String onlineLoadError(String source) {
-    return 'Couldn\'t load that dance from $source.';
+    return 'Couldn\'t load that dance from $source. Try again.';
   }
 
   @override
-  String get onlineImportError => 'Couldn\'t import that dance.';
+  String get onlineImportError => 'Couldn\'t import that dance. Try again.';
 
   @override
   String onlineSearchFailed(String source) {
-    return 'Couldn\'t search $source. Please try again.';
+    return 'Couldn\'t search $source. Try again.';
   }
 
   @override
@@ -7034,7 +7064,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get importProgramTitleLabel => 'Program title';
 
   @override
-  String get importProgramCreateError => 'Couldn\'t save the imported program.';
+  String get importProgramCreateError =>
+      'Couldn\'t save the imported program. Try again.';
 
   @override
   String importProgramCommitted(
@@ -7087,7 +7118,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get importContraDbListError =>
-      'Could not load the ContraDB program list.';
+      'Couldn\'t load the ContraDB program list. Nothing was imported. Try again.';
 
   @override
   String get importContraDbSearchPrompt =>
@@ -7121,7 +7152,8 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get importContraDbFetchGenericError => 'Couldn\'t fetch that program.';
+  String get importContraDbFetchGenericError =>
+      'Couldn\'t fetch that program. Try again.';
 
   @override
   String get importContraDbPastePrompt =>
@@ -7133,7 +7165,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get importContraDbResolveError =>
-      'Couldn\'t import the ContraDB program.';
+      'Couldn\'t import the ContraDB program. Try again.';
 
   @override
   String importContraDbProgramProgress(int done, int total) {
@@ -7194,7 +7226,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get importTitleListTitle => 'Import from title list';
 
   @override
-  String get importCollectionLoadError => 'Could not load your collection.';
+  String get importCollectionLoadError =>
+      'Couldn\'t load your collection. Nothing was changed. Try again.';
 
   @override
   String get importTitleListDancesLabel => 'Dance titles (one per line)';
@@ -7226,7 +7259,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get importPlaintextUnmatched => 'No match — added as note';
 
   @override
-  String get importPlaintextSearchError => 'Couldn\'t search online.';
+  String get importPlaintextSearchError =>
+      'Couldn\'t search online. Try again.';
 
   @override
   String importPlaintextSlotCount(int count) {
@@ -7545,7 +7579,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get archiveIntakeRejectedUnreadable =>
-      'Couldn\'t read the shared file.';
+      'Couldn\'t read the shared file. Try again, or ask the sender to share it again.';
 
   @override
   String get archiveIntakeRejectedEmpty => 'That file is empty.';
@@ -7560,7 +7594,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get archiveIntakeRejectedBackup =>
-      'That file is a backup, not a share file. To bring it into this device, go to Settings › General and choose Restore from a backup.';
+      'That file is a backup, not a share file. To bring it into this device, go to Settings ▸ General and choose Restore from a backup.';
 
   @override
   String get importErrorInsecureScheme =>
@@ -7568,7 +7602,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get importErrorBlockedHost =>
-      'That URL points to a network location that cannot be imported from.';
+      'That URL points to a network location the app can\'t import from. Check the URL and try again.';
 
   @override
   String get importErrorInvalidUrl =>
@@ -7790,7 +7824,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get importIssueArchiveCustomFieldKeyConflictGeneric =>
-      'A custom field in this file could not use its key, which is already taken, so its values go into a field with a numbered key instead.';
+      'A custom field in this file couldn\'t use its key, which is already taken, so its values go into a field with a numbered key instead.';
 
   @override
   String get importIssueUsrFileTruncated =>
@@ -7878,6 +7912,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get importIssueUnmappedProgression =>
       'A progression wasn\'t recognized; defaulted to single.';
+
+  @override
+  String get importIssueBarsMeterUnstated =>
+      'This dance counts in bars but states no meter, so each bar was counted as 2 beats. Check its counts.';
 
   @override
   String get importIssueUnmappedType =>
@@ -7974,7 +8012,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get importRecordErrorNotUsrDatabase =>
-      'This isn\'t a Caller\'s Companion library file (.USR). In Caller\'s Companion, find the .USR file in its data folder.';
+      'This isn\'t a Caller\'s Companion data file (.USR). In Caller\'s Companion, find the .USR file in its data folder.';
 
   @override
   String get importRecordErrorFileTooLarge =>
@@ -7998,15 +8036,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get importReviewUsrSubtitle =>
-      'Choose the Caller\'s Companion .USR file to migrate its dances and program history. Nothing is added to your collection until you review and confirm.';
+      'Choose the Caller\'s Companion .USR file to migrate its dances and program history. Nothing is added to your library until you review and confirm.';
 
   @override
   String get importReviewChooseUsr => 'Choose .USR file…';
 
   @override
-  String importReviewFileReady(int bytes) {
-    return 'File ready ($bytes bytes).';
-  }
+  String get importReviewFileReady => 'File ready.';
 
   @override
   String get importReviewGenericSubtitle =>
@@ -8058,7 +8094,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get importReviewPlanFailedBody =>
-      'Something went wrong reading this import. Try again; if it keeps happening, the file may be damaged.';
+      'Couldn\'t read this import. Nothing was added. Try again; if it keeps happening, the file may be damaged.';
 
   @override
   String get importReviewNoDancesTitle => 'No dances found';
@@ -8154,9 +8190,9 @@ class AppLocalizationsEn extends AppLocalizations {
       count,
       locale: localeName,
       other:
-          'Re-import replaces the figures, formation and progression of $count existing dances. Their ratings, tags and notes stay.',
+          'Re-import replaces the figures, formation and progression of $count existing dances, and can change their dance form. Their ratings, tags and notes stay.',
       one:
-          'Re-import replaces the figures, formation and progression of 1 existing dance. Its rating, tags and notes stay.',
+          'Re-import replaces the figures, formation and progression of 1 existing dance, and can change its dance form. Its rating, tags and notes stay.',
     );
     return '$_temp0';
   }
@@ -8305,7 +8341,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get importReviewUndone => 'Import undone.';
 
   @override
-  String get importReviewEditError => 'Couldn\'t import that dance to edit.';
+  String get importReviewEditError =>
+      'Couldn\'t import that dance to edit. Try again.';
+
+  @override
+  String get importUsrEnglishTitle => 'Are these English country dances?';
+
+  @override
+  String get importUsrEnglishBody =>
+      'Caller\'s Companion often lists English country dances as Contra. If this file holds English dances, they\'re read with English figures, formations and bar counts. Square dances stay squares.';
+
+  @override
+  String get importUsrEnglishNo => 'No, read their types';
+
+  @override
+  String get importUsrEnglishYes => 'Yes, English dances';
 
   @override
   String get importReviewEditOverwriteTitle =>
@@ -8325,16 +8375,17 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String importReviewEditReimportBody(String title) {
-    return 'Importing to edit replaces the figures, formation and progression of \"$title\" in your collection immediately. The batch Undo will not restore them.';
+    return 'Importing to edit replaces the figures, formation and progression of \"$title\" in your collection immediately, and can change its dance form. The batch Undo will not restore them.';
   }
 
   @override
   String importReviewEditReimportTitleAndCreditBody(String title) {
-    return 'Importing to edit replaces the figures, formation, progression, title and credit of \"$title\" in your collection immediately. The batch Undo will not restore them.';
+    return 'Importing to edit replaces the figures, formation, progression, title and credit of \"$title\" in your collection immediately, and can change its dance form. The batch Undo will not restore them.';
   }
 
   @override
-  String get importReviewImportError => 'Couldn\'t complete the import.';
+  String get importReviewImportError =>
+      'Couldn\'t complete the import. Try again.';
 
   @override
   String get importFileNotText =>
@@ -8390,7 +8441,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get danceEditorDetailsSection => 'Details';
 
   @override
-  String get danceEditorTitleRequiredLabel => 'Title *';
+  String get danceEditorTitleRequiredLabel => 'Title';
 
   @override
   String get danceEditorTitleRequired => 'Title is required';
@@ -8415,6 +8466,53 @@ class AppLocalizationsEn extends AppLocalizations {
       'Blank = standard A1 A2 B1 B2; else e.g. 6*8*2';
 
   @override
+  String get danceEditorPhrasesNameThem => 'Name the phrases';
+
+  @override
+  String get danceEditorPhrasesTitle => 'Phrases';
+
+  @override
+  String get danceEditorPhrasesHelp =>
+      'Name each part of the tune A, B or C, give its bars, and say whether it plays once or twice. A phrase played twice is labeled A1 and A2.';
+
+  @override
+  String get danceEditorPhrasesAdd => 'Add phrase';
+
+  @override
+  String danceEditorPhrasesInvalid(int max) {
+    return 'Give each phrase from 1 to $max bars. Until then the dance keeps its last valid phrases, and Save saves those.';
+  }
+
+  @override
+  String danceEditorPhraseBarsLabel(String name) {
+    return 'Bars in $name';
+  }
+
+  @override
+  String danceEditorPhraseBarsRange(int max) {
+    return '1 to $max';
+  }
+
+  @override
+  String get danceEditorPhraseNameLabel => 'Phrase name';
+
+  @override
+  String danceEditorPhrasePlaysLabel(String name) {
+    return 'How often $name plays';
+  }
+
+  @override
+  String get danceEditorPhrasePlaysOnce => 'Once';
+
+  @override
+  String get danceEditorPhrasePlaysTwice => 'Twice';
+
+  @override
+  String danceEditorPhraseRemove(String name) {
+    return 'Remove phrase $name';
+  }
+
+  @override
   String get danceEditorFiguresSection => 'Figures';
 
   @override
@@ -8436,6 +8534,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get danceEditorHookHint => 'One-line \"why call this\"';
+
+  @override
+  String get danceEditorHookHelper =>
+      'Why you would call this dance, in one line. It can appear on calling cards and in what you share.';
 
   @override
   String get danceEditorWalkthroughLabel => 'Walkthrough';
@@ -8748,6 +8850,38 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String validationPhraseCountMismatch(String actual, String expected) {
+    return 'The figures total $actual; the phrase structure expects $expected.';
+  }
+
+  @override
+  String validationSequenceExceedsPhraseCount(
+    int position,
+    String actual,
+    String limit,
+  ) {
+    return 'A sequence in figure $position is $actual, longer than one phrase ($limit).';
+  }
+
+  @override
+  String validationSequenceSpanNoRoomCount(
+    int position,
+    String actual,
+    String expected,
+  ) {
+    return 'The timed steps of the sequence in figure $position take $actual, leaving none of its $expected for the rest.';
+  }
+
+  @override
+  String validationSequenceSpanMismatchCount(
+    int position,
+    String actual,
+    String expected,
+  ) {
+    return 'The steps of the sequence in figure $position take $actual; the sequence takes $expected.';
+  }
+
+  @override
   String validationSequenceSpanNoRoom(int position, int actual, int expected) {
     return 'The timed steps of the sequence in figure $position take $actual beats, leaving none of its $expected for the rest.';
   }
@@ -8775,6 +8909,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get validationPhraseInvalid => 'That phrase structure isn\'t valid.';
+
+  @override
+  String get validationPhraseNamedEnglishOnly =>
+      'Phrase names (A:, B:, C:) are for English dances only.';
 
   @override
   String validationOrphanedAlt(int position) {
@@ -8891,7 +9029,8 @@ class AppLocalizationsEn extends AppLocalizations {
       'Cite a source: type to add or create…';
 
   @override
-  String get danceEditorSaveError => 'Couldn\'t save the dance.';
+  String get danceEditorSaveError =>
+      'Couldn\'t save the dance. Your changes are still here. Try again.';
 
   @override
   String danceEditorChoreographerDuplicate(String name) {
@@ -8982,7 +9121,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get danceEditorDeleteDanceTooltip => 'Delete dance';
 
   @override
-  String get danceEditorLoadError => 'Could not load the dance.';
+  String get danceEditorLoadError =>
+      'Couldn\'t load the dance. Nothing was changed. Try again.';
 
   @override
   String get danceEditorChoreographerDetailsTitle => 'Author details';
@@ -8992,7 +9132,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'These details are shared across every dance credited to this author. Email, location, and the deceased mark are private — stored only on this device and never shared or exported.';
 
   @override
-  String get danceEditorNameRequiredLabel => 'Name *';
+  String get danceEditorNameRequiredLabel => 'Name';
 
   @override
   String get danceEditorNameRequired => 'Name is required';
@@ -9180,7 +9320,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'yes': ', can\'t be expanded',
       'other': '',
     });
-    return '$summary, your own figure$_temp0';
+    return '$summary, your figure$_temp0';
   }
 
   @override
@@ -9202,7 +9342,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get danceEditorCompoundUnavailable =>
-      'This figure of yours can\'t be expanded: it has been deleted or changed, or doesn\'t accept these values. Saving keeps only its name, beats, note and progression mark.';
+      'Your figure can\'t be expanded: it has been deleted or changed, or doesn\'t accept these values. Saving keeps only its name, beats, note and progression mark.';
 
   @override
   String get danceEditorIncompleteFigure =>
@@ -9499,7 +9639,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String danceEditorUnrecognizedMoveReadOnly(String move) {
-    return 'Unrecognized move \"$move\" — not in this version\'s taxonomy. Shown read-only so its data is preserved; it will edit normally again if the move becomes known. You can still reorder or delete it.';
+    return 'Unrecognized move \"$move\": this version of the app doesn\'t know it. It is shown read-only so its data is preserved, and it will edit normally again if the move becomes known. You can still reorder or delete it.';
   }
 
   @override
@@ -9627,11 +9767,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get updateBannerDownloadFailed =>
-      'The update could not be downloaded.';
+      'Couldn\'t download the update. Try again.';
 
   @override
   String get updateDownloadFailureDestination =>
-      'Could not choose a place to download the update.';
+      'Couldn\'t choose a place to download the update. Try again, or use \"View release\".';
 
   @override
   String get updateDownloadFailureDestinationOccupied =>
@@ -9639,7 +9779,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get updateDownloadFailureIncomplete =>
-      'The download was incomplete and was deleted. Please try again, or use \"View release\".';
+      'Couldn\'t finish the download, and the incomplete file was deleted. Try again, or use \"View release\".';
 
   @override
   String get updateDownloadFailureRefusedHost =>
@@ -9647,19 +9787,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get updateDownloadFailureUnreachable =>
-      'The update could not be downloaded. Check your connection and try again, or use \"View release\".';
+      'Couldn\'t download the update. Check your connection and try again, or use \"View release\".';
 
   @override
   String get updateDownloadFailureServerError =>
-      'The update server could not provide the file. Try again later, or use \"View release\".';
+      'The update server couldn\'t provide the file. Try again later, or use \"View release\".';
 
   @override
   String get updateDownloadFailureDiskFull =>
-      'There is not enough free disk space to save the update. Free up some space and try again, or use \"View release\".';
+      'There isn\'t enough free disk space to save the update. Free up some space and try again, or use \"View release\".';
 
   @override
   String get updateDownloadFailureUnwritable =>
-      'The update could not be saved because the download location is not writable. Check its permissions and try again, or use \"View release\".';
+      'Couldn\'t save the update because the download location isn\'t writable. Check its permissions and try again, or use \"View release\".';
 
   @override
   String get updateDownloadFailureChecksumMismatch =>
@@ -9667,19 +9807,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get updateDownloadFailureHandoffFailed =>
-      'The update was downloaded and verified, but could not be opened automatically. Use \"View release\" to finish installing.';
+      'The update was downloaded and verified, but couldn\'t be opened automatically. Use \"View release\" to finish installing.';
 
   @override
   String get updateDownloadFailureInstallFailed =>
-      'Something went wrong while installing the update. Try again, or use \"View release\" to download it manually.';
+      'Couldn\'t install the update. Try again, or use \"View release\" to download it manually.';
 
   @override
   String get startupIntegrityCheckIncomplete =>
-      'A database integrity check failed to complete, so your data could not be verified this launch. If problems persist, consider restoring from a backup. Technical details were saved to Settings ▸ Diagnostics.';
+      'Couldn\'t finish checking your data this time, so it couldn\'t be verified. If problems continue, consider restoring from a backup. Technical details were saved to Settings ▸ Diagnostics.';
 
   @override
   String get startupIntegrityCheckFailed =>
-      'A database integrity check failed. Your local data may be corrupt — consider restoring from a backup.';
+      'Your data failed its safety check and may be damaged. Consider restoring from a backup.';
 
   @override
   String get startupEcdConvertTitle => 'Convert ECD dances?';
@@ -9748,7 +9888,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get retirementBannerGetUpdate => 'Get update';
 
   @override
-  String get retirementBannerLater => 'Later';
+  String get retirementBannerLater => 'Dismiss';
 
   @override
   String installLocationBannerMessage(String appName) {
@@ -9900,7 +10040,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get userGuideLoadError => 'The user guide could not be loaded.';
+  String get userGuideLoadError => 'Couldn\'t load the user guide. Try again.';
 
   @override
   String get userGuideOpenOnline => 'Open the guide online';
@@ -9936,7 +10076,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get shorthandsCompoundTitle => 'Shorthands for your own figures';
 
   @override
-  String get shorthandsUserFigureSyncLabel => 'Shorthands for your new figures';
+  String get shorthandsUserFigureSyncLabel => 'Shorthands for new figures';
 
   @override
   String get shorthandsCompoundIntro =>
@@ -9959,7 +10099,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get shorthandsUserFigureShadowedByCompound =>
-      'Not used: a shorthand for one of your combinations has the same text.';
+      'Not used: a shorthand for a combination has the same text.';
 
   @override
   String get compoundShorthandEditorFigureLabel => 'Your figure';
@@ -9969,7 +10109,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get compoundShorthandEditorNoCompounds =>
-      'You have no figures of your own yet. Add one in the Glossary first.';
+      'You have no custom figures yet. Add one in the Glossary first.';
 
   @override
   String get compoundShorthandEditorInvalidValues =>
@@ -10114,8 +10254,8 @@ class AppLocalizationsEn extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count figures could not be saved to your Glossary.',
-      one: '1 figure could not be saved to your Glossary.',
+      other: 'Couldn\'t save $count figures to your Glossary.',
+      one: 'Couldn\'t save 1 figure to your Glossary.',
     );
     return '$_temp0';
   }
@@ -10247,7 +10387,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reparseConfirmUpgrade => 'Upgrade';
 
   @override
-  String get reparseFailed => 'Could not upgrade figures. Please try again.';
+  String get reparseFailed => 'Couldn\'t upgrade the figures. Try again.';
 
   @override
   String get reparseNothingUpgradedSnack => 'Nothing to upgrade.';
@@ -10313,11 +10453,11 @@ class AppLocalizationsEn extends AppLocalizations {
       'None of your unrecognized figures from imports can be recognized as a known move right now. Check back after a future update improves figure recognition.';
 
   @override
-  String get reparseErrorTitle => 'Could not check your figures';
+  String get reparseErrorTitle => 'Couldn\'t check your figures';
 
   @override
   String get reparseErrorBody =>
-      'Something went wrong while scanning your collection. Nothing was changed. You can try again.';
+      'Couldn\'t scan your collection. Nothing was changed. Try again.';
 
   @override
   String get ecdMigrationScreenTitle => 'Convert English dances';
@@ -10402,7 +10542,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get ecdMigrationFailed =>
-      'Could not convert the dances. Nothing was changed. Please try again.';
+      'Couldn\'t convert the dances. Nothing was changed. Try again.';
 
   @override
   String get ecdMigrationEmptyTitle => 'Nothing to convert';
@@ -10412,7 +10552,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'None of your English country dances has anything this can convert. A move with no clear English meaning stays as it is.';
 
   @override
-  String get ecdMigrationErrorTitle => 'Could not check your English dances';
+  String get ecdMigrationErrorTitle => 'Couldn\'t check your English dances';
 
   @override
   String customFieldsDeleteInUse(String label, int count) {
@@ -10447,7 +10587,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get customFieldsNewField => 'New field';
 
   @override
-  String get customFieldsLoadError => 'Could not load custom fields.';
+  String get customFieldsLoadError =>
+      'Couldn\'t load custom fields. Nothing was changed. Try again.';
 
   @override
   String get customFieldsEmptyTitle => 'No custom fields yet';
@@ -10488,13 +10629,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get customFieldsEditorEditTitle => 'Edit custom field';
 
   @override
-  String get customFieldsLabelLabel => 'Label *';
+  String get customFieldsLabelLabel => 'Label';
 
   @override
   String get customFieldsLabelRequired => 'Label is required';
 
   @override
-  String get customFieldsKeyLabel => 'Key *';
+  String get customFieldsKeyLabel => 'Key';
 
   @override
   String get customFieldsKeyHelper =>
@@ -10510,6 +10651,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get customFieldsKeyInvalid =>
       'Key must start with a letter or underscore and contain only letters, digits, and underscores';
+
+  @override
+  String get customFieldsSaveFailed =>
+      'Couldn\'t save the field. Check its key and choices, then try again.';
 
   @override
   String get customFieldsTypeFieldLabel => 'Type';
@@ -10534,7 +10679,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Offer this field in the Filters panel';
 
   @override
-  String get customFieldsChoicesLabel => 'Choices *';
+  String get customFieldsChoicesLabel => 'Choices';
 
   @override
   String get customFieldsChoiceInUseTooltip => 'In use — cannot remove';
@@ -10673,7 +10818,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get recentlyDeletedLoadError =>
-      'Couldn\'t load your recently deleted items. Nothing has been removed.';
+      'Couldn\'t load your recently deleted items. Nothing has been removed. Try again.';
 
   @override
   String get recentlyDeletedDeleteTitle => 'Delete permanently?';
@@ -10758,7 +10903,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get venueNew => 'New venue';
 
   @override
-  String get venueLoadError => 'Could not load venues.';
+  String get venueLoadError =>
+      'Couldn\'t load venues. Nothing was changed. Try again.';
 
   @override
   String get venueManagerTitle => 'Venues';
@@ -10828,6 +10974,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get venueEditTitle => 'Edit venue';
 
   @override
+  String get venueEditorSaveError =>
+      'Couldn\'t save the venue. Your changes are still here. Try again.';
+
+  @override
   String get venueEditorSharedNote =>
       'A venue is shared across every program held here, so edits to its address, contacts, or schedule show up on all of them.';
 
@@ -10836,7 +10986,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'This venue\'s address and contact fields below stay on this device — Device Sync does not carry them to your other devices, so they may be blank there. The Notes field does sync, so avoid putting contact details there if you\'d rather keep them private to this device.';
 
   @override
-  String get venueEditorNameLabel => 'Name *';
+  String get venueEditorNameLabel => 'Name';
 
   @override
   String get venueEditorNameRequired => 'Name is required';
@@ -10966,7 +11116,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get danceReimportSourceFailed =>
-      'Could not load a dance from that source. Please try again.';
+      'Couldn\'t load a dance from that source. Your dance wasn\'t changed. Try again.';
+
+  @override
+  String get danceReimportApplyFailed =>
+      'Couldn\'t update the dance from that source. Your dance wasn\'t changed. Try again.';
 
   @override
   String get danceReimported => 'Choreography updated.';
@@ -10998,11 +11152,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get publishedCollectionsUnverified =>
-      'Published collections could not be verified, so nothing was loaded. If this keeps happening, update the app.';
+      'Couldn\'t verify the published collections, so nothing was loaded. If this keeps happening, update the app.';
 
   @override
   String get publishedCollectionsOffline =>
-      'Published collections could not be reached. Check your connection and try again.';
+      'Couldn\'t reach the published collections. Check your connection and try again.';
 
   @override
   String get publishedCollectionsNeedsNewerApp =>
@@ -11173,7 +11327,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Lets you add and edit your own figures, and offers them when you edit a dance. It doesn\'t need the Glossary. Turning this off hides them; it doesn\'t delete them.';
 
   @override
-  String get settingsExperimentalCustomFiguresManageTitle => 'Your figures';
+  String get settingsExperimentalCustomFiguresManageTitle => 'Custom Figures';
 
   @override
   String get settingsExperimentalCustomFiguresManageSubtitle =>
@@ -11184,16 +11338,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get customFiguresEmpty =>
-      'You haven\'t made any figures of your own yet. Choose + to add one.';
+      'You haven\'t made any custom figures yet. Choose + to add one.';
 
   @override
   String get customFiguresEmptyTitle => 'No custom figures yet';
 
   @override
-  String get glossaryAddCustomFigure => 'Add your own figure';
+  String get glossaryAddCustomFigure => 'Add your figure';
 
   @override
-  String get customFiguresNewFigure => 'New figure';
+  String get customFiguresNewFigure => 'Add your figure';
 
   @override
   String get glossaryCustomMarker => 'Custom';
@@ -11260,10 +11414,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get glossaryOverBudget =>
-      'Your Glossary has reached its size limit, so this could not be saved. Make room by deleting or shortening other figures or notes, then try again.';
+      'Your Glossary has reached its size limit, so this couldn\'t be saved. Make room by deleting or shortening other figures or notes, then try again.';
 
   @override
-  String get compoundEditorTitleNew => 'New figure';
+  String get compoundEditorTitleNew => 'Add your figure';
 
   @override
   String get compoundEditorTitleEdit => 'Edit figure';
@@ -11596,7 +11750,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get danceEditorUserFigureUnavailable =>
-      'This figure of yours isn\'t available, so this row keeps the wording it has.';
+      'Your figure isn\'t available, so this row keeps the wording it has.';
 
   @override
   String get compoundEditorDiscardBody =>
@@ -12040,7 +12194,8 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get callingCardEditorPreviewError => 'Couldn\'t draw the preview.';
+  String get callingCardEditorPreviewError =>
+      'Couldn\'t draw the preview. Try again.';
 
   @override
   String callingCardEditorPreviewShrunk(int percent) {
@@ -12098,7 +12253,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get callingCardHelpFields =>
-      'A block prints only what the dance has, and only fields turned on under Settings › Defaults › Shared dance fields. A row with nothing to print takes no space. When a card is too full, everything on it shrinks evenly to fit, down to half size.';
+      'A block prints only what the dance has, and only fields turned on under Settings ▸ Defaults ▸ Shared dance fields. A row with nothing to print takes no space. When a card is too full, everything on it shrinks evenly to fit, down to half size.';
 
   @override
   String get callingCardHelpTapToInsert =>
@@ -12135,7 +12290,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get callingCardHelpBlockFigures =>
-      'The figures, grouped by phrase (A1, A2, B1, B2), with their beats.';
+      'The figures, grouped by phrase (A1, A2, B1, B2), with their counts: beats, or bars for an English dance.';
 
   @override
   String get callingCardHelpBlockNotes => 'Your calling notes.';
@@ -12199,7 +12354,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get callingCardHelpOptionFigures =>
-      'For figures: leave out the beats, the figures\' own notes, the phrase names, or the lines between phrases.';
+      'For figures: leave out the counts, the figures\' own notes, the phrase names, or the lines between phrases.';
 
   @override
   String get callingCardHelpOptionThickness =>

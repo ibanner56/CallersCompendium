@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
 import '../data/user_figures_scope.dart';
 import '../data/validation_issue_labels.dart';
-import '../search/facet_labels.dart' show humanizeToken;
+import '../search/facet_labels.dart' show danceFormLabel, humanizeToken;
 import '../theme/app_motion.dart';
 import '../theme/app_spacing.dart';
 import '../theme/destructive_button_style.dart';
@@ -39,9 +39,9 @@ class DialectEditorScreen extends StatefulWidget {
   /// The dialect being edited. Its name is kept as-is on save.
   final Dialect initial;
 
-  /// The dance form the dialect is for: its moves are the ones this form's
-  /// dances are edited with ([TaxonomyRegistry.forForm]), so a dialect can
-  /// name or word any of them (ADR-006 §9.1, point 1).
+  /// The dance form the dialect is for: it renders with this form's
+  /// taxonomy ([TaxonomyRegistry.forForm]), and can name or word the
+  /// form's own moves (ADR-006 §9.1, point 1; §12.2, S1).
   final DanceForm form;
 
   @override
@@ -690,12 +690,14 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
   );
 
   /// The keys of the user's figures a dialect can name or word, while Custom
-  /// Figures is on (#1023): each one whose definition decodes, by name.
+  /// Figures is on (#1023): each one whose definition decodes and is for this
+  /// dialect's form, as the dance editor offers them, by name.
   List<String> _userFigureKeys() {
     final catalog = UserFiguresScope.shownCatalogOf(context);
     return [
       for (final view in catalog.figures)
-        if (view.definition != null) userFigureKeyFor(view.id),
+        if (view.definition?.form == widget.form.name)
+          userFigureKeyFor(view.id),
     ]..sort(
       (a, b) => _label(a).toLowerCase().compareTo(_label(b).toLowerCase()),
     );
@@ -975,7 +977,11 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
       ),
     ),
     () => SectionHeader(title: l10n.dialectEditorSectionPreview),
-    () => _DialectPreview(dialect: _working, renderer: _renderer),
+    () => _DialectPreview(
+      dialect: _working,
+      renderer: _renderer,
+      form: widget.form,
+    ),
     () => const SizedBox(height: 24),
   ];
 }
@@ -1099,7 +1105,7 @@ class _MoveSubstitutionsEditor extends StatelessWidget {
   /// The user's figures that can be named (#1023), offered after the moves.
   final List<String> userFigureKeys;
 
-  /// Renders with the dialect's form's taxonomy, whose moves it lists.
+  /// Renders with the dialect's form's taxonomy, whose own moves it lists.
   final FigureRenderer renderer;
 
   @override
@@ -1237,19 +1243,34 @@ String _entryLabel(
         ? l10n.dialectEditorUserFigureGone
         : renderer.renderFreeText(view.name, dialect);
   }
-  return renderer.taxonomy.moves[id]?.displayName ??
+  final name =
+      renderer.taxonomy.moves[id]?.displayName ??
       renderer.taxonomy.aliases[id]?.displayName ??
       id;
+  // An entry for another form's figure (a contra move an English dialect
+  // named before English had figures of its own) names that form, so it is
+  // never mistaken for the form's own figure of the same name.
+  final form = shippedTaxonomies.formOfMoveId(id);
+  return form == renderer.taxonomy.form
+      ? name
+      : '$name · ${danceFormLabel(l10n, form)}';
 }
 
-/// The ids a dialect can name or word: every move but `custom`, and every
-/// alias listed as a move ([MoveAlias.listedAsMove]), which a dialect names
-/// on its own: `long lines`, a move until taxonomy v39.
+/// The ids a dialect can be given a new name or wording for: every move of
+/// the dialect's own form but `custom`, and every alias of that form listed
+/// as a move ([MoveAlias.listedAsMove]), which a dialect names on its own
+/// (`long lines`, a move until taxonomy v39; `hand cast`). An English
+/// dialect's taxonomy lays English figures over contra's, but offers only
+/// English ones, as the English dance editor does (ADR-006 §12.2, S1); an
+/// entry it already holds for a contra move still shows, named as contra's.
 Iterable<String> _dialectNameableMoveIds(Taxonomy taxonomy) => [
   for (final m in taxonomy.moves.values)
-    if (m.id != customMoveId) m.id,
+    if (m.id != customMoveId &&
+        shippedTaxonomies.formOfMoveId(m.id) == taxonomy.form)
+      m.id,
   for (final a in taxonomy.aliases.values)
-    if (a.listedAsMove) a.id,
+    if (a.listedAsMove && shippedTaxonomies.formOfMoveId(a.id) == taxonomy.form)
+      a.id,
 ];
 
 String _branchLabel(String branch, AppLocalizations l10n) => switch (branch) {
@@ -1301,7 +1322,7 @@ class _MoveWordingsEditor extends StatelessWidget {
   /// The user's figures, for a figure's slots and preview.
   final UserFigureCatalog userFigures;
 
-  /// Renders with the dialect's form's taxonomy, whose moves it lists.
+  /// Renders with the dialect's form's taxonomy, whose own moves it lists.
   final FigureRenderer renderer;
 
   /// The stored form of a wording still as the editor showed it, under its
@@ -1980,17 +2001,25 @@ class _DiscouragedTermsEditor extends StatelessWidget {
 /// to exercise the substitutions this editor controls — a role-term plural
 /// ([allemande] with `role1s`), a dancer term + move substitution ([swing] with
 /// `partners`, [do_si_do] with `neighbors`), and a role term inside free-text
-/// prose — so edits visibly update as the user types. Deterministic and
-/// dialect-only; nothing is persisted.
+/// prose — so edits visibly update as the user types. A dialect of another
+/// form previews that form's figures instead ([form]; English's are
+/// `_ecdSamples`). Deterministic and dialect-only; nothing is persisted.
 class _DialectPreview extends StatelessWidget {
-  const _DialectPreview({required this.dialect, required this.renderer});
+  const _DialectPreview({
+    required this.dialect,
+    required this.renderer,
+    required this.form,
+  });
 
   final Dialect dialect;
 
   /// Renders with the dialect's form's taxonomy.
   final FigureRenderer renderer;
 
-  static final List<Figure> _sampleFigures = [
+  /// The dance form the dialect is for, whose figures the preview shows.
+  final DanceForm form;
+
+  static final List<Figure> _contraSamples = [
     Figure(
       move: 'allemande',
       params: const {'who': 'role1s', 'hand': 'left', 'travel': 1.5},
@@ -1999,7 +2028,39 @@ class _DialectPreview extends StatelessWidget {
     Figure(move: 'do_si_do', params: const {'who': 'neighbors'}),
   ];
 
-  static const String _sampleFreeText = 'role1s scoop up their role2 and swing';
+  /// An English dialect's preview shows English figures (ADR-006 W5).
+  static final List<Figure> _ecdSamples = [
+    Figure(
+      move: 'ecd_hand_turn',
+      params: const {
+        'who': ['role1s'],
+        'hand': 'right',
+      },
+    ),
+    Figure(
+      move: 'ecd_set',
+      params: const {
+        'who': ['role2s'],
+        'direction': 'right',
+      },
+    ),
+    Figure(
+      move: 'ecd_lead',
+      params: const {
+        'who': ['partners'],
+        'where': 'up',
+      },
+    ),
+  ];
+
+  List<Figure> get _sampleFigures =>
+      form == DanceForm.ecd ? _ecdSamples : _contraSamples;
+
+  static const String _contraFreeText = 'role1s scoop up their role2 and swing';
+  static const String _ecdFreeText = 'role1s cast down behind the role2s';
+
+  String get _sampleFreeText =>
+      form == DanceForm.ecd ? _ecdFreeText : _contraFreeText;
 
   @override
   Widget build(BuildContext context) {

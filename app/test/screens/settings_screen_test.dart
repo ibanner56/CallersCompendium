@@ -3000,8 +3000,8 @@ void main() {
           );
           expect(
             find.text(
-              "Details: Stopped while uploading this device's changes. The "
-              'server answered with HTTP status 422.',
+              "Details: Stopped while uploading this device's changes. "
+              'Server status code: 422.',
             ),
             findsOneWidget,
           );
@@ -3067,8 +3067,8 @@ void main() {
           );
           expect(
             find.text(
-              "Details: Stopped while publishing this device's changes. The "
-              'server answered with HTTP status 503.',
+              "Details: Stopped while publishing this device's changes. "
+              'Server status code: 503.',
             ),
             findsOneWidget,
           );
@@ -3123,7 +3123,7 @@ void main() {
           expect(
             find.text(
               'Details: Stopped while downloading from your other devices. '
-              'The server answered with HTTP status 429.',
+              'Server status code: 429.',
             ),
             findsOneWidget,
           );
@@ -4179,7 +4179,10 @@ void main() {
             find.byKey(const ValueKey('sync-conflicts-error')),
             findsOneWidget,
           );
-          expect(find.text("Couldn't check for conflicts."), findsOneWidget);
+          expect(
+            find.text("Couldn't check for conflicts. Try again."),
+            findsOneWidget,
+          );
 
           await tester.tap(find.byKey(const ValueKey('sync-conflicts-retry')));
           await tester.pumpAndSettle();
@@ -4465,7 +4468,7 @@ void main() {
                   find.byKey(const ValueKey('sync-devices-failed-details')),
                 )
                 .data,
-            'Details: The server answered with HTTP status 500.',
+            'Details: Server status code: 500.',
           );
         });
 
@@ -5291,8 +5294,8 @@ void main() {
             "The sync server didn't accept this device's sync phrase. Check "
             'the phrase against the one on your other device, and check that '
             'the server address is right.\n'
-            'Details: Stopped while creating the store. The server answered '
-            'with HTTP status 403.',
+            'Details: Stopped while creating the store. Server status code: '
+            '403.',
           ),
           findsOneWidget,
         );
@@ -5793,8 +5796,8 @@ void main() {
           'its own. Nothing is wrong with this device or your library. Wait '
           'a while and try again. If it keeps happening, let whoever runs the '
           'server know, and quote the details shown here. Details: Stopped '
-          "while uploading this device's changes. The server answered with "
-          'HTTP status 502.',
+          "while uploading this device's changes. Server status code: "
+          '502.',
         );
         // The transient failure armed the automatic retry the dialog promises;
         // turning sync off cancels it, so no timer outlives the test.
