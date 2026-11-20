@@ -140,11 +140,14 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
   List<Program>? _programs;
   Map<String, Venue> _venuesById = const {};
 
-  /// The forms of each program's dances ([ProgramRepository.formsByProgram]).
+  /// The forms of each program's dances, live
+  /// ([ProgramRepository.watchFormsByProgram]).
   Map<String, Set<DanceForm>> _formsById = const {};
+  StreamSubscription<Map<String, Set<DanceForm>>>? _formsSub;
 
   /// The type filter: only programs whose dances are of exactly these forms
-  /// ([sameForms]). Null shows every program. Not saved.
+  /// ([sameForms]), and the open program whatever its forms. Null shows every
+  /// program. Dropped once no listed program matches it. Not saved.
   Set<DanceForm>? _formFilter;
   Object? _loadError;
   ProgramSort _sort = ProgramSort.title;
@@ -171,8 +174,21 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
   }
 
   void _toggleShowArchived() {
-    setState(() => _showArchived = !_showArchived);
+    setState(() {
+      _showArchived = !_showArchived;
+      _dropStaleFormFilter();
+    });
     _closeHiddenSelection();
+  }
+
+  /// Clears [_formFilter] once no listed program matches it, so it can't
+  /// come back on its own when a later program does. Call within setState.
+  void _dropStaleFormFilter() {
+    final filter = _formFilter;
+    if (filter == null) return;
+    if (!_unfilteredPrograms.any((p) => sameForms(_formsById[p.id], filter))) {
+      _formFilter = null;
+    }
   }
 
   /// Tells the host when the selected program is in the data but no longer
@@ -198,7 +214,8 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
   /// before the conversion those writes were invisible until the app restarted.
   /// A broadcast fixed the sites anyone remembered; the stream fixes the ones
   /// nobody did.
-  StreamSubscription<_ProgramsSnapshot>? _programsSub;
+  StreamSubscription<({List<Program> programs, Map<String, Venue> venuesById})>?
+  _programsSub;
 
   /// Whether the user has explicitly chosen a sort this session (issue #895).
   /// Once set, the saved default no longer seeds `_sort` — protecting an
@@ -273,6 +290,23 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
             if (mounted) setState(() => _loadError = error);
           },
         );
+    // A stream of its own: a program's forms change when one of its dances
+    // is deleted, restored or changes form, none of which [watchAll] sees.
+    _formsSub = _repos.programs.watchFormsByProgram().listen(
+      (forms) {
+        if (!mounted) return;
+        setState(() {
+          _formsById = forms;
+          _dropStaleFormFilter();
+        });
+        _closeHiddenSelection();
+      },
+      onError: (Object error, StackTrace stackTrace) => logCaughtError(
+        error,
+        stackTrace,
+        source: 'programs_list_screen._subscribe forms',
+      ),
+    );
   }
 
   /// Pairs a program list with the venues its rows need.
@@ -284,18 +318,15 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
   /// opts into `venues`, so a rename re-emits and this re-reads. It stays a
   /// separate query rather than part of `listAll`, because a program's venue is
   /// a label resolved beside the row, not a column of it.
-  Future<_ProgramsSnapshot> _withVenues(List<Program> programs) async {
+  Future<({List<Program> programs, Map<String, Venue> venuesById})> _withVenues(
+    List<Program> programs,
+  ) async {
     final hasLinkedVenue = programs.any((p) => p.venueId != null);
-    // Read with each list emit, so it follows a slot change. A dance whose
-    // form changes is shown in its new form once the list next re-emits;
-    // this list does not watch every dance for that.
-    final forms = await _repos.programs.formsByProgram();
     return (
       programs: programs,
       venuesById: hasLinkedVenue
           ? {for (final v in await _repos.venues.listAll()) v.id: v}
           : const <String, Venue>{},
-      formsById: forms,
     );
   }
 
@@ -400,15 +431,18 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
   @override
   void dispose() {
     unawaited(_programsSub?.cancel());
+    unawaited(_formsSub?.cancel());
     super.dispose();
   }
 
-  void _onPrograms(_ProgramsSnapshot snapshot) {
+  void _onPrograms(
+    ({List<Program> programs, Map<String, Venue> venuesById}) snapshot,
+  ) {
     if (!mounted) return;
     setState(() {
       _programs = snapshot.programs;
       _venuesById = snapshot.venuesById;
-      _formsById = snapshot.formsById;
+      _dropStaleFormFilter();
       _loadError = null;
     });
     _closeHiddenSelection();
@@ -449,12 +483,17 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
   };
 
   /// The programs this list shows: all of them with "Show archived" on, else
-  /// the ones not archived.
+  /// the ones not archived; with a type filter, those of its forms. The open
+  /// program stays listed whatever its forms, so neither a chip nor a dance
+  /// of another form added to it closes it.
   List<Program> get _visiblePrograms {
     final filter = _activeFormFilter;
+    final open = widget.selectedProgramId;
     return [
       for (final program in _unfilteredPrograms)
-        if (filter == null || sameForms(_formsById[program.id], filter))
+        if (filter == null ||
+            program.id == open ||
+            sameForms(_formsById[program.id], filter))
           program,
     ];
   }
@@ -1100,11 +1139,3 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
     );
   }
 }
-
-/// One emit of the programs list: the programs, the venues their rows name,
-/// and the forms of each one's dances.
-typedef _ProgramsSnapshot = ({
-  List<Program> programs,
-  Map<String, Venue> venuesById,
-  Map<String, Set<DanceForm>> formsById,
-});

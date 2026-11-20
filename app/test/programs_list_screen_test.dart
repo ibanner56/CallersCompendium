@@ -908,4 +908,111 @@ void _formFilterTests() {
     await _pump(tester, repos);
     expect(find.byKey(const ValueKey('programs-form-filter')), findsNothing);
   });
+
+  /// A contra program, an English one and a mixed one.
+  Future<void> seed(CompendiumRepositories repos) async {
+    await repos.dances.create(dance('c', DanceForm.contra));
+    await repos.dances.create(dance('e', DanceForm.ecd));
+    await repos.programs.create(
+      _program(
+        id: 'p-contra',
+        title: 'Contra night',
+        slots: [ProgramSlot(id: 's1', position: 0, danceId: 'c')],
+      ),
+    );
+    await repos.programs.create(
+      _program(
+        id: 'p-ecd',
+        title: 'English night',
+        slots: [ProgramSlot(id: 's2', position: 0, danceId: 'e')],
+      ),
+    );
+    await repos.programs.create(
+      _program(
+        id: 'p-mixed',
+        title: 'Mixed night',
+        slots: [
+          ProgramSlot(id: 's3', position: 0, danceId: 'c'),
+          ProgramSlot(id: 's4', position: 1, danceId: 'e'),
+        ],
+      ),
+    );
+  }
+
+  testWidgets('a deleted dance stops counting at once', (tester) async {
+    final repos = openTestRepositories();
+    await seed(repos);
+    await _pump(tester, repos);
+    expect(find.textContaining('Contra + English (ECD)'), findsWidgets);
+    // A write to the dance alone: the programs are untouched.
+    await repos.dances.softDelete('e', at: _now);
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Contra + English (ECD)'), findsNothing);
+    expect(
+      find.byKey(const ValueKey('programs-form-filter')),
+      findsNothing,
+      reason: 'every program with a live dance is now contra only',
+    );
+  });
+
+  testWidgets('the open program stays listed under a filter it fails', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await seed(repos);
+    var hidden = 0;
+    await tester.binding.setSurfaceSize(const Size(600, 1200));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        builder: (context, child) =>
+            RepositoriesScope(repositories: repos, child: child!),
+        home: ProgramsListScreen(
+          selectedProgramId: 'p-mixed',
+          onSelectedProgramHidden: () => hidden++,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('programs-form-contra')));
+    await tester.pumpAndSettle();
+    expect(_titlesInOrder(tester), ['Contra night', 'Mixed night']);
+    expect(hidden, 0, reason: 'a chip does not close the open program');
+  });
+
+  testWidgets('a filter left with no programs is dropped, not revived', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await seed(repos);
+    await _pump(tester, repos);
+    await tester.tap(find.byKey(const ValueKey('programs-form-ecd')));
+    await tester.pumpAndSettle();
+    expect(_titlesInOrder(tester), ['English night']);
+    // The only English program gains a contra dance: the filter has nothing
+    // left to show, so every program is listed.
+    final english = (await repos.programs.getById('p-ecd'))!;
+    await repos.programs.update(
+      english.copyWith(
+        slots: [
+          ...english.slots,
+          ProgramSlot(id: 's5', position: 1, danceId: 'c'),
+        ],
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(_titlesInOrder(tester), hasLength(3));
+    // A new English program does not bring the old filter back.
+    await repos.programs.create(
+      _program(
+        id: 'p-ecd2',
+        title: 'Another English night',
+        slots: [ProgramSlot(id: 's6', position: 0, danceId: 'e')],
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(_titlesInOrder(tester), hasLength(4));
+  });
 }

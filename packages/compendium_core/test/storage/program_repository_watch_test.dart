@@ -56,6 +56,43 @@ void main() {
     updatedAt: updatedAt ?? now,
   );
 
+  group('watchFormsByProgram (ADR-006)', () {
+    test('GUARD: follows a dance deleted and restored, which writes only '
+        'dances', () async {
+      await dances.create(
+        Dance(
+          id: 'e1',
+          title: 'Hole in the Wall',
+          form: DanceForm.ecd,
+          createdAt: now,
+          updatedAt: now,
+        ),
+      );
+      await programs.create(
+        program(
+          id: 'mixed',
+          slots: [
+            ProgramSlot(id: 'm1', position: 0, danceId: 'd1'),
+            ProgramSlot(id: 'm2', position: 1, danceId: 'e1'),
+          ],
+        ),
+      );
+      final probe = _Probe(programs.watchFormsByProgram());
+      addTearDown(probe.cancel);
+      expect(await probe.next(), {
+        'mixed': {DanceForm.contra, DanceForm.ecd},
+      });
+      await dances.softDelete('e1', at: DateTime.utc(2026, 2));
+      expect(await probe.next(), {
+        'mixed': {DanceForm.contra},
+      });
+      await dances.restore('e1', at: DateTime.utc(2026, 3));
+      expect(await probe.next(), {
+        'mixed': {DanceForm.contra, DanceForm.ecd},
+      });
+    });
+  });
+
   group('watchCallingHistoryForDance', () {
     test('derives venue counts from matching records', () async {
       await programs.create(

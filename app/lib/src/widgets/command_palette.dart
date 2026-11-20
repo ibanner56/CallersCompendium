@@ -175,7 +175,7 @@ class _CommandPaletteState extends State<CommandPalette> {
 
   /// Whether every word of [raw] starts a word of [forms] (a program's
   /// forms label), ignoring case and accents: "eng" and "contra english"
-  /// match "Contra · English"; an empty query matches no forms.
+  /// match "Contra + English"; an empty query matches no forms.
   static bool _matchesForms(String? forms, String raw) {
     if (forms == null) return false;
     final words = foldForTitleMatch(raw).split(RegExp(r'\s+'))
@@ -198,13 +198,18 @@ class _CommandPaletteState extends State<CommandPalette> {
     for (var i = 0; i < _all.length; i++) {
       final r = _all[i];
       final rank =
-          rankTitleMatch(r.title, raw, ignoreLeadingArticles: ignoreArticles) ??
-          // A program's forms match after every title match.
-          (_matchesForms(r.forms, raw) ? TitleMatchRank.substring : null);
+          rankTitleMatch(
+            r.title,
+            raw,
+          ignoreLeadingArticles: ignoreArticles,
+          )?.index ??
+          // A program's forms match after every title match, so a title hit
+          // is never cut off by the group's limit in favour of one.
+          (_matchesForms(r.forms, raw) ? TitleMatchRank.values.length : null);
       if (rank == null) continue;
       final folded = foldForTitleMatch(r.title);
       ranked.add((
-        rank: rank.index,
+        rank: rank,
         key: ignoreArticles ? titleSortKey(folded) : folded,
         index: i,
         result: r,

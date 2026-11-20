@@ -25,7 +25,11 @@ Dance _dance(String id, String title, DanceForm form) => Dance(
 );
 
 /// Opens the program of [dances] in the wide programs shell's summary.
-Future<void> _pumpSummary(WidgetTester tester, List<Dance> dances) async {
+Future<void> _pumpSummary(
+  WidgetTester tester,
+  List<Dance> dances, {
+  Set<String> deleted = const {},
+}) async {
   tester.view.physicalSize = const Size(1400, 900);
   tester.view.devicePixelRatio = 1.0;
   addTearDown(() {
@@ -35,6 +39,9 @@ Future<void> _pumpSummary(WidgetTester tester, List<Dance> dances) async {
   final repos = openTestRepositories();
   for (final dance in dances) {
     await repos.dances.create(dance);
+  }
+  for (final id in deleted) {
+    await repos.dances.softDelete(id, at: _now);
   }
   await repos.programs.create(
     Program(
@@ -104,14 +111,34 @@ void main() {
     expect(
       find.descendant(
         of: find.byKey(const ValueKey('program-summary-forms')),
-        matching: find.text('Contra · English (ECD)'),
+        matching: find.text('Contra + English (ECD)'),
       ),
       findsOneWidget,
     );
     expect(
-      find.textContaining(RegExp(r'^Contra · English \(ECD\) · ')),
+      find.textContaining(RegExp(r'^Contra \+ English \(ECD\) · ')),
       findsOneWidget,
       reason: 'the programs list row leads with the forms',
+    );
+  });
+
+  testWidgets('a deleted dance does not count toward the forms', (
+    tester,
+  ) async {
+    await _pumpSummary(
+      tester,
+      [
+        _dance('e', 'Hole in the Wall', DanceForm.ecd),
+        _dance('c', 'Contra One', DanceForm.contra),
+      ],
+      deleted: {'e'},
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('program-summary-forms')),
+        matching: find.text('Contra'),
+      ),
+      findsOneWidget,
     );
   });
 
