@@ -1,4 +1,5 @@
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
+import 'package:compendium_app/src/data/display_defaults.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/show_custom_figures_scope.dart';
 import 'package:compendium_app/src/data/show_glossary_scope.dart';
@@ -60,13 +61,20 @@ void main() {
     return repos;
   }
 
-  Future<void> copyAndSave(WidgetTester tester) async {
+  Future<void> copyAndSave(WidgetTester tester, {String? definition}) async {
     await tester.ensureVisible(
       find.byKey(const ValueKey('glossary-copy-figure')),
     );
     await tester.tap(find.byKey(const ValueKey('glossary-copy-figure')));
     await tester.pumpAndSettle();
     expect(find.byType(CompoundEditorScreen), findsOneWidget);
+    if (definition != null) {
+      await tester.enterText(
+        find.byKey(const ValueKey('compound-definition')),
+        definition,
+      );
+      await tester.pumpAndSettle();
+    }
     await tester.tap(find.byKey(const ValueKey('compound-editor-save')));
     await tester.runAsync(() => Future<void>.delayed(Duration.zero));
     await tester.pumpAndSettle();
@@ -88,6 +96,53 @@ void main() {
     expect(definition.copiedFrom, 'swing');
     expect(definition.params.map((p) => p.key), ['who', 'prefix']);
     expect(definition.defaultBeats, 8);
+  });
+
+  test('every shipped movement of every form copies to parameters the '
+      'editor offers (ADR-006 W5)', () {
+    final missing = <String>[];
+    for (final form in DanceForm.values) {
+      final taxonomy = shippedTaxonomies.forForm(form);
+      for (final id in [...taxonomy.moves.keys, ...taxonomy.aliases.keys]) {
+        for (final param
+            in userFigureSeedFromMove(taxonomy, id)?.params ??
+                const <UserFigureParam>[]) {
+          if (!compoundParamKinds.contains(param.kind)) {
+            missing.add('$id.${param.key}: ${param.kind.name}');
+          }
+        }
+      }
+    }
+    expect(missing, isEmpty);
+  });
+
+  testWidgets('opens on the form a new dance starts as, and an English '
+      'movement is copied as an English figure (ADR-006 W5)', (tester) async {
+    final repos = openTestRepositories();
+    await tester.runAsync(
+      () => repos.settings.set(kDefaultDanceFormKey, DanceForm.ecd.name),
+    );
+    // Only English figures have `ecd_` ids, so finding one proves the form.
+    await pump(tester, repositories: repos, search: 'set', entryId: 'ecd_set');
+    await copyAndSave(tester, definition: 'Step right and left.');
+
+    final entries = await tester.runAsync(repos.userGlossary.listAll);
+    final definition = decodeUserFigureDefinition(entries!.single.payload)!;
+    expect(definition.copiedFrom, 'ecd_set');
+    expect(definition.form, 'ecd');
+    // Saved under English, it is listed there and not under contra.
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(ValueKey('glossary-entry-custom:${entries.single.id}')),
+      findsOneWidget,
+    );
+    await tester.tap(find.byKey(const ValueKey('glossary-form-contra')));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(ValueKey('glossary-entry-custom:${entries.single.id}')),
+      findsNothing,
+    );
   });
 
   testWidgets('narrow, the copy\'s page takes the built-in\'s place once it '

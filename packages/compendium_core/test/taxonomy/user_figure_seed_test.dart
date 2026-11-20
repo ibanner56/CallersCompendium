@@ -132,4 +132,17 @@ void main() {
     }
     expect(shown, isEmpty);
   });
+
+  test('an ECD movement\'s list of dancers is seeded as a set, with no '
+      'default (ADR-006 W5)', () {
+    final ecd = shippedTaxonomies.forForm(DanceForm.ecd);
+    final seed = userFigureSeedFromMove(ecd, 'ecd_set')!;
+    final who = seed.params.firstWhere((p) => p.key == 'who');
+    expect(who.kind, ParamKind.dancerSet);
+    expect(who.defaultValue, isNull);
+    for (final id in ecd.moves.keys.where((id) => id.startsWith('ecd_'))) {
+      final kinds = userFigureSeedFromMove(ecd, id)!.params.map((p) => p.kind);
+      expect(kinds, isNot(contains(ParamKind.dancerList)), reason: id);
+    }
+  });
 }

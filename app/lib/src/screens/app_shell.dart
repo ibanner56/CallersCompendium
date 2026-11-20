@@ -365,6 +365,10 @@ class AppShellState extends State<AppShell> {
   /// (GIG-14).
   final _bodyKey = GlobalKey();
 
+  /// Keeps the Glossary's State, with the form the user picked there, across
+  /// the same swap.
+  final _glossaryKey = GlobalKey();
+
   /// One page per [_Destination], in enum order.
   List<Widget> _buildPages() => [
     for (final d in _Destination.values)
@@ -378,7 +382,12 @@ class AppShellState extends State<AppShell> {
         ),
         // Built only while shown, so a hidden Glossary costs nothing.
         _Destination.glossary =>
-          _showGlossary ? const GlossaryScreen() : const SizedBox.shrink(),
+          _showGlossary
+              ? GlossaryScreen(
+                  key: _glossaryKey,
+                  isActive: _current == _Destination.glossary,
+                )
+              : const SizedBox.shrink(),
         _Destination.settings => SettingsScreen(onOpenGuide: _openGuide),
         // Kept alive alongside the other destinations;
         // [UserGuideScreen.isActive] lets the offscreen guide avoid
