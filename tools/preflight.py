@@ -219,6 +219,14 @@ STEPS: tuple[Step, ...] = (
         ),
     ),
     Step(
+        "doc-gate-references",
+        "developer docs cite only tool scripts that exist, and cited gates have tests",
+        (
+            py("tools/ci/test_check_doc_gate_references.py"),
+            py("tools/ci/check_doc_gate_references.py"),
+        ),
+    ),
+    Step(
         "pr-gates",
         "the merge-readiness gate script itself still works",
         (py("tools/ci/test_check_pr_review_gates.py"),),
