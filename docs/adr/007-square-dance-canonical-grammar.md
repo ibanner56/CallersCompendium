@@ -365,10 +365,10 @@ The registry (§7) has two parts:
   own words, except where a traditional meaning differs and is kept as a
   variant.
 
-Each borrowed call carries its **CALLERLAB program as a glossary label**
-("Mainstream", "Plus", "Advanced"), so a caller can see that a call is a
-club call, and the glossary can sort and filter by it (§8.3). Nothing else
-is derived from it:
+Each borrowed call, and each core call that CALLERLAB also lists, carries
+its **CALLERLAB program as a glossary label** ("Mainstream", "Plus",
+"Advanced"), so a caller can see which calls are also club calls, and the
+glossary can sort and filter by it (§8.3). Nothing else is derived from it:
 
 - There is **no derived "required program"** for a dance. On traditional
   squares it would mislead: Parkes rates Circle Three Quarters
@@ -636,8 +636,10 @@ CALLERLAB Mainstream calls that §7.1 already covers (Swing, Promenade,
 Allemande and Arm Turns, Circle, Forward and Back, Pass Thru, "[Robins] Chain",
 Star, Balance, Dosado, Separate, Right and Left Thru, Lead Right, U-Turn Back,
 Backtrack) take their traditional entries, with the CALLERLAB name as an alias
-where it differs. The Plus call See Saw is the `dosido` alias noted in §7.1,
-with the label "Plus" on that alias in the glossary.
+where it differs. These entries also carry the "Mainstream" label, on the
+entry or on its CALLERLAB-name alias, so a program filter finds them (§8.3).
+The Plus call See Saw is the `dosido` alias noted in §7.1, with the label
+"Plus" on that alias in the same way.
 
 ### 7.3 Plus, Advanced and Challenge calls in traditional sources
 
@@ -761,8 +763,10 @@ that. It is never a two-way switch.
 - The square glossary can be sorted and filtered by program (maintainer
   requirement, §1.1), as a browsing structure like Taminations' by level.
   The groups are the traditional core, then Mainstream, Plus, Advanced and
-  Challenge for the borrowed club calls. Each entry shows its own-words
-  definition, parameters, default beats and program label.
+  Challenge. A core call that CALLERLAB also lists (Swing, Dosado, Right
+  and Left Thru, ...) carries that program's label too (§7.2), so filtering
+  to Mainstream shows it alongside the borrowed calls. Each entry shows its
+  own-words definition, parameters, default beats and program label.
 - Dialect settings already switch by dance form, and squares have their own
   dialect library (§3).
 - Figures of your own already carry a `form` (§3). The glossary shows only
