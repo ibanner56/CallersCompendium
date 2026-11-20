@@ -90,7 +90,9 @@ class _AppearanceView extends StatelessWidget {
         SectionHeader(title: l10n.settingsAppearanceThemeHeader),
         ListTile(
           key: const ValueKey('appearance-theme'),
-          leading: const Icon(Icons.color_lens_outlined),
+          // The half-lit sun, not a palette: Appearance and Formation colors
+          // already use the palette (the maintainer's pick).
+          leading: const Icon(Icons.brightness_6_outlined),
           // A fixed title says what the row opens; the theme in use sits
           // under it.
           title: Text(l10n.settingsAppearanceThemeHeader),

@@ -1760,6 +1760,7 @@ void main() {
       // A fixed title says what the row opens; the theme in use sits under it.
       expect((tile.title! as Text).data, 'Theme');
       expect((tile.subtitle! as Text).data, 'Catppuccin Mocha');
+      expect((tile.leading! as Icon).icon, Icons.brightness_6_outlined);
       // The gallery itself is no longer inline in Appearance.
       expect(
         find.byKey(ValueKey('theme-${AppThemeSelection.light.name}')),
