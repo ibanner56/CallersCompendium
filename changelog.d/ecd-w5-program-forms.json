@@ -4,6 +4,9 @@
   "app": {
     "added": [
       "A program that mixes contra and English dances names each dance's type in the builder, and its matrix (on screen and in the PDF) names each figure's column and each dance's formation details in that type's dialect."
+    ],
+    "changed": [
+      "The program matrix shows each dance's formation details as the dance itself does, so a dance whose choreographer asked for larks and robins shows those words there too."
     ]
   }
 }

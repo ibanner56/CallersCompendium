@@ -4660,6 +4660,64 @@ void main() {
     );
   });
 
+  testWidgets('a contra figure shared by squares reads in the squares\' '
+      'dialect when only squares use it, and in contra\'s when forms mix '
+      '(ADR-006 S5)', (tester) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(
+      _dance(
+        id: 'sq',
+        title: 'Square Dance',
+        figures: [
+          Figure(move: 'balance'),
+          Figure(move: 'swing'),
+        ],
+      ).copyWith(form: DanceForm.square),
+    );
+    await repos.dances.create(
+      _dance(
+        id: 'co',
+        title: 'Contra Dance',
+        figures: [Figure(move: 'swing')],
+      ),
+    );
+    await repos.programs.create(
+      _program(
+        id: 'p1',
+        title: 'Squares and a contra',
+        slots: [
+          ProgramSlot(id: 's1', position: 0, danceId: 'sq'),
+          ProgramSlot(id: 's2', position: 1, danceId: 'co'),
+        ],
+      ),
+    );
+    final square = Dialect.canonical.copyWith(
+      name: 'Square test',
+      moves: {'balance': 'square balance', 'swing': 'square swing'},
+    );
+    await _pumpBuilder(
+      tester,
+      repos,
+      programId: 'p1',
+      dialects: DialectsByForm({
+        DanceForm.contra: Dialect.canonical,
+        DanceForm.square: square,
+      }),
+    );
+    await tester.tap(find.byKey(const ValueKey('program-matrix-tab')));
+    await tester.pumpAndSettle();
+    final table = find.byKey(const ValueKey('program-matrix-table'));
+    Finder header(String text) =>
+        find.descendant(of: table, matching: find.textContaining(text));
+
+    // Only the square dance balances: its column reads in the squares'
+    // dialect.
+    expect(header('square balance'), findsOneWidget);
+    // Both dances swing: the shared column reads in contra's.
+    expect(header('swing'), findsWidgets);
+    expect(header('square swing'), findsNothing);
+  });
+
   testWidgets('Matrix tab renders the programming matrix from draft slots', (
     tester,
   ) async {

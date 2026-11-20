@@ -145,7 +145,12 @@ wording, saved unchanged, reads as the default line. Imported
   alternative, rendering program text in the form of most of its dances, was
   rejected as unpredictable). The matrix names a figure's column in its
   figure's form's dialect, and a column of the user's own figure in contra's,
-  and shows each dance's formation details in that dance's dialect.
+  and shows each dance's formation details in that dance's dialect. A figure
+  with no prefix is contra's and is shared by squares, which have no taxonomy
+  yet: its column reads in the squares' dialect when only square dances in
+  the program use it, and in contra's otherwise (implementer's call; the
+  alternative, always contra's, would word a square-only program's columns
+  unlike its rows).
 
   A program may also name its own dialect (`Program.dialectName`, issue #1554),
   which only that program's Perform view uses; the editor, summary and exports

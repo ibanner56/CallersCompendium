@@ -618,17 +618,47 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         null => null,
       };
 
-  /// The dialect a matrix column is named in: its figure's form's. A column
-  /// of a figure of the user's own, or one that isn't a figure, reads in
-  /// [_dialect].
-  Dialect _dialectForMatrixColumn(MatrixColumn column) => switch (column.kind) {
-    MatrixColumnKind.known ||
-    MatrixColumnKind.split ||
-    MatrixColumnKind.unknown => _dialects.forForm(
-      shippedTaxonomies.formOfMoveId(column.moveId),
-    ),
-    _ => _dialect,
-  };
+  /// The dialect a column of [matrix] is named in: its figure's form's. A
+  /// figure of a form with its own taxonomy (an `ecd_` move) reads in that
+  /// form's. A figure with no prefix is contra's, and is shared by every form
+  /// that has no taxonomy of its own yet (squares): it reads in the form of
+  /// the dances that use it when they are all of one form, and in [_dialect]
+  /// when they mix forms. A column of a figure of the user's own, or one that
+  /// isn't a figure, reads in [_dialect].
+  Dialect _dialectForMatrixColumn(ProgramMatrix matrix, MatrixColumn column) {
+    switch (column.kind) {
+      case MatrixColumnKind.known ||
+          MatrixColumnKind.split ||
+          MatrixColumnKind.unknown:
+        final form = shippedTaxonomies.formOfMoveId(column.moveId);
+        if (form != DanceForm.contra) return _dialects.forForm(form);
+        final users = {
+          for (final row in matrix.rows)
+            if (row.contains(column)) _danceById(row.danceId)?.form,
+        };
+        return users.length == 1 && users.single != null
+            ? _dialects.forForm(users.single!)
+            : _dialect;
+      default:
+        return _dialect;
+    }
+  }
+
+  /// [_dialectForMatrixColumn] for every column of [matrix], by move ID, and
+  /// each row's dance's dialect ([_dialectForSlotDance]) by dance ID: worked
+  /// out once per matrix, not once per cell.
+  ({Map<String, Dialect> columns, Map<String, Dialect> rows}) _matrixDialects(
+    ProgramMatrix matrix,
+  ) => (
+    columns: {
+      for (final column in matrix.columns)
+        column.moveId: _dialectForMatrixColumn(matrix, column),
+    },
+    rows: {
+      for (final row in matrix.rows)
+        row.danceId: _dialectForSlotDance(row.danceId) ?? _dialect,
+    },
+  );
 
   /// The Programs "flag exact beat overlap only" matrix-collision setting
   /// (issue #962), read unconditionally in [didChangeDependencies] every
@@ -3699,6 +3729,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       config: _matrixColumnConfig,
       userFigures: UserFiguresScope.shownCatalogOf(context),
     );
+    final dialects = _matrixDialects(matrix);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -3781,12 +3812,13 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             showPhrases: _showMatrixPhrases,
             hiddenColumns: _hiddenMatrixColumns,
             onHideColumn: (id) => setState(() => _hiddenMatrixColumns.add(id)),
-            dialectForColumn: _dialectForMatrixColumn,
+            dialectForColumn: (column) =>
+                dialects.columns[column.moveId] ?? _dialect,
             formationLabelBuilder: (row) => formationDisplayLabel(
               l10n,
               row.formation,
               FigureRenderer(shippedTaxonomies.anyForm),
-              _dialectForSlotDance(row.danceId) ?? _dialect,
+              dialects.rows[row.danceId] ?? _dialect,
               canonicalizeDiscouragedTerms: CanonicalDiscouragedTermsScope.of(
                 context,
               ),
@@ -3816,14 +3848,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       context,
     );
     final dialect = _dialect;
-    final dialectForColumnId = {
-      for (final column in matrix.columns)
-        column.moveId: _dialectForMatrixColumn(column),
-    };
-    final dialectForRow = {
-      for (final row in matrix.rows)
-        row.danceId: _dialectForSlotDance(row.danceId) ?? dialect,
-    };
+    final (columns: dialectForColumnId, rows: dialectForRow) = _matrixDialects(
+      matrix,
+    );
     final config = _matrixColumnConfig;
     final eventDate = _eventDate;
     final title = _titleController.text.trim();

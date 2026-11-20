@@ -183,4 +183,39 @@ void main() {
       expect(_count(text, 'Friday Contra'), pages);
     });
   });
+
+  test('a matrix column is named in the dialect the caller gives it, and '
+      'each row\'s formation as the caller words it (ADR-006 S5)', () async {
+    final english = _dance('d2', 'English').copyWith(
+      form: DanceForm.ecd,
+      figures: [testFigure(move: 'ecd_honor')],
+    );
+    final matrix = buildProgramMatrix([
+      _dance('d1', 'Contra'),
+      english,
+    ], taxonomy: shippedTaxonomies.anyForm);
+    final englishDialect = Dialect.canonical.copyWith(
+      name: 'English test',
+      moves: {'ecd_honor': 'Honorword', 'balance': 'Wrongword'},
+    );
+    final bytes = await buildProgramMatrixPdf(
+      matrix,
+      taxonomy: shippedTaxonomies.anyForm,
+      dialect: Dialect.canonical,
+      programTitle: 'Mixed',
+      theme: _theme,
+      markerFont: await loadProgramMatrixMarkerFont(),
+      dialectForColumn: (column) =>
+          column.moveId == 'ecd_honor' ? englishDialect : Dialect.canonical,
+      formatFormation: (row) =>
+          row.danceId == 'd2' ? 'Englishformation' : 'Contraformation',
+    );
+    final text = pdfText(bytes);
+    // The English figure's column takes the English dialect; a contra column
+    // keeps the default, which the English dialect would word differently.
+    expect(text, contains('Honorword'));
+    expect(text, isNot(contains('Wrongword')));
+    expect(text, contains('Englishformation'));
+    expect(text, contains('Contraformation'));
+  });
 }

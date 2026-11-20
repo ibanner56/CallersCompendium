@@ -223,7 +223,8 @@ picker.*
 A program can mix types of dance, such as contra and English. When it does,
 each dance in your program names its type at the start of the line under its
 title, and each is shown in its own type's [dialect](./dialects.md). The
-**Type** section of the picker's **Filters** panel shows one type at a time.
+**Type** section of the picker's **Filters** panel narrows the list to the
+types you choose.
 
 **Add note or break** adds a free-text slot (a note, a waltz, an announcement), and **Insert break** adds a break.
 On a narrow screen, **Add dance** opens the collection picker.
@@ -421,7 +422,10 @@ Here is how to read it:
 
 - **Dances are rows; moves are columns.** In a program that mixes types of
   dance, each move's column is named in the dialect of its type, and each
-  dance's formation details are in the dialect of that dance's type.
+  dance's formation details are in the dialect of that dance's type. Square
+  dances share contra's figures for now, so a figure only square dances use is
+  named in the square dialect, and one that contra and square dances share is
+  named in the contra dialect.
 - **Large text.** The rows and the header strip grow with your system text
   size, so dance titles and move names stay readable. A title or move name that
   still does not fit ends in an ellipsis; **press and hold** it to read it in
