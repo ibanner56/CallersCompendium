@@ -53,6 +53,22 @@ void main() {
   // migration added its first ValueKeys via MoveTypeAheadField.fieldKey).
   // ---------------------------------------------------------------------
 
+  testWidgets('a standard phrase keeps its place\'s caption beside named '
+      'ones, which are captioned by their label', (tester) async {
+    await _pump(
+      tester,
+      selections: ByPhraseSelections(),
+      sectionLabels: const ['A', 'A1', 'A2', 'B', 'B1', 'B2', 'C'],
+      onChanged: () {},
+    );
+    expect(find.text('first phrase (usually A1)'), findsOneWidget);
+    expect(find.text('third phrase (usually B1)'), findsOneWidget);
+    expect(find.text('fourth phrase (usually B2)'), findsOneWidget);
+    for (final label in ['A', 'B', 'C']) {
+      expect(find.text(label), findsOneWidget);
+    }
+  });
+
   testWidgets('a chip for another form\'s figure names its form', (
     tester,
   ) async {

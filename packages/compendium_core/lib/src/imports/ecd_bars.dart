@@ -160,3 +160,122 @@ final RegExp _statedBeats = RegExp(
 
 /// The figure beats range's top (`ParamKind.beats`).
 const int _maxBeats = 64;
+
+/// The beats every count [line] states adds up to: each bracketed count in
+/// beats (`(8)`, a compound `(4,4)`), and each bar range (`1-4`, `(5-8)`) at
+/// [beatsPerBar] beats a bar. Used to tell whether a section's figures count
+/// all of its lines' counts ([EcdSectionBeats.counted]).
+int ecdStatedBeats(String line, int beatsPerBar) {
+  var beats = 0;
+  for (final match in _statedCount.allMatches(line)) {
+    final range = match.group(2);
+    if (range != null) {
+      final first = int.parse(range);
+      final last = int.parse(match.group(3)!);
+      if (last >= first) beats += (last - first + 1) * beatsPerBar;
+    } else {
+      for (final part in match.group(1)!.split(RegExp(r'[,+]'))) {
+        beats += int.parse(part.trim());
+      }
+    }
+  }
+  return beats;
+}
+
+/// A bracketed count in beats, or a bar range alone or in brackets, not part
+/// of a longer number, a meter or a word.
+final RegExp _statedCount = RegExp(
+  r'\(\s*(\d{1,3}(?:\s*[,+]\s*\d{1,3})*)\s*\)'
+  r'|(?<![\w/.-])\(?\s*(\d{1,3})\s*[-–—]\s*(\d{1,3})\s*\)?(?![\w/]|[.-]\d)',
+);
+
+/// One section of an English dance as its source lays it out: its [label]
+/// (`A1`, `B`, or null), the beats its figures count, and whether they are
+/// [counted]: they add up to every count its lines state ([ecdStatedBeats]),
+/// so none was lost in a line kept as text.
+typedef EcdSectionBeats = ({String? label, int beats, bool counted});
+
+/// The phrase structure an imported English dance takes (Hudson, 20 November
+/// 2026): its named phrases when its [sections] give them, else one that
+/// counts [beatsPerBar] beats a bar when its meter is [meterStated] and that
+/// is not 2, else the standard structure (`''`).
+///
+/// [sections] give named phrases when every one is labeled `A`, `B` or `C`,
+/// alone or numbered `1` then `2` (`A1 A2 B1`, `A B C`), each letter's
+/// sections together and in order, each played at most twice; and each
+/// section's figures are all counted, to a whole number of bars at
+/// [beatsPerBar]. A letter played twice counts the same bars both times. A
+/// section that counts no bars (only a line such as "repeat to places") names
+/// no phrases, because the figures after it would be labeled a phrase too
+/// early. So
+/// `A1 A2 B1` of 8, 8 and 16 bars is `A:2*8*2 + B:1*16*2` in 2/2. Named
+/// phrases that are just A and B of 8 bars, each played twice, are the
+/// unnamed structure instead.
+String ecdPhraseStructureFor(
+  List<EcdSectionBeats> sections, {
+  required int beatsPerBar,
+  required bool meterStated,
+}) {
+  final unnamed = meterStated && beatsPerBar != 2 ? '4*8*$beatsPerBar' : '';
+  final named = _namedPhrasesFor(sections, beatsPerBar);
+  // A1 A2 B1 B2 of 8 bars each is the structure the meter gives anyway, so
+  // it stays unnamed: older builds read it, and cards don't print it.
+  if (named != null && !_isStandardShape(named)) {
+    try {
+      return PhraseStructure.named(named).raw;
+    } on FormatException {
+      // diagnostics: silent — phrases past the structure's bounds fall back
+      // to the meter's structure below.
+    }
+  }
+  return unnamed;
+}
+
+List<NamedPhrase>? _namedPhrasesFor(
+  List<EcdSectionBeats> sections,
+  int beatsPerBar,
+) {
+  if (sections.isEmpty) return null;
+  final phrases = <NamedPhrase>[];
+  for (final section in sections) {
+    final match = _sectionLabel.firstMatch(section.label?.trim() ?? '');
+    if (match == null) return null;
+    final name = match.group(1)!;
+    final number = match.group(2);
+    if (section.beats % beatsPerBar != 0) return null;
+    final bars = section.beats ~/ beatsPerBar;
+    // A section of bars it can't fully count gives no phrase length, and one
+    // of no bars would shift every later figure's label.
+    if (bars == 0 || !section.counted) return null;
+    final last = phrases.isEmpty ? null : phrases.last;
+    if (last != null && last.name == name) {
+      // The repeat: `A2` after `A1`, of the same bars.
+      if (number != '2' || last.plays != 1) return null;
+      if (bars != last.bars) return null;
+      phrases[phrases.length - 1] = NamedPhrase(
+        name: name,
+        plays: 2,
+        bars: last.bars,
+        beatsPerBar: beatsPerBar,
+      );
+      continue;
+    }
+    if (number == '2') return null;
+    if (phrases.any((p) => p.name == name)) return null;
+    phrases.add(
+      NamedPhrase(name: name, plays: 1, bars: bars, beatsPerBar: beatsPerBar),
+    );
+  }
+  return phrases;
+}
+
+/// Whether [phrases] are A and B, each of 8 bars played twice: the labels
+/// and lengths of the standard structure at their beats per bar.
+bool _isStandardShape(List<NamedPhrase> phrases) =>
+    phrases.length == 2 &&
+    phrases[0].name == 'A' &&
+    phrases[1].name == 'B' &&
+    phrases.every((p) => p.plays == 2 && p.bars == 8);
+
+/// A section label naming a phrase: `A`, `B` or `C`, alone or numbered.
+final RegExp _sectionLabel = RegExp(r'^([ABC])([12])?$');

@@ -12,6 +12,15 @@ import 'figure.dart';
 /// sibling limits. Section labels (A1, B2, …) are **derived** from cumulative
 /// figure beats against this structure — never stored — so reordering figures
 /// or editing beats stays consistent.
+///
+/// **Named phrases** (English dances; Hudson, 20 November 2026): each
+/// component may instead start with the caller's own phrase name, `A:`, `B:`
+/// or `C:`, as in `A:2*4*2 + B:1*8*2` (an A of 4 bars played twice, then a B
+/// of 8 bars once). Then every component is named, each name is used once,
+/// and each phrase plays once or twice, its repeat straight after it. A
+/// phrase played once is labeled by its name alone (`B`); one played twice
+/// is labeled `A1` and `A2`. A structure with no names keeps the paired
+/// labels above.
 @immutable
 class PhraseStructure {
   const PhraseStructure._(this.components, this.raw);
@@ -33,6 +42,12 @@ class PhraseStructure {
   /// Most beats accepted across all components. Together with
   /// [maxComponentNumber] this keeps every product inside 53 bits (web ints).
   static const int maxTotalBeats = 1000000;
+
+  /// The names a caller may give a phrase, in the order they are offered.
+  static const List<String> phraseNames = ['A', 'B', 'C'];
+
+  /// Most times a named phrase plays: once, or twice with its repeat.
+  static const int maxNamedPlays = 2;
 
   /// Parses a phrase-structure string, falling back to [standard] when [raw]
   /// is not a valid, in-bounds structure.
@@ -81,6 +96,7 @@ class PhraseStructure {
       for (final component in componentStrings)
         _parseComponent(component.trim(), raw),
     ]);
+    _checkNames(components, raw);
     // Each number is already <= maxComponentNumber, so these sums and products
     // cannot overflow before they are checked.
     final phrases = components.fold(0, (sum, c) => sum + c.phraseCount);
@@ -95,8 +111,35 @@ class PhraseStructure {
     return PhraseStructure._(components, trimmed);
   }
 
+  /// Named phrases: all or none named, each name once, each played once or
+  /// twice.
+  static void _checkNames(List<PhraseComponent> components, String raw) {
+    final named = components.where((c) => c.name != null).length;
+    if (named == 0) return;
+    if (named != components.length) {
+      throw FormatException(
+        'either every phrase is named or none is: "$raw"',
+        raw,
+      );
+    }
+    final names = {for (final c in components) c.name};
+    if (names.length != components.length) {
+      throw FormatException('each phrase name is used once: "$raw"', raw);
+    }
+    if (components.any((c) => c.phraseCount > maxNamedPlays)) {
+      throw FormatException(
+        'a named phrase plays at most $maxNamedPlays times: "$raw"',
+        raw,
+      );
+    }
+  }
+
+  static final RegExp _component = RegExp(
+    r'^(?:([ABC])\s*:\s*)?(\d+)\*(\d+)\*(\d+)$',
+  );
+
   static PhraseComponent _parseComponent(String component, String raw) {
-    final match = RegExp(r'^(\d+)\*(\d+)\*(\d+)$').firstMatch(component);
+    final match = _component.firstMatch(component);
     if (match == null) {
       throw FormatException(
         'expected "phrases*bars*beatsPerBar" component, got "$raw"',
@@ -105,9 +148,9 @@ class PhraseStructure {
     }
 
     final numbers = [
-      int.tryParse(match.group(1)!),
       int.tryParse(match.group(2)!),
       int.tryParse(match.group(3)!),
+      int.tryParse(match.group(4)!),
     ];
     if (numbers.any((number) => number == null || number <= 0)) {
       throw FormatException(
@@ -121,8 +164,41 @@ class PhraseStructure {
         raw,
       );
     }
-    return PhraseComponent._(numbers[0]!, numbers[1]!, numbers[2]!);
+    return PhraseComponent._(
+      numbers[0]!,
+      numbers[1]!,
+      numbers[2]!,
+      match.group(1),
+    );
   }
+
+  /// A structure of named phrases, written as it is stored: each part's
+  /// [NamedPhrase.name], how many times it plays, its bars and beats per bar,
+  /// in order. Throws [FormatException] as [PhraseStructure.parse] does when
+  /// [phrases] break its rules or bounds; an empty list is the standard
+  /// structure.
+  factory PhraseStructure.named(List<NamedPhrase> phrases) =>
+      PhraseStructure.parse(
+        phrases
+            .map((p) => '${p.name}:${p.plays}*${p.bars}*${p.beatsPerBar}')
+            .join(' + '),
+      );
+
+  /// Whether the caller named the phrases ([phraseNames]).
+  bool get isNamed => components.first.name != null;
+
+  /// The named phrases, in order, or null when [isNamed] is false.
+  List<NamedPhrase>? get namedPhrases => isNamed
+      ? [
+          for (final c in components)
+            NamedPhrase(
+              name: c.name!,
+              plays: c.phraseCount,
+              bars: c.bars,
+              beatsPerBar: c.beatsPerBar,
+            ),
+        ]
+      : null;
 
   /// Ordered phrase components, retained exactly enough to preserve uneven
   /// source phrasing and derive its beat boundaries.
@@ -166,11 +242,25 @@ class PhraseStructure {
   /// Phrase labels: paired letters (A1 A2 B1 B2 C1 C2 …), the convention for
   /// contra/ECD music. An odd phrase count leaves the last pair incomplete,
   /// e.g. 3 phrases label as `A1 A2 B1` (the trailing phrase gets the next
-  /// letter's `1`, not a full pair).
+  /// letter's `1`, not a full pair). Named phrases ([isNamed]) are labeled
+  /// by their names instead: `A` for a phrase played once, `A1` and `A2` for
+  /// one played twice.
   List<String> get labels =>
       List.generate(phraseCount, _labelForPhrase, growable: false);
 
-  static String _labelForPhrase(int i) {
+  String _labelForPhrase(int i) {
+    if (isNamed) {
+      var index = i;
+      for (final component in components) {
+        if (index < component.phraseCount) {
+          return component.phraseCount == 1
+              ? component.name!
+              : '${component.name}${index + 1}';
+        }
+        index -= component.phraseCount;
+      }
+      throw StateError('no phrase $i');
+    }
     final letter = String.fromCharCode('A'.codeUnitAt(0) + i ~/ 2);
     return '$letter${i % 2 + 1}';
   }
@@ -265,7 +355,16 @@ bool _sameComponents(List<PhraseComponent> left, List<PhraseComponent> right) {
 /// One uniform run within a [PhraseStructure].
 @immutable
 class PhraseComponent {
-  const PhraseComponent._(this.phraseCount, this.bars, this.beatsPerBar);
+  const PhraseComponent._(
+    this.phraseCount,
+    this.bars,
+    this.beatsPerBar, [
+    this.name,
+  ]);
+
+  /// The caller's name for this phrase (`A`, `B` or `C`), or null when the
+  /// structure's phrases are not named ([PhraseStructure.isNamed]).
+  final String? name;
 
   /// Number of adjacent phrases in this component.
   final int phraseCount;
@@ -291,10 +390,48 @@ class PhraseComponent {
       other is PhraseComponent &&
       other.phraseCount == phraseCount &&
       other.bars == bars &&
+      other.beatsPerBar == beatsPerBar &&
+      other.name == name;
+
+  @override
+  int get hashCode => Object.hash(phraseCount, bars, beatsPerBar, name);
+}
+
+/// One named phrase of an English dance's tune ([PhraseStructure.named]).
+@immutable
+class NamedPhrase {
+  const NamedPhrase({
+    required this.name,
+    required this.plays,
+    required this.bars,
+    required this.beatsPerBar,
+  });
+
+  /// `A`, `B` or `C` ([PhraseStructure.phraseNames]).
+  final String name;
+
+  /// How many times it plays: 1, or 2 with its repeat straight after.
+  final int plays;
+
+  /// Bars in the phrase.
+  final int bars;
+
+  /// Beats in each bar.
+  final int beatsPerBar;
+
+  @override
+  bool operator ==(Object other) =>
+      other is NamedPhrase &&
+      other.name == name &&
+      other.plays == plays &&
+      other.bars == bars &&
       other.beatsPerBar == beatsPerBar;
 
   @override
-  int get hashCode => Object.hash(phraseCount, bars, beatsPerBar);
+  int get hashCode => Object.hash(name, plays, bars, beatsPerBar);
+
+  @override
+  String toString() => 'NamedPhrase($name: $plays×$bars bars of $beatsPerBar)';
 }
 
 /// Returns the phrase label for a figure starting at [beat] with [figureBeats]

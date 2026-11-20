@@ -2556,6 +2556,302 @@ void main() {
       await tester.pumpAndSettle();
     });
 
+    group('named phrases', () {
+      Future<CompendiumRepositories> ecdDance({
+        String meter = '2/2',
+        String phraseStructure = '',
+        DanceForm form = DanceForm.ecd,
+      }) async {
+        final repos = openTestRepositories();
+        await repos.dances.create(
+          Dance(
+            id: 'd3',
+            title: 'Phrased Dance',
+            form: form,
+            meter: meter,
+            phraseStructure: phraseStructure,
+            formation: Formation(
+              form == DanceForm.ecd
+                  ? FormationShape.dupleMinor
+                  : FormationShape.dupleImproper,
+            ),
+            figures: [
+              testFigure(
+                move: form == DanceForm.ecd ? 'ecd_circle' : 'circle',
+                params: {'beats': 8},
+              ),
+            ],
+            createdAt: _now,
+            updatedAt: _now,
+          ),
+        );
+        return repos;
+      }
+
+      Future<String> savedStructure(
+        WidgetTester tester,
+        CompendiumRepositories repos,
+      ) async {
+        await tester.ensureVisible(find.byKey(const ValueKey('save-dance')));
+        await tester.tap(find.byKey(const ValueKey('save-dance')));
+        await tester.pumpAndSettle();
+        return (await repos.dances.getById('d3'))!.phraseStructure.raw;
+      }
+
+      Future<void> setBars(WidgetTester tester, int row, String bars) async {
+        await tester.enterText(
+          find.byKey(ValueKey('named-phrase-$row-bars')),
+          bars,
+        );
+        await tester.pump();
+      }
+
+      Future<void> setPlays(WidgetTester tester, int row, String label) async {
+        await tester.tap(
+          find.descendant(
+            of: find.byKey(ValueKey('named-phrase-$row-plays')),
+            matching: find.text(label),
+          ),
+        );
+        await tester.pump();
+      }
+
+      testWidgets('a caller names an A of 4 bars played twice and a B of 8 '
+          'played once', (tester) async {
+        final repos = await ecdDance();
+        await _pumpEditor(tester, repos, danceId: 'd3');
+        expect(find.byKey(const ValueKey('phrase-field')), findsOneWidget);
+        await tester.ensureVisible(
+          find.byKey(const ValueKey('named-phrases-start')),
+        );
+        await tester.tap(find.byKey(const ValueKey('named-phrases-start')));
+        await tester.pump();
+        // The standard structure starts as A and B, each 8 bars twice.
+        expect(find.byKey(const ValueKey('named-phrases')), findsOneWidget);
+        expect(find.byKey(const ValueKey('phrase-field')), findsNothing);
+        await setBars(tester, 0, '4');
+        await setPlays(tester, 1, 'Once');
+        expect(await savedStructure(tester, repos), 'A:2*4*2 + B:1*8*2');
+        final saved = (await repos.dances.getById('d3'))!;
+        expect(saved.phraseStructure.labels, ['A1', 'A2', 'B']);
+      });
+
+      testWidgets('naming the phrases is its own undo step, apart from the '
+          'bars typed next', (tester) async {
+        final repos = await ecdDance();
+        await _pumpEditor(tester, repos, danceId: 'd3');
+        await tester.ensureVisible(
+          find.byKey(const ValueKey('named-phrases-start')),
+        );
+        await tester.tap(find.byKey(const ValueKey('named-phrases-start')));
+        await tester.pump();
+        await setBars(tester, 0, '4');
+        await tester.pump(const Duration(seconds: 1));
+        await tester.ensureVisible(find.byKey(const ValueKey('undo-button')));
+        await tester.tap(find.byKey(const ValueKey('undo-button')));
+        await tester.pump();
+        // The bars go back to 8; the phrases stay named.
+        expect(find.byKey(const ValueKey('named-phrases')), findsOneWidget);
+        expect(
+          tester
+              .widget<TextField>(
+                find.byKey(const ValueKey('named-phrase-0-bars')),
+              )
+              .controller
+              ?.text,
+          '8',
+        );
+      });
+
+      testWidgets('A, B and C each played once', (tester) async {
+        final repos = await ecdDance(phraseStructure: 'A:1*4*2 + B:1*4*2');
+        await _pumpEditor(tester, repos, danceId: 'd3');
+        expect(find.byKey(const ValueKey('named-phrase-1-bars')), findsOne);
+        await tester.ensureVisible(
+          find.byKey(const ValueKey('named-phrases-add')),
+        );
+        await tester.tap(find.byKey(const ValueKey('named-phrases-add')));
+        await tester.pump();
+        // All three names are used, so no more can be added.
+        expect(find.byKey(const ValueKey('named-phrases-add')), findsNothing);
+        expect(
+          await savedStructure(tester, repos),
+          'A:1*4*2 + B:1*4*2 + C:1*8*2',
+        );
+      });
+
+      testWidgets('the meter sets the beats in each named phrase\'s bars', (
+        tester,
+      ) async {
+        final repos = await ecdDance(phraseStructure: 'A:2*4*2 + B:1*8*2');
+        await _pumpEditor(tester, repos, danceId: 'd3');
+        await tester.enterText(
+          find.byKey(const ValueKey('meter-field')),
+          '3/2',
+        );
+        await tester.pump();
+        expect(await savedStructure(tester, repos), 'A:2*4*3 + B:1*8*3');
+      });
+
+      testWidgets('an empty bar count changes nothing and says why', (
+        tester,
+      ) async {
+        final repos = await ecdDance(phraseStructure: 'A:2*4*2 + B:1*8*2');
+        await _pumpEditor(tester, repos, danceId: 'd3');
+        await setBars(tester, 1, '');
+        expect(
+          find.byKey(const ValueKey('named-phrases-invalid')),
+          findsOneWidget,
+        );
+        expect(await savedStructure(tester, repos), 'A:2*4*2 + B:1*8*2');
+      });
+
+      testWidgets('removing every phrase goes back to the standard structure', (
+        tester,
+      ) async {
+        final repos = await ecdDance(phraseStructure: 'A:1*16*2');
+        await _pumpEditor(tester, repos, danceId: 'd3');
+        await tester.tap(find.byKey(const ValueKey('named-phrase-0-remove')));
+        await tester.pump();
+        expect(find.byKey(const ValueKey('named-phrases-start')), findsOne);
+        expect(find.byKey(const ValueKey('phrase-field')), findsOneWidget);
+        expect(await savedStructure(tester, repos), '');
+      });
+
+      testWidgets('removing every phrase in 3/2 keeps the meter\'s beats', (
+        tester,
+      ) async {
+        final repos = await ecdDance(meter: '3/2', phraseStructure: 'A:1*16*3');
+        await _pumpEditor(tester, repos, danceId: 'd3');
+        await tester.tap(find.byKey(const ValueKey('named-phrase-0-remove')));
+        await tester.pump();
+        expect(await savedStructure(tester, repos), '4*8*3');
+      });
+
+      testWidgets('changing the form away from English keeps the phrases\' '
+          'lengths and drops their names', (tester) async {
+        final repos = await ecdDance(phraseStructure: 'A:2*4*2 + B:1*8*2');
+        await _pumpEditor(tester, repos, danceId: 'd3');
+        await tester.ensureVisible(find.byKey(const ValueKey('form-field')));
+        await tester.tap(find.byKey(const ValueKey('form-field')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Contra').last);
+        await tester.pumpAndSettle();
+        expect(find.byKey(const ValueKey('named-phrases')), findsNothing);
+        expect(await savedStructure(tester, repos), '2*4*2 + 1*8*2');
+      });
+
+      testWidgets('a contra dance is not offered named phrases', (
+        tester,
+      ) async {
+        final repos = await ecdDance(form: DanceForm.contra);
+        await _pumpEditor(tester, repos, danceId: 'd3');
+        expect(find.byKey(const ValueKey('named-phrases-start')), findsNothing);
+        expect(find.byKey(const ValueKey('phrase-field')), findsOneWidget);
+      });
+
+      testWidgets('a phrase is renamed from its name field', (tester) async {
+        final repos = await ecdDance(phraseStructure: 'A:2*4*2 + B:1*8*2');
+        await _pumpEditor(tester, repos, danceId: 'd3');
+        final name = find.byKey(const ValueKey('named-phrase-1-name'));
+        await tester.ensureVisible(name);
+        await tester.tap(name);
+        await tester.pumpAndSettle();
+        // A is taken by the other row, so only B and C are offered.
+        await tester.tap(find.text('C').last);
+        await tester.pumpAndSettle();
+        expect(find.text('Bars in C'), findsOneWidget);
+        expect(await savedStructure(tester, repos), 'A:2*4*2 + C:1*8*2');
+      });
+
+      testWidgets('a contra dance can\'t save typed phrase names', (
+        tester,
+      ) async {
+        final repos = await ecdDance(form: DanceForm.contra);
+        await _pumpEditor(tester, repos, danceId: 'd3');
+        await tester.enterText(
+          find.byKey(const ValueKey('phrase-field')),
+          'A:2*8*2 + B:2*8*2',
+        );
+        await tester.pump();
+        expect(await savedStructure(tester, repos), '');
+        expect(
+          find.text('Phrase names (A:, B:, C:) are for English dances only.'),
+          findsOneWidget,
+        );
+      });
+
+      testWidgets('a default with phrase names gives a new contra dance '
+          'the lengths only', (tester) async {
+        final repos = openTestRepositories();
+        await repos.settings.set(kDefaultDanceFormKey, DanceForm.contra.name);
+        await repos.settings.set(
+          kDefaultDancePhraseStructureKey,
+          'A:2*8*2 + B:1*8*2',
+        );
+        await _pumpEditor(tester, repos);
+        expect(
+          tester
+              .widget<TextFormField>(find.byKey(const ValueKey('phrase-field')))
+              .controller
+              ?.text,
+          '2*8*2 + 1*8*2',
+        );
+      });
+
+      testWidgets('typing a named structure keeps the field until the caller '
+          'leaves it', (tester) async {
+        final repos = await ecdDance();
+        await _pumpEditor(tester, repos, danceId: 'd3');
+        final field = find.byKey(const ValueKey('phrase-field'));
+        await tester.ensureVisible(field);
+        await tester.tap(field);
+        await tester.pump();
+        // Already named after its first part: the field stays while focused.
+        await tester.enterText(field, 'A:2*8*2');
+        await tester.pump();
+        expect(field, findsOneWidget);
+        await tester.enterText(field, 'A:2*8*2 + B:1*8*2');
+        await tester.pump();
+        FocusManager.instance.primaryFocus?.unfocus();
+        await tester.pump();
+        expect(field, findsNothing);
+        expect(find.byKey(const ValueKey('named-phrase-1-bars')), findsOne);
+        expect(await savedStructure(tester, repos), 'A:2*8*2 + B:1*8*2');
+      });
+
+      testWidgets('naming the standard structure in 4/4 keeps its 8 bars', (
+        tester,
+      ) async {
+        final repos = await ecdDance(meter: '4/4');
+        await _pumpEditor(tester, repos, danceId: 'd3');
+        await tester.ensureVisible(
+          find.byKey(const ValueKey('named-phrases-start')),
+        );
+        await tester.tap(find.byKey(const ValueKey('named-phrases-start')));
+        await tester.pump();
+        expect(await savedStructure(tester, repos), 'A:2*8*4 + B:2*8*4');
+      });
+
+      testWidgets('a bar count past the most allowed is shown on its field', (
+        tester,
+      ) async {
+        final repos = await ecdDance(phraseStructure: 'A:2*4*2 + B:1*8*2');
+        await _pumpEditor(tester, repos, danceId: 'd3');
+        expect(find.text('Bars in A'), findsOneWidget);
+        expect(find.text('Bars in B'), findsOneWidget);
+        await setBars(tester, 1, '1001');
+        expect(find.text('1 to 1000'), findsOneWidget);
+        expect(
+          find.byKey(const ValueKey('named-phrases-invalid')),
+          findsOneWidget,
+        );
+        await setBars(tester, 1, '1000');
+        expect(find.text('1 to 1000'), findsNothing);
+        expect(await savedStructure(tester, repos), 'A:2*4*2 + B:1*1000*2');
+      });
+    });
+
     testWidgets('an English dance shows its credits, meter, key and the '
         'improper checkbox up front, and saves edits to them', (tester) async {
       final repos = await withEcdDance();

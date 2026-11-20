@@ -410,7 +410,8 @@ tag.
 ### Ask per phrase with By phrase search
 
 If you think about dances the way The Caller's Box does — phrase by phrase — open
-the **By phrase** panel. For each phrase (A1, A2, B1, B2) you can require that
+the **By phrase** panel. For each phrase (A1, A2, B1, B2, and any your
+English dances name, such as A, B or C) you can require that
 certain moves **are present** ("figures match") or that certain moves **are
 absent** ("but do not match"). It is a quick way to say, for instance, "a swing
 in B1, but no hey anywhere in A." Each box is a type-ahead like the one in

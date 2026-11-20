@@ -11032,6 +11032,84 @@
   "@danceEditorPhraseStructureHint": {
     "description": "Hint explaining the dance phrase-structure field syntax."
   },
+  "danceEditorPhrasesNameThem": "Name the phrases",
+  "@danceEditorPhrasesNameThem": {
+    "description": "Button in an English dance's editor that starts naming the tune's phrases A, B and C, each with its bars and whether it plays once or twice. It starts from the dance's current phrase structure."
+  },
+  "danceEditorPhrasesTitle": "Phrases",
+  "@danceEditorPhrasesTitle": {
+    "description": "Heading above an English dance's named phrases (A, B, C), one row each."
+  },
+  "danceEditorPhrasesHelp": "Name each part of the tune A, B or C, give its bars, and say whether it plays once or twice. A phrase played twice is labeled A1 and A2.",
+  "@danceEditorPhrasesHelp": {
+    "description": "Help under the Phrases heading in an English dance's editor. A, B, C, A1 and A2 are phrase labels of English country dance music and stay as written."
+  },
+  "danceEditorPhrasesAdd": "Add phrase",
+  "@danceEditorPhrasesAdd": {
+    "description": "Button that adds a named phrase (the next unused of A, B, C) to an English dance's phrases. Hidden when all three are used."
+  },
+  "danceEditorPhrasesInvalid": "Give each phrase from 1 to {max} bars. Until then the dance keeps its last valid phrases, and Save saves those.",
+  "@danceEditorPhrasesInvalid": {
+    "description": "Error under an English dance's named phrases when a bar count is empty, zero or above {max}, or the phrases are too long. The phrase structure is kept as it was until it is fixed, and Save saves that kept structure.",
+    "placeholders": {
+      "max": {
+        "type": "int",
+        "example": "1000"
+      }
+    }
+  },
+  "danceEditorPhraseBarsLabel": "Bars in {name}",
+  "@danceEditorPhraseBarsLabel": {
+    "description": "Label of the number field for how many bars of music one named phrase of an English dance has. The name is A, B or C, a phrase label of English country dance music.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "A"
+      }
+    }
+  },
+  "danceEditorPhraseBarsRange": "1 to {max}",
+  "@danceEditorPhraseBarsRange": {
+    "description": "Short error under one named phrase's Bars field in an English dance when its bar count is empty, zero or too large: the bars it may have.",
+    "placeholders": {
+      "max": {
+        "type": "int",
+        "example": "1000"
+      }
+    }
+  },
+  "danceEditorPhraseNameLabel": "Phrase name",
+  "@danceEditorPhraseNameLabel": {
+    "description": "Label of the dropdown that picks one named phrase's name (A, B or C) in an English dance's phrases."
+  },
+  "danceEditorPhrasePlaysLabel": "How often {name} plays",
+  "@danceEditorPhrasePlaysLabel": {
+    "description": "Screen-reader label of the Once/Twice choice for one named phrase of an English dance's tune. The name is A, B or C.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "A"
+      }
+    }
+  },
+  "danceEditorPhrasePlaysOnce": "Once",
+  "@danceEditorPhrasePlaysOnce": {
+    "description": "Choice for a named phrase of an English dance's tune: it plays once (labeled A)."
+  },
+  "danceEditorPhrasePlaysTwice": "Twice",
+  "@danceEditorPhrasePlaysTwice": {
+    "description": "Choice for a named phrase of an English dance's tune: it plays twice, its repeat straight after it (labeled A1 and A2)."
+  },
+  "danceEditorPhraseRemove": "Remove phrase {name}",
+  "@danceEditorPhraseRemove": {
+    "description": "Tooltip of the button that removes one named phrase from an English dance's phrases. The name is A, B or C.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "B"
+      }
+    }
+  },
   "danceEditorFiguresSection": "Figures",
   "@danceEditorFiguresSection": {
     "description": "Section heading for the editable figure list in the dance editor."
@@ -11535,6 +11613,10 @@
   "validationPhraseInvalid": "That phrase structure isn't valid.",
   "@validationPhraseInvalid": {
     "description": "Field error shown under the dance editor's phrase-structure input when the entered text can't be parsed. Generic; the raw parser detail is not shown to users (only in debug builds)."
+  },
+  "validationPhraseNamedEnglishOnly": "Phrase names (A:, B:, C:) are for English dances only.",
+  "@validationPhraseNamedEnglishOnly": {
+    "description": "Field error under the dance editor's phrase-structure input when a dance that isn't an English country dance is given named phrases such as A:2*8*2. A:, B: and C: are written as typed."
   },
   "validationOrphanedAlt": "The alternate at position {position} has no preceding primary slot.",
   "@validationOrphanedAlt": {

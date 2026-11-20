@@ -667,6 +667,18 @@ nothing in it to lose.
 - **Phrase structure** — leave it blank for the standard A1 A2 B1 B2, or write
   your own (the field suggests `6*8*2` as an example). The app checks that what you
   write is a valid structure, and uses it for the beat count above.
+- **Phrases** (English dances) — choose **Name the phrases** to give the
+  tune's parts their own names instead: one row each for A, B and C, with
+  its **Bars** and whether it plays **Once** or **Twice**, the repeat
+  straight after it. A=4 played twice and B=8 played once labels the figures
+  A1, A2 and B; A=4, B=4 and C=8 each once labels them A, B and C. The bars
+  count in the dance's **Meter**, and changing the meter keeps each phrase's
+  bars. Each phrase has 1 to 1000 bars; while one is left empty or past
+  that, the dance keeps its last valid phrases, and **Save** saves those.
+  Remove every phrase to go back to unnamed phrases: the standard A1 A2 B1
+  B2, counted in the dance's meter. You can also
+  type names into the **Phrase structure** field (`A:2*4*2 + B:1*8*2`);
+  only an English dance can be saved with them.
 - **Meter** and **Key** — the tune's written meter, such as `3/2`, and its key,
   such as `G minor`, in your own words. They sit here for an English dance and
   in **More details** for other types.

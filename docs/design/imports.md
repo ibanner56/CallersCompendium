@@ -2349,6 +2349,25 @@ ECD dance.
   may give its key as `in G`. When a bar range is
   counted with no stated meter, the dance gets the info issue
   `cc_bars_meter_unstated`.
+- **Caller's Companion English phrase structure** (ADR-006 §9.2 point 8).
+  An English dance whose sections are all labeled `A`, `B` or `C`, alone
+  or numbered `1` then `2`, each letter's sections together, takes them as
+  named phrases (`ecdPhraseStructureFor`): `A1 A2 B1` of 4, 4 and 8 bars is
+  `A:2*4*2 + B:1*8*2` in 2/2. Each section's bars are its figures' beats at
+  the meter's beats per bar, taken only when they add up to every count its
+  lines state (`ecdStatedBeats`: bracketed beats and bar ranges), so a
+  count lost in a line kept as text, or a figure's default count where the
+  line states none, names no phrases. A second time (`A2`) must count the
+  same bars as the first. A section that counts none, such as an `A2` of
+  only "Repeat to places", names no phrases: its figures add no beats, so
+  naming would label every later figure a phrase early (B1's as `A2`).
+  Named phrases that are only A and B of 8 bars, each played twice, label
+  as the unnamed structure does, so they stay unnamed. With no named
+  phrases, a stated meter of other than two beats a bar
+  gives `4*8*N` (any N, so 5/4 gives `4*8*5`); else the standard
+  structure. Measured on Hudson's library (data only, not committed) on
+  20 November 2026: of 220 English dances, 31 named, none of them with a
+  phrase warning; 61 more given their meter's beats; 128 standard.
 - **Is the file English?** A Caller's Companion library often types its
   English dances "Contra", so the import screen asks once per `.USR` file,
   before reading it, whether its dances are English (Hudson, 19 November

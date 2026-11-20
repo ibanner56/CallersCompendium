@@ -8586,6 +8586,53 @@ class AppLocalizationsDe extends AppLocalizations {
       'Leer = Standard A1 A2 B1 B2; z. B. 6*8*2';
 
   @override
+  String get danceEditorPhrasesNameThem => 'Phrasen benennen';
+
+  @override
+  String get danceEditorPhrasesTitle => 'Phrasen';
+
+  @override
+  String get danceEditorPhrasesHelp =>
+      'Benenne jeden Teil der Melodie mit A, B oder C, gib seine Takte an und wähle, ob er einmal oder zweimal gespielt wird. Eine zweimal gespielte Phrase heißt A1 und A2.';
+
+  @override
+  String get danceEditorPhrasesAdd => 'Phrase hinzufügen';
+
+  @override
+  String danceEditorPhrasesInvalid(int max) {
+    return 'Gib jeder Phrase 1 bis $max Takte. Bis dahin behält der Tanz seine letzten gültigen Phrasen, und Speichern speichert diese.';
+  }
+
+  @override
+  String danceEditorPhraseBarsLabel(String name) {
+    return 'Takte in $name';
+  }
+
+  @override
+  String danceEditorPhraseBarsRange(int max) {
+    return '1 bis $max';
+  }
+
+  @override
+  String get danceEditorPhraseNameLabel => 'Name der Phrase';
+
+  @override
+  String danceEditorPhrasePlaysLabel(String name) {
+    return 'Wie oft $name gespielt wird';
+  }
+
+  @override
+  String get danceEditorPhrasePlaysOnce => 'Einmal';
+
+  @override
+  String get danceEditorPhrasePlaysTwice => 'Zweimal';
+
+  @override
+  String danceEditorPhraseRemove(String name) {
+    return 'Phrase $name entfernen';
+  }
+
+  @override
   String get danceEditorFiguresSection => 'Figuren';
 
   @override
@@ -8957,6 +9004,10 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get validationPhraseInvalid =>
       'Diese Phrasierungsstruktur ist ungültig.';
+
+  @override
+  String get validationPhraseNamedEnglishOnly =>
+      'Phrasennamen (A:, B:, C:) gibt es nur für englische Tänze.';
 
   @override
   String validationOrphanedAlt(int position) {

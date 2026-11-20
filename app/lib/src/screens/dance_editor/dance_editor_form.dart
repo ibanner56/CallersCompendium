@@ -25,6 +25,7 @@ import 'links_editor.dart';
 import '../../widgets/lingo_text_editing_controller.dart';
 import 'name_picker.dart';
 import '../../widgets/app_dropdown_field.dart';
+import 'named_phrases_editor.dart';
 import 'source_citations_editor.dart';
 import '../../theme/app_shapes.dart';
 
@@ -455,25 +456,44 @@ class DanceEditorForm extends StatelessWidget {
                   },
                 ),
                 const SizedBox(height: AppSpacing.md),
-                TextFormField(
-                  key: const ValueKey('phrase-field'),
-                  controller: controller.phraseController,
-                  decoration: InputDecoration(
-                    labelText: l10n.danceEditorPhraseStructureLabel,
-                    hintText: l10n.danceEditorPhraseStructureHint,
+                // An English dance's phrases are named by the caller (A, B,
+                // C, each once or twice); the text stays for a structure
+                // they have not named, such as a tune of several meters.
+                if (controller.offersNamedPhrases)
+                  NamedPhrasesEditor(
+                    structure: controller.typedPhraseStructure,
+                    beatsPerBar: controller.statedBeatsPerBar,
+                    onChanged: controller.setPhraseStructureText,
                   ),
-                  onChanged: (_) => controller.onPhraseChanged(),
-                  validator: (value) {
-                    try {
-                      PhraseStructure.parse(value ?? '');
-                      return null;
-                    } on FormatException catch (e) {
-                      // diagnostics: silent — FormatException is the expected signal from PhraseStructure.parse
-                      // for invalid user input; this is intentional validation control flow, not an unexpected error
-                      return phraseStructureErrorMessage(l10n, e);
-                    }
-                  },
-                ),
+                if (!controller.offersNamedPhrases ||
+                    controller.typedPhraseStructure?.isNamed != true ||
+                    controller.phraseFocusNode.hasFocus)
+                  TextFormField(
+                    key: const ValueKey('phrase-field'),
+                    controller: controller.phraseController,
+                    focusNode: controller.phraseFocusNode,
+                    decoration: InputDecoration(
+                      labelText: l10n.danceEditorPhraseStructureLabel,
+                      hintText: l10n.danceEditorPhraseStructureHint,
+                    ),
+                    onChanged: (_) => controller.onPhraseChanged(),
+                    validator: (value) {
+                      try {
+                        final structure = PhraseStructure.parse(value ?? '');
+                        // Named phrases are for English dances only (Hudson,
+                        // 20 November 2026).
+                        if (structure.isNamed &&
+                            !controller.offersNamedPhrases) {
+                          return l10n.validationPhraseNamedEnglishOnly;
+                        }
+                        return null;
+                      } on FormatException catch (e) {
+                        // diagnostics: silent — FormatException is the expected signal from PhraseStructure.parse
+                        // for invalid user input; this is intentional validation control flow, not an unexpected error
+                        return phraseStructureErrorMessage(l10n, e);
+                      }
+                    },
+                  ),
                 LingoDiscouragedHint(
                   controller: controller.phraseController,
                   dialect: dialect,
@@ -782,7 +802,9 @@ class DanceEditorForm extends StatelessWidget {
             // only be noise.
             counterText: '',
           ),
-          onChanged: (_) => controller.onTextEdited(),
+          onChanged: (_) => key == 'meter'
+              ? controller.onMeterChanged()
+              : controller.onTextEdited(),
         ),
         LingoDiscouragedHint(
           controller: textController,
