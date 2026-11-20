@@ -19,13 +19,12 @@ import '../../theme/app_spacing.dart';
 import '../../theme/touch_density.dart';
 import '../../widgets/app_bar_text_action.dart';
 import '../../widgets/app_dropdown_field.dart';
+import '../../glossary/figure_titles.dart';
 import '../../widgets/confirm_discard_changes.dart';
 import '../../widgets/figure_list_editor.dart';
 import '../../widgets/user_figure_argument_editor.dart';
 import '../../widgets/wording_condition_notes.dart';
 import 'custom_figure_detail.dart' show compoundParamKindLabel;
-
-final FigureRenderer _renderer = FigureRenderer(contraTaxonomy);
 
 final RegExp _lineBreaks = RegExp('\r\n|[\r\n\u2028\u2029]');
 
@@ -208,6 +207,19 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
   /// The dance form the entry is offered in (#1023, maintainer decision 8).
   late String _form = widget.initialForm?.name ?? defaultGlossaryEntryForm;
 
+  /// The figures this entry is built from and checked against: those of the
+  /// form it is made for ([_form]), as a dance of that form offers them, or
+  /// contra's for a form this build does not know.
+  Taxonomy get _taxonomy => shippedTaxonomies.forForm(_danceForm);
+
+  DanceForm get _danceForm => DanceForm.values.firstWhere(
+    (f) => f.name == _form,
+    orElse: () => DanceForm.contra,
+  );
+
+  /// Renders this entry's figures with [_taxonomy].
+  FigureRenderer get _renderer => glossaryRenderer(_danceForm);
+
   /// A new figure's wording template, shown in the active dialect, and its
   /// default beats.
   final _template = TextEditingController();
@@ -377,7 +389,7 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
       final raw = rawFigures[i];
       if (raw is! Map) continue;
       try {
-        final figure = contraTaxonomy.normalizeFigureV35(
+        final figure = _taxonomy.normalizeFigureV35(
           figureFromJson(raw.cast<String, Object?>()),
         );
         if (figure.move == customMove || isContainerMove(figure.move)) {
@@ -505,9 +517,9 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
     if (move == null || draft.isContainerDraft || move == customMove) {
       return const [];
     }
-    final def = contraTaxonomy.resolve(move);
+    final def = _taxonomy.resolve(move);
     if (def == null) return const [];
-    final alias = contraTaxonomy.aliases[move];
+    final alias = _taxonomy.aliases[move];
     return [
       for (final slot in def.params.entries)
         if (slot.key != 'beats' &&
@@ -711,7 +723,7 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
         createdAt: DateTime.utc(2000),
       ),
     ]);
-    final renderer = FigureRenderer(contraTaxonomy, userFigures: catalog);
+    final renderer = FigureRenderer(_taxonomy, userFigures: catalog);
     final use = userFigureUseFigure(
       id: previewId,
       args: {
@@ -747,7 +759,7 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
     final allowed = allowedValues(
       _definitionNow(draft: draft, slot: slot, override: candidate),
       param.key,
-      contraTaxonomy,
+      _taxonomy,
     );
     if (allowed != null && allowed.isEmpty) {
       return l10n.compoundBindingNoSharedValues;
@@ -804,7 +816,7 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
         Iterable<UserGlossaryEntry> entries,
       ) => glossaryNameCollisions(
         canonicalizeGlossaryText(name, dialect),
-        taxonomy: contraTaxonomy,
+        taxonomy: _taxonomy,
         dialects: [
           dialect,
           ...?DialectLibraryScope.maybeOf(context)?.allCustomDialects,
@@ -890,7 +902,7 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
       final definition = _definitionNow(
         canonicalizeNote: (note) => canonicalizeText(note.trim(), dialect),
       );
-      final issues = validateCompound(definition, contraTaxonomy);
+      final issues = validateCompound(definition, _taxonomy);
       for (final issue in issues) {
         if (issue.severity != ValidationSeverity.error) continue;
         final message = switch (issue.code) {
@@ -1416,7 +1428,7 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
                 child: FigureListEditor(
                   drafts: _drafts,
                   pendingMoveTextController: _pendingMoveText,
-                  taxonomy: contraTaxonomy,
+                  taxonomy: _taxonomy,
                   phraseStructure: PhraseStructure.standard,
                   dialect: dialect,
                   onChanged: _changed,
