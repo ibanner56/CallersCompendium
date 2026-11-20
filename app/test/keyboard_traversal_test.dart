@@ -314,7 +314,15 @@ Future<_Walk?> _walk(WidgetTester tester, {required bool strict}) async {
     await _tab(tester);
     final node = FocusManager.instance.primaryFocus;
     if (node == null || !_live(node)) continue;
-    final repeat = stops.indexWhere((s) => identical(s.node, node));
+    var repeat = stops.indexWhere((s) => identical(s.node, node));
+    if (repeat < 0 &&
+        strict &&
+        stops.length > 1 &&
+        _describe(node) == stops.first.describe &&
+        (_globalRect(node).topLeft - stops.first.rect.topLeft).distance < 1) {
+      // The first stop's node was rebuilt while the walk was away.
+      repeat = 0;
+    }
     if (repeat >= 0) {
       final loop = stops.length - repeat;
       return (
@@ -361,7 +369,8 @@ bool _sameBounds(Rect ring, Rect stop) =>
     (ring.width - stop.width).abs() < 1 &&
     (ring.height - stop.height).abs() < 1;
 
-/// Registers a screen's walk. A [long] screen (a form that runs past the window)
+/// Registers a screen's walk. A [long] screen (a form built lazily because it
+/// runs past the window)
 /// is walked twice: in the ordinary window, where its lazy list scrolls under
 /// Tab as a person would see it, and in a window tall enough to build all of it
 /// (see [_tallDesktop]), where nothing is lazy and so the trap and reachability
@@ -483,6 +492,31 @@ void _walkScreen(
             'Tab visited ${real.length}',
       );
 
+      if (tall) {
+        // Nothing is lazy here, so every control that can take focus must be a
+        // Tab stop. A loop that includes the first stop looks like a clean wrap
+        // by itself; it leaves the rest of the page unvisited.
+        // Only the current route's own nodes: the pages beneath it stay in the
+        // tree, and a nested trap scope must not shrink what is expected.
+        final route = ModalRoute.of(stops.first.node.context!);
+        final routeContext = route?.subtreeContext;
+        final expected = routeContext == null
+            ? FocusManager.instance.rootScope
+            : FocusScope.of(routeContext);
+        final missed = [
+          for (final node in expected.traversalDescendants)
+            if (_live(node) &&
+                node is! FocusScopeNode &&
+                !stops.any((s) => identical(s.node, node)))
+              '${_globalRect(node)} ${_describe(node)}',
+        ];
+        expect(
+          missed,
+          isEmpty,
+          reason: '$name: focusable controls Tab never reached',
+        );
+      }
+
       // Controls a lazy list never scrolls to are never on screen to be judged
       // below, so a screen can name the ones that must be Tab stops.
       for (final key in mustStopAt) {
@@ -575,15 +609,10 @@ void main() {
 
   _screen('Collection', (_) async {}, landedOn: find.text('Petronella'));
 
-  _screen(
-    'Dance detail',
-    (tester) async {
-      await tester.tap(find.text('Petronella'));
-      await tester.pumpAndSettle();
-    },
-    landedOn: find.byType(DanceDetailScreen),
-    long: true,
-  );
+  _screen('Dance detail', (tester) async {
+    await tester.tap(find.text('Petronella'));
+    await tester.pumpAndSettle();
+  }, landedOn: find.byType(DanceDetailScreen));
 
   _screen(
     'Dance editor',
@@ -621,15 +650,10 @@ void main() {
     landedOn: find.byKey(const ValueKey('summary-perform')),
   );
 
-  _screen(
-    'Program builder',
-    (tester) async {
-      await _openProgramSummary(tester);
-      await _tapKey(tester, 'open-builder');
-    },
-    landedOn: find.byType(ProgramEditorScreen),
-    long: true,
-  );
+  _screen('Program builder', (tester) async {
+    await _openProgramSummary(tester);
+    await _tapKey(tester, 'open-builder');
+  }, landedOn: find.byType(ProgramEditorScreen));
 
   _screen(
     'Program builder, More details open',
