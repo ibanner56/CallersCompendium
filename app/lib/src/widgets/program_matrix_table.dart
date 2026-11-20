@@ -34,6 +34,7 @@ class ProgramMatrixTable extends StatefulWidget {
     required this.taxonomy,
     required this.dialect,
     this.formationLabelBuilder,
+    this.dialectForColumn,
     this.config = MatrixColumnConfig.empty,
     this.omittedFreeTextCount = 0,
     this.altDanceIds = const {},
@@ -48,9 +49,16 @@ class ProgramMatrixTable extends StatefulWidget {
   final Taxonomy taxonomy;
   final Dialect dialect;
 
-  /// Optional display transformation for formation details. Kept caller-owned
-  /// so settings/editor embeds can preserve literal text.
-  final String Function(Formation formation)? formationLabelBuilder;
+  /// Optional display transformation for a row's formation details. Kept
+  /// caller-owned so settings/editor embeds can preserve literal text, and
+  /// given the whole row so a caller can show each dance's details in that
+  /// dance's own dialect (ADR-006 §12.2, S3).
+  final String Function(MatrixRow row)? formationLabelBuilder;
+
+  /// The dialect a column's label is shown in, or `null` for [dialect]. Lets
+  /// a program that mixes dance forms name each form's figures in that form's
+  /// dialect (ADR-006 §12.2, S3).
+  final Dialect Function(MatrixColumn column)? dialectForColumn;
 
   /// App-wide program-matrix column configuration (issue #935). Threaded in
   /// only so the on-screen column headers honour the config's **renames** —
@@ -202,7 +210,7 @@ class _ProgramMatrixTableState extends State<ProgramMatrixTable> {
         matrixColumnLabel(
           c,
           widget.taxonomy,
-          widget.dialect,
+          widget.dialectForColumn?.call(c) ?? widget.dialect,
           config: widget.config,
         ),
     ];
@@ -369,7 +377,7 @@ class _ProgramMatrixTableState extends State<ProgramMatrixTable> {
                             formation: matrix.rows[r].formation,
                             label:
                                 widget.formationLabelBuilder?.call(
-                                  matrix.rows[r].formation,
+                                  matrix.rows[r],
                                 ) ??
                                 formationLabel(
                                   AppLocalizations.of(context),
@@ -1024,7 +1032,7 @@ class _CompactMatrix extends StatelessWidget {
   final Set<String> altDanceIds;
   final Set<int>? altRowIndices;
   final List<int> visibleRows;
-  final String Function(Formation formation)? formationLabelBuilder;
+  final String Function(MatrixRow row)? formationLabelBuilder;
 
   /// Columns hidden by the caller (#669) — see
   /// [ProgramMatrixTable.hiddenColumns]. Keyed by [MatrixColumn.moveId]. The
@@ -1061,7 +1069,7 @@ class _CompactMatrix extends StatelessWidget {
                   ? altRowIndices!.contains(r)
                   : altDanceIds.contains(matrix.rows[r].danceId),
               section: matrix.rows[r].section,
-              formation: matrix.rows[r].formation,
+              row: matrix.rows[r],
               phraseLabels: _phraseLabelsForCell(matrix, r, c),
             ),
           );
@@ -1227,7 +1235,7 @@ class _DanceUse {
     required this.programDebut,
     required this.collision,
     required this.isAlt,
-    required this.formation,
+    required this.row,
     this.section,
     this.phraseLabels = const [],
   });
@@ -1239,10 +1247,13 @@ class _DanceUse {
   final bool isAlt;
   final int? section;
 
-  /// The dance's formation (#663), mirrored from the wide grid's pinned
-  /// formation column since the compact view has no per-row slot to pin one
-  /// to — it rides on [_DanceChip] instead, like ALT/section already do.
-  final Formation formation;
+  /// The dance's matrix row, for its formation (#663), mirrored from the wide
+  /// grid's pinned formation column since the compact view has no per-row
+  /// slot to pin one to — it rides on [_DanceChip] instead, like ALT/section
+  /// already do.
+  final MatrixRow row;
+
+  Formation get formation => row.formation;
   final List<String> phraseLabels;
 }
 
@@ -1291,7 +1302,7 @@ class _MoveCard extends StatelessWidget {
   final int total;
   final MatrixCollisionMode collisionMode;
   final bool showPhrases;
-  final String Function(Formation formation)? formationLabelBuilder;
+  final String Function(MatrixRow row)? formationLabelBuilder;
 
   @override
   Widget build(BuildContext context) {
@@ -1351,7 +1362,7 @@ class _MoveCard extends StatelessWidget {
                   section: d.section,
                   formation: d.formation,
                   formationLabel:
-                      formationLabelBuilder?.call(d.formation) ??
+                      formationLabelBuilder?.call(d.row) ??
                       formationLabel(l10n, d.formation),
                 ),
             ],
