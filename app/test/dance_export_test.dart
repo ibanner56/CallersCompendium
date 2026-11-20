@@ -637,7 +637,12 @@ void main() {
       await tester.tap(find.text('Share dance (text)'));
       await tester.pumpAndSettle();
 
-      expect(find.text("Couldn't share this dance"), findsOneWidget);
+      expect(
+        find.text(
+          "Couldn't share this dance. Your dance is unchanged. Try again.",
+        ),
+        findsOneWidget,
+      );
     });
 
     testWidgets('surfaces a SnackBar when a referenced tag is missing', (
@@ -650,7 +655,12 @@ void main() {
       await tester.tap(find.text('Share dance file'));
       await tester.pumpAndSettle();
 
-      expect(find.text("Couldn't share this dance"), findsOneWidget);
+      expect(
+        find.text(
+          "Couldn't share this dance. Your dance is unchanged. Try again.",
+        ),
+        findsOneWidget,
+      );
     });
 
     testWidgets('guards JSON export when a referenced tag is missing', (
@@ -685,7 +695,10 @@ void main() {
       await tester.tap(find.text('Export dance as JSON'));
       await tester.pumpAndSettle();
 
-      expect(find.text("Couldn't share this JSON file."), findsOneWidget);
+      expect(
+        find.text("Couldn't share this JSON file. Try again."),
+        findsOneWidget,
+      );
     });
 
     testWidgets('share receives a non-null sharePositionOrigin', (
@@ -754,7 +767,12 @@ void main() {
       await tester.tap(find.text('Export / print PDF'));
       await tester.pumpAndSettle();
 
-      expect(find.text("Couldn't export this dance"), findsOneWidget);
+      expect(
+        find.text(
+          "Couldn't export this dance. Your dance is unchanged. Try again.",
+        ),
+        findsOneWidget,
+      );
     });
 
     testWidgets(
@@ -792,7 +810,12 @@ void main() {
         await tester.tap(find.text('Share dance (text)'));
         await tester.pumpAndSettle();
 
-        expect(find.text("Couldn't share this dance"), findsOneWidget);
+        expect(
+          find.text(
+            "Couldn't share this dance. Your dance is unchanged. Try again.",
+          ),
+          findsOneWidget,
+        );
         expect(sink.sources, ['dance_export_actions.shareText']);
       },
     );
@@ -832,7 +855,12 @@ void main() {
         await tester.tap(find.text('Export / print PDF'));
         await tester.pumpAndSettle();
 
-        expect(find.text("Couldn't export this dance"), findsOneWidget);
+        expect(
+          find.text(
+            "Couldn't export this dance. Your dance is unchanged. Try again.",
+          ),
+          findsOneWidget,
+        );
         expect(sink.sources, ['dance_export_actions.exportPdf']);
       },
     );

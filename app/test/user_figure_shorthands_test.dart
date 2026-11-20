@@ -888,7 +888,7 @@ void main() {
               find.byKey(const ValueKey('user-figure-shorthand-problem-zm')),
             )
             .data,
-        'Not used: a shorthand for one of your combinations has the same '
+        'Not used: a shorthand for a combination has the same '
         'text.',
       );
     });

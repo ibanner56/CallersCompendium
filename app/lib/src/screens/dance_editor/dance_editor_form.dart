@@ -648,6 +648,8 @@ class DanceEditorForm extends StatelessWidget {
                   decoration: InputDecoration(
                     labelText: l10n.danceEditorHookLabel,
                     hintText: l10n.danceEditorHookHint,
+                    helperText: l10n.danceEditorHookHelper,
+                    helperMaxLines: 4,
                   ),
                   onChanged: (_) => controller.onTextEdited(),
                 ),

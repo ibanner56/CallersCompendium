@@ -449,7 +449,7 @@ void main() {
       );
 
       expect(tester.widget<SwitchListTile>(toggle).value, isTrue);
-      expect(find.text('Confirm before leaving Perform'), findsOneWidget);
+      expect(find.text('Confirm before leaving Perform mode'), findsOneWidget);
       expect(
         tester.getSemantics(
           find.descendant(of: toggle, matching: find.byType(Switch)),

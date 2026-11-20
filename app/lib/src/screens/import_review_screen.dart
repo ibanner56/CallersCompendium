@@ -2999,7 +2999,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
                     color: Theme.of(context).colorScheme.primary,
                   ),
                   const SizedBox(width: 6),
-                  Text(l10n.importReviewFileReady(_payloadBytes!.length)),
+                  Text(l10n.importReviewFileReady),
                 ],
               ),
             ),

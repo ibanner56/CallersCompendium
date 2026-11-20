@@ -92,7 +92,7 @@ class AppLocalizationsDa extends AppLocalizations {
   String get menuUserGuide => 'Brugervejledning';
 
   @override
-  String get appBootstrapPreparing => 'Forbereder din samling';
+  String get appBootstrapPreparing => 'Forbereder dit bibliotek';
 
   @override
   String get appBootstrapRebuildingIndex => 'Genopbygger søgeindeks';
@@ -103,7 +103,8 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
-  String get appBootstrapError => 'Kunne ikke forberede samlingen.';
+  String get appBootstrapError =>
+      'Kunne ikke forberede dit bibliotek. Prøv igen.';
 
   @override
   String get appBootstrapCopyDetails => 'Kopiér detaljer';
@@ -190,7 +191,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get migrationSnapshotCauseUnwritableBackupsDir =>
-      'Der kunne ikke skrives til den automatiske sikkerhedskopimappe.';
+      'Kunne ikke skrive til mappen med automatiske sikkerhedskopier.';
 
   @override
   String get migrationSnapshotCauseDatabaseInUse =>
@@ -229,6 +230,14 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String migrationBelowFloorGetBridge(String bridgeTag) {
+    return 'Hent $bridgeTag';
+  }
+
+  @override
+  String get migrationBelowFloorStartFresh => 'Start forfra i stedet';
+
+  @override
   String get migrationBelowFloorBackUpAndReset => 'Sikkerhedskopi + Nulstil';
 
   @override
@@ -240,7 +249,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get migrationBelowFloorBackupFailedBody =>
-      'Sikkerhedskopien kunne ikke skrives, så dine data er ikke blevet nulstillet.';
+      'Kunne ikke skrive sikkerhedskopien, så dine data er ikke nulstillet. Frigør noget plads, og prøv igen.';
 
   @override
   String get migrationBelowFloorResetConfirmTitle => 'Nulstil app-data?';
@@ -264,14 +273,14 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get migrationBelowFloorResetOnlyConfirmBody =>
-      'Der oprettes ingen sikkerhedskopi. Nulstilling sletter permanent alle dine nuværende data og erstatter dem med en ny, tom database. Dette kan ikke fortrydes.';
+      'Der oprettes ingen sikkerhedskopi. Nulstilling sletter alle dine nuværende data permanent og erstatter dem med en ny, tom database. Det kan ikke fortrydes.';
 
   @override
   String get migrationBelowFloorWipeFailedTitle => 'Nulstilling mislykkedes';
 
   @override
   String get migrationBelowFloorWipeFailedBody =>
-      'Databasefilen kunne ikke slettes. Dine data er ikke ændret. Prøv at lukke andre apps, der måske bruger filen, og forsøg derefter igen.';
+      'Kunne ikke slette databasefilen. Dine data er ikke ændret. Prøv at lukke andre apps, der kan bruge filen, og prøv igen.';
 
   @override
   String get confirmDeleteTitle => 'Slet?';
@@ -372,7 +381,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsDeveloperResetConfirmBody =>
-      'Dette sletter permanent alle danse, programmer, samlinger, indstillinger og noter på denne enhed og genstarter appen, som var den lige blevet installeret. Det kan ikke fortrydes.';
+      'Dette sletter permanent hele dit bibliotek på denne enhed (alle danse, programmer, indstillinger og noter) og genstarter appen, som om den lige var installeret. Det kan ikke fortrydes.';
 
   @override
   String get settingsDeveloperResetConfirmSyncNote =>
@@ -391,7 +400,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsDeveloperResetFailed =>
-      'Databasen kunne ikke nulstilles, så dine data er uændrede. Hvis denne enhed var forbundet til et synkroniseringslager, har den allerede forladt det.';
+      'Databasen kunne ikke nulstilles. Hvis denne enhed var forbundet til et synkroniseringslager, har den allerede forladt det.';
 
   @override
   String get settingsExperimentalPlaceholder =>
@@ -412,7 +421,7 @@ class AppLocalizationsDa extends AppLocalizations {
   String get glossarySelectPrompt => 'Vælg en figur for at se dens definition.';
 
   @override
-  String get glossaryCopyAsOwnFigure => 'Kopiér som din egen figur';
+  String get glossaryCopyAsOwnFigure => 'Kopiér til Egne figurer';
 
   @override
   String glossaryCustomCopiedFrom(String name) {
@@ -945,7 +954,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsSyncFailureInternal =>
-      'Noget gik galt inde i appen under synkroniseringen.';
+      'Synkroniseringen stoppede på grund af et problem inde i appen.';
 
   @override
   String get settingsSyncFailureInternalAdvice =>
@@ -966,7 +975,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String settingsSyncFailureStatusCode(int code) {
-    return 'Serveren svarede med HTTP-status $code.';
+    return 'Serverens statuskode: $code.';
   }
 
   @override
@@ -1087,7 +1096,7 @@ class AppLocalizationsDa extends AppLocalizations {
   String get syncConflictApply => 'Behold valgte';
 
   @override
-  String get syncConflictDecideLater => 'Beslut senere';
+  String get syncConflictDecideLater => 'Annuller';
 
   @override
   String get syncConflictShowDifferences => 'Vis forskelle';
@@ -1347,7 +1356,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsSyncConflictsCheckFailed =>
-      'Kunne ikke tjekke for konflikter.';
+      'Kunne ikke tjekke for konflikter. Prøv igen.';
 
   @override
   String commonSyncNowConflictsTooltip(int count) {
@@ -1549,7 +1558,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsSyncWipeConfirmBody =>
-      'Alt, hvad lageret indeholder, slettes fra serveren, for alle enheder på én gang, og det kan ikke fortrydes. Dit bibliotek bliver på denne enhed og på hver af dine andre enheder — men alt, der kun nogensinde var nået frem til en anden enhed via synkronisering, kommer ikke hertil. Denne enhed afbryder forbindelsen og glemmer sin synkroniseringssætning; dine andre enheder vil opdage, at lageret er væk, næste gang de synkroniserer, og vil tilbyde at konfigurere en ny sætning. Brug det, når du vil holde op med at bruge dette lagers adresse: Det er det eneste, der straks fjerner det, lageret indeholder. For at blive ved med at synkronisere skal du konfigurere en ny sætning på hver enhed — genforbinder du med den gamle, kommer der et nyt lager på samme adresse igen.';
+      'Alt, hvad lageret indeholder, slettes fra serveren, for alle enheder på én gang. Det kan ikke fortrydes. Dit bibliotek bliver på denne enhed og på hver af dine andre enheder, men alt, der kun nogensinde var nået frem til en anden enhed via synkronisering, kommer ikke hertil. Denne enhed afbryder forbindelsen og glemmer sin synkroniseringssætning; dine andre enheder vil opdage, at lageret er væk, næste gang de synkroniserer, og vil tilbyde at oprette en ny sætning. Brug det, når du vil holde op med at bruge dette lagers adresse: Det er det eneste, der straks fjerner det, lageret indeholder. For at blive ved med at synkronisere skal du oprette en ny sætning på hver enhed. Genforbinder du med den gamle, kommer der et nyt lager på samme adresse igen.';
 
   @override
   String get settingsSyncWipeConfirmAction => 'Slet lageret';
@@ -1717,7 +1726,7 @@ class AppLocalizationsDa extends AppLocalizations {
   String get settingsSyncPairingBackupOfferAccept => 'Sikkerhedskopiér nu';
 
   @override
-  String get settingsSyncPairingBackupOfferSkip => 'Spring over';
+  String get settingsSyncPairingBackupOfferSkip => 'Ikke nu';
 
   @override
   String get settingsSyncPairingContinue => 'Fortsæt';
@@ -1867,11 +1876,11 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsAboutFontFrauncesSubtitle =>
-      'SIL Open Font License 1.1 · © The Fraunces Project Authors — skærm og overskrifter';
+      'SIL Open Font License 1.1 · © The Fraunces Project Authors — visning og overskrifter';
 
   @override
   String get settingsAboutFontAtkinsonSubtitle =>
-      'SIL Open Font License 1.1 · © Braille Institute of America, Inc. — brødtekst, UI og Perform';
+      'SIL Open Font License 1.1 · © Braille Institute of America, Inc. — brødtekst, UI og Fremfør';
 
   @override
   String get settingsAboutFontRobotoSubtitle =>
@@ -1889,7 +1898,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsAboutDanceDataBody =>
-      'Dansdata trækker på The Caller\'s Box (Chris Page & Michael Dyck), hvis samling er udgivet under Creative Commons Attribution-NonCommercial-licensen (CC BY-NC), med taknemmelighed.';
+      'Dansdata trækker på The Caller\'s Box (Chris Page og Michael Dyck), hvis samling er udgivet under Creative Commons Attribution-NonCommercial-licensen (CC BY-NC), med taknemmelighed.';
 
   @override
   String get settingsAboutLicensesHeader => 'Licenser';
@@ -2047,7 +2056,8 @@ class AppLocalizationsDa extends AppLocalizations {
   String get settingsUpdatesDownloadTitle => 'Hent og installer opdatering';
 
   @override
-  String get settingsUpdatesDownloadError => 'Opdateringen kunne ikke hentes.';
+  String get settingsUpdatesDownloadError =>
+      'Kunne ikke downloade opdateringen. Prøv igen.';
 
   @override
   String settingsUpdatesDownloadSubtitle(String version) {
@@ -2526,9 +2536,8 @@ class AppLocalizationsDa extends AppLocalizations {
   String get settingsDefaultsStartingProgramMoveDown => 'Flyt ned';
 
   @override
-  String settingsDefaultsStartingProgramUnavailableDance(String id) {
-    return 'Utilgængelig dans ($id)';
-  }
+  String get settingsDefaultsStartingProgramUnavailableDance =>
+      'Denne dans er ikke længere tilgængelig';
 
   @override
   String get settingsDefaultsDifficultyLevelEmpty =>
@@ -2772,11 +2781,11 @@ class AppLocalizationsDa extends AppLocalizations {
   String get settingsDefaultsMoveDefaultsTitle => 'Bevægelsesstandarder';
 
   @override
-  String get settingsDefaultsUserFiguresTitle => 'Dine figurers standarder';
+  String get settingsDefaultsUserFiguresTitle => 'Standarder for Egne figurer';
 
   @override
   String get settingsDefaultsUserFiguresSubtitle =>
-      'Hver af dine nye figurer har sine egne standarder: de værdier, den starter med, og dens taktslag. Vælg en for at ændre dem.';
+      'Hver af dine figurer har sine egne standarder: de værdier, den starter med, og dens beats. Vælg en for at ændre dem.';
 
   @override
   String get settingsDefaultsMoveDefaultsSubtitle =>
@@ -2790,7 +2799,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsDefaultsMoveGone =>
-      'Denne bevægelse er ikke længere i taksonomien.';
+      'Dette move er ikke længere tilgængeligt.';
 
   @override
   String get settingsDefaultsMoveNoParams =>
@@ -2836,10 +2845,11 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsTagColoursSaveError =>
-      'Farven kunne ikke gemmes. Prøv igen.';
+      'Kunne ikke gemme den farve. Prøv igen.';
 
   @override
-  String get settingsTagColoursLoadError => 'Dine tags kunne ikke indlæses.';
+  String get settingsTagColoursLoadError =>
+      'Kunne ikke indlæse dine tags. Intet blev ændret. Prøv igen.';
 
   @override
   String get tagManagerTitle => 'Tags';
@@ -2903,7 +2913,8 @@ class AppLocalizationsDa extends AppLocalizations {
       'Forfattere, du angiver på en dans, vises her.';
 
   @override
-  String get authorManagerLoadError => 'Dine forfattere kunne ikke indlæses.';
+  String get authorManagerLoadError =>
+      'Kunne ikke indlæse dine forfattere. Intet blev ændret. Prøv igen.';
 
   @override
   String authorManagerMergedSeveralSnack(int count, String into) {
@@ -2927,7 +2938,8 @@ class AppLocalizationsDa extends AppLocalizations {
       'Bøger og websteder, du citerer på en dans, vises her.';
 
   @override
-  String get sourceManagerLoadError => 'Dine kilder kunne ikke indlæses.';
+  String get sourceManagerLoadError =>
+      'Kunne ikke indlæse dine kilder. Intet blev ændret. Prøv igen.';
 
   @override
   String get libraryManagerClearSearch => 'Ryd søgning';
@@ -3012,7 +3024,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get libraryManagerEditFailed =>
-      'Ændringen kunne ikke gemmes. Prøv igen.';
+      'Kunne ikke gemme den ændring. Prøv igen.';
 
   @override
   String get libraryManagerEditDetails => 'Rediger detaljer…';
@@ -3047,7 +3059,7 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
-  String get settingsGeneralLibraryHeader => 'Bibliotek';
+  String get settingsGeneralLibraryHeader => 'Danse';
 
   @override
   String get settingsGeneralSortIgnoreArticlesTitle =>
@@ -3233,7 +3245,7 @@ class AppLocalizationsDa extends AppLocalizations {
   String get settingsMatrixColumnsCompoundDelete => 'Slet sammensat kolonne';
 
   @override
-  String get settingsGeneralPerformanceHeader => 'Performance';
+  String get settingsGeneralPerformanceHeader => 'Fremfør';
 
   @override
   String get settingsGeneralAutoSizePerformTitle =>
@@ -3245,7 +3257,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsShowIndividualPerformTimerTitle =>
-      'Vis timer til individuel Perform';
+      'Vis timer, når du fremfører én dans';
 
   @override
   String get settingsShowIndividualPerformTimerSubtitle =>
@@ -3253,19 +3265,19 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsConfirmPerformExitTitle =>
-      'Bekræft før du forlader Fremfør';
+      'Bekræft, før du forlader Fremfør';
 
   @override
   String get settingsConfirmPerformExitSubtitle =>
-      'Spørg, før lukkeknappen eller Tilbage fører dig ud af Fremfør. Slå det fra for at forlade med ét tryk; program-Fremfør husker din plads uanset hvad.';
+      'Spørg, før lukkeknappen eller Tilbage tager dig ud af Fremfør. Slå det fra for at forlade med ét tryk; Fremfør for et program husker din plads i begge tilfælde.';
 
   @override
   String get settingsShowProgramSlotCallerNotesTitle =>
-      'Vis callernoter i program-Perform';
+      'Vis callernoter, når du fremfører et program';
 
   @override
   String get settingsShowProgramSlotCallerNotesSubtitle =>
-      'Vis ikke-tomme callernoter pr. slot over dansens titel i program-Perform.';
+      'Vis callernoter, der ikke er tomme, for hver plads over dansens titel, når du fremfører et program.';
 
   @override
   String get settingsGeneralCallingHistoryHeader => 'Kaldshistorik';
@@ -3490,14 +3502,14 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get syncReviewLoadFailed =>
-      'Synkroniseringsbeslutninger kunne ikke indlæses.';
+      'Kunne ikke indlæse synkroniseringsvalgene. Prøv igen.';
 
   @override
   String get syncReviewResolved => 'Synkroniseringsbeslutning anvendt.';
 
   @override
   String get syncReviewActionFailed =>
-      'Synkroniseringsbeslutningen kunne ikke anvendes. Posten blev bevaret, så du kan prøve igen.';
+      'Kunne ikke anvende det synkroniseringsvalg. Elementet blev beholdt, så du kan prøve igen.';
 
   @override
   String get syncReviewKindChoreographer => 'Forfatter';
@@ -3527,7 +3539,7 @@ class AppLocalizationsDa extends AppLocalizations {
   String get syncReviewKindSetting => 'Indstilling';
 
   @override
-  String get syncReviewKindGlossaryEntry => 'Din egen figur';
+  String get syncReviewKindGlossaryEntry => 'Din figur';
 
   @override
   String get syncReviewKindFigureNote => 'Dine noter til en figur';
@@ -3565,7 +3577,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get syncReviewMergeDiscardsContactsBody =>
-      'Kun én post bevares. E-mailadressen, stedet og markeringen for afdød på den anden er kun gemt på denne enhed og kan ikke gendannes bagefter.';
+      'Kun én post bliver beholdt. E-mailadressen, placeringen og markeringen som afdød på den anden er kun gemt på denne enhed og går tabt. Det kan ikke fortrydes.';
 
   @override
   String get syncReviewCounterpartDeleted =>
@@ -3629,7 +3641,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsGeneralReparseCustomFiguresSubtitle =>
-      'Tjek importerede danse igen, hvis figurer kun er gemt som ukendte figurer, fordi de ikke kunne genkendes ved importtidspunktet. Hvis appen nu kan genkende dem, opgraderes de på stedet – dine tags, vurderinger og noter bevares. Du forhåndsviser og bekræfter, inden noget ændres.';
+      'Tjek importerede danse igen, hvis figurer blev gemt som ukendte figurer, fordi de ikke kunne genkendes ved importen. Hvis appen nu kan genkende dem, opgraderes de på stedet; dine tags, vurderinger og noter bevares. Du får vist en forhåndsvisning og bekræfter, før noget ændres.';
 
   @override
   String get settingsGeneralReparseCustomFiguresAction => 'Genkontrollér…';
@@ -3652,11 +3664,12 @@ class AppLocalizationsDa extends AppLocalizations {
   String get backupExported => 'Sikkerhedskopi eksporteret.';
 
   @override
-  String get backupExportFailed => 'Kunne ikke eksportere en sikkerhedskopi.';
+  String get backupExportFailed =>
+      'Kunne ikke eksportere en sikkerhedskopi. Dine data er uændrede. Prøv igen.';
 
   @override
   String get backupRestoreIntegrityFailed =>
-      'Denne sikkerhedskopi bestod ikke integritetstjekket, så den kan være beskadiget eller ændret efter eksporten. Gendannelsen blev annulleret, og dine data er uændret.';
+      'Denne sikkerhedskopi bestod ikke sikkerhedstjekket, så den kan være beskadiget eller være ændret efter eksporten. Gendannelsen blev annulleret, og dine data er uændrede.';
 
   @override
   String get backupRestoreIncompatibleVersion =>
@@ -3679,14 +3692,15 @@ class AppLocalizationsDa extends AppLocalizations {
   String get backupRestored => 'Sikkerhedskopi gendannet.';
 
   @override
-  String get backupRestoreFailed => 'Kunne ikke gendanne sikkerhedskopien.';
+  String get backupRestoreFailed =>
+      'Kunne ikke gendanne sikkerhedskopien. Prøv igen.';
 
   @override
   String get backupRestoreSettingsFailed =>
-      'Dine danse og programmer blev gendannet, men dine gemte indstillinger kunne ikke anvendes. Dit gendannede indhold er sikkert — du kan prøve at anvende indstillingerne igen.';
+      'Dine danse og programmer blev gendannet, men dine gemte indstillinger kunne ikke anvendes. Dit gendannede indhold er sikkert. Du kan prøve at anvende dem igen.';
 
   @override
-  String get backupRestoreSettingsRetryAction => 'Prøv indstillinger igen';
+  String get backupRestoreSettingsRetryAction => 'Prøv igen';
 
   @override
   String get backupRestoreSettingsRetried => 'Indstillinger anvendt.';
@@ -3696,7 +3710,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get backupExportSubtitle =>
-      'Gem hele din samling, programmer, brugerdefinerede felter, dialekter, temaer og indstillinger i én JSON-fil, du kan opbevare sikkert eller flytte til en anden enhed.';
+      'Gem hele dit bibliotek i én JSON-fil, som du kan opbevare sikkert eller flytte til en anden enhed. Den indeholder dine danse, programmer, egne felter, dialekter, temaer og indstillinger.';
 
   @override
   String get backupExportAction => 'Eksportér';
@@ -3706,7 +3720,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get backupRestoreSubtitle =>
-      'Erstat alt, der i øjeblikket er i appen, med indholdet af en sikkerhedskopifil. Dette kan ikke fortrydes.';
+      'Erstat alt, hvad der er i appen nu, med indholdet af en sikkerhedskopi. Det kan ikke fortrydes.';
 
   @override
   String get backupRestoreAction => 'Gendan';
@@ -3737,7 +3751,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get backupReminderBannerText =>
-      'Din sikkerhedskopi er forfalden. Eksportér en nu for at holde din samling sikker.';
+      'Din sikkerhedskopi er forsinket. Eksportér en nu for at holde dit bibliotek sikkert.';
 
   @override
   String get backupReminderBannerExport => 'Eksportér sikkerhedskopi';
@@ -3747,7 +3761,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get backupRestoreDialogBody =>
-      'Gendannelse erstatter alt i appen – din samling, programmer, dialekter, temaer og indstillinger – med indholdet af sikkerhedskopien. Dette kan ikke fortrydes.';
+      'Gendannelse erstatter alt, hvad der er i appen nu (dine danse, programmer, dialekter, temaer og indstillinger), med sikkerhedskopiens indhold. Det kan ikke fortrydes.';
 
   @override
   String get backupRestoreDialogSyncNote =>
@@ -3757,7 +3771,8 @@ class AppLocalizationsDa extends AppLocalizations {
   String get backupChooseFileAction => 'Vælg fil…';
 
   @override
-  String get backupChooseFileFailed => 'Kunne ikke læse den fil.';
+  String get backupChooseFileFailed =>
+      'Kunne ikke læse den fil. Vælg den igen, eller vælg en anden fil.';
 
   @override
   String get backupPasteJsonLabel => 'Eller indsæt sikkerhedskopi-JSON';
@@ -3797,7 +3812,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String backupExportTooLarge(String sizeMb, String limitMb) {
-    return 'Din samling er for stor til at eksportere som én sikkerhedskopi ($sizeMb MB; grænse $limitMb MB), så intet blev gemt. Dine data er uændrede.';
+    return 'Dit bibliotek er for stort til at eksportere som én sikkerhedskopi ($sizeMb MB; grænse $limitMb MB), så intet blev gemt. Dine data er uændrede.';
   }
 
   @override
@@ -3822,7 +3837,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get diagnosticsScrubbedExportUnavailable =>
-      'Kunne ikke forberede en sikker (renset) eksport, så intet blev gemt. Prøv venligst igen, eller brug fuld detalje med overlæg.';
+      'Kunne ikke forberede en sikker (renset) eksport, så intet blev gemt. Prøv igen, eller brug fuld detalje bevidst.';
 
   @override
   String get diagnosticsLogExported => 'Diagnostiklog eksporteret.';
@@ -3832,17 +3847,18 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get diagnosticsExportFailed =>
-      'Kunne ikke eksportere diagnostikloggen.';
+      'Kunne ikke eksportere diagnostiklogget. Prøv igen.';
 
   @override
-  String get diagnosticsClearFailed => 'Kunne ikke rydde diagnostikloggen.';
+  String get diagnosticsClearFailed =>
+      'Kunne ikke rydde diagnostiklogget. Prøv igen.';
 
   @override
   String get diagnosticsClearLogTitle => 'Ryd diagnostiklog?';
 
   @override
   String get diagnosticsClearLogBody =>
-      'Dette sletter permanent den lokale fejllog fra denne enhed. Dette kan ikke fortrydes.';
+      'Dette sletter permanent den lokale nedbrudslog fra denne enhed. Det kan ikke fortrydes.';
 
   @override
   String get diagnosticsClearAction => 'Ryd';
@@ -3903,11 +3919,11 @@ class AppLocalizationsDa extends AppLocalizations {
       'Slet den lokale fejllog fra denne enhed.';
 
   @override
-  String get crashFallbackTitle => 'Noget gik galt her';
+  String get crashFallbackTitle => 'Kunne ikke vise denne del af appen';
 
   @override
   String get crashFallbackBody =>
-      'Denne del af appen stødte på en uventet fejl og kunne ikke vises. Detaljerne blev gemt til en lokal diagnostiklog (Indstillinger ▸ Diagnostik), der aldrig forlader din enhed.';
+      'Denne del af appen stødte på en uventet fejl. Detaljerne blev gemt i en lokal diagnostiklog (Indstillinger ▸ Diagnostik), der aldrig forlader din enhed. Gå tilbage og prøv igen.';
 
   @override
   String get crashFallbackCopied => 'Kopieret';
@@ -3938,10 +3954,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get commonUndoFailed =>
-      'Kunne ikke fortryde det. Kontrollér resultatet, og prøv igen.';
-
-  @override
-  String get commonRetry => 'Prøv igen';
+      'Kunne ikke fortryde det. Tjek resultatet, og prøv igen.';
 
   @override
   String get commonDelete => 'Slet';
@@ -4301,7 +4314,8 @@ class AppLocalizationsDa extends AppLocalizations {
   String get collectionClearSearchTooltip => 'Ryd søgning og filtre';
 
   @override
-  String get collectionLoadError => 'Kunne ikke indlæse samlingen.';
+  String get collectionLoadError =>
+      'Kunne ikke indlæse samlingen. Intet blev ændret. Prøv igen.';
 
   @override
   String collectionDuplicatedSnack(String title) {
@@ -4365,7 +4379,8 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
-  String get collectionSearchError => 'Noget gik galt under søgningen.';
+  String get collectionSearchError =>
+      'Kunne ikke køre søgningen. Intet blev ændret. Prøv igen.';
 
   @override
   String get collectionNoResults => 'Ingen danse matcher din søgning.';
@@ -4697,7 +4712,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get collectionFacetAllHidden =>
-      'Alle filtre er skjult. Du kan vise dem igen under Indstillinger → Standardværdier.';
+      'Alle filtre er skjult. Du kan vise dem igen under Indstillinger ▸ Standarder.';
 
   @override
   String get collectionFacetClear => 'Ryd filtre';
@@ -4928,7 +4943,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get collectionBatchApplyError =>
-      'Kunne ikke anvende batchændringer. Prøv igen.';
+      'Kunne ikke anvende batchændringerne. Prøv igen.';
 
   @override
   String get collectionBatchTagAddConfirm => 'Tilføj';
@@ -5083,7 +5098,8 @@ class AppLocalizationsDa extends AppLocalizations {
   String get danceNotFound => 'Dans ikke fundet.';
 
   @override
-  String get danceLoadError => 'Kunne ikke indlæse denne dans.';
+  String get danceLoadError =>
+      'Kunne ikke indlæse denne dans. Intet blev ændret. Prøv igen.';
 
   @override
   String get danceEditFab => 'Rediger';
@@ -5121,7 +5137,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get danceEditorFiguresUnreadable =>
-      'De gemte figurer kan ikke læses, så de vises ikke her. De bevares, som de er, medmindre du tilføjer dine egne figurer.';
+      'De gemte figurer kan ikke læses, så de vises ikke her. De bevares, som de er, medmindre du selv tilføjer figurer.';
 
   @override
   String get danceEditorTunesUnreadable =>
@@ -5153,7 +5169,8 @@ class AppLocalizationsDa extends AppLocalizations {
       'Endnu ikke inkluderet i noget program.';
 
   @override
-  String get danceCallingHistoryError => 'Kunne ikke indlæse kaldehistorikken.';
+  String get danceCallingHistoryError =>
+      'Kunne ikke indlæse calling-historikken. Intet blev ændret. Prøv igen.';
 
   @override
   String danceVenueCallCount(int count, String venue) {
@@ -5421,15 +5438,16 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
-  String get programsSaveError => 'Kunne ikke gemme programmet.';
+  String get programsSaveError =>
+      'Kunne ikke gemme programmet. Dine ændringer er der stadig. Prøv igen.';
 
   @override
   String get programsUndoPerformedError =>
-      'Markeringen kunne ikke fortrydes; markeringerne som udført forbliver gemt.';
+      'Kunne ikke fortryde det. Fremført-markeringerne er stadig gemt.';
 
   @override
   String get programsUndoRefreshError =>
-      'Fortrydelsen blev gemt, men editoren kunne ikke opdateres.';
+      'Fortrydelsen blev gemt, men editoren kunne ikke opdatere. Åbn programmet igen for at se den.';
 
   @override
   String programsDuplicatedSnack(String title) {
@@ -5528,7 +5546,12 @@ class AppLocalizationsDa extends AppLocalizations {
   String get programsLoading => 'Indlæser program';
 
   @override
-  String get programsLoadError => 'Kunne ikke indlæse programmet.';
+  String get programsLoadError =>
+      'Kunne ikke indlæse programmet. Intet blev ændret. Prøv igen.';
+
+  @override
+  String get programsUndoRecoveryFailed =>
+      'Programmet kunne ikke genindlæses efter fortrydelsen. Gå tilbage og åbn det igen for at se dets aktuelle tilstand.';
 
   @override
   String get programsDeletedDanceFallback => '(slettet dans)';
@@ -5546,6 +5569,10 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get programsSlotsLabel => 'Slots';
+
+  @override
+  String get programsSlotsHelper =>
+      'Hver plads er ét sted i din sætliste: en dans, en note eller en pause.';
 
   @override
   String get programsAddDanceButton => 'Tilføj dans';
@@ -5673,7 +5700,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get programsDialectHelper =>
-      'Bruges kun i dette programs Fremfør-visning. Editor, oversigt og eksport bruger stadig appens dialekt.';
+      'Bruges kun i dette programs Fremfør. Editor, oversigt og eksport bruger stadig appens dialekt.';
 
   @override
   String programsWarningCount(int count) {
@@ -5722,7 +5749,8 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
-  String get programsListLoadError => 'Kunne ikke indlæse dine programmer.';
+  String get programsListLoadError =>
+      'Kunne ikke indlæse dine programmer. Intet blev ændret. Prøv igen.';
 
   @override
   String get programsListEmptyBody =>
@@ -5885,11 +5913,11 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get programsSummaryPerformedToggleError =>
-      'Fremført-markeringen kunne ikke opdateres. Prøv igen.';
+      'Kunne ikke opdatere Fremført-markeringen. Prøv igen.';
 
   @override
   String get programsSummaryUndoPerformedToggleError =>
-      'Ændringen af fremført-markeringen kunne ikke fortrydes.';
+      'Kunne ikke fortryde ændringen af Fremført-markeringen. Prøv igen.';
 
   @override
   String get programsPerformedCleared => 'Fremført-markering ryddet.';
@@ -6368,7 +6396,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get performProgramChangedElsewhere =>
-      'Programmet var ændret et andet sted, siden Fremfør åbnede. Fremfør viser nu den nyeste version, med din ændring.';
+      'Dette program blev ændret et andet sted, siden Fremfør blev åbnet. Fremfør viser nu den seneste version med din ændring.';
 
   @override
   String get performProgramAdjustedSnack => 'Program justeret.';
@@ -6615,16 +6643,18 @@ class AppLocalizationsDa extends AppLocalizations {
   String get exportDanceCopied => 'Dans kopieret til udklipsholder.';
 
   @override
-  String get exportShareDanceError => 'Kunne ikke dele denne dans';
+  String get exportShareDanceError =>
+      'Kunne ikke dele denne dans. Din dans er uændret. Prøv igen.';
 
   @override
-  String get exportDanceError => 'Kunne ikke eksportere denne dans';
+  String get exportDanceError =>
+      'Kunne ikke eksportere denne dans. Din dans er uændret. Prøv igen.';
 
   @override
   String get exportShareSetListText => 'Del sætliste (tekst)';
 
   @override
-  String get exportShareProgramBundle => 'Del (program + danse)';
+  String get exportShareProgramBundle => 'Del program og danse';
 
   @override
   String get exportSaveProgramBundle => 'Gem programfil…';
@@ -6677,22 +6707,27 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
-  String get exportJsonSaveError => 'Denne JSON-fil kunne ikke gemmes.';
+  String get exportJsonSaveError =>
+      'Kunne ikke gemme denne JSON-fil. Prøv igen.';
 
   @override
-  String get exportJsonCopyError => 'Denne JSON kunne ikke kopieres.';
+  String get exportJsonCopyError => 'Kunne ikke kopiere denne JSON. Prøv igen.';
 
   @override
-  String get exportJsonShareError => 'Denne JSON-fil kunne ikke deles.';
+  String get exportJsonShareError =>
+      'Kunne ikke dele denne JSON-fil. Prøv igen.';
 
   @override
-  String get exportShareSetListError => 'Kunne ikke dele denne sætliste';
+  String get exportShareSetListError =>
+      'Kunne ikke dele denne sætliste. Prøv igen.';
 
   @override
-  String get exportShareProgramError => 'Kunne ikke dele dette program';
+  String get exportShareProgramError =>
+      'Kunne ikke dele dette program. Dit program er uændret. Prøv igen.';
 
   @override
-  String get exportSetListError => 'Kunne ikke eksportere denne sætliste';
+  String get exportSetListError =>
+      'Kunne ikke eksportere denne sætliste. Prøv igen.';
 
   @override
   String get exportIncludeFiguresTitle => 'Inkluder figurer?';
@@ -6955,11 +6990,11 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String onlineLoadError(String source) {
-    return 'Kunne ikke indlæse den dans fra $source.';
+    return 'Kunne ikke indlæse den dans fra $source. Prøv igen.';
   }
 
   @override
-  String get onlineImportError => 'Kunne ikke importere den dans.';
+  String get onlineImportError => 'Kunne ikke importere den dans. Prøv igen.';
 
   @override
   String onlineSearchFailed(String source) {
@@ -7070,7 +7105,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get importProgramCreateError =>
-      'Kunne ikke gemme det importerede program.';
+      'Kunne ikke gemme det importerede program. Prøv igen.';
 
   @override
   String importProgramCommitted(
@@ -7123,7 +7158,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get importContraDbListError =>
-      'Kunne ikke indlæse ContraDB-programlisten.';
+      'Kunne ikke indlæse programlisten fra ContraDB. Intet blev importeret. Prøv igen.';
 
   @override
   String get importContraDbSearchPrompt =>
@@ -7157,7 +7192,8 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
-  String get importContraDbFetchGenericError => 'Kunne ikke hente det program.';
+  String get importContraDbFetchGenericError =>
+      'Kunne ikke hente det program. Prøv igen.';
 
   @override
   String get importContraDbPastePrompt =>
@@ -7169,7 +7205,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get importContraDbResolveError =>
-      'Kunne ikke importere ContraDB-programmet.';
+      'Kunne ikke importere ContraDB-programmet. Prøv igen.';
 
   @override
   String importContraDbProgramProgress(int done, int total) {
@@ -7230,7 +7266,8 @@ class AppLocalizationsDa extends AppLocalizations {
   String get importTitleListTitle => 'Importér fra titelliste';
 
   @override
-  String get importCollectionLoadError => 'Kunne ikke indlæse din samling.';
+  String get importCollectionLoadError =>
+      'Kunne ikke indlæse din samling. Intet blev ændret. Prøv igen.';
 
   @override
   String get importTitleListDancesLabel => 'Dansetitler (én pr. linje)';
@@ -7262,7 +7299,7 @@ class AppLocalizationsDa extends AppLocalizations {
   String get importPlaintextUnmatched => 'Intet match – tilføjet som note';
 
   @override
-  String get importPlaintextSearchError => 'Kunne ikke søge online.';
+  String get importPlaintextSearchError => 'Kunne ikke søge online. Prøv igen.';
 
   @override
   String importPlaintextSlotCount(int count) {
@@ -7581,7 +7618,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get archiveIntakeRejectedUnreadable =>
-      'Kunne ikke læse den delte fil.';
+      'Kunne ikke læse den delte fil. Prøv igen, eller bed afsenderen dele den igen.';
 
   @override
   String get archiveIntakeRejectedEmpty => 'Den fil er tom.';
@@ -7596,7 +7633,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get archiveIntakeRejectedBackup =>
-      'Den fil er en sikkerhedskopi, ikke en delefil. For at få den over på denne enhed skal du gå til Indstillinger › Generelt og vælge »Gendan fra en sikkerhedskopi«.';
+      'Den fil er en sikkerhedskopi, ikke en delefil. For at hente den ind på denne enhed skal du gå til Indstillinger ▸ Generelt og vælge Gendan fra en sikkerhedskopi.';
 
   @override
   String get importErrorInsecureScheme =>
@@ -7604,7 +7641,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get importErrorBlockedHost =>
-      'Den URL peger på en netværksplacering, der ikke kan importeres fra.';
+      'Den URL peger på en netværksplacering, appen ikke kan importere fra. Tjek URL\'en, og prøv igen.';
 
   @override
   String get importErrorInvalidUrl => 'Det ligner ikke en gyldig http(s)-URL.';
@@ -7825,7 +7862,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get importIssueArchiveCustomFieldKeyConflictGeneric =>
-      'Et brugerdefineret felt i denne fil kunne ikke bruge sin nøgle, som allerede er i brug, så dets værdier lægges i stedet i et felt med en nummereret nøgle.';
+      'Et eget felt i denne fil kunne ikke bruge sin nøgle, som allerede er i brug, så dets værdier lægges i et felt med en nummereret nøgle i stedet.';
 
   @override
   String get importIssueUsrFileTruncated =>
@@ -8009,7 +8046,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get importRecordErrorNotUsrDatabase =>
-      'Det er ikke en Caller\'s Companion-biblioteksfil (.USR). Find .USR-filen i Caller\'s Companions datamappe.';
+      'Det er ikke en Caller\'s Companion-datafil (.USR). Find .USR-filen i Caller\'s Companions datamappe.';
 
   @override
   String get importRecordErrorFileTooLarge =>
@@ -8033,15 +8070,13 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get importReviewUsrSubtitle =>
-      'Vælg Caller\'s Companion .USR-filen for at migrere dens danse og programhistorik. Intet tilføjes til din samling, før du bekræfter.';
+      'Vælg Caller\'s Companion .USR-filen for at migrere dens danse og programhistorik. Intet tilføjes til dit bibliotek, før du har gennemgået og bekræftet.';
 
   @override
   String get importReviewChooseUsr => 'Vælg .USR-fil…';
 
   @override
-  String importReviewFileReady(int bytes) {
-    return 'Fil klar ($bytes bytes).';
-  }
+  String get importReviewFileReady => 'Filen er klar.';
 
   @override
   String get importReviewGenericSubtitle =>
@@ -8093,7 +8128,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get importReviewPlanFailedBody =>
-      'Noget gik galt under læsningen af denne import. Prøv igen. Hvis det bliver ved, kan filen være beskadiget.';
+      'Kunne ikke læse denne import. Intet blev tilføjet. Prøv igen; hvis det bliver ved, kan filen være beskadiget.';
 
   @override
   String get importReviewNoDancesTitle => 'Ingen danse fundet';
@@ -8340,7 +8375,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get importReviewEditError =>
-      'Kunne ikke importere den dans til redigering.';
+      'Kunne ikke importere den dans til redigering. Prøv igen.';
 
   @override
   String get importReviewEditOverwriteTitle =>
@@ -8369,7 +8404,8 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
-  String get importReviewImportError => 'Kunne ikke fuldføre importen.';
+  String get importReviewImportError =>
+      'Kunne ikke gennemføre importen. Prøv igen.';
 
   @override
   String get importFileNotText =>
@@ -8425,7 +8461,7 @@ class AppLocalizationsDa extends AppLocalizations {
   String get danceEditorDetailsSection => 'Detaljer';
 
   @override
-  String get danceEditorTitleRequiredLabel => 'Titel *';
+  String get danceEditorTitleRequiredLabel => 'Titel';
 
   @override
   String get danceEditorTitleRequired => 'Titel er påkrævet';
@@ -8471,6 +8507,10 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get danceEditorHookHint => 'Én linje „hvorfor kalde denne dans“';
+
+  @override
+  String get danceEditorHookHelper =>
+      'Hvorfor du ville calle denne dans, på én linje. Den kan stå på callingkort og i det, du deler.';
 
   @override
   String get danceEditorWalkthroughLabel => 'Gennemgang';
@@ -8928,7 +8968,8 @@ class AppLocalizationsDa extends AppLocalizations {
       'Anfør en kilde: skriv for at tilføje eller oprette…';
 
   @override
-  String get danceEditorSaveError => 'Kunne ikke gemme dansen.';
+  String get danceEditorSaveError =>
+      'Kunne ikke gemme dansen. Dine ændringer er der stadig. Prøv igen.';
 
   @override
   String danceEditorChoreographerDuplicate(String name) {
@@ -9019,7 +9060,8 @@ class AppLocalizationsDa extends AppLocalizations {
   String get danceEditorDeleteDanceTooltip => 'Slet dans';
 
   @override
-  String get danceEditorLoadError => 'Kunne ikke indlæse dansen.';
+  String get danceEditorLoadError =>
+      'Kunne ikke indlæse dansen. Intet blev ændret. Prøv igen.';
 
   @override
   String get danceEditorChoreographerDetailsTitle => 'Forfatterdetaljer';
@@ -9029,7 +9071,7 @@ class AppLocalizationsDa extends AppLocalizations {
       'Disse detaljer deles på tværs af alle danse krediteret til denne forfatter. E-mail, placering og markeringen som afdød er private – gemmes kun på denne enhed og deles eller eksporteres aldrig.';
 
   @override
-  String get danceEditorNameRequiredLabel => 'Navn *';
+  String get danceEditorNameRequiredLabel => 'Navn';
 
   @override
   String get danceEditorNameRequired => 'Navn er påkrævet';
@@ -9220,7 +9262,7 @@ class AppLocalizationsDa extends AppLocalizations {
       'yes': ', kan ikke udvides',
       'other': '',
     });
-    return '$summary, egen figur$_temp0';
+    return '$summary, din figur$_temp0';
   }
 
   @override
@@ -9242,7 +9284,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get danceEditorCompoundUnavailable =>
-      'Denne egen figur kan ikke udvides: den er slettet eller ændret, eller den accepterer ikke disse værdier. Når du gemmer, bevares kun navn, slag, note og progression.';
+      'Din figur kan ikke udvides: Den er slettet eller ændret, eller den accepterer ikke disse værdier. Ved gemning bevares kun dens navn, beats, note og progressionsmarkering.';
 
   @override
   String get danceEditorIncompleteFigure => 'Ikke færdig, så Gem udelader den.';
@@ -9537,7 +9579,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String danceEditorUnrecognizedMoveReadOnly(String move) {
-    return 'Ukendt bevægelse „$move“ – ikke i denne versions taksonomi. Vist som skrivebeskyttet, så dens data er bevaret; den kan redigeres normalt igen, hvis bevægelsen kendes. Du kan stadig omarrangere eller slette den.';
+    return 'Ukendt move \"$move\": Denne version af appen kender det ikke. Det vises skrivebeskyttet, så dets data bevares, og det kan redigeres normalt igen, hvis movet bliver kendt. Du kan stadig flytte eller slette det.';
   }
 
   @override
@@ -9665,11 +9707,12 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
-  String get updateBannerDownloadFailed => 'Opdateringen kunne ikke hentes.';
+  String get updateBannerDownloadFailed =>
+      'Kunne ikke downloade opdateringen. Prøv igen.';
 
   @override
   String get updateDownloadFailureDestination =>
-      'Der kunne ikke vælges et sted at hente opdateringen til.';
+      'Kunne ikke vælge et sted at downloade opdateringen til. Prøv igen, eller brug \"Se udgivelse\".';
 
   @override
   String get updateDownloadFailureDestinationOccupied =>
@@ -9677,7 +9720,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get updateDownloadFailureIncomplete =>
-      'Overførslen var ufuldstændig og blev slettet. Prøv igen, eller brug „Se udgivelse“.';
+      'Kunne ikke gennemføre downloadet, og den ufuldstændige fil blev slettet. Prøv igen, eller brug \"Se udgivelse\".';
 
   @override
   String get updateDownloadFailureRefusedHost =>
@@ -9685,19 +9728,19 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get updateDownloadFailureUnreachable =>
-      'Opdateringen kunne ikke hentes. Tjek din forbindelse, og prøv igen, eller brug „Se udgivelse“.';
+      'Kunne ikke downloade opdateringen. Tjek din forbindelse, og prøv igen, eller brug \"Se udgivelse\".';
 
   @override
   String get updateDownloadFailureServerError =>
-      'Opdateringsserveren kunne ikke levere filen. Prøv igen senere, eller brug „Se udgivelse“.';
+      'Opdateringsserveren kunne ikke levere filen. Prøv igen senere, eller brug \"Se udgivelse\".';
 
   @override
   String get updateDownloadFailureDiskFull =>
-      'Der er ikke nok ledig diskplads til at gemme opdateringen. Frigør plads, og prøv igen, eller brug „Se udgivelse“.';
+      'Der er ikke nok ledig diskplads til at gemme opdateringen. Frigør noget plads, og prøv igen, eller brug \"Se udgivelse\".';
 
   @override
   String get updateDownloadFailureUnwritable =>
-      'Opdateringen kunne ikke gemmes, fordi der ikke kan skrives til overførselsplaceringen. Tjek dens tilladelser, og prøv igen, eller brug „Se udgivelse“.';
+      'Kunne ikke gemme opdateringen, fordi downloadplaceringen ikke kan skrives til. Tjek dens tilladelser, og prøv igen, eller brug \"Se udgivelse\".';
 
   @override
   String get updateDownloadFailureChecksumMismatch =>
@@ -9705,19 +9748,19 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get updateDownloadFailureHandoffFailed =>
-      'Opdateringen blev hentet og verificeret, men kunne ikke åbnes automatisk. Brug „Se udgivelse“ for at gøre installationen færdig.';
+      'Opdateringen blev downloadet og verificeret, men kunne ikke åbnes automatisk. Brug \"Se udgivelse\" for at gennemføre installationen.';
 
   @override
   String get updateDownloadFailureInstallFailed =>
-      'Noget gik galt under installationen af opdateringen. Prøv igen, eller brug „Se udgivelse“ for at hente den manuelt.';
+      'Kunne ikke installere opdateringen. Prøv igen, eller brug \"Se udgivelse\" for at downloade den manuelt.';
 
   @override
   String get startupIntegrityCheckIncomplete =>
-      'Et integritetstjek af databasen kunne ikke gennemføres, så dine data kunne ikke verificeres ved denne opstart. Hvis problemerne fortsætter, kan du overveje at gendanne fra en sikkerhedskopi. Tekniske detaljer blev gemt i Indstillinger ▸ Diagnostik.';
+      'Kunne ikke færdiggøre tjekket af dine data denne gang, så de kunne ikke verificeres. Hvis problemerne fortsætter, så overvej at gendanne fra en sikkerhedskopi. Tekniske detaljer blev gemt under Indstillinger ▸ Diagnostik.';
 
   @override
   String get startupIntegrityCheckFailed =>
-      'Et integritetstjek af databasen mislykkedes. Dine lokale data kan være beskadiget – overvej at gendanne fra en sikkerhedskopi.';
+      'Dine data bestod ikke sikkerhedstjekket og kan være beskadiget. Overvej at gendanne fra en sikkerhedskopi.';
 
   @override
   String get startupEcdConvertTitle => 'Konverter ECD-danse?';
@@ -9786,7 +9829,7 @@ class AppLocalizationsDa extends AppLocalizations {
   String get retirementBannerGetUpdate => 'Hent opdatering';
 
   @override
-  String get retirementBannerLater => 'Senere';
+  String get retirementBannerLater => 'Afvis';
 
   @override
   String installLocationBannerMessage(String appName) {
@@ -9938,7 +9981,8 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
-  String get userGuideLoadError => 'Brugervejledningen kunne ikke indlæses.';
+  String get userGuideLoadError =>
+      'Kunne ikke indlæse brugervejledningen. Prøv igen.';
 
   @override
   String get userGuideOpenOnline => 'Åbn vejledningen online';
@@ -9975,7 +10019,7 @@ class AppLocalizationsDa extends AppLocalizations {
   String get shorthandsCompoundTitle => 'Kortformer for dine egne figurer';
 
   @override
-  String get shorthandsUserFigureSyncLabel => 'Kortformer for dine nye figurer';
+  String get shorthandsUserFigureSyncLabel => 'Forkortelser til nye figurer';
 
   @override
   String get shorthandsCompoundIntro =>
@@ -9998,7 +10042,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get shorthandsUserFigureShadowedByCompound =>
-      'Bruges ikke: en kortform for en af dine kombinationer har samme tekst.';
+      'Bruges ikke: En forkortelse til en kombination har samme tekst.';
 
   @override
   String get compoundShorthandEditorFigureLabel => 'Din figur';
@@ -10008,7 +10052,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get compoundShorthandEditorNoCompounds =>
-      'Du har ingen egne figurer endnu. Tilføj først en i ordlisten.';
+      'Du har ingen egne figurer endnu. Tilføj først en i Ordlisten.';
 
   @override
   String get compoundShorthandEditorInvalidValues =>
@@ -10154,8 +10198,8 @@ class AppLocalizationsDa extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count figurer kunne ikke gemmes i din ordliste.',
-      one: '1 figur kunne ikke gemmes i din ordliste.',
+      other: 'Kunne ikke gemme $count figurer i din Ordliste.',
+      one: 'Kunne ikke gemme 1 figur i din Ordliste.',
     );
     return '$_temp0';
   }
@@ -10286,8 +10330,7 @@ class AppLocalizationsDa extends AppLocalizations {
   String get reparseConfirmUpgrade => 'Opgradér';
 
   @override
-  String get reparseFailed =>
-      'Kunne ikke opgradere figurer. Prøv venligst igen.';
+  String get reparseFailed => 'Kunne ikke opgradere figurerne. Prøv igen.';
 
   @override
   String get reparseNothingUpgradedSnack => 'Intet at opgradere.';
@@ -10353,11 +10396,11 @@ class AppLocalizationsDa extends AppLocalizations {
       'Ingen af dine ukendte figurer fra imports kan genkendes som en kendt bevægelse lige nu. Tjek igen efter en kommende opdatering, der forbedrer genkendelsen af figurer.';
 
   @override
-  String get reparseErrorTitle => 'Kunne ikke kontrollere dine figurer';
+  String get reparseErrorTitle => 'Kunne ikke tjekke dine figurer';
 
   @override
   String get reparseErrorBody =>
-      'Noget gik galt under scanning af din samling. Intet blev ændret. Du kan prøve igen.';
+      'Kunne ikke gennemsøge din samling. Intet blev ændret. Prøv igen.';
 
   @override
   String get ecdMigrationScreenTitle => 'Konvertér engelske danse';
@@ -10442,7 +10485,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get ecdMigrationFailed =>
-      'Kunne ikke konvertere dansene. Intet blev ændret. Prøv venligst igen.';
+      'Kunne ikke konvertere dansene. Intet blev ændret. Prøv igen.';
 
   @override
   String get ecdMigrationEmptyTitle => 'Intet at konvertere';
@@ -10489,7 +10532,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get customFieldsLoadError =>
-      'Kunne ikke indlæse brugerdefinerede felter.';
+      'Kunne ikke indlæse egne felter. Intet blev ændret. Prøv igen.';
 
   @override
   String get customFieldsEmptyTitle => 'Ingen brugerdefinerede felter endnu';
@@ -10530,13 +10573,13 @@ class AppLocalizationsDa extends AppLocalizations {
   String get customFieldsEditorEditTitle => 'Rediger brugerdefineret felt';
 
   @override
-  String get customFieldsLabelLabel => 'Etiket *';
+  String get customFieldsLabelLabel => 'Etiket';
 
   @override
   String get customFieldsLabelRequired => 'Etiket er påkrævet';
 
   @override
-  String get customFieldsKeyLabel => 'Nøgle *';
+  String get customFieldsKeyLabel => 'Nøgle';
 
   @override
   String get customFieldsKeyHelper =>
@@ -10551,6 +10594,10 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get customFieldsKeyInvalid =>
       'Nøgle skal starte med et bogstav eller underscore og kun indeholde bogstaver, cifre og underscores.';
+
+  @override
+  String get customFieldsSaveFailed =>
+      'Kunne ikke gemme feltet. Tjek dets nøgle og valgmuligheder, og prøv igen.';
 
   @override
   String get customFieldsTypeFieldLabel => 'Type';
@@ -10575,7 +10622,7 @@ class AppLocalizationsDa extends AppLocalizations {
       'Vis dette felt i panelet Filtre';
 
   @override
-  String get customFieldsChoicesLabel => 'Valg *';
+  String get customFieldsChoicesLabel => 'Valgmuligheder';
 
   @override
   String get customFieldsChoiceInUseTooltip => 'I brug – kan ikke fjernes';
@@ -10714,7 +10761,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get recentlyDeletedLoadError =>
-      'Dine for nylig slettede elementer kunne ikke indlæses. Intet er blevet fjernet.';
+      'Dine for nylig slettede elementer kunne ikke indlæses. Intet er blevet fjernet. Prøv igen.';
 
   @override
   String get recentlyDeletedDeleteTitle => 'Slet permanent?';
@@ -10800,7 +10847,8 @@ class AppLocalizationsDa extends AppLocalizations {
   String get venueNew => 'Nyt spillested';
 
   @override
-  String get venueLoadError => 'Kunne ikke indlæse spillesteder.';
+  String get venueLoadError =>
+      'Kunne ikke indlæse spillesteder. Intet blev ændret. Prøv igen.';
 
   @override
   String get venueManagerTitle => 'Spillesteder';
@@ -10878,7 +10926,7 @@ class AppLocalizationsDa extends AppLocalizations {
       'Denne mødesteds adresse- og kontaktfelter nedenfor bliver på denne enhed — enhedssynkronisering overfører dem ikke til dine andre enheder, så de kan være tomme der. Feltet Noter synkroniseres, så undgå at skrive kontaktoplysninger der, hvis du hellere vil holde dem private for denne enhed.';
 
   @override
-  String get venueEditorNameLabel => 'Navn *';
+  String get venueEditorNameLabel => 'Navn';
 
   @override
   String get venueEditorNameRequired => 'Navn er påkrævet';
@@ -11009,7 +11057,11 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get danceReimportSourceFailed =>
-      'Kunne ikke indlæse en dans fra denne kilde. Prøv igen.';
+      'Kunne ikke indlæse en dans fra den kilde. Din dans blev ikke ændret. Prøv igen.';
+
+  @override
+  String get danceReimportApplyFailed =>
+      'Dansen kunne ikke opdateres fra den kilde. Din dans blev ikke ændret. Prøv igen.';
 
   @override
   String get danceReimported => 'Koreografien blev opdateret.';
@@ -11041,11 +11093,11 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get publishedCollectionsUnverified =>
-      'Udgivne samlinger kunne ikke bekræftes, så intet blev indlæst. Opdater appen, hvis det bliver ved med at ske.';
+      'Kunne ikke verificere de udgivne samlinger, så intet blev indlæst. Opdater appen, hvis det bliver ved.';
 
   @override
   String get publishedCollectionsOffline =>
-      'Udgivne samlinger kunne ikke nås. Tjek din forbindelse, og prøv igen.';
+      'Kunne ikke nå de udgivne samlinger. Tjek din forbindelse, og prøv igen.';
 
   @override
   String get publishedCollectionsNeedsNewerApp =>
@@ -11219,7 +11271,7 @@ class AppLocalizationsDa extends AppLocalizations {
       'Lader dig tilføje og redigere dine egne figurer, og tilbyder dem, når du redigerer en dans. Ordlisten er ikke nødvendig. Slår du det fra, skjules de, men de slettes ikke.';
 
   @override
-  String get settingsExperimentalCustomFiguresManageTitle => 'Dine figurer';
+  String get settingsExperimentalCustomFiguresManageTitle => 'Egne figurer';
 
   @override
   String get settingsExperimentalCustomFiguresManageSubtitle =>
@@ -11236,10 +11288,10 @@ class AppLocalizationsDa extends AppLocalizations {
   String get customFiguresEmptyTitle => 'Ingen egne figurer endnu';
 
   @override
-  String get glossaryAddCustomFigure => 'Tilføj din egen figur';
+  String get glossaryAddCustomFigure => 'Tilføj din figur';
 
   @override
-  String get customFiguresNewFigure => 'Ny figur';
+  String get customFiguresNewFigure => 'Tilføj din figur';
 
   @override
   String get glossaryCustomMarker => 'Egen';
@@ -11310,7 +11362,7 @@ class AppLocalizationsDa extends AppLocalizations {
       'Din ordliste har nået sin størrelsesgrænse, så det kunne ikke gemmes. Skab plads ved at slette eller forkorte andre figurer eller noter, og prøv igen.';
 
   @override
-  String get compoundEditorTitleNew => 'Ny figur';
+  String get compoundEditorTitleNew => 'Tilføj din figur';
 
   @override
   String get compoundEditorTitleEdit => 'Rediger figur';
@@ -12087,7 +12139,8 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
-  String get callingCardEditorPreviewError => 'Eksemplet kunne ikke tegnes.';
+  String get callingCardEditorPreviewError =>
+      'Kunne ikke tegne forhåndsvisningen. Prøv igen.';
 
   @override
   String callingCardEditorPreviewShrunk(int percent) {
@@ -12145,7 +12198,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get callingCardHelpFields =>
-      'En blok udskriver kun det, dansen har, og kun felter, der er slået til under Indstillinger › Standardværdier › Delte dansefelter. En række uden noget at udskrive fylder ingenting. Når et kort er for fyldt, formindskes alt på det ensartet, så det passer, ned til halv størrelse.';
+      'En blok udskriver kun det, dansen har, og kun felter, der er slået til under Indstillinger ▸ Standarder ▸ Delte dansefelter. En række uden noget at udskrive tager ingen plads. Når et kort er for fyldt, skrumper alt på det jævnt, så det passer, ned til halv størrelse.';
 
   @override
   String get callingCardHelpTapToInsert =>

@@ -116,13 +116,19 @@ void main() {
       await _pump(tester, flaky);
 
       expect(failer.fired, isTrue, reason: 'the injected failure must fire');
-      expect(find.text("Couldn't load your tags."), findsOneWidget);
+      expect(
+        find.text("Couldn't load your tags. Nothing was changed. Try again."),
+        findsOneWidget,
+      );
       expect(find.byKey(const ValueKey('tag-row-t1')), findsNothing);
 
       await tester.tap(find.byKey(const ValueKey('load-error-retry')));
       await tester.pumpAndSettle();
 
-      expect(find.text("Couldn't load your tags."), findsNothing);
+      expect(
+        find.text("Couldn't load your tags. Nothing was changed. Try again."),
+        findsNothing,
+      );
       expect(find.byKey(const ValueKey('tag-row-t1')), findsOneWidget);
     });
 

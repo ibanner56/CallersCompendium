@@ -78,6 +78,6 @@ void main() {
     // Only the failed subtree is replaced and the card offers no way out, so
     // "recovered" would overpromise (FAIL-14).
     expect(find.textContaining('recovered'), findsNothing);
-    expect(find.textContaining("couldn't be shown"), findsOneWidget);
+    expect(find.textContaining("Couldn't show this part"), findsOneWidget);
   });
 }

@@ -995,7 +995,13 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('discard-cancel')));
       await tester.pumpAndSettle();
       expect(formTitle, findsOneWidget);
-      expect(find.text('Key'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('cf-label')),
+          matching: find.text('Key'),
+        ),
+        findsOneWidget,
+      );
     });
 
     testWidgets('a flipped switch asks on Back; Discard creates nothing', (
@@ -1064,7 +1070,13 @@ void main() {
       await tester.fling(formTitle, const Offset(0, 800), 2000);
       await tester.pumpAndSettle();
       expect(formTitle, findsOneWidget);
-      expect(find.text('Key'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('cf-label')),
+          matching: find.text('Key'),
+        ),
+        findsOneWidget,
+      );
     });
   });
 

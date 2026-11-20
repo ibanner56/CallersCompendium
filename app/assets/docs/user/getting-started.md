@@ -106,9 +106,9 @@ On a computer you can also use keyboard shortcuts, your mouse's **Back** button,
 and right-click menus on dances and programs; the
 [Accessibility guide](./accessibility.md#using-the-keyboard) lists them.
 
-### Collection — your dance library
+### Collection — your dances
 
-**Collection** is your whole library of dances, and it is where the app opens.
+**Collection** is all of your dances, and it is where the app opens.
 Each dance is one transcription: its title, author,
 [formation](./glossary.md#formation), and the ordered list of
 [figures](./glossary.md#figure) (the moves) that make it up.
@@ -234,7 +234,7 @@ bringing in dances they already have.
 
 If you already keep dances in another tool or have them from a community source,
 you can import them instead of retyping. From **Collection**, choose **Import
-dances** (or run an import from **Settings → General → Import…**).
+dances** (or run an import from **Settings ▸ General ▸ Import…**).
 
 Caller's Compendium can bring in dances from community sources such as **The
 Caller's Box** and **ContraDB**, from a **Caller's Compendium** file that you
@@ -268,7 +268,7 @@ shared vocabulary, so switching your dialect never changes the dances themselves
 — search keeps working and your data stays portable no matter which words you
 use. You can even switch dialects between gigs, or right from a dance card.
 
-Manage your dialects in **Settings → Dialect**. For the full picture — presets,
+Manage your dialects in **Settings ▸ Dialect**. For the full picture — presets,
 editing individual moves, and live previews — see the
 [Dialect guide](./dialects.md).
 

@@ -787,7 +787,7 @@ void main() {
       await _open(tester);
       expect(find.textContaining('robins zoom'), findsOneWidget);
       expect(find.textContaining('larks zoom · 4 beats'), findsOneWidget);
-      expect(find.text('Shorthands for your new figures'), findsWidgets);
+      expect(find.text('Shorthands for new figures'), findsWidgets);
     });
 
     testWidgets('a shorthand for a figure this device lacks reads as its name '

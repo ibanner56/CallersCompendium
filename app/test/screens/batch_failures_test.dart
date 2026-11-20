@@ -107,9 +107,8 @@ final _choiceDef = CustomFieldDef(
   choices: const ['Bouncy'],
 );
 
-const _applyError = 'Could not apply batch changes. Try again.';
-const _undoFailed =
-    "Couldn't undo that. Please check the result and try again.";
+const _applyError = 'Couldn\'t apply the batch changes. Try again.';
+const _undoFailed = "Couldn't undo that. Check the result, then try again.";
 
 void main() {
   group('a failed batch write is reported', () {

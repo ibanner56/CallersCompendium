@@ -236,7 +236,7 @@ void main() {
     final status = tester.widget<Text>(
       find.byKey(const ValueKey('figure-0-compound-status')),
     );
-    expect(status.data, startsWith('This figure of yours can\'t be expanded'));
+    expect(status.data, startsWith('Your figure can\'t be expanded'));
   });
 
   // A hey whose ends pair is the compound's parameter: `hey.pass2` admits

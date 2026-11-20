@@ -770,7 +770,12 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        expect(find.text("Couldn't share this dance"), findsOneWidget);
+        expect(
+          find.text(
+            "Couldn't share this dance. Your dance is unchanged. Try again.",
+          ),
+          findsOneWidget,
+        );
       },
     );
 
@@ -3492,7 +3497,10 @@ void main() {
         contains('dance_detail_screen._subscribe'),
         reason: 'a failing record read must reach the diagnostic log',
       );
-      expect(find.text("Couldn't load this dance."), findsOneWidget);
+      expect(
+        find.text("Couldn't load this dance. Nothing was changed. Try again."),
+        findsOneWidget,
+      );
       expect(
         find.text('Dance not found.'),
         findsNothing,
@@ -3508,12 +3516,18 @@ void main() {
 
       await _pumpDetail(tester, repos, 'd1');
       expect(dances.fired, isTrue);
-      expect(find.text("Couldn't load this dance."), findsOneWidget);
+      expect(
+        find.text("Couldn't load this dance. Nothing was changed. Try again."),
+        findsOneWidget,
+      );
 
       await tester.tap(find.byKey(const ValueKey('load-error-retry')));
       await tester.pumpAndSettle();
 
-      expect(find.text("Couldn't load this dance."), findsNothing);
+      expect(
+        find.text("Couldn't load this dance. Nothing was changed. Try again."),
+        findsNothing,
+      );
       expect(find.text('Alpha'), findsWidgets);
     });
 
@@ -3530,14 +3544,20 @@ void main() {
 
       await _pumpDetail(tester, repos, 'd1');
       expect(dances.fired, isTrue);
-      expect(find.text("Couldn't load this dance."), findsOneWidget);
+      expect(
+        find.text("Couldn't load this dance. Nothing was changed. Try again."),
+        findsOneWidget,
+      );
 
       final stored = await repos.dances.getById('d1');
       await repos.dances.update(stored!.copyWith(title: 'Renamed'));
       await tester.pumpAndSettle();
 
       expect(find.text('Renamed'), findsWidgets);
-      expect(find.text("Couldn't load this dance."), findsNothing);
+      expect(
+        find.text("Couldn't load this dance. Nothing was changed. Try again."),
+        findsNothing,
+      );
     });
   });
 

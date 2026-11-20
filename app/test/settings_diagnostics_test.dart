@@ -377,7 +377,10 @@ void main() {
       find.byKey(const ValueKey('diagnostics-clear-failed')),
       findsOneWidget,
     );
-    expect(find.text("Couldn't clear the diagnostics log."), findsOneWidget);
+    expect(
+      find.text("Couldn't clear the diagnostics log. Try again."),
+      findsOneWidget,
+    );
     expect(find.text('Diagnostics log cleared.'), findsNothing);
     expect(find.byKey(const ValueKey('diagnostics-entry-0')), findsOneWidget);
   });
