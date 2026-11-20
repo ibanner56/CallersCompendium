@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../theme/touch_density.dart';
+import 'app_dropdown_field.dart';
 import '../search/facet_labels.dart';
 import 'bar_timing.dart';
 
@@ -341,43 +342,44 @@ class FigureParamEditor extends StatelessWidget {
         current == null &&
         !(admitsUnstated && value == ParamVocab.unspecified);
 
+    // Shown only when there is no selection: the unstated state, or a value
+    // left as it is that must be replaced.
+    final hint = current != null
+        ? null
+        : needsChoice
+        ? l10n.danceEditorParamChooseValue
+        : admitsUnstated
+        ? l10n.danceEditorParamNotStated
+        : null;
+
     final dropdown = SizedBox(
       width: 180,
-      child: DropdownButtonFormField<String>(
+      child: AppDropdownField<String?>(
         key: ValueKey(_key),
-        initialValue: current,
-        isExpanded: true,
-        isDense: denseControls(context),
-        // Shown only when there is no selection: the unstated state, or a
-        // value left as it is that must be replaced. Supplying a hint also
-        // keeps `InputDecorator.isEmpty` false, so the floating label behaves
-        // exactly as it does for a set value.
-        hint: needsChoice
-            ? Text(
-                l10n.danceEditorParamChooseValue,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  fontStyle: FontStyle.italic,
-                  color: theme.colorScheme.error,
-                ),
-              )
-            : admitsUnstated
-            ? Text(
-                l10n.danceEditorParamNotStated,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  fontStyle: FontStyle.italic,
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              )
-            : null,
+        value: current,
+        // A long vocabulary (an unnarrowed set of dancers) can be typed.
+        filterable: selectable.length >= appDropdownFilterFrom,
         decoration: InputDecoration(
           labelText: figureParamKeyLabel(l10n, paramKey, moveId: moveId),
           isDense: denseControls(context),
+          // The label stays above the field so the hint is always on view, as
+          // a value would be.
+          hintText: hint,
+          hintStyle: theme.textTheme.bodyMedium?.copyWith(
+            fontStyle: FontStyle.italic,
+            color: needsChoice
+                ? theme.colorScheme.error
+                : theme.colorScheme.onSurfaceVariant,
+          ),
+          floatingLabelBehavior: hint == null
+              ? null
+              : FloatingLabelBehavior.always,
         ),
-        items: [
+        entries: [
           for (final choice in selectable)
-            DropdownMenuItem(
+            AppDropdownEntry<String?>(
               value: choice,
-              child: Text(_choiceLabel(l10n, choice)),
+              label: _choiceLabel(l10n, choice),
             ),
         ],
         onChanged: (v) {

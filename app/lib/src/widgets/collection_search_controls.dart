@@ -5,6 +5,7 @@ import '../../l10n/app_localizations.dart';
 import '../search/collection_query.dart';
 import '../search/collection_query_labels.dart';
 import '../theme/app_spacing.dart';
+import 'app_dropdown_field.dart';
 
 // The Collection's search controls, shared with the program picker so the two
 // offer the same Search in and sort (FIND-7, maintainer decision 2026-10-29
@@ -40,41 +41,36 @@ class SearchScopeField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    // DropdownButtonFormField reads `initialValue` once, so a change made from
-    // outside (turning online search on maps All fields to Title) needs a new
-    // field state.
-    return KeyedSubtree(
-      key: ValueKey('search-scope-state-$online-$scope'),
-      child: DropdownButtonFormField<FullTextScope>(
-        key: fieldKey,
-        initialValue: scope,
-        isExpanded: true,
-        decoration: InputDecoration(
-          labelText: l10n.collectionSearchScopeLabel,
-          isDense: true,
-          border: border,
-        ),
-        items: [
-          if (!online)
-            DropdownMenuItem(
-              value: FullTextScope.omni,
-              child: Text(l10n.collectionSearchScopeOmni),
-            ),
-          DropdownMenuItem(
-            value: FullTextScope.title,
-            child: Text(l10n.collectionSearchScopeTitle),
-          ),
-          DropdownMenuItem(
-            value: FullTextScope.author,
-            child: Text(l10n.collectionSearchScopeAuthor),
-          ),
-          DropdownMenuItem(
-            value: FullTextScope.figure,
-            child: Text(l10n.collectionSearchScopeFigure),
-          ),
-        ],
-        onChanged: onChanged,
+    // The field follows [scope], so a change made from outside (turning
+    // online search on maps All fields to Title) shows at once.
+    return AppDropdownField<FullTextScope>(
+      key: fieldKey,
+      value: scope,
+      decoration: InputDecoration(
+        labelText: l10n.collectionSearchScopeLabel,
+        isDense: true,
+        border: border,
       ),
+      entries: [
+        if (!online)
+          AppDropdownEntry(
+            value: FullTextScope.omni,
+            label: l10n.collectionSearchScopeOmni,
+          ),
+        AppDropdownEntry(
+          value: FullTextScope.title,
+          label: l10n.collectionSearchScopeTitle,
+        ),
+        AppDropdownEntry(
+          value: FullTextScope.author,
+          label: l10n.collectionSearchScopeAuthor,
+        ),
+        AppDropdownEntry(
+          value: FullTextScope.figure,
+          label: l10n.collectionSearchScopeFigure,
+        ),
+      ],
+      onChanged: onChanged,
     );
   }
 }

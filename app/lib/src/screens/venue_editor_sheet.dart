@@ -2,6 +2,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../diagnostics/error_log.dart';
 import '../sync/sync_scope.dart';
 import '../theme/app_motion.dart';
 import '../theme/app_spacing.dart';
@@ -12,10 +13,11 @@ import '../widgets/notice_card.dart';
 ///
 /// A venue is a **shared** record: the same row is referenced by every program
 /// held there (via `Program.venueId`), so a change here is visible on all of
-/// them. The sheet performs no persistence itself — it returns the built
-/// [Venue] via [Navigator.pop] when the user saves (or `null` when
-/// cancelled/dismissed) and the caller upserts it, so the sheet stays trivially
-/// testable (mirrors `ChoreographerDetailsDialog`).
+/// them. The caller does the writing: it passes [show] a `save` callback,
+/// which the sheet awaits before it closes, resolving to the built [Venue]
+/// (or `null` when cancelled/dismissed). If the save throws, the sheet stays
+/// open with every field as the user left it and says the save failed, so a
+/// failed write is never silent and never reads as saved.
 ///
 /// Closing the sheet with unsaved changes (Back, or a tap above it) asks first
 /// ([DiscardChangesGuard]). The sheet cannot be swiped down: a swipe pops the
@@ -26,7 +28,7 @@ import '../widgets/notice_card.dart';
 /// `null`, so the controllers' raw text is passed straight through; only [name]
 /// is validated to be non-empty.
 class VenueEditorSheet extends StatefulWidget {
-  const VenueEditorSheet({super.key, this.initial, this.seedName});
+  const VenueEditorSheet({super.key, this.initial, this.seedName, this.save});
 
   /// The venue to edit; fields prefill from it. When `null` the sheet is in
   /// create mode and mints a fresh id on save.
@@ -37,13 +39,19 @@ class VenueEditorSheet extends StatefulWidget {
   /// Ignored when editing an existing venue.
   final String? seedName;
 
+  /// Writes the built venue. The sheet closes only once this completes; if it
+  /// throws, the sheet stays open and shows the error. When null the sheet
+  /// writes nothing and simply returns the venue.
+  final Future<void> Function(Venue venue)? save;
+
   /// Opens the sheet for [initial] (or a new venue when `initial` is null),
-  /// resolving to the built [Venue] or `null` if the user cancels. Pass
-  /// [seedName] to prefill the name of a new venue.
+  /// resolving to the built [Venue] once [save] has written it, or `null` if
+  /// the user cancels. Pass [seedName] to prefill the name of a new venue.
   static Future<Venue?> show(
     BuildContext context, {
     Venue? initial,
     String? seedName,
+    Future<void> Function(Venue venue)? save,
   }) {
     return showModalBottomSheet<Venue>(
       context: context,
@@ -52,7 +60,8 @@ class VenueEditorSheet extends StatefulWidget {
       // A swipe or the drag handle would close the sheet without asking about
       // unsaved changes; see the class comment.
       enableDrag: false,
-      builder: (_) => VenueEditorSheet(initial: initial, seedName: seedName),
+      builder: (_) =>
+          VenueEditorSheet(initial: initial, seedName: seedName, save: save),
       sheetAnimationStyle: AppMotion.styleFor(context),
     );
   }
@@ -63,6 +72,12 @@ class VenueEditorSheet extends StatefulWidget {
 
 class _VenueEditorSheetState extends State<VenueEditorSheet> {
   final _formKey = GlobalKey<FormState>();
+
+  /// A save is in flight: Save is disabled until it settles.
+  bool _saving = false;
+
+  /// The last save threw; the fields still hold what the user typed.
+  bool _saveFailed = false;
 
   late final TextEditingController _name;
   late final TextEditingController _website;
@@ -191,7 +206,10 @@ class _VenueEditorSheetState extends State<VenueEditorSheet> {
     return false;
   }
 
-  void _save() {
+  Future<void> _save() async {
+    // One write at a time: a second tap before Save disables itself would
+    // otherwise mint a second id and save the venue twice.
+    if (_saving) return;
     if (!_formKey.currentState!.validate()) return;
     // Build a fresh record from the controllers so clearing an optional field
     // actually clears it. The Venue constructor normalizes empty/whitespace to
@@ -221,6 +239,27 @@ class _VenueEditorSheetState extends State<VenueEditorSheet> {
       contact2Email: _contact2Email.text,
       notes: _notes.text,
     );
+    final save = widget.save;
+    if (save != null) {
+      setState(() {
+        _saving = true;
+        _saveFailed = false;
+      });
+      try {
+        await save(venue);
+      } catch (e, stackTrace) {
+        // Any failure to write (a locked or full database, a constraint): stay
+        // open with the user's edits, and say so.
+        logCaughtError(e, stackTrace, source: 'venue_editor_sheet._save');
+        if (!mounted) return;
+        setState(() {
+          _saving = false;
+          _saveFailed = true;
+        });
+        return;
+      }
+      if (!mounted) return;
+    }
     Navigator.of(context).pop(venue);
   }
 
@@ -234,7 +273,10 @@ class _VenueEditorSheetState extends State<VenueEditorSheet> {
     return ListenableBuilder(
       listenable: _anyField,
       builder: (context, child) =>
-          DiscardChangesGuard(dirty: _dirty, child: child!),
+          // While a save is in flight the sheet cannot close: closing then
+          // would hide the save's failure, or ignore the cancel if it
+          // succeeds.
+          DiscardChangesGuard(dirty: _dirty, busy: _saving, child: child!),
       child: Padding(
         padding: EdgeInsets.only(bottom: viewInsets),
         child: ConstrainedBox(
@@ -411,6 +453,23 @@ class _VenueEditorSheetState extends State<VenueEditorSheet> {
                   ),
                 ),
               ),
+              if (_saveFailed)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.lg,
+                    0,
+                    AppSpacing.lg,
+                    AppSpacing.sm,
+                  ),
+                  child: Semantics(
+                    liveRegion: true,
+                    child: NoticeCard(
+                      key: const ValueKey('venue-editor-save-error'),
+                      kind: NoticeKind.error,
+                      child: Text(l10n.venueEditorSaveError),
+                    ),
+                  ),
+                ),
               const Divider(height: 1),
               Padding(
                 padding: const EdgeInsets.fromLTRB(
@@ -424,13 +483,15 @@ class _VenueEditorSheetState extends State<VenueEditorSheet> {
                   children: [
                     TextButton(
                       key: const ValueKey('venue-editor-cancel'),
-                      onPressed: () => Navigator.of(context).pop(),
+                      onPressed: _saving
+                          ? null
+                          : () => Navigator.of(context).pop(),
                       child: Text(l10n.commonCancel),
                     ),
                     const SizedBox(width: 8),
                     FilledButton(
                       key: const ValueKey('venue-editor-save'),
-                      onPressed: _save,
+                      onPressed: _saving ? null : _save,
                       child: Text(l10n.commonSave),
                     ),
                   ],

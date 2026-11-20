@@ -16,6 +16,7 @@ import '../utils/scroll_to_error.dart';
 import '../widgets/compound_argument_editor.dart';
 import '../widgets/shorthand_shadow_warning.dart';
 import '../widgets/user_figure_use_editor.dart';
+import '../widgets/app_dropdown_field.dart';
 import '../widgets/app_bar_text_action.dart';
 import '../widgets/confirm_discard_changes.dart';
 
@@ -423,24 +424,23 @@ class _CompoundShorthandEditorScreenState
                 key: const ValueKey('compound-shorthand-none'),
               )
             else if (compounds != null && figures != null) ...[
-              DropdownButtonFormField<String>(
+              AppDropdownField<String?>(
                 key: const ValueKey('compound-shorthand-compound'),
-                initialValue: pickedValue,
-                isExpanded: true,
+                value: pickedValue,
+                // The user's own compound figures: a list that grows.
+                filterable: true,
                 decoration: InputDecoration(
                   labelText: l10n.compoundShorthandEditorFigureLabel,
                   border: const OutlineInputBorder(),
                 ),
-                items: [
+                entries: [
                   for (final choice in choices)
-                    DropdownMenuItem(
+                    AppDropdownEntry<String?>(
                       key: ValueKey(
                         'compound-shorthand-choice-${choice.value}',
                       ),
                       value: choice.value,
-                      child: Text(
-                        _renderer.renderFreeText(choice.name, dialect),
-                      ),
+                      label: _renderer.renderFreeText(choice.name, dialect),
                     ),
                 ],
                 onChanged: _pick,

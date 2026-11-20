@@ -6,6 +6,7 @@ import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:compendium_app/src/widgets/app_dropdown_field.dart';
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/display_defaults.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
@@ -167,7 +168,9 @@ Future<void> _expandMoreDetails(WidgetTester tester) async {
 /// value-encoded `ValueKey`, which only proved the parent passed that value
 /// down. Going through the field's state proves the field is showing it.
 T? _dropdownValue<T>(WidgetTester tester) => tester
-    .state<FormFieldState<T>>(find.byType(DropdownButtonFormField<T>))
+    .state<FormFieldState<T>>(
+      find.byWidgetPredicate((w) => w is AppDropdownField<T>),
+    )
     .value;
 
 void main() {
@@ -2386,18 +2389,21 @@ void main() {
       final bodyLarge = Theme.of(
         tester.element(find.byKey(const ValueKey('title-field'))),
       ).textTheme.bodyLarge!;
-      final dropdowns = tester
-          .widgetList(
-            find.byWidgetPredicate(
-              (w) => w.runtimeType.toString().startsWith('DropdownButton<'),
+      // The text each dropdown's closed field shows.
+      final values = tester
+          .widgetList<EditableText>(
+            find.descendant(
+              of: find.byWidgetPredicate(
+                (w) => w.runtimeType.toString().startsWith('AppDropdownField<'),
+              ),
+              matching: find.byType(EditableText),
             ),
           )
           .toList();
-      expect(dropdowns, isNotEmpty);
-      for (final dropdown in dropdowns) {
-        final style = (dropdown as dynamic).style as TextStyle?;
-        expect(style?.fontWeight, bodyLarge.fontWeight);
-        expect(style?.fontSize, bodyLarge.fontSize);
+      expect(values, isNotEmpty);
+      for (final value in values) {
+        expect(value.style.fontWeight, bodyLarge.fontWeight);
+        expect(value.style.fontSize, bodyLarge.fontSize);
       }
     });
 

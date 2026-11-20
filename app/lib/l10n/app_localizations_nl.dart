@@ -10985,6 +10985,10 @@ class AppLocalizationsNl extends AppLocalizations {
   String get venueEditTitle => 'Locatie bewerken';
 
   @override
+  String get venueEditorSaveError =>
+      'De locatie kon niet worden opgeslagen. Je wijzigingen staan er nog. Probeer het opnieuw.';
+
+  @override
   String get venueEditorSharedNote =>
       'Een locatie is gedeeld over elk programma dat hier wordt gehouden, dus bewerkingen van het adres, contacten of schema zijn zichtbaar op al die programma’s.';
 

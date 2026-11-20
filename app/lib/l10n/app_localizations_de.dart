@@ -11026,6 +11026,10 @@ class AppLocalizationsDe extends AppLocalizations {
   String get venueEditTitle => 'Veranstaltungsort bearbeiten';
 
   @override
+  String get venueEditorSaveError =>
+      'Der Veranstaltungsort konnte nicht gespeichert werden. Deine Änderungen sind noch da. Versuche es erneut.';
+
+  @override
   String get venueEditorSharedNote =>
       'Ein Veranstaltungsort wird für alle hier stattfindenden Programme geteilt, sodass Änderungen an Adresse, Kontakten oder Zeitplan bei allen angezeigt werden.';
 

@@ -14243,6 +14243,10 @@
   "@venueEditTitle": {
     "description": "Title of the venue editor sheet when editing an existing venue."
   },
+  "venueEditorSaveError": "Couldn't save the venue. Your changes are still here. Try again.",
+  "@venueEditorSaveError": {
+    "description": "Shown in the venue editor sheet when saving the venue fails. The sheet stays open with every field as the user left it."
+  },
   "venueEditorSharedNote": "A venue is shared across every program held here, so edits to its address, contacts, or schedule show up on all of them.",
   "@venueEditorSharedNote": {
     "description": "Explanatory note at the top of the venue editor sheet: a venue record is shared across programs."

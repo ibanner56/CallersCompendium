@@ -6,6 +6,7 @@ import 'package:compendium_core/testing.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:compendium_app/src/widgets/app_dropdown_field.dart';
 import 'package:compendium_app/src/data/collection_facets_scope.dart';
 import 'package:compendium_app/src/data/collection_tile_fields_scope.dart';
 import 'package:compendium_app/src/data/display_defaults.dart';
@@ -22,6 +23,7 @@ import 'package:compendium_app/src/widgets/collection_picker.dart';
 import 'package:compendium_app/src/widgets/dance_list_tile.dart';
 import 'package:compendium_app/src/widgets/online_result_tile.dart';
 
+import '../support/dropdown.dart';
 import '../support/test_repositories.dart';
 import '../support/l10n_harness.dart';
 import '../support/panel_chip.dart';
@@ -1263,7 +1265,7 @@ void main() {
 
     final tagDropdowns = find.byWidgetPredicate((w) {
       final key = w.key;
-      return w is DropdownButtonFormField<String> &&
+      return w is AppDropdownField<String?> &&
           key is ValueKey<String> &&
           key.value.startsWith('tag-');
     });
@@ -1271,7 +1273,7 @@ void main() {
       await _tapVisible(tester, find.text('Add'));
       await _tapVisible(tester, find.text('Has tag').last);
       await _tapVisible(tester, tagDropdowns.at(index));
-      await tester.tap(find.text(name).last);
+      await tester.tap(dropdownEntry(name));
       await tester.pumpAndSettle();
     }
 
@@ -1300,7 +1302,7 @@ void main() {
     await tester.pumpAndSettle();
     final tagDropdown = find.byWidgetPredicate(
       (w) =>
-          w is DropdownButtonFormField<String> &&
+          w is AppDropdownField<String?> &&
           w.key is ValueKey<String> &&
           (w.key! as ValueKey<String>).value.startsWith('tag-'),
     );
@@ -1313,7 +1315,7 @@ void main() {
     await _tapVisible(tester, find.text('Has tag').last);
     expect(tagDropdown, findsOneWidget);
     await _tapVisible(tester, tagDropdown);
-    await tester.tap(find.text('smooth').last);
+    await tester.tap(dropdownEntry('smooth'));
     await tester.pumpAndSettle();
 
     await _tapVisible(
@@ -1361,7 +1363,7 @@ void main() {
     );
     final tagDropdown = find.byWidgetPredicate(
       (w) =>
-          w is DropdownButtonFormField<String> &&
+          w is AppDropdownField<String?> &&
           w.key is ValueKey<String> &&
           (w.key! as ValueKey<String>).value.startsWith('tag-'),
     );
@@ -1380,7 +1382,7 @@ void main() {
     await _tapVisible(tester, find.text('Add'));
     await _tapVisible(tester, find.text('Has tag').last);
     await _tapVisible(tester, tagDropdown);
-    await tester.tap(find.text('smooth').last);
+    await tester.tap(dropdownEntry('smooth'));
     await tester.pumpAndSettle();
     await _tapVisible(
       tester,

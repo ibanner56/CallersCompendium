@@ -337,7 +337,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(
         find.descendant(
-          of: find.byType(DropdownMenuItem<ParamKind>),
+          of: find.byType(MenuItemButton),
           matching: find.text('number'),
         ),
         findsWidgets,
@@ -1048,15 +1048,10 @@ void main() {
       'hand (unavailable: its kind is hand; this setting\'s is dancers)',
     );
     expect(item, findsWidgets);
-    final menuItem = tester.widget<DropdownMenuItem<dynamic>>(
-      find
-          .ancestor(
-            of: item.last,
-            matching: find.byWidgetPredicate((w) => w is DropdownMenuItem),
-          )
-          .first,
+    final menuItem = tester.widget<MenuItemButton>(
+      find.ancestor(of: item.last, matching: find.byType(MenuItemButton)).first,
     );
-    expect(menuItem.enabled, isFalse);
+    expect(menuItem.onPressed, isNull, reason: 'the entry cannot be picked');
   });
 
   testWidgets('an existing figure saves back unchanged in meaning, with its '

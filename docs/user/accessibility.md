@@ -64,8 +64,10 @@ Open **Settings ▸ Appearance** to choose how the app looks. You'll find:
   separation between text and background. Cards, dialogs, popup menus, bottom
   sheets, suggestion lists, the date and time pickers and buttons (icon buttons
   included) also get a visible outline, so you can see their edges without
-  relying on shading. The lists that open from drop-down fields are not
-  outlined yet.
+  relying on shading. So do the lists that open from the drop-down fields in
+  editors, dialogs and the **Collection**'s search. The small drop-downs that
+  sit at the end of a row in **Settings** (and a few like them elsewhere) are
+  not outlined yet.
 
 There are additional palettes and custom themes to explore as well, but those four
 are the ones most people reach for first — see
@@ -213,6 +215,18 @@ one, and **Esc** closes the menu and returns focus to the **⋮** button.
 **Add figure menu.** Open it with **Space** or **Enter** and focus lands on its
 first choice: **Enter** picks **Add figure**, and the arrow keys reach **Add
 meanwhile**, **Add modifier** and **Add sequence**.
+
+**Drop-down fields.** Tab to a drop-down field in an editor, a dialog or the
+**Collection**'s search and press **Enter** to open its list, the **up** and
+**down** arrow keys to move through it, **Enter** to choose, and **Esc** to
+close it without changing anything. A field with a long list (a dozen entries or
+more, such as months, days, numbers and currencies), or one that grows with your
+own data (your dialects, tags, difficulty levels, custom fields and their
+options, every figure in the glossary), also lets you type: start typing and the
+list narrows to the entries that match. Only choosing an entry changes the
+field; text you typed without choosing is put back when you move on. On a phone
+or tablet those fields bring up the on-screen keyboard when you tap them; the
+others just open their list.
 
 **Always know where you are.** As you move through controls with the keyboard,
 the one with focus gets a solid outline drawn just outside it — in the theme's

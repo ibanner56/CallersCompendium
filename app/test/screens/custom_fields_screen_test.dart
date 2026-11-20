@@ -5,6 +5,7 @@ import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:compendium_app/src/widgets/app_dropdown_field.dart';
 import 'package:compendium_app/src/data/confirm_before_delete_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/custom_fields_screen.dart';
@@ -620,7 +621,7 @@ void main() {
       await _pumpScreen(tester, repos);
       await _openEditForm(tester, 'Notes');
       // The type dropdown's onChanged should be null (disabled).
-      final dropdown = tester.widget<DropdownButtonFormField<CustomFieldType>>(
+      final dropdown = tester.widget<AppDropdownField<CustomFieldType>>(
         find.byKey(const ValueKey('cf-type')),
       );
       expect(dropdown.onChanged, isNull);
@@ -735,10 +736,9 @@ void main() {
           find.byKey(const ValueKey('cf-key')),
         );
         expect(keyField.enabled, isNot(false));
-        final dropdown = tester
-            .widget<DropdownButtonFormField<CustomFieldType>>(
-              find.byKey(const ValueKey('cf-type')),
-            );
+        final dropdown = tester.widget<AppDropdownField<CustomFieldType>>(
+          find.byKey(const ValueKey('cf-type')),
+        );
         expect(dropdown.onChanged, isNotNull);
       },
     );

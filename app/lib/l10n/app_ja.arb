@@ -10482,6 +10482,10 @@
   "@venueEditTitle": {
     "x-sourceSha256": "00d5c961a67a8bf73947ad1e0211dd2b1fbe4a645da5606086de01ed2363e97a"
   },
+  "venueEditorSaveError": "会場を保存できませんでした。変更内容はここに残っています。もう一度お試しください。",
+  "@venueEditorSaveError": {
+    "x-sourceSha256": "387d40f8000a8ca82b02138170f0f5069bd8dcbf0a134eb7f58ae33edad7cc81"
+  },
   "venueEditorSharedNote": "会場はここで開催されるすべてのプログラムで共有されます。住所、連絡先、スケジュールを編集するとすべてに反映されます。",
   "@venueEditorSharedNote": {
     "x-sourceSha256": "4d048ad644a9c5f9e11abdd572cd76096caa35733d56f6295aa43a866b42c407"

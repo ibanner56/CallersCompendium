@@ -10918,6 +10918,10 @@ class AppLocalizationsDa extends AppLocalizations {
   String get venueEditTitle => 'Rediger spillested';
 
   @override
+  String get venueEditorSaveError =>
+      'Kunne ikke gemme spillestedet. Dine ændringer er der stadig. Prøv igen.';
+
+  @override
   String get venueEditorSharedNote =>
       'Et spillested deles på tværs af alle programmer afholdt her, så redigering af dets adresse, kontakter eller tidsplan opdaterer alle disse programmer på én gang.';
 

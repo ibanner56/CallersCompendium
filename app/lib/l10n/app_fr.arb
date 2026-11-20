@@ -10482,6 +10482,10 @@
   "@venueEditTitle": {
     "x-sourceSha256": "00d5c961a67a8bf73947ad1e0211dd2b1fbe4a645da5606086de01ed2363e97a"
   },
+  "venueEditorSaveError": "Impossible d’enregistrer le lieu. Vos modifications sont toujours là. Réessayez.",
+  "@venueEditorSaveError": {
+    "x-sourceSha256": "387d40f8000a8ca82b02138170f0f5069bd8dcbf0a134eb7f58ae33edad7cc81"
+  },
   "venueEditorSharedNote": "Un lieu est partagé entre tous les programmes qui y ont lieu ; les modifications de son adresse, contacts ou calendrier apparaissent sur tous.",
   "@venueEditorSharedNote": {
     "x-sourceSha256": "4d048ad644a9c5f9e11abdd572cd76096caa35733d56f6295aa43a866b42c407"

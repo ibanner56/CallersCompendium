@@ -6,6 +6,7 @@ import 'package:compendium_core/testing.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:compendium_app/src/widgets/app_dropdown_field.dart';
 import 'package:compendium_app/src/screens/settings/matrix_column_editor.dart';
 import 'package:compendium_app/src/data/program_matrix_column_config_scope.dart';
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
@@ -431,7 +432,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      final moveSelector = tester.widget<DropdownButtonFormField<String>>(
+      final moveSelector = tester.widget<AppDropdownField<String>>(
         find.byKey(const ValueKey('matrix-parameterized-move')),
       );
       moveSelector.onChanged!('facing_star');
@@ -579,7 +580,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      final moveSelector = tester.widget<DropdownButtonFormField<String>>(
+      final moveSelector = tester.widget<AppDropdownField<String>>(
         find.byKey(const ValueKey('matrix-compound-step-move-1')),
       );
       moveSelector.onChanged!('balance');
@@ -624,7 +625,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      final moveSelector = tester.widget<DropdownButtonFormField<String>>(
+      final moveSelector = tester.widget<AppDropdownField<String>>(
         find.byKey(const ValueKey('matrix-compound-step-move-0')),
       );
       moveSelector.onChanged!('facing_star');
@@ -733,7 +734,7 @@ void main() {
 
       expect(
         tester
-            .widget<DropdownButtonFormField<String>>(
+            .widget<AppDropdownField<String>>(
               find.byKey(const ValueKey('matrix-compound-step-move-0')),
             )
             .initialValue,
@@ -832,7 +833,7 @@ void main() {
 
       expect(
         tester
-            .widget<DropdownButtonFormField<String>>(
+            .widget<AppDropdownField<String>>(
               find.byKey(const ValueKey('matrix-parameterized-move')),
             )
             .initialValue,
@@ -881,7 +882,7 @@ void main() {
 
       expect(
         tester
-            .widget<DropdownButtonFormField<String>>(
+            .widget<AppDropdownField<String>>(
               find.byKey(const ValueKey('matrix-compound-step-move-0')),
             )
             .initialValue,

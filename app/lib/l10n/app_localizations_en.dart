@@ -10874,6 +10874,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get venueEditTitle => 'Edit venue';
 
   @override
+  String get venueEditorSaveError =>
+      'Couldn\'t save the venue. Your changes are still here. Try again.';
+
+  @override
   String get venueEditorSharedNote =>
       'A venue is shared across every program held here, so edits to its address, contacts, or schedule show up on all of them.';
 
