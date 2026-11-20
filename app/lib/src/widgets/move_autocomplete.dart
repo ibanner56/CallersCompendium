@@ -381,7 +381,8 @@ class _MoveAutocompleteState extends State<MoveAutocomplete> {
           MoveOption(
             id: m.id,
             displayName: _withOtherFormLabel(
-              m,
+              m.id,
+              m.displayName,
               renderer.displayMoveName(m.id, dialect),
               ownFormNames,
             ),
@@ -400,7 +401,14 @@ class _MoveAutocompleteState extends State<MoveAutocomplete> {
               ))
             MoveOption(
               id: a.id,
-              displayName: renderer.displayMoveName(a.id, dialect),
+              // Told apart from another form's alias of the same name, as
+              // moves are: contra's and ECD's "hand cast".
+              displayName: _withOtherFormLabel(
+                a.id,
+                a.displayName,
+                renderer.displayMoveName(a.id, dialect),
+                ownFormNames,
+              ),
             ),
     ];
     if (widget.includeAliases) {
@@ -415,8 +423,11 @@ class _MoveAutocompleteState extends State<MoveAutocomplete> {
       };
       for (final a in widget.taxonomy.aliases.values) {
         if (!_offeredInForm(a.id)) continue;
-        final label = renderer.displayMoveName(a.id, dialect);
-        if (matches(a.id, a.displayName, label, a.searchKeywords) &&
+        final name = renderer.displayMoveName(a.id, dialect);
+        final label = a.listedAsMove
+            ? _withOtherFormLabel(a.id, a.displayName, name, ownFormNames)
+            : name;
+        if (matches(a.id, a.displayName, name, a.searchKeywords) &&
             labels.add(_labelKey(label))) {
           options.add(MoveOption(id: a.id, displayName: label));
         }
@@ -425,12 +436,17 @@ class _MoveAutocompleteState extends State<MoveAutocomplete> {
     return options;
   }
 
-  /// The names of the moves of the taxonomy's own form, when it lays that
-  /// form over another (an ECD dance's taxonomy is ECD's over contra's).
+  /// The names of the moves of the taxonomy's own form, and of its aliases
+  /// listed as moves, when it lays that form over another (an ECD dance's
+  /// taxonomy is ECD's over contra's).
   Set<String> get _ownFormNames => {
     for (final m in widget.taxonomy.moves.values)
       if (shippedTaxonomies.formOfMoveId(m.id) == widget.taxonomy.form)
         m.displayName,
+    for (final a in widget.taxonomy.aliases.values)
+      if (a.listedAsMove &&
+          shippedTaxonomies.formOfMoveId(a.id) == widget.taxonomy.form)
+        a.displayName,
   };
 
   /// Whether the move or alias [id] is offered: in a taxonomy that lays a
@@ -449,22 +465,28 @@ class _MoveAutocompleteState extends State<MoveAutocomplete> {
       id == customMove ||
       shippedTaxonomies.formOfMoveId(id) == widget.taxonomy.form;
 
-  bool _namedLikeOwnForm(MoveDef move, Set<String> ownFormNames) =>
-      shippedTaxonomies.formOfMoveId(move.id) != widget.taxonomy.form &&
-      ownFormNames.contains(move.displayName);
+  bool _namedLikeOwnForm(
+    String id,
+    String displayName,
+    Set<String> ownFormNames,
+  ) =>
+      shippedTaxonomies.formOfMoveId(id) != widget.taxonomy.form &&
+      ownFormNames.contains(displayName);
 
-  /// [label], the label of [move], followed by its form's name when [move]
-  /// is another form's move named like one of the taxonomy's own: "circle"
-  /// and "circle · English (ECD)" in a search over every dance.
+  /// [label], the label of move or listed alias [id] named [displayName],
+  /// followed by its form's name when it is another form's, named like one
+  /// of the taxonomy's own: "circle" and "circle · English (ECD)" in a
+  /// search over every dance.
   String _withOtherFormLabel(
-    MoveDef move,
+    String id,
+    String displayName,
     String label,
     Set<String> ownFormNames,
   ) {
-    if (!_namedLikeOwnForm(move, ownFormNames)) return label;
+    if (!_namedLikeOwnForm(id, displayName, ownFormNames)) return label;
     final form = danceFormLabel(
       AppLocalizations.of(context),
-      shippedTaxonomies.formOfMoveId(move.id),
+      shippedTaxonomies.formOfMoveId(id),
     );
     return '$label · $form';
   }

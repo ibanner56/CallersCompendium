@@ -14,8 +14,8 @@ import '../taxonomy/param_types.dart';
 /// - `{?flag}` adds no words, and keeps its group only while `flag` is set.
 ///
 /// The ADR's `{a | b}` choices are worded by [ecdSlotWords] instead: a
-/// destination's "to"/"back to", and right and left through's "with" or
-/// "without" hands.
+/// destination's "to"/"back to", right and left through's "with" or
+/// "without" hands, and a cast's "back", "back left", "up" or "down".
 const String ecdMovePrefix = 'ecd_';
 
 final RegExp _group = RegExp(r'\[([^\[\]]*)\]');
@@ -57,6 +57,9 @@ String ecdDestinationPhrase(Object? value) => switch (value) {
   'partnersPlace' => "to partner's place",
   'neighborsPlace' => "to neighbor's place",
   'diagonalsPlace' => "to diagonal's place",
+  // A cast's ends of the set (§9.4), worded as contra's cast words them.
+  'top' => 'to the top',
+  'bottom' => 'to the bottom',
   final String place when place != ParamVocab.unspecified =>
     'to ${_words(place)}',
   _ => '',
@@ -75,6 +78,10 @@ String? ecdSlotWords(
   final value = params[name];
   final move = moveId.substring(ecdMovePrefix.length);
   switch (name) {
+    // A cast already says "back" unless it goes up or down, so its return
+    // to place reads "cast back to place", not "cast back back to place".
+    case 'destination' when move == 'cast' && value == 'place':
+      return 'to place';
     case 'destination':
       return ecdDestinationPhrase(value);
     case 'withHands':
@@ -116,6 +123,15 @@ String? ecdSlotWords(
     case 'move'
         when move == 'turn_single' && params['shoulder'] == 'cloverleaf':
       return 'cloverleaf turn single';
+    // A cast is always worded by its direction (§7.5): "cast back" when the
+    // figure states none, "cast back left" or "cast back right" for the
+    // shoulder turned over, "cast up" or "cast down".
+    case 'direction' when move == 'cast':
+      return switch (value) {
+        'left' || 'right' => 'back $value',
+        'up' || 'down' => '$value',
+        _ => 'back',
+      };
     // A set's side is shown only when it is not right (§7.1).
     case 'direction' when move == 'set' && !forCanonical:
       return value == 'right' ? '' : null;

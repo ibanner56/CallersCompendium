@@ -22,7 +22,7 @@
 ///   a word the grammar does not know makes the line custom, and so does one
 ///   the movement has no place to hold (dancers named both before and after
 ///   a turn, a ring size with no fraction, a preposition the movement does not
-///   show, such as `cast to`), and a bracketed aside (`(on the side)`) is kept
+///   show, such as `cast to 2s`), and a bracketed aside (`(on the side)`) is kept
 ///   as the figure's note.
 /// - **Validated** against the ECD taxonomy on its own (no contra under it),
 ///   so a candidate with any error-severity issue degrades to custom.
@@ -358,6 +358,11 @@ final Map<String, String> _destinationPhrases = {
   'end improper': 'allImproper',
   'all proper': 'allProper',
   'ending proper': 'allProper',
+  // The ends of the set, which only a cast takes (ADR-006 §9.4). "The top"
+  // is never a dancer phrase, so no other movement's line reads differently;
+  // a bare `to top`/`to bottom` reaches a cast as dancers instead.
+  'to the top': 'top',
+  'to the bottom': 'bottom',
   'to end proper': 'allProper',
   'end proper': 'allProper',
   for (final MapEntry(key: word, value: n) in _ordinals.entries)
@@ -580,6 +585,7 @@ final List<_VerbPhrase> _verbPhrases = [
   _v('box the gnat', 'box_the_gnat'),
   _v('swat the flea', 'swat_the_flea'),
   _v('gate', 'gate'),
+  _v('hand cast', 'hand_cast'),
   _v('orbit', 'orbit'),
   _v('mad robin', 'mad_robin'),
   _v('balance', 'balance'),
@@ -776,6 +782,23 @@ Object? _shoulder(
 
 Object? _where(_Bag bag, List<String> allowed) => _oneOf(bag, 'where', allowed);
 
+/// A gate's params, for `gate` and its other name, `hand cast`. Dancers named
+/// straight after the movement: no preposition reads as its `whom`.
+Map<String, Object?>? _gateParams(_Bag b, _Context c) {
+  final gated = _objectOrWhom(
+    b.take<List<String>>('object'),
+    _whomVia(b, const <String>{}),
+  );
+  return _params({
+    'who': b.take<List<String>>('who'),
+    'whom': gated,
+    'direction': b.take<String>('spin'),
+    'travel': _travel(b),
+    'endFacing': b.take<String>('endFacing'),
+    'destination': _dest(b),
+  });
+}
+
 /// The dancers a step names after a preposition, when the movement reads
 /// that preposition as its `whom` ([via]); [_fail] for any other preposition,
 /// since each movement shows `whom` with its own word ("around", "through",
@@ -929,22 +952,9 @@ final Map<String, _MoveRule> _rules = {
       'destination': _dest(b),
     }),
   ),
-  'gate': _MoveRule('ecd_gate', (b, c) {
-    // Dancers named straight after the movement: no preposition reads as its
-    // `whom`.
-    final gated = _objectOrWhom(
-      b.take<List<String>>('object'),
-      _whomVia(b, const <String>{}),
-    );
-    return _params({
-      'who': b.take<List<String>>('who'),
-      'whom': gated,
-      'direction': b.take<String>('spin'),
-      'travel': _travel(b),
-      'endFacing': b.take<String>('endFacing'),
-      'destination': _dest(b),
-    });
-  }),
+  'gate': _MoveRule('ecd_gate', _gateParams),
+  // A gate by its other name, stored under its own ID (ADR-006 §9.4).
+  'hand_cast': _MoveRule('ecd_hand_cast', _gateParams),
   'orbit': _MoveRule(
     'ecd_orbit',
     (b, c) => _params({
@@ -1290,16 +1300,55 @@ final Map<String, _MoveRule> _rules = {
       'destination': _dest(b),
     }),
   ),
-  'cast': _MoveRule(
-    'ecd_cast',
-    (b, c) => _params({
-      'who': _whoOf(b, objectIsWho: false),
-      'where': _where(b, const ['off', 'up', 'down', 'around']),
-      'direction': _sideAs(b, 'direction'),
-      'whom': _whom(b, const {'around'}),
-      'destination': _dest(b),
-    }),
-  ),
+  // A cast's `direction` is up, down, or the shoulder turned over (ADR-006
+  // §9.4): a bare `left`/`right`, never `to the left`, which is a way to
+  // travel. `back` is how a cast with no `up` or `down` reads ("cast back
+  // left"), so it states nothing. "Cast off" is down one place unless the
+  // line states a count or where the cast ends.
+  'cast': _MoveRule('ecd_cast', (b, c) {
+    final who = _whoOf(b, objectIsWho: false);
+    final where = _where(b, const ['off', 'up', 'down', 'back']);
+    // `clockwise` is over the right shoulder, `counterclockwise` the left
+    // (the maintainer's mapping). A role never implies one (§9.4).
+    final side = _sideAs(b, 'direction', toTheAllowed: false);
+    final spin = switch (b.take<String>('spin')) {
+      null => null,
+      'clockwise' => 'right',
+      'counterclockwise' => 'left',
+      _ => _fail,
+    };
+    final shoulder = side != null && spin != null ? _fail : side ?? spin;
+    final count = b.take<int>('placeCount');
+    final direction = where == null || where == 'back'
+        ? shoulder
+        : shoulder != null
+        ? _fail
+        : where == 'off'
+        ? 'down'
+        : where;
+    // A bare `to top`/`to bottom` reaches the step as dancers after `to`;
+    // only a cast reads it as where it ends, so other movements keep reading
+    // `set to top` as setting to the top couple.
+    var end = _dest(b);
+    Object? whom;
+    final named = b.take<List<String>>('whom');
+    final via = b.take<String>('whomVia');
+    if (named != null) {
+      final single = _single(named);
+      if (via == 'to' && (single == 'top' || single == 'bottom')) {
+        end = end == null ? single : _fail;
+      } else {
+        whom = via == 'around' ? single ?? _fail : _fail;
+      }
+    }
+    return _params({
+      'who': who,
+      'direction': direction,
+      'places': count ?? (where == 'off' && end == null ? 1 : null),
+      'whom': whom,
+      'destination': end,
+    });
+  }),
   'galop': _MoveRule(
     'ecd_galop',
     (b, c) => _params({
