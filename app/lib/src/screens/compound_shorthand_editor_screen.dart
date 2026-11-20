@@ -494,6 +494,7 @@ class _CompoundShorthandEditorScreenState
                       definition: picked.definition,
                       param: param,
                       value: _args[param.key],
+                      taxonomy: shippedTaxonomies.anyForm,
                       dialect: dialect,
                       onChanged: (value) => setState(() {
                         _args[param.key] = value;
