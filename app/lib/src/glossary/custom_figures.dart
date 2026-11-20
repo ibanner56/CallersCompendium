@@ -96,7 +96,10 @@ List<CustomGlossaryItem> resolveCustomGlossary(
       CustomGlossaryItem._(
         entry,
         definition: entry.kind == UserGlossaryEntryKind.compound
-            ? decodeCompoundDefinition(entry.payload, taxonomy)
+            // Decoded with every form's figures, so an English combination
+            // built from English figures decodes; [taxonomy] is only the
+            // names a figure of the user's must not take.
+            ? decodeCompoundDefinition(entry.payload, shippedTaxonomies.anyForm)
             : null,
         figure: entry.kind == UserGlossaryEntryKind.customFigure
             ? decodeUserFigureDefinition(entry.payload)

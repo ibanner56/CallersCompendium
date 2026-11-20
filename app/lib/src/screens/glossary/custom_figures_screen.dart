@@ -15,7 +15,7 @@ import 'compound_editor_screen.dart';
 import 'custom_figure_detail.dart';
 import '../../widgets/adaptive_fab.dart';
 
-final FigureRenderer _renderer = FigureRenderer(contraTaxonomy);
+final FigureRenderer _renderer = FigureRenderer(shippedTaxonomies.anyForm);
 
 /// The user's own figures on a screen of their own, opened from the
 /// Experimental settings like the figure shorthands are from the dialect

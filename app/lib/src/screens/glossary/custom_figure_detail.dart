@@ -23,7 +23,7 @@ import '../../utils/confirm_delete.dart';
 import 'compound_editor_screen.dart';
 import 'user_figure_switch_screen.dart';
 
-final FigureRenderer _renderer = FigureRenderer(contraTaxonomy);
+final FigureRenderer _renderer = FigureRenderer(shippedTaxonomies.anyForm);
 
 /// The name a parameter kind is offered and shown under in a custom figure.
 String compoundParamKindLabel(AppLocalizations l10n, ParamKind kind) =>
@@ -401,7 +401,7 @@ class _GlossaryCustomFigureDetailState
       widget.entryId,
       definition,
       mapping,
-      contraTaxonomy,
+      shippedTaxonomies.anyForm,
       _renderer,
     ).single;
     return switched.move == customMoveId ? null : switched;
@@ -436,7 +436,7 @@ class _GlossaryCustomFigureDetailState
       definition,
       mapping,
       FigureRenderer(
-        contraTaxonomy,
+        shippedTaxonomies.anyForm,
         userFigures: UserFigureCatalog.fromEntries([entry]),
       ),
     );
@@ -503,7 +503,7 @@ class _GlossaryCustomFigureDetailState
       repos.settings,
       widget.entryId,
       FigureRenderer(
-        contraTaxonomy,
+        shippedTaxonomies.anyForm,
         userFigures: UserFigureCatalog.fromEntries([entry]),
       ),
     );
@@ -590,10 +590,10 @@ class _GlossaryCustomFigureDetailState
     final example = figure == null ? null : _exampleOf(entry, figure, dialect);
     final args = definition == null
         ? null
-        : previewArguments(definition, contraTaxonomy);
+        : previewArguments(definition, shippedTaxonomies.anyForm);
     final expanded = definition == null || args == null
         ? null
-        : expandCompound(definition, args, contraTaxonomy);
+        : expandCompound(definition, args, shippedTaxonomies.anyForm);
 
     return ListView(
       key: const ValueKey('glossary-custom-detail'),
@@ -731,7 +731,7 @@ class _GlossaryCustomFigureDetailState
           // For display only: the copy keeps no link to the figure it came
           // from (#1023, maintainer decision 6).
           if (figure.copiedFrom case final copiedFrom?
-              when contraTaxonomy.resolve(copiedFrom) != null)
+              when shippedTaxonomies.anyForm.resolve(copiedFrom) != null)
             Padding(
               padding: const EdgeInsets.only(top: AppSpacing.md),
               child: Text(
@@ -760,7 +760,10 @@ class _GlossaryCustomFigureDetailState
               tilePadding: EdgeInsets.zero,
               title: Text(
                 l10n.glossaryCustomExpandsTo(
-                  CompoundDefinition.beatsOf(expanded, contraTaxonomy),
+                  CompoundDefinition.beatsOf(
+                    expanded,
+                    shippedTaxonomies.anyForm,
+                  ),
                 ),
               ),
               children: [
@@ -844,7 +847,7 @@ String? _exampleOf(
   Dialect dialect,
 ) {
   final renderer = FigureRenderer(
-    contraTaxonomy,
+    shippedTaxonomies.anyForm,
     userFigures: UserFigureCatalog.fromEntries([entry]),
   );
   final use = userFigureUseFigure(

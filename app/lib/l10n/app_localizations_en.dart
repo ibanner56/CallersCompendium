@@ -11567,6 +11567,27 @@ class AppLocalizationsEn extends AppLocalizations {
       'One of the figures isn\'t complete or valid yet.';
 
   @override
+  String compoundEditorOtherFormFigures(
+    int count,
+    String figureForm,
+    String entryForm,
+  ) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count figures are',
+      one: '1 figure is',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'them',
+      one: 'it',
+    );
+    return '$_temp0 from $figureForm, not $entryForm. Change the dance type back, or remove $_temp1.';
+  }
+
+  @override
   String get compoundEditorTooLong => 'One of the fields is too long.';
 
   @override
