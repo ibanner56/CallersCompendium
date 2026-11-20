@@ -2,9 +2,11 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
 
 /// The three `LIKE` binds an All fields word adds for the meter, the key
-/// and the interpreters' names (`_musicAndInterpreterMatch`).
+/// and the interpreters' names (`_musicAndInterpreterMatch`), folded as the
+/// values are (`cc_fold`: lowercased, accents removed).
 List<String> _music(String word, {bool prefix = false}) {
-  final p = prefix ? '% $word%' : '%$word%';
+  final folded = foldForSearch(word);
+  final p = prefix ? '% $folded%' : '%$folded%';
   return [p, p, p];
 }
 
@@ -12,11 +14,12 @@ List<String> _music(String word, {bool prefix = false}) {
 /// meter, the key and the interpreters' names.
 const _musicSql =
     "(id IN (SELECT id FROM dances WHERE (meter <> '' OR musical_key <> '') "
-    "AND (meter LIKE ? ESCAPE '\\' OR musical_key LIKE ? ESCAPE '\\')) "
+    "AND (cc_fold(meter) LIKE ? ESCAPE '\\' "
+    "OR cc_fold(musical_key) LIKE ? ESCAPE '\\')) "
     'OR id IN (SELECT di.dance_id FROM dance_interpreters di '
     'JOIN choreographers c ON c.id = di.choreographer_id '
     'WHERE c.deleted_at IS NULL '
-    "AND c.name LIKE ? ESCAPE '\\'))";
+    "AND cc_fold(c.name) LIKE ? ESCAPE '\\'))";
 
 void main() {
   final compiler = FilterCompiler();
@@ -946,6 +949,31 @@ void main() {
         ),
       );
       expect(c.binds, ['"nice"', '"combination"']);
+    });
+
+    test('the Author scope also reads the interpreters, folded', () {
+      final c = compiler.compile(
+        const FullTextFilter('Émile Du', scope: FullTextScope.author),
+      );
+      const interpreters =
+          'id IN (SELECT di.dance_id FROM dance_interpreters di '
+          'JOIN choreographers c ON c.id = di.choreographer_id '
+          'WHERE c.deleted_at IS NULL ';
+      expect(
+        c.sql,
+        contains(
+          '((id IN (SELECT dance_id FROM dance_substring_fts '
+          'WHERE authors MATCH ?) OR $interpreters'
+          "AND cc_fold(c.name) LIKE ? ESCAPE '\\')) AND "
+          '(id IN (SELECT dance_id FROM dance_fts WHERE authors MATCH ?) OR '
+          "${interpreters}AND (' ' || replace(replace(replace("
+          "cc_fold(c.name), '/', ' '), '-', ' '), '(', ' ')) "
+          "LIKE ? ESCAPE '\\')))",
+        ),
+      );
+      // Only the interpreters: a meter or a key is not an author.
+      expect(c.sql, isNot(contains('meter')));
+      expect(c.binds, ['"Émile"', '%emile%', '"Du"*', '% du%']);
     });
   });
 

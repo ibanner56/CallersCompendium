@@ -3635,7 +3635,7 @@ FROM seq
         expect(await dances.search(const FullTextFilter('no')), isEmpty);
       });
 
-      test('a capital outside ASCII matches as stored', () async {
+      test('accents and capitals fold on both sides', () async {
         await seed();
         // ignore: unused_result
         await choreographers.upsert(
@@ -3646,13 +3646,37 @@ FROM seq
             id: 'emile-dance',
             title: 'Interpreted',
             form: DanceForm.ecd,
-          ).copyWith(interpreterIds: ['emile']),
+          ).copyWith(interpreterIds: ['emile'], musicalKey: 'Ré mineur'),
         );
-        expect(await dances.search(const FullTextFilter('Émile')), [
+        await dances.create(
+          _dance(
+            id: 'plain-emile',
+            title: 'Plain name',
+            form: DanceForm.ecd,
+          ).copyWith(musicalKey: 'Emile key'),
+        );
+        for (final typed in ['Émile', 'émile', 'Emile', 'emile', 'EMILE']) {
+          expect(
+            await dances.search(FullTextFilter(typed)),
+            unorderedEquals(['emile-dance', 'plain-emile']),
+            reason: typed,
+          );
+        }
+        // A short word folds too, and must still start a word.
+        expect(await dances.search(const FullTextFilter('em')), [
+          'emile-dance',
+          'plain-emile',
+        ]);
+        expect(await dances.search(const FullTextFilter('re')), [
           'emile-dance',
         ]);
-        expect(await dances.search(const FullTextFilter('Ém')), [
+        expect(await dances.search(const FullTextFilter('MINEUR')), [
           'emile-dance',
+        ]);
+        // A decomposed accent (e + U+0301) folds as the composed one does.
+        expect(await dances.search(const FullTextFilter('E\u0301mile')), [
+          'emile-dance',
+          'plain-emile',
         ]);
       });
 
@@ -3685,20 +3709,28 @@ FROM seq
         expect(await dances.search(const FullTextFilter('Sharp')), isEmpty);
       });
 
-      test('the Author scope stays on the authors', () async {
+      test('the Author scope finds authors and interpreters', () async {
         await seed();
-        expect(
-          await dances.search(
-            const FullTextFilter('Sharp', scope: FullTextScope.author),
-          ),
-          isEmpty,
+        // ignore: unused_result
+        await choreographers.upsert(
+          Choreographer(id: 'emile', name: 'Émile Dupont'),
         );
-        expect(
-          await dances.search(
-            const FullTextFilter('Playford', scope: FullTextScope.author),
-          ),
-          ['hole'],
+        await dances.create(
+          _dance(
+            id: 'emile-dance',
+            title: 'Interpreted',
+            form: DanceForm.ecd,
+          ).copyWith(interpreterIds: ['emile']),
         );
+        Future<List<String>> author(String q) =>
+            dances.search(FullTextFilter(q, scope: FullTextScope.author));
+        expect(await author('Sharp'), ['hole']);
+        expect(await author('Playford'), ['hole']);
+        expect(await author('emile'), ['emile-dance']);
+        expect(await author('Ce'), ['hole']);
+        // A meter or a key is not an author.
+        expect(await author('3/2'), isEmpty);
+        expect(await author('minor'), isEmpty);
       });
 
       test('relevance finds a key and ranks it after scored matches', () async {
