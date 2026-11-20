@@ -69,6 +69,17 @@ From the planning conversation, 12 November 2026:
   **reference only**. No code is ported or copied from it, so the project
   takes on no licensing or attribution obligation.
 
+From the maintainer's review comments on the pull request, 16 November 2026:
+
+- "Dialect settings will also need a switcher." Dialect settings now have
+  a dance-form switcher that includes squares (§3).
+- "[T]he glossary should be sorted/filterable by program, similar in
+  intention to the browsing structure Taminations offers" (§8.3).
+- "We should expect that some figures from Advanced and Challenge may be
+  requested even if we don't pull in the full programs, to accommodate
+  figures which appear in otherwise-simpler, choreographed country square
+  dances" (§5.2, §7.3).
+
 From 20 November 2026: **"We expect the people using Compendium to be
 storing + calling traditional squares, not MWSD."** This replaces the first
 draft's success criteria, which were the CALLERLAB Mainstream and Plus
@@ -175,8 +186,9 @@ them #2244, #2250 and #2273) landed:
   square dances contra's shapes
   ([formation.dart](../../packages/compendium_core/lib/src/model/formation.dart)).
   Caller's Companion squares still map to `other` with detail "Square".
-- Each dance form has its own dialect library, square included (storage
-  keys `custom_dialects_square` and `active_dialect_ref_square`;
+- Each dance form has its own dialect library, square included, and the
+  dialect settings switch between forms (storage keys
+  `custom_dialects_square` and `active_dialect_ref_square`;
   [dialect.md](../design/dialect.md)). Gendered role terms are never shown:
   the maintainer's answer to ADR-006 §9.1 point 7 (recorded on 19 November
   2026) rules them out of stored data and dialects, and ADR-006 applies it
@@ -300,10 +312,12 @@ does for ECD. They never share a definition. Implementation may share
 rendering helpers; the data stays separate.
 
 Every square move ID starts with `sq_`: `sq_swing`, `sq_hey`,
-`sq_forward_and_back`. Traditional squares share even more names with
-contra than club squares do (swing, balance, circle, star, promenade, chain,
-hey, gypsy/shoulder round, pull by, box the gnat, california twirl). With
-unprefixed IDs:
+`sq_forward_and_back`. As in ADR-006 §5.1, the prefix applies to calls only:
+the containers (`meanwhile`, `modifier`, `sequence`) are structural IDs that
+every form shares, and stay unprefixed. Traditional squares share even more
+names with contra than club squares do (swing, balance, circle, star,
+promenade, chain, hey, gypsy/shoulder round, pull by, box the gnat, california
+twirl). With unprefixed IDs:
 
 - **Older builds would misread square dances without any error.** A build
   from before this work that receives a square dance by sync, archive or
@@ -352,8 +366,9 @@ The registry (§7) has two parts:
   variant.
 
 Each borrowed call carries its **CALLERLAB program as a glossary label**
-("Mainstream", "Plus"), so a caller can see that a call is a club call.
-Nothing is derived from it:
+("Mainstream", "Plus", "Advanced"), so a caller can see that a call is a
+club call, and the glossary can sort and filter by it (§8.3). Nothing else
+is derived from it:
 
 - There is **no derived "required program"** for a dance. On traditional
   squares it would mislead: Parkes rates Circle Three Quarters
@@ -369,7 +384,12 @@ Everything the first draft built for club calling beyond Mainstream is out of
 scope: Plus, Advanced and Challenge calls that no traditional or contra
 source was found to use (§7.3), edition-versioned programs, and calls that
 take another call as an argument ("Clover and (anything)"). §11 lists them
-under revisit triggers.
+under revisit triggers. As the maintainer expects (§1.1), single Advanced or
+Challenge calls will be requested for choreographed traditional squares. The
+registry takes them one call at a time, with no need to complete a program:
+a request adds one §7.2 row with its program label. Challenge calls have no
+CALLERLAB timing, so their default beats come from the source that uses
+them.
 
 ### 5.3 Beats are stored, with traditional defaults
 
@@ -738,9 +758,13 @@ that. It is never a two-way switch.
 
 - Every form is available on every device. The glossary opens on the form
   the new-dance form setting gives (ADR-006 S2, S6).
-- The square glossary lists the traditional core first, then the borrowed
-  club calls with their CALLERLAB program label. Each entry shows its
-  own-words definition, parameters and default beats.
+- The square glossary can be sorted and filtered by program (maintainer
+  requirement, §1.1), as a browsing structure like Taminations' by level.
+  The groups are the traditional core, then Mainstream, Plus, Advanced and
+  Challenge for the borrowed club calls. Each entry shows its own-words
+  definition, parameters, default beats and program label.
+- Dialect settings already switch by dance form, and squares have their own
+  dialect library (§3).
 - Figures of your own already carry a `form` (§3). The glossary shows only
   those for the selected form, and a new one takes the selected form.
 
@@ -918,8 +942,8 @@ animations, and any code, data or text from Taminations.
 - Callers ask to store club patter or singing calls beyond the borrowed
   calls, which would bring back edition-versioned programs, the rest of Plus
   and above, and calls that take a call.
-- A traditional or contra source turns up another Plus, Advanced or
-  Challenge call (§7.3).
+- A caller or a traditional or contra source turns up another Plus,
+  Advanced or Challenge call (§5.2, §7.3).
 - Callers ask for stated positions or offsets (Q4, Q12).
 - More held squares surface with calls §7.1 does not cover.
 
