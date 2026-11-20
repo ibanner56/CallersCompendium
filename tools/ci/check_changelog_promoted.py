@@ -29,8 +29,10 @@ _SELECTED_VERSION = re.compile(rf"^(?P<core>{_CORE})(?:-beta)?$")
 
 
 # A published release tag: ``v0.3.1``, ``v0.3.1-beta``, ``v0.1.0-beta.7``.
+# Same no-leading-zero ASCII core as ``_CORE``, so a tag and a version agree.
 _RELEASE_TAG = re.compile(
-    r"^v?(?P<major>\d+)\.(?P<minor>\d+)\.(?P<patch>\d+)(?:-[0-9A-Za-z.-]+)?$"
+    r"^v?(?P<major>0|[1-9][0-9]*)\.(?P<minor>0|[1-9][0-9]*)\."
+    r"(?P<patch>0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?$"
 )
 
 
@@ -230,6 +232,13 @@ def _schema_step_errors(
     ``0.4.0-beta`` and a ``0.3.0-beta`` -> ``0.3.0`` promotion are not. The
     schema must also never go down, at any step. Only the release being cut is
     judged; earlier tags that broke the rule are not flagged again.
+
+    Two things this deliberately does not do. A minor's bare beta and its stable
+    promotion (``Z`` is 0) may differ in schema: that is a minor release, which
+    the rule allows. And the step is judged from the previous published tag the
+    release workflow selects (by creation date, among tags merged into ``HEAD``),
+    not from the version-order predecessor, so a later-created tag from another
+    line can stand in for it; that selection is the workflow's, unchanged here.
 
     An increase against a previous ref that is not a ``vX.Y.Z`` tag cannot be
     classified, and is refused rather than waved through.

@@ -88,6 +88,8 @@ def patch_release_rule() -> None:
         ("v0.3.0", "0.4.0", 33, 32, "a decrease at a minor step"),
         ("v0.3.0", "1.0.0", 33, 32, "a decrease at a major step"),
         ("abc1234", "0.3.1", 31, 32, "a rise against a ref that is not a release tag"),
+        ("v٣.0.0", "0.3.1", 31, 32, "a tag with non-ASCII digits is not a release tag"),
+        ("v01.2.3", "0.3.1", 31, 32, "a tag with a leading zero is not a release tag"),
     ]
     for previous, version, before, after, why in must_fail:
         errors = step(previous, version, before, after)
@@ -99,7 +101,7 @@ def patch_release_rule() -> None:
         ("v0.3.0-beta", "0.3.0", 31, 32, "promoting a minor's beta (Z is 0)"),
         ("v0.3.0", "0.3.1", 32, 32, "a patch with no schema change"),
         ("v0.3.0-beta", "0.3.1-beta", 32, 32, "a beta patch with no schema change"),
-        ("v0.9.2-beta", "0.10.1-beta", 31, 32, "0.9 -> 0.10 is a minor step, not a patch line"),
+        ("v0.9.2-beta", "0.10.1-beta", 31, 32, "0.9 -> 0.10 is a minor step (when 0.10.0 was never published)"),
         ("v0.3.0", "0.4.1", 31, 32, "a minor step that also has a Z"),
         ("abc1234", "0.3.1", 32, 32, "an unclassifiable ref with no schema change"),
     ]
@@ -351,6 +353,22 @@ def patch_release_end_to_end() -> None:
         write(repo, Path("app/CHANGELOG.md"), notes("0.4.0", 31, 30))
         down = run("--version", "0.4.0-beta", "--previous-ref", "v0.3.0-beta", cwd=repo)
         check("a schema decrease is rejected", down.returncode == 1 and "went down" in down.stderr, down.stderr)
+
+        # A previous ref that is not a release tag: a rise cannot be classified.
+        write(repo, DATABASE, database(32))
+        write(repo, Path("app/CHANGELOG.md"), notes("0.3.1", 31, 32))
+        sha = subprocess.run(["git", "rev-parse", "HEAD"], cwd=repo, check=True,
+                             capture_output=True, encoding="utf-8").stdout.strip()
+        odd = run("--version", "0.3.1-beta", "--previous-ref", sha, cwd=repo)
+        check("a rise against a commit ref is refused, not passed",
+              odd.returncode == 1 and "not a vX.Y.Z release tag" in odd.stderr, odd.stderr)
+
+        # Errors stack: a patch bump with no Data / Migrations note reports both.
+        write(repo, Path("app/CHANGELOG.md"), notes("0.3.1"))
+        both = run("--version", "0.3.1-beta", "--previous-ref", "v0.3.0-beta", cwd=repo)
+        check("a patch bump without a migration note reports both problems",
+              both.returncode == 1 and "PATCH release" in both.stderr
+              and "schema range" in both.stderr, both.stderr)
 
         # No previous published tag: the existing handling, no new failure.
         write(repo, DATABASE, database(32))
