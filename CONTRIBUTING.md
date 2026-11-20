@@ -54,6 +54,13 @@ error paths, and edge cases. UI changes include widget tests where practical
 and must satisfy the [accessibility baseline](docs/research/accessibility-baseline.md)
 (semantics, keyboard, contrast) — a11y is an acceptance criterion, not polish.
 
+CI holds a line-coverage floor on both packages, generated sources excluded:
+`compendium_core` at 80% (`tools/ci/check_core_coverage.py`) and the app at 90%
+(`tools/ci/check_app_coverage.py`, which fails when the report is missing or
+empty rather than skipping). Both gate only what the tests load, so a file no
+test imports is not measured. The floors are a backstop, not the target: raise
+one when the measured number rises, and do not lower one to land a change.
+
 ### Screenshots for UI changes
 A PR from an external contributor that changes anything a user can see includes
 screenshots of the change in its body. Without them the PR is not ready for
