@@ -538,7 +538,7 @@ One shared list screen, used three times: **Tags**, **Authors**, **Sources**.
 
 - (a) **Settings → General → Library** (`settings.md:45-57`) gains three
   entries. **Settings → Appearance → Tag colours** (`settings.md:272-279`,
-  `appearance_section.dart:137`) opens the Tags manager, so existing users
+  `appearance_section.dart:139`) opens the Tags manager, so existing users
   find colours where they left them. Venues set the precedent: their manager
   is in Settings (`settings.md:128-133`).
 - (b) The same three entries in Collection's ⋮ menu.
@@ -901,7 +901,7 @@ merged; B7 is in flight; B8 and B13 have not started). In the audit record's
   - the shared manager list widget;
   - the Tags manager, with the colour editing from `TagColorsScreen`
     (`tag_colors_screen.dart`) moved in;
-  - the Settings entries (`appearance_section.dart:137`, plus Library per
+  - the Settings entries (`appearance_section.dart:139`, plus Library per
     D-N2-3);
   - the `default_import_tag_names` rewrite in the app controller.
 - **UI text:** keys in all six ARBs, beside the existing tag-colour keys. A
