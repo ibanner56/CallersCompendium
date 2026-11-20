@@ -2,6 +2,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../widgets/exclude_focus_when_collapsed.dart';
 import '../../data/canonical_discouraged_terms_scope.dart';
 import '../../data/show_custom_figures_scope.dart';
 import '../../data/validation_issue_labels.dart';
@@ -858,130 +859,138 @@ class DanceEditorForm extends StatelessWidget {
       ),
       expandedCrossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        EnumDropdown<DanceStatus>(
-          fieldKey: 'status',
-          label: l10n.danceEditorStatusLabel,
-          value: controller.status,
-          values: DanceStatus.values,
-          labelOf: (value) => danceStatusLabel(l10n, value),
-          onChanged: controller.setStatus,
-        ),
-        const SizedBox(height: AppSpacing.md),
-        LevelDropdown(
-          value: controller.level,
-          levels: controller.difficultyLevels,
-          onChanged: controller.setLevel,
-        ),
-        const SizedBox(height: AppSpacing.xs),
-        CheckboxListTile(
-          key: const ValueKey('mixed-level-field'),
-          value: controller.mixedLevel,
-          onChanged: (v) => controller.setMixedLevel(v ?? false),
-          title: Text(l10n.commonMixedLevel),
-          subtitle: Text(l10n.danceEditorMixedLevelSubtitle),
-          secondary: const Icon(Icons.swap_vert),
-          controlAffinity: ListTileControlAffinity.leading,
-          contentPadding: EdgeInsets.zero,
-        ),
-        const SizedBox(height: AppSpacing.md),
-        if (!controller.showsCreditsUpFront) ...[
-          ..._creditFields(context),
-          const SizedBox(height: AppSpacing.md),
-        ],
-        PartialDateField(
-          fieldKey: 'revised-on',
-          label: l10n.danceEditorRevisedLabel,
-          helperText: l10n.danceEditorRevisedHelper,
-          value: controller.revisedOn,
-          onChanged: controller.setRevisedOn,
-        ),
-        const SizedBox(height: AppSpacing.md),
-        FieldLabel(l10n.danceEditorTagsLabel),
-        NamePicker(
-          fieldKey: 'tag',
-          selectedIds: controller.tagIds,
-          namesById: tagNames,
-          options: tagOptions,
-          onAdd: onAddTag,
-          onRemove: controller.removeTag,
-          onCreate: onCreateTag,
-          sheetSemanticLabel: l10n.danceEditorTagsLabel,
-        ),
-        const SizedBox(height: AppSpacing.md),
-        if (!controller.showsCreditsUpFront) ...[
-          _musicFields(context),
-          const SizedBox(height: AppSpacing.md),
-        ],
-        FieldLabel(l10n.danceEditorTunesLabel),
-        // An empty tune list here would otherwise read as "this dance has no
-        // tunes", when the stored text could not be decoded and is being
-        // preserved untouched (#1347).
-        if (controller.openedWithUnreadableTunes) ...[
-          Text(
-            l10n.danceEditorTunesUnreadable,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: Theme.of(context).colorScheme.error,
-            ),
+        ExcludeFocusWhenCollapsed(
+          controller: moreDetailsController,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              EnumDropdown<DanceStatus>(
+                fieldKey: 'status',
+                label: l10n.danceEditorStatusLabel,
+                value: controller.status,
+                values: DanceStatus.values,
+                labelOf: (value) => danceStatusLabel(l10n, value),
+                onChanged: controller.setStatus,
+              ),
+              const SizedBox(height: AppSpacing.md),
+              LevelDropdown(
+                value: controller.level,
+                levels: controller.difficultyLevels,
+                onChanged: controller.setLevel,
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              CheckboxListTile(
+                key: const ValueKey('mixed-level-field'),
+                value: controller.mixedLevel,
+                onChanged: (v) => controller.setMixedLevel(v ?? false),
+                title: Text(l10n.commonMixedLevel),
+                subtitle: Text(l10n.danceEditorMixedLevelSubtitle),
+                secondary: const Icon(Icons.swap_vert),
+                controlAffinity: ListTileControlAffinity.leading,
+                contentPadding: EdgeInsets.zero,
+              ),
+              const SizedBox(height: AppSpacing.md),
+              if (!controller.showsCreditsUpFront) ...[
+                ..._creditFields(context),
+                const SizedBox(height: AppSpacing.md),
+              ],
+              PartialDateField(
+                fieldKey: 'revised-on',
+                label: l10n.danceEditorRevisedLabel,
+                helperText: l10n.danceEditorRevisedHelper,
+                value: controller.revisedOn,
+                onChanged: controller.setRevisedOn,
+              ),
+              const SizedBox(height: AppSpacing.md),
+              FieldLabel(l10n.danceEditorTagsLabel),
+              NamePicker(
+                fieldKey: 'tag',
+                selectedIds: controller.tagIds,
+                namesById: tagNames,
+                options: tagOptions,
+                onAdd: onAddTag,
+                onRemove: controller.removeTag,
+                onCreate: onCreateTag,
+                sheetSemanticLabel: l10n.danceEditorTagsLabel,
+              ),
+              const SizedBox(height: AppSpacing.md),
+              if (!controller.showsCreditsUpFront) ...[
+                _musicFields(context),
+                const SizedBox(height: AppSpacing.md),
+              ],
+              FieldLabel(l10n.danceEditorTunesLabel),
+              // An empty tune list here would otherwise read as "this dance has no
+              // tunes", when the stored text could not be decoded and is being
+              // preserved untouched (#1347).
+              if (controller.openedWithUnreadableTunes) ...[
+                Text(
+                  l10n.danceEditorTunesUnreadable,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.error,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.xs),
+              ],
+              TuneEditor(
+                tunes: controller.tunes,
+                controller: controller.tuneController,
+                onAdd: controller.addTune,
+                onRemove: controller.removeTune,
+              ),
+              LingoDiscouragedHint(
+                controller: controller.tuneController,
+                dialect: dialect,
+                fieldKey: 'tune',
+              ),
+              const SizedBox(height: AppSpacing.md),
+              FieldLabel(l10n.danceEditorLinksLabel),
+              LinksEditor(
+                links: controller.links,
+                onAdd: controller.addLink,
+                onRemove: controller.removeLink,
+                onChanged: controller.onLinksChanged,
+              ),
+              const SizedBox(height: AppSpacing.md),
+              FieldLabel(l10n.danceEditorPublishedSourcesLabel),
+              SourceCitationsEditor(
+                citations: controller.sourceCitations,
+                sourcesById: sourcesById,
+                sourceOptions: publishedSources,
+                onAttach: onAttachSource,
+                onCreate: onCreateSource,
+                onEditSource: onEditSource,
+                onRemove: controller.removeSourceCitation,
+                onChanged: controller.onSourceCitationsChanged,
+              ),
+              const SizedBox(height: AppSpacing.md),
+              FieldLabel(l10n.danceEditorRelatedDancesLabel),
+              RelatedDancesEditor(
+                links: controller.links,
+                danceOptions: danceOptions,
+                danceNamesById: danceNamesById,
+                onAdd: controller.addRelatedDance,
+                onRemove: controller.removeLink,
+                onChanged: controller.onLinksChanged,
+              ),
+              if (controller.fieldDefs.isNotEmpty) ...[
+                const SizedBox(height: AppSpacing.md),
+                FieldLabel(l10n.danceEditorCustomFieldsLabel),
+                for (final def in controller.fieldDefs)
+                  CustomFieldEditor(
+                    def: def,
+                    dialect: dialect,
+                    textController: controller.customTextControllers[def.id],
+                    currentValue: controller.customValues[def.id],
+                    onTextChanged: controller.onTextEdited,
+                    onValueChanged: (v) => controller.setCustomValue(def.id, v),
+                    onAddOption: def.type == CustomFieldType.choice
+                        ? (raw) => controller.addChoiceOption(def.id, raw)
+                        : null,
+                  ),
+              ],
+            ],
           ),
-          const SizedBox(height: AppSpacing.xs),
-        ],
-        TuneEditor(
-          tunes: controller.tunes,
-          controller: controller.tuneController,
-          onAdd: controller.addTune,
-          onRemove: controller.removeTune,
         ),
-        LingoDiscouragedHint(
-          controller: controller.tuneController,
-          dialect: dialect,
-          fieldKey: 'tune',
-        ),
-        const SizedBox(height: AppSpacing.md),
-        FieldLabel(l10n.danceEditorLinksLabel),
-        LinksEditor(
-          links: controller.links,
-          onAdd: controller.addLink,
-          onRemove: controller.removeLink,
-          onChanged: controller.onLinksChanged,
-        ),
-        const SizedBox(height: AppSpacing.md),
-        FieldLabel(l10n.danceEditorPublishedSourcesLabel),
-        SourceCitationsEditor(
-          citations: controller.sourceCitations,
-          sourcesById: sourcesById,
-          sourceOptions: publishedSources,
-          onAttach: onAttachSource,
-          onCreate: onCreateSource,
-          onEditSource: onEditSource,
-          onRemove: controller.removeSourceCitation,
-          onChanged: controller.onSourceCitationsChanged,
-        ),
-        const SizedBox(height: AppSpacing.md),
-        FieldLabel(l10n.danceEditorRelatedDancesLabel),
-        RelatedDancesEditor(
-          links: controller.links,
-          danceOptions: danceOptions,
-          danceNamesById: danceNamesById,
-          onAdd: controller.addRelatedDance,
-          onRemove: controller.removeLink,
-          onChanged: controller.onLinksChanged,
-        ),
-        if (controller.fieldDefs.isNotEmpty) ...[
-          const SizedBox(height: AppSpacing.md),
-          FieldLabel(l10n.danceEditorCustomFieldsLabel),
-          for (final def in controller.fieldDefs)
-            CustomFieldEditor(
-              def: def,
-              dialect: dialect,
-              textController: controller.customTextControllers[def.id],
-              currentValue: controller.customValues[def.id],
-              onTextChanged: controller.onTextEdited,
-              onValueChanged: (v) => controller.setCustomValue(def.id, v),
-              onAddOption: def.type == CustomFieldType.choice
-                  ? (raw) => controller.addChoiceOption(def.id, raw)
-                  : null,
-            ),
-        ],
       ],
     );
   }
