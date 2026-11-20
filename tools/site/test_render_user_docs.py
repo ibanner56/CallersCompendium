@@ -831,6 +831,13 @@ def test_a_fence_with_a_blank_line_or_tildes_still_hides_its_example() -> None:
     assert _lines(tilde) == [7]
     quoted_blank = "# P\n\n> ```\n> a\n>\n> ![](images/new.png)\n> ```\n\n![](images/new.png)\n"
     assert _lines(quoted_blank) == [9]
+    # A fence inside a list item can hold a truly empty line, which ends the run
+    # the source scan reads, so only the container-aware fence tracking hides it.
+    in_item = (
+        "# P\n\n10. one\n\n    ```md\n    first\n\n    ![](images/new.png)\n    ```\n\n"
+        "![](images/new.png)\n"
+    )
+    assert _lines(in_item) == [11]
 
 
 def test_a_mention_of_the_file_is_not_mistaken_for_the_image() -> None:
@@ -875,9 +882,11 @@ def test_the_real_corpus_pairs_images_exactly_and_never_falls_back() -> None:
 def test_the_fallback_still_reports_a_sensible_line_when_the_two_readings_disagree() -> None:
     # A destination the renderer reports but the source scan did not find (here
     # forced): placed on the first unfenced line that mentions it, else the cursor.
-    lines = ["intro", "mentions ghost.png here", "```", "ghost.png", "```"]
+    lines = ["```", "ghost.png", "```", "mentions ghost.png here"]
     refs = mth._attribute_lines(lines, [("", "ghost.png"), ("", "nowhere.png")])
-    assert [(r.dest, r.line) for r in refs] == [("ghost.png", 2), ("nowhere.png", 2)]
+    # The fenced mention on line 2 is skipped; the second image has no mention at
+    # all and stays on the previous image's line.
+    assert [(r.dest, r.line) for r in refs] == [("ghost.png", 4), ("nowhere.png", 4)]
 
 
 def test_punctuation_alone_is_not_alt_text() -> None:
