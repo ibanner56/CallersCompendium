@@ -26,7 +26,9 @@ SCRIPT = HERE / "report_missing_core_changelog.py"
 
 CORE_FILE = "packages/compendium_core/lib/src/codec.dart"
 OTHER_CORE_FILE = "packages/compendium_core/lib/src/other.dart"
-ADVISORY = "Core changelog advisory::"
+# The advisory's own line; the "unavailable" notice shares the annotation prefix, so
+# that prefix alone cannot tell the two apart.
+ADVISORY = "Advisory: "
 
 FAILURES: list[str] = []
 TEMP_DIRS: list[tempfile.TemporaryDirectory] = []
