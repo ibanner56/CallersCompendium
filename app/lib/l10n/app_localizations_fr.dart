@@ -5192,14 +5192,14 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get programsFormMatchOnlyTooltip =>
-      'Programmes uniquement des types choisis';
+      'Programmes composés uniquement des types choisis';
 
   @override
   String get programsFormMatchIncludes => 'Contient';
 
   @override
   String get programsFormMatchIncludesTooltip =>
-      'Programmes qui contiennent les types choisis';
+      'Programmes qui contiennent le type choisi';
 
   @override
   String get danceSectionFigures => 'Figures';

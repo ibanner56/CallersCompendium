@@ -907,6 +907,7 @@ void _formFilterTests() {
     await repos.programs.create(_program(id: 'p2', title: 'Two'));
     await _pump(tester, repos);
     expect(find.byKey(const ValueKey('programs-form-filter')), findsNothing);
+    expect(find.byKey(const ValueKey('programs-form-match')), findsNothing);
   });
 
   /// A contra program, an English one and a mixed one.
@@ -939,42 +940,92 @@ void _formFilterTests() {
     );
   }
 
-  testWidgets('Includes lists every program that has the chosen forms', (
-    tester,
-  ) async {
+  testWidgets('Includes offers a chip per form and lists every program '
+      'that has it', (tester) async {
     final repos = openTestRepositories();
     await seed(repos);
     await repos.programs.create(_program(id: 'p-none', title: 'Empty'));
     await _pump(tester, repos);
     final match = find.byKey(const ValueKey('programs-form-match'));
+    final mixedChip = find.byKey(const ValueKey('programs-form-contra+ecd'));
     expect(match, findsOneWidget);
 
     // Only is the default: Contra leaves out the mixed program.
     await tester.tap(find.byKey(const ValueKey('programs-form-contra')));
     await tester.pumpAndSettle();
     expect(_titlesInOrder(tester), ['Contra night']);
+    expect(mixedChip, findsOneWidget);
 
-    // Includes keeps the chosen chip and widens it to the mixed program.
+    // Includes keeps the chosen chip and widens it to the mixed program. Its
+    // chips are single forms, so the mixed chip goes.
     await tester.tap(
       find.descendant(of: match, matching: find.text('Includes')),
     );
     await tester.pumpAndSettle();
     expect(_titlesInOrder(tester), ['Contra night', 'Mixed night']);
+    expect(mixedChip, findsNothing);
 
     await tester.tap(find.byKey(const ValueKey('programs-form-ecd')));
     await tester.pumpAndSettle();
     expect(_titlesInOrder(tester), ['English night', 'Mixed night']);
 
-    await tester.tap(find.byKey(const ValueKey('programs-form-contra+ecd')));
-    await tester.pumpAndSettle();
-    expect(_titlesInOrder(tester), ['Mixed night']);
-
     // Back to Only, with English chosen: the mixed program drops out.
-    await tester.tap(find.byKey(const ValueKey('programs-form-ecd')));
-    await tester.pumpAndSettle();
     await tester.tap(find.descendant(of: match, matching: find.text('Only')));
     await tester.pumpAndSettle();
     expect(_titlesInOrder(tester), ['English night']);
+
+    // A chip the other mode doesn't offer is dropped, not kept hidden.
+    await tester.tap(mixedChip);
+    await tester.pumpAndSettle();
+    expect(_titlesInOrder(tester), ['Mixed night']);
+    await tester.tap(
+      find.descendant(of: match, matching: find.text('Includes')),
+    );
+    await tester.pumpAndSettle();
+    expect(_titlesInOrder(tester), hasLength(4));
+    // …so switching back to Only doesn't bring it back.
+    await tester.tap(find.descendant(of: match, matching: find.text('Only')));
+    await tester.pumpAndSettle();
+    expect(_titlesInOrder(tester), hasLength(4));
+  });
+
+  testWidgets('Includes offers a form that no program has on its own', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(dance('c', DanceForm.contra));
+    await repos.dances.create(dance('e', DanceForm.ecd));
+    await repos.programs.create(
+      _program(
+        id: 'p-ecd',
+        title: 'English night',
+        slots: [ProgramSlot(id: 's1', position: 0, danceId: 'e')],
+      ),
+    );
+    await repos.programs.create(
+      _program(
+        id: 'p-mixed',
+        title: 'Mixed night',
+        slots: [
+          ProgramSlot(id: 's2', position: 0, danceId: 'c'),
+          ProgramSlot(id: 's3', position: 1, danceId: 'e'),
+        ],
+      ),
+    );
+    await _pump(tester, repos);
+    final contraChip = find.byKey(const ValueKey('programs-form-contra'));
+    expect(contraChip, findsNothing, reason: 'no program is contra only');
+
+    await tester.tap(
+      find.descendant(
+        of: find.byKey(const ValueKey('programs-form-match')),
+        matching: find.text('Includes'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(contraChip);
+    await tester.pumpAndSettle();
+    expect(_titlesInOrder(tester), ['Mixed night']);
   });
 
   testWidgets('a deleted dance stops counting at once', (tester) async {

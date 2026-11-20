@@ -5168,9 +5168,9 @@
   "@programsFormMatchIncludes": {
     "x-sourceSha256": "df498282bede20a9dfff2ee882b7bd646bc7769513fc97e596f1649f123b949c"
   },
-  "programsFormMatchIncludesTooltip": "Programme, die die gewählten Typen enthalten",
+  "programsFormMatchIncludesTooltip": "Programme mit dem gewählten Typ",
   "@programsFormMatchIncludesTooltip": {
-    "x-sourceSha256": "3e3a56e616ff7b2c8b5355d5cd707081af988c75e3e71caaf1c30d5494f0a482"
+    "x-sourceSha256": "3c365f3ce6f851f50b3b96e0c770c677b665301ac65ca2e6219fbc72b83f4668"
   },
   "danceSectionFigures": "Figuren",
   "@danceSectionFigures": {

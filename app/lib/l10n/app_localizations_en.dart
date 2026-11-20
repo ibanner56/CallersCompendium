@@ -5097,7 +5097,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get programsFormMatchIncludesTooltip =>
-      'Programs that include the chosen types';
+      'Programs that have the chosen type';
 
   @override
   String get danceSectionFigures => 'Figures';

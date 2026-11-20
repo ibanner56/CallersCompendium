@@ -5154,14 +5154,14 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get programsFormMatchOnlyTooltip =>
-      'Programma\'s met alleen de gekozen soorten';
+      'Programma\'s met alleen de gekozen types';
 
   @override
   String get programsFormMatchIncludes => 'Bevat';
 
   @override
   String get programsFormMatchIncludesTooltip =>
-      'Programma\'s die de gekozen soorten bevatten';
+      'Programma\'s met het gekozen type';
 
   @override
   String get danceSectionFigures => 'Figuren';

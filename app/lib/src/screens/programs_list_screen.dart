@@ -504,16 +504,32 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
       .where((p) => _showArchived || !p.isArchived);
 
   /// [_formFilter] while it is still one of the chips; null once it is not
-  /// (its last program changed, or was archived or deleted, or no second mix
-  /// is left to offer chips at all), so a filter is never on without a chip
-  /// to show it and clear it.
+  /// (its last program changed, or was archived or deleted, no second mix is
+  /// left to offer chips at all, or the switch between Only and Includes
+  /// changed the chips), so a filter is never on without a chip to show it
+  /// and clear it.
   Set<DanceForm>? get _activeFormFilter {
     final filter = _formFilter;
     if (filter == null) return null;
+    return _formChoiceSets().any((m) => sameForms(m, filter)) ? filter : null;
+  }
+
+  /// The sets of forms the type filter offers as chips, in no particular
+  /// order; empty unless there are at least two mixes among the programs
+  /// shown with no type filter. With [FormMatch.only], each mix is a chip.
+  /// With [FormMatch.includes], each form in any of them is one, so Contra
+  /// can list every program with a contra dance even when none is contra
+  /// only.
+  List<Set<DanceForm>> _formChoiceSets() {
     final mixes = _distinctMixes();
-    return mixes.length >= 2 && mixes.any((m) => sameForms(m, filter))
-        ? filter
-        : null;
+    if (mixes.length < 2) return const [];
+    return switch (_formMatch) {
+      FormMatch.only => mixes,
+      FormMatch.includes => [
+        for (final form in DanceForm.values)
+          if (mixes.any((m) => m.contains(form))) {form},
+      ],
+    };
   }
 
   /// Each distinct set of forms among the programs shown with no type
@@ -528,15 +544,13 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
     return mixes.values.toList();
   }
 
-  /// The type filter's chips: each distinct set of forms among the programs
-  /// shown with no type filter, in the order of their labels. Empty unless
-  /// there are two to choose between.
+  /// The type filter's chips ([_formChoiceSets]) in the order of their
+  /// labels.
   List<Set<DanceForm>> _formChoices(AppLocalizations l10n) {
     final choices = <String, Set<DanceForm>>{
-      for (final forms in _distinctMixes())
+      for (final forms in _formChoiceSets())
         programFormsLabel(l10n, forms)!: forms,
     };
-    if (choices.length < 2) return const [];
     final labels = choices.keys.toList()..sort();
     return [for (final label in labels) choices[label]!];
   }
@@ -573,8 +587,12 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
                 ],
                 selected: {_formMatch},
                 showSelectedIcon: false,
-                onSelectionChanged: (selection) =>
-                    setState(() => _formMatch = selection.single),
+                onSelectionChanged: (selection) => setState(() {
+                  _formMatch = selection.single;
+                  // A chip that the other mode doesn't offer is dropped,
+                  // such as Contra + English (ECD) under Includes.
+                  _dropStaleFormFilter();
+                }),
               ),
               for (final forms in choices)
                 FilterChip(

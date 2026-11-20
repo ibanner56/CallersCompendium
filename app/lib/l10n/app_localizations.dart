@@ -7868,7 +7868,7 @@ abstract class AppLocalizations {
   /// **'Programs of only the chosen types'**
   String get programsFormMatchOnlyTooltip;
 
-  /// Programs list type filter: segment that keeps every program that has at least the chosen type(s), e.g. Contra also lists a program with both contra and English dances. Keep very short; it sits beside the type chips.
+  /// Programs list type filter: segment that keeps every program that has the chosen type, e.g. Contra also lists a program with both contra and English dances. In this mode each chip is a single type. Keep very short; it sits beside the type chips.
   ///
   /// In en, this message translates to:
   /// **'Includes'**
@@ -7877,7 +7877,7 @@ abstract class AppLocalizations {
   /// Tooltip for the programsFormMatchIncludes segment of the programs list type filter.
   ///
   /// In en, this message translates to:
-  /// **'Programs that include the chosen types'**
+  /// **'Programs that have the chosen type'**
   String get programsFormMatchIncludesTooltip;
 
   /// Heading of the figures section on the dance detail screen.

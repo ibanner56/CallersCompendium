@@ -4888,13 +4888,13 @@ class AppLocalizationsJa extends AppLocalizations {
   String get programsFormMatchOnly => 'のみ';
 
   @override
-  String get programsFormMatchOnlyTooltip => '選んだ種類だけのプログラム';
+  String get programsFormMatchOnlyTooltip => '選んだタイプだけのプログラム';
 
   @override
   String get programsFormMatchIncludes => '含む';
 
   @override
-  String get programsFormMatchIncludesTooltip => '選んだ種類を含むプログラム';
+  String get programsFormMatchIncludesTooltip => '選んだタイプを含むプログラム';
 
   @override
   String get danceSectionFigures => 'フィギュア';

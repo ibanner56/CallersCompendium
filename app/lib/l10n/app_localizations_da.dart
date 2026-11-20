@@ -5134,7 +5134,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get programsFormMatchIncludesTooltip =>
-      'Programmer, der indeholder de valgte typer';
+      'Programmer, der har den valgte type';
 
   @override
   String get danceSectionFigures => 'Figurer';
