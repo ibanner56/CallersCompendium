@@ -764,7 +764,7 @@ def test_a_decorative_entry_for_an_image_that_now_has_alt_text_is_flagged() -> N
 
 def test_an_image_spanning_lines_is_still_checked() -> None:
     # The renderer joins a paragraph, so it sees this image; a line-by-line scan
-    # would not. The line reported is the one holding the destination.
+    # would not. The line reported is the one holding the closing paren.
     body = "# Pics\n\n![a description\nacross lines](images/nope.png)\n"
     errors = _image_errors(body)
     assert len(errors) == 1 and ":4: " in errors[0] and "does not resolve" in errors[0], errors
@@ -852,8 +852,12 @@ def test_two_uses_on_one_line_and_on_different_lines_each_get_their_own_line() -
     assert _lines("# P\n\n![a](x.png)\n\n![b](x.png)\n") == [3, 5]
 
 
-def test_an_image_spanning_lines_is_reported_on_the_line_holding_its_destination() -> None:
+def test_an_image_spanning_lines_is_reported_on_its_last_line() -> None:
+    # The line holding its closing paren, which is the destination's line here.
     assert _lines("# P\n\n![across\nlines](images/new.png)\n") == [4]
+    # With a title wrapped onto the next line it is the title's line: pinned so the
+    # documented rule ("the closing paren's line") is the tested one.
+    assert _lines('# P\n\n![Search](images/new.png\n"Collection search")\n') == [4]
 
 
 def test_a_wrapped_image_does_not_take_the_line_of_a_later_use_of_its_destination() -> None:

@@ -714,7 +714,7 @@ def check_images(
     "An image" is whatever the renderer parses as one (``![alt](path)``); a raw
     HTML ``<img>`` or a reference-style ``![alt][ref]`` is not an image to it and
     renders as literal text, so write images in the first form. Reports the line
-    holding the destination.
+    holding the image's closing ``)`` (its last line, if it wraps).
     """
     image_dir = user_docs / "images"
     errors: list[str] = []

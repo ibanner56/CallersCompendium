@@ -166,9 +166,13 @@ class ImageRef:
 
     alt: str  # exactly what the renderer puts in the ``alt`` attribute
     dest: str  # the destination as authored
-    # 1-based source line, attributed after the fact by finding ``dest`` in the
-    # source (see ``_attribute_lines``). Exact for an image on one line; for an
-    # image whose syntax spans lines it is the line holding the destination.
+    # 1-based source line, attributed after the fact (see ``_attribute_lines``):
+    # the line holding the image's closing ``)``. For an image on one line that is
+    # the line it is written on; for one that wraps, it is the last line of the
+    # image, which is the destination's line unless a title wraps onto the next.
+    # The renderer does not track lines, so this is read from the source and, if
+    # that reading ever disagrees with the renderer's, approximated by the first
+    # unfenced line mentioning the destination.
     line: int
 
 
@@ -923,8 +927,10 @@ def _written_images(lines: list[str], fenced: set[int]) -> list[tuple[int, str]]
 
     Reads the source the way the renderer does: each run of consecutive
     unfenced, non-blank lines is joined and scanned as one piece of text, so an
-    image whose syntax wraps over lines is found whole. Each image is placed on the line holding its
-    closing ``)``, which is where its destination is.
+    image whose syntax wraps over lines is found whole. Each image is placed on
+    the line holding its closing ``)``: its own line when it is on one line, and
+    otherwise its last line, which is the destination's line unless a title wraps
+    onto the next one.
     """
     written: list[tuple[int, str]] = []
     index = 0
