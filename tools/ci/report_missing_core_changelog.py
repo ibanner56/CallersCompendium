@@ -18,7 +18,7 @@ nothing.
 
 What it looks at, in the whole PR (``<base>...<head>``, against the merge base):
 
-- Files **added or modified** under ``packages/compendium_core/lib/``. Deleted
+- Files **added, modified or type-changed** under ``packages/compendium_core/lib/``. Deleted
   files, tests, docs and tooling never trigger it. A *deleted-only* change is
   silent because there is no behaviour left to describe.
 - Fragments directly under ``changelog.d/`` that the PR **adds or modifies**. One
@@ -43,6 +43,9 @@ import sys
 
 CORE_LIB = "packages/compendium_core/lib/"
 FRAGMENT_DIR = "changelog.d/"
+# An annotation prefix so a report that cannot answer is visible on the run, not
+# only in the step log. A notice, never an error: a report must not look like a failure.
+NOTICE = "::notice title=Core changelog advisory::"
 # How many files an advisory lists before summarising the rest.
 LISTED = 15
 
@@ -91,19 +94,24 @@ def has_core_record(text: str, path: str) -> bool:
     core = data.get("core")
     if not isinstance(core, dict):
         return False
-    return any(isinstance(items, list) and items for items in core.values())
+    # A record is a non-blank string in some category, the same floor the
+    # compiler holds entries to; an empty list or a blank entry records nothing.
+    return any(
+        isinstance(items, list) and any(isinstance(item, str) and item.strip() for item in items)
+        for items in core.values()
+    )
 
 
 def advise(base: str, head: str) -> list[str]:
     """The lines to print: the advisory, or nothing when none is owed."""
     changes = changed_files(base, head)
     core_files = sorted(
-        path for status, path in changes if status in "AM" and path.startswith(CORE_LIB)
+        path for status, path in changes if status != "D" and path.startswith(CORE_LIB)
     )
     if not core_files:
         return []
     for status, path in changes:
-        if status in "AM" and is_fragment(path):
+        if status != "D" and is_fragment(path):
             shown = _git("show", f"{head}:{path}")
             if shown.returncode != 0:
                 raise Unavailable(f"cannot read {path} at {head}")
@@ -137,9 +145,9 @@ def main(argv: list[str]) -> int:
         for line in advise(base, head):
             print(line)
     except Unavailable as error:
-        print(f"Core changelog advisory unavailable: {error}")
+        print(f"{NOTICE}Core changelog advisory unavailable: {error}")
     except Exception as error:  # noqa: BLE001 -- a report must never fail a build
-        print(f"Core changelog advisory unavailable: unexpected {type(error).__name__}: {error}")
+        print(f"{NOTICE}Core changelog advisory unavailable: unexpected {type(error).__name__}: {error}")
     return 0
 
 

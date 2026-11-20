@@ -29,6 +29,7 @@ OTHER_CORE_FILE = "packages/compendium_core/lib/src/other.dart"
 ADVISORY = "Core changelog advisory::"
 
 FAILURES: list[str] = []
+TEMP_DIRS: list[tempfile.TemporaryDirectory] = []
 
 
 def check(name: str, condition: bool, detail: str = "") -> None:
@@ -80,7 +81,7 @@ def fragment(**records: object) -> str:
 def scenario(name: str, change) -> tuple[subprocess.CompletedProcess, Repo]:
     """Build a base, apply ``change`` and commit it as head; run the report over HEAD~1..HEAD."""
     tmp = tempfile.TemporaryDirectory()
-    scenario.keep.append(tmp)  # keep the directory alive for the caller
+    TEMP_DIRS.append(tmp)  # keep the directory alive for the caller, cleaned up in main()
     repo = Repo(Path(tmp.name))
     change(repo)
     repo.commit("head")
@@ -88,7 +89,6 @@ def scenario(name: str, change) -> tuple[subprocess.CompletedProcess, Repo]:
     return repo.run("HEAD~1", "HEAD"), repo
 
 
-scenario.keep = []
 
 
 def advises(res: subprocess.CompletedProcess) -> bool:
@@ -157,6 +157,32 @@ def main() -> int:
         print("core lib change that deletes the only core fragment:")
         res = repo.run("HEAD~1", "HEAD")
         check("advises: a deleted fragment is no record", advises(res), res.stdout)
+
+    # ---- more shapes that must PRINT ---------------------------------------
+
+    res, _ = scenario(
+        "core lib path with spaces and non-ASCII characters",
+        lambda r: r.write("packages/compendium_core/lib/src/odd name é.dart", "// x\n"),
+    )
+    check("names the path intact", "odd name é.dart" in res.stdout and advises(res), res.stdout)
+
+    def blank_core_entry(r: Repo) -> None:
+        r.write(CORE_FILE, "// v2\n")
+        r.write("changelog.d/1-x.json", fragment(core={"fixed": ["  "]}))
+
+    res, _ = scenario("core lib change with a blank core entry", blank_core_entry)
+    check("still advises: a blank entry records nothing", advises(res), res.stdout)
+
+    def type_change(r: Repo) -> None:
+        r.remove(CORE_FILE)
+        (r.root / CORE_FILE).symlink_to("other.dart")
+
+    try:
+        res, _ = scenario("core lib file replaced by a symlink (git status T)", type_change)
+    except OSError:
+        print("  skip symlinks unavailable here")
+    else:
+        check("advises: a type change is a change", advises(res), res.stdout)
 
     # ---- the advisory must stay SILENT -------------------------------------
 
@@ -267,7 +293,7 @@ def main() -> int:
         res = subprocess.run([sys.executable, str(SCRIPT), "main"], cwd=tmp, capture_output=True, text=True, check=False)
         check("exits 0 and says unavailable", res.returncode == 0 and "unavailable" in res.stdout, f"exit={res.returncode} {res.stdout}{res.stderr}")
 
-    for tmp in scenario.keep:
+    for tmp in TEMP_DIRS:
         tmp.cleanup()
     if FAILURES:
         print(f"\n{len(FAILURES)} FAILED:")
