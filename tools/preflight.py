@@ -502,6 +502,11 @@ STEPS: tuple[Step, ...] = (
         (py("tools/ci/test_check_core_coverage.py"),),
     ),
     Step(
+        "app-coverage-tests",
+        "the app coverage-floor calculation and the stale-report cleanup",
+        (py("tools/ci/test_check_app_coverage.py"),),
+    ),
+    Step(
         "flutter-version-tests",
         "the .fvmrc-vs-toolchain guard's banner parsing and verdict",
         (py("tools/ci/test_check_flutter_version.py"),),
@@ -577,8 +582,14 @@ STEPS: tuple[Step, ...] = (
     Step(
         "app-tests",
         "app suite (includes the privacy classification ratchets)",
-        (fvm("flutter", "test", f"--concurrency={TEST_JOBS}"),),
-        cwd=ROOT / "app",
+        (fvm_py("tools/ci/run_app_tests_with_coverage.py", "-j", str(TEST_JOBS)),),
+        fast=False,
+        needs_binary="fvm",
+    ),
+    Step(
+        "app-coverage",
+        "the app's generated-source-excluded line-coverage floor (reads app-tests' report)",
+        (fvm_py("tools/ci/check_app_coverage.py"),),
         fast=False,
         needs_binary="fvm",
     ),

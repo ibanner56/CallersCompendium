@@ -98,7 +98,7 @@ def test_require_available_fails_unavailable_gate() -> None:
 
 def test_toolchain_steps_use_pinned_fvm_commands() -> None:
     toolchain_steps = [step for step in preflight.STEPS if not step.fast]
-    assert len(toolchain_steps) == 11
+    assert len(toolchain_steps) == 12
     for step in toolchain_steps:
         assert step.needs_binary == "fvm", step.name
         assert all(command[0] == "fvm" for command in step.commands), step.name
@@ -126,7 +126,10 @@ def test_app_tests_cap_flutter_test_concurrency() -> None:
     """Unbounded, `flutter test` starts one engine per two cores: 5.1 GB here."""
     (step,) = [step for step in preflight.STEPS if step.name == "app-tests"]
     (command,) = step.commands
-    assert f"--concurrency={preflight.TEST_JOBS}" in command
+    # The step runs the coverage wrapper, which turns `-j N` into
+    # `flutter test --concurrency=N --coverage`.
+    assert "tools/ci/run_app_tests_with_coverage.py" in " ".join(command)
+    assert command[command.index("-j") + 1] == str(preflight.TEST_JOBS)
     assert preflight.TEST_JOBS <= preflight.MAX_TEST_JOBS
 
 
