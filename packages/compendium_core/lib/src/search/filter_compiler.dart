@@ -731,11 +731,18 @@ class FilterCompiler {
       ..add(pattern);
     // Joined to `choreographers` with `deleted_at IS NULL`, as the author
     // leaf is, so a deleted interpreter matches nothing.
-    return "(${value('meter')} LIKE ? ESCAPE '\\' "
-        "OR ${value('musical_key')} LIKE ? ESCAPE '\\' "
-        'OR EXISTS (SELECT 1 FROM dance_interpreters di '
+    // Two `id IN` subqueries, like the text-index branches beside them, so
+    // SQLite evaluates each once per word and probes its result, rather than
+    // testing every dance against each branch. Measured with
+    // `benchmark/search_benchmark.dart` (20,000 dances), a bare search took
+    // 0.47 ms before this match, 5.7 ms with the branches tested per row and
+    // 2.5 ms in this shape.
+    return "(id IN (SELECT id FROM dances WHERE (meter <> '' OR "
+        "musical_key <> '') AND (${value('meter')} LIKE ? ESCAPE '\\' "
+        "OR ${value('musical_key')} LIKE ? ESCAPE '\\')) "
+        'OR id IN (SELECT di.dance_id FROM dance_interpreters di '
         'JOIN choreographers c ON c.id = di.choreographer_id '
-        'WHERE di.dance_id = dances.id AND c.deleted_at IS NULL '
+        'WHERE c.deleted_at IS NULL '
         "AND ${value('c.name')} LIKE ? ESCAPE '\\'))";
   }
 

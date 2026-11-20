@@ -815,7 +815,10 @@ are ([dialect.md](dialect.md) "Canonicalization on input"):
   also matches the dance's `meter`, its `musical_key` and the names of its
   live interpreters (`dance_interpreters` joined to `choreographers` with
   `deleted_at IS NULL`), read with `LIKE` from those rows rather than from the
-  text index (`_musicAndInterpreterMatch`). So they need no index column, no
+  text index (`_musicAndInterpreterMatch`), as two `id IN` subqueries beside
+  the index branches. Measured with `benchmark/search_benchmark.dart` (20,000
+  dances, none with a meter), a bare search's median rose from 0.47 ms to
+  2.5 ms, well inside the 50 ms target. So they need no index column, no
   rebuild, and follow a rename at once. A word of one or two characters must
   start a word of the value (after a space, `/`, `-` or `(`: "D" finds
   "D minor", "8" finds "6/8"), as the prefix index would; a longer one may sit

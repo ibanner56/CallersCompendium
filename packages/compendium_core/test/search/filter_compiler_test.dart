@@ -11,10 +11,11 @@ List<String> _music(String word, {bool prefix = false}) {
 /// The SQL an All fields word of three or more characters adds for the
 /// meter, the key and the interpreters' names.
 const _musicSql =
-    "(meter LIKE ? ESCAPE '\\' OR musical_key LIKE ? ESCAPE '\\' "
-    'OR EXISTS (SELECT 1 FROM dance_interpreters di '
+    "(id IN (SELECT id FROM dances WHERE (meter <> '' OR musical_key <> '') "
+    "AND (meter LIKE ? ESCAPE '\\' OR musical_key LIKE ? ESCAPE '\\')) "
+    'OR id IN (SELECT di.dance_id FROM dance_interpreters di '
     'JOIN choreographers c ON c.id = di.choreographer_id '
-    'WHERE di.dance_id = dances.id AND c.deleted_at IS NULL '
+    'WHERE c.deleted_at IS NULL '
     "AND c.name LIKE ? ESCAPE '\\'))";
 
 void main() {
@@ -858,7 +859,7 @@ void main() {
         contains(
           '((id IN (SELECT dance_id FROM dance_fts WHERE dance_fts MATCH ?) '
           'OR id IN (SELECT dance_id FROM dance_fts WHERE dance_fts MATCH ?) '
-          "OR ((' ' || replace(",
+          'OR (id IN (SELECT id FROM dances',
         ),
       );
       expect(c.binds, [
