@@ -159,10 +159,30 @@ class Heading:
     text: str
 
 
+@dataclass(frozen=True)
+class ImageRef:
+    """An image the renderer parsed: what it would emit, and roughly where."""
+
+    alt: str  # exactly what the renderer puts in the ``alt`` attribute
+    dest: str  # the destination as authored
+    # 1-based source line, attributed after the fact by finding ``dest`` in the
+    # source (see ``_attribute_lines``). Exact for an image on one line; for an
+    # image whose syntax spans lines it is the line holding the destination.
+    line: int
+
+
 @dataclass
 class RenderResult:
     html: str
     headings: list[Heading] = field(default_factory=list)
+    # Every ``![alt](dest)`` the renderer parsed, in document order. This is the
+    # renderer's own answer to "what is an image here": fenced code, code spans,
+    # HTML comments, escapes and every nesting level (quotes, lists, tables,
+    # link labels) are already handled by the code that builds the HTML, so a
+    # checker reads this instead of re-deriving it. Raw HTML ``<img>`` and
+    # reference-style ``![a][r]`` are not images to this renderer (they come out
+    # as literal text) and so are not listed.
+    images: list[ImageRef] = field(default_factory=list)
     # Headings whose slug collides with an earlier one. GitHub silently dedups
     # these with a ``-1`` suffix while the in-app reader keys a map by slug and
     # lets the *last* heading win, so a colliding slug means the same
@@ -200,6 +220,7 @@ class _Context:
         self.headings: list[Heading] = []
         self.duplicate_anchors: list[Heading] = []
         self._seen_anchors: set[str] = set()
+        self.images: list[tuple[str, str]] = []
 
     def anchor_for(self, text: str) -> str:
         """The anchor for ``text``, recording a collision rather than renaming.
@@ -265,6 +286,7 @@ def _inline(text: str, ctx: _Context) -> str:
             if parsed is not None:
                 label, dest, title, end = parsed
                 alt = _plain_text(label).strip()
+                ctx.images.append((alt, dest))
                 image_src = ctx.resolve_image(dest)
                 if image_src is not None:
                     title_attr = (
@@ -835,68 +857,29 @@ def _parse_list(lines: list[str], start: int, ctx: _Context) -> tuple[str, int]:
 # ---------------------------------------------------------------------------
 
 
-@dataclass(frozen=True)
-class ImageRef:
-    """An image the renderer would try to resolve, and where it was written."""
+def _attribute_lines(lines: list[str], found: list[tuple[str, str]]) -> list[ImageRef]:
+    """Give each image the source line that holds its destination.
 
-    line: int  # 1-based line in the source Markdown
-    alt: str  # exactly what the renderer would emit as the alt text
-    dest: str  # the destination as authored
-
-
-def iter_images(markdown: str) -> list[ImageRef]:
-    """Every ``![alt](dest)`` the renderer would resolve, with its source line.
-
-    Built from the renderer's own pieces so the two cannot disagree about what
-    an image is: it drops HTML comments with :func:`_strip_html_comments` (which
-    keeps line numbers), skips fenced code with the same fence patterns,
-    honours the same backslash escapes and code spans, and parses each image
-    with :func:`_link_at`. The alt text is :func:`_plain_text` of the label,
-    stripped, which is what ``_inline`` puts in the ``alt`` attribute.
-
-    It reads one line at a time, so an image whose label or destination spans
-    lines is invisible to it; the renderer, which joins a paragraph first, still
-    sees it. Callers that need the two to agree should compare counts.
+    The renderer parses images out of joined paragraphs and recursive blocks, so
+    it does not know source lines. Each image, in document order, is placed on
+    the first line at or after the previous one that still has an unclaimed
+    occurrence of its destination, so the same destination used twice maps to two
+    lines. If none is found the previous line is reused rather than guessing.
     """
-    normalized = markdown.replace("\r\n", "\n").replace("\r", "\n")
-    lines = _strip_html_comments(normalized.split("\n"))
-    found: list[ImageRef] = []
-    fence_char: Optional[str] = None
-    fence_len = 0
-    for number, line in enumerate(lines, start=1):
-        if fence_char is not None:
-            close = _FENCE_CLOSE_RE.match(line)
-            if close and close.group(1)[0] == fence_char and len(close.group(1)) >= fence_len:
-                fence_char = None
-            continue
-        fence = _FENCE_RE.match(line)
-        if fence:
-            fence_char = fence.group(1)[0]
-            fence_len = len(fence.group(1))
-            continue
-        i = 0
-        length = len(line)
-        while i < length:
-            char = line[i]
-            if char == "\\" and i + 1 < length and line[i + 1] in _ESCAPABLE:
-                i += 2
-                continue
-            if char == "`":
-                code = _code_span_at(line, i)
-                if code is not None:
-                    i = code[1]
-                    continue
-            if char == "!" and i + 1 < length and line[i + 1] == "[":
-                parsed = _link_at(line, i + 1)
-                if parsed is not None:
-                    label, dest, _title, end = parsed
-                    found.append(
-                        ImageRef(line=number, alt=_plain_text(label).strip(), dest=dest)
-                    )
-                    i = end
-                    continue
-            i += 1
-    return found
+    claimed: dict[int, int] = {}
+    cursor = 0
+    refs: list[ImageRef] = []
+    for alt, dest in found:
+        line_index = cursor
+        if dest:
+            for index in range(cursor, len(lines)):
+                if lines[index].count(dest) > claimed.get(index, 0):
+                    line_index = index
+                    break
+        claimed[line_index] = claimed.get(line_index, 0) + 1
+        cursor = line_index
+        refs.append(ImageRef(alt=alt, dest=dest, line=line_index + 1))
+    return refs
 
 
 def render(
@@ -915,8 +898,10 @@ def render(
     ctx = _Context(link_resolver, image_resolver)
     normalized = markdown.replace("\r\n", "\n").replace("\r", "\n")
     lines = _strip_html_comments(normalized.split("\n"))
+    html_out = _parse_blocks(lines, ctx)
     return RenderResult(
-        html=_parse_blocks(lines, ctx),
+        html=html_out,
         headings=ctx.headings,
         duplicate_anchors=ctx.duplicate_anchors,
+        images=_attribute_lines(lines, ctx.images),
     )

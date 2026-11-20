@@ -38,12 +38,15 @@ path must exist, and ``blob/`` must be a file while ``tree/`` must be a
 directory. The gate runs on every PR that touches the guides, so a broken
 cross-link can't reach ``main``.
 
-**Image alt text is enforced.** Every image in any ``docs/user/*.md`` (the
-unpublished style guide included, its fenced examples excluded) must have alt
-text, unless it is listed by name in ``DECORATIVE_IMAGES``; the alt text must not
-be just the file name or a bare "image"/"screenshot"; and the file must exist
-under ``docs/user/images/``, because a missing one otherwise ships as a text
-caption instead of failing. See ``check_images``.
+**Image alt text is enforced.** Every ``![alt](path)`` image in any
+``docs/user/*.md`` (the unpublished style guide included, its fenced examples
+excluded) must have alt text, unless it is listed by name in
+``DECORATIVE_IMAGES``; the alt text must not be just the file name or a bare
+"image"/"screenshot"; and the file must exist under ``docs/user/images/``,
+because a missing one otherwise ships as a text caption instead of failing. What
+counts as an image is whatever the renderer parses as one, so a raw ``<img>`` or
+a reference-style ``![alt][ref]``, which it renders as literal text, is not
+checked and should not be used. See ``check_images``.
 
 Usage::
 
@@ -75,7 +78,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from markdown_to_html import (  # noqa: E402
     escape_attr,
     escape_text,
-    iter_images,
     render,
 )
 
@@ -676,6 +678,11 @@ _GENERIC_ALT = frozenset(
 )
 
 
+def _has_text(alt: str) -> bool:
+    """Whether alt text says anything: punctuation or whitespace alone does not."""
+    return any(char.isalnum() for char in alt)
+
+
 def _is_generic_alt(alt: str, dest: str) -> bool:
     """Whether ``alt`` is just the file name or a bare placeholder word."""
     text = alt.strip().lower().rstrip(".:!")
@@ -695,43 +702,32 @@ def check_images(
     caption instead of failing. This reads every ``docs/user/*.md``, published or
     not (the style guide is the unpublished one), because the policy is about the
     docs, not the site. Examples inside fenced code (the style guide's own) are
-    not images and are skipped: the scan uses the renderer's own fence, comment,
-    escape and code-span rules. It reports the guide and line of each problem:
+    not images and are skipped, at any nesting depth, because the images come
+    from the renderer itself. It reports the guide and line of each problem:
 
     * empty alt text, unless ``(guide, destination)`` is in ``decorative``;
     * alt text that is the file name or a bare "image"/"screenshot";
     * a destination that does not resolve to a file under ``docs/user/images/``;
-    * a ``decorative`` entry whose image is gone or now has alt text;
-    * the line scan and the renderer disagreeing on how many images a guide has
-      (an image spanning lines), which would hide some from this check.
+    * a ``decorative`` entry whose image is gone or whose every use now has alt
+      text.
+
+    "An image" is whatever the renderer parses as one (``![alt](path)``); a raw
+    HTML ``<img>`` or a reference-style ``![alt][ref]`` is not an image to it and
+    renders as literal text, so write images in the first form. Reports the line
+    holding the destination.
     """
     image_dir = user_docs / "images"
     errors: list[str] = []
-    seen: dict[tuple[str, str], str] = {}
+    seen: dict[tuple[str, str], list[str]] = {}
     for path in sorted(user_docs.glob("*.md"), key=lambda p: p.name):
         doc = path.name
-        source = path.read_text(encoding="utf-8")
-        images = iter_images(source)
-        calls: list[tuple[str, bool]] = []
-
-        def resolver(href: str, *, source_doc: str = doc) -> Optional[str]:
-            resolved = _resolve_image(user_docs, image_dir, source_doc, href)
-            calls.append((href, resolved is not None))
-            return resolved
-
-        render(source, image_resolver=resolver)
-        if len(images) != len(calls):
-            errors.append(
-                f"docs/user/{doc}: found {len(images)} image(s) by line but the "
-                f"renderer resolved {len(calls)}; an image that spans lines hides "
-                "some from the alt-text check. Put each image on one line."
-            )
-        unresolved = {href for href, ok in calls if not ok}
-        for image in images:
+        # The renderer is the only judge of what an image is; see
+        # RenderResult.images.
+        for image in render(path.read_text(encoding="utf-8")).images:
             key = (doc, image.dest)
-            seen[key] = image.alt
+            seen.setdefault(key, []).append(image.alt)
             problems: list[str] = []
-            if not image.alt:
+            if not _has_text(image.alt):
                 if key not in decorative:
                     problems.append(
                         "has no alt text (describe what it shows, or, if it is "
@@ -743,7 +739,7 @@ def check_images(
                     f"alt text {image.alt!r} is its file name or a bare "
                     "placeholder (describe what the image shows)"
                 )
-            if image.dest in unresolved:
+            if _resolve_image(user_docs, image_dir, doc, image.dest) is None:
                 problems.append(
                     "does not resolve to a file under docs/user/images/ (a "
                     "missing file ships as a text caption, not an image)"
@@ -760,10 +756,10 @@ def check_images(
                 f"DECORATIVE_IMAGES lists ({doc!r}, {dest!r}) but docs/user/{doc} "
                 "has no such image; remove the stale exemption."
             )
-        elif seen[(doc, dest)]:
+        elif all(_has_text(alt) for alt in seen[(doc, dest)]):
             errors.append(
-                f"DECORATIVE_IMAGES lists ({doc!r}, {dest!r}) but that image now "
-                "has alt text; remove the exemption."
+                f"DECORATIVE_IMAGES lists ({doc!r}, {dest!r}) but every use of "
+                "that image now has alt text; remove the exemption."
             )
     return errors
 

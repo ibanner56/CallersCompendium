@@ -41,6 +41,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import render_user_docs as rud  # noqa: E402
+from markdown_to_html import render  # noqa: E402
 
 REPO_ROOT = rud.REPO_ROOT
 
@@ -629,15 +630,24 @@ def test_the_real_corpus_has_alt_text_on_every_image_and_every_file_exists() -> 
     assert rud.check_images() == []
 
 
-def test_the_real_corpus_scan_matches_the_renderer_and_skips_fenced_examples() -> None:
+def test_the_style_guides_fenced_example_images_are_not_images() -> None:
     # The style guide's two example images sit inside fenced code and point at
     # files that do not exist; a checker that did not skip fences fails on them.
     source = (rud.USER_DOCS / "style-guide.md").read_text(encoding="utf-8")
     assert "```markdown" in source and "![" in source
-    assert rud.iter_images(source) == []
-    # And the line scan agrees with the renderer on every real guide (check_images
-    # reports any disagreement), so the two cannot drift apart unnoticed.
-    assert not [e for e in rud.check_images() if "by line but the renderer" in e]
+    assert render(source).images == []
+
+
+def test_the_renderers_image_list_is_the_images_it_resolves() -> None:
+    # check_images() trusts RenderResult.images. Pin it to the other thing the
+    # renderer does with an image, calling the resolver, over every real guide.
+    for path in sorted(rud.USER_DOCS.glob("*.md")):
+        calls: list[str] = []
+        result = render(
+            path.read_text(encoding="utf-8"),
+            image_resolver=lambda href, calls=calls: calls.append(href),
+        )
+        assert [image.dest for image in result.images] == calls, path.name
 
 
 def test_decorative_images_start_empty() -> None:
@@ -698,7 +708,7 @@ def test_real_alt_text_passes_even_if_it_mentions_the_word_screenshot() -> None:
 
 def test_alt_text_is_what_the_renderer_would_emit() -> None:
     # Emphasis and code in the label are reduced to plain text, as in the HTML.
-    refs = rud.iter_images("![**bold** and `code` alt](x.png \"a title\")")
+    refs = render("![**bold** and `code` alt](x.png \"a title\")").images
     assert [(r.line, r.alt, r.dest) for r in refs] == [(1, "bold and code alt", "x.png")]
 
 
@@ -751,10 +761,71 @@ def test_a_decorative_entry_for_an_image_that_now_has_alt_text_is_flagged() -> N
     assert len(errors) == 1 and "now has alt text" in errors[0], errors
 
 
-def test_an_image_spanning_lines_is_reported_not_silently_missed() -> None:
-    body = "# Pics\n\n![a description\nacross lines](images/new.png)\n"
+def test_an_image_spanning_lines_is_still_checked() -> None:
+    # The renderer joins a paragraph, so it sees this image; a line-by-line scan
+    # would not. The line reported is the one holding the destination.
+    body = "# Pics\n\n![a description\nacross lines](images/nope.png)\n"
     errors = _image_errors(body)
-    assert len(errors) == 1 and "found 0 image(s) by line but the renderer resolved 1" in errors[0], errors
+    assert len(errors) == 1 and ":4: " in errors[0] and "does not resolve" in errors[0], errors
+    assert _image_errors("# Pics\n\n![a description\nacross lines](images/new.png)\n") == []
+
+
+def test_fenced_code_inside_a_quote_or_a_deep_list_item_is_still_code() -> None:
+    quote = "# Pics\n\n> ```md\n> ![](images/missing.png)\n> ```\n"
+    nested_quote = "# Pics\n\n> > ```md\n> > ![](images/missing.png)\n> > ```\n"
+    deep_item = "# Pics\n\n10. one\n\n    ```md\n    ![](images/missing.png)\n    ```\n"
+    bullet = "# Pics\n\n- one\n\n  ```md\n  ![](images/missing.png)\n  ```\n"
+    for name, body in (("quote", quote), ("nested quote", nested_quote), ("10. item", deep_item), ("bullet", bullet)):
+        assert _image_errors(body) == [], name
+
+
+def test_a_real_image_after_a_quoted_fence_is_still_checked() -> None:
+    body = "# Pics\n\n> ```md\n> ![](images/missing.png)\n> ```\n\n![](images/new.png)\n"
+    errors = _image_errors(body)
+    assert len(errors) == 1 and ":7: " in errors[0], errors
+
+
+def test_a_phantom_and_a_missed_image_cannot_cancel_out() -> None:
+    # The shape that fooled a count-based cross-check: a fenced (non-)image the
+    # scanner counted, plus a real multi-line image it did not. Judging by the
+    # renderer alone, the real one is checked and its missing file is reported.
+    body = (
+        "# Pics\n\n> ```md\n> ![Real alt](images/new.png)\n> ```\n\n"
+        "![across\nlines](images/missing.png)\n"
+    )
+    errors = _image_errors(body)
+    assert len(errors) == 1 and "images/missing.png" in errors[0], errors
+
+
+def test_the_same_destination_used_twice_is_attributed_to_both_lines() -> None:
+    body = "# Pics\n\n![](images/new.png)\n\n![A real description](images/new.png)\n\n![](images/new.png)\n"
+    lines = sorted(int(e.split(":")[1]) for e in _image_errors(body))
+    assert lines == [3, 7], lines
+    # Two uses on one line are both found.
+    two = "# Pics\n\n![](images/new.png) and ![](images/new.png)\n"
+    assert len(_image_errors(two)) == 2
+
+
+def test_punctuation_alone_is_not_alt_text() -> None:
+    for alt in (".", "-", "...", " "):
+        errors = _image_errors(f"# Pics\n\n![{alt}](images/new.png)\n")
+        assert len(errors) == 1 and "has no alt text" in errors[0], (alt, errors)
+
+
+def test_one_decorative_use_does_not_make_the_exemption_stale() -> None:
+    body = "# Pics\n\n![](images/new.png)\n\n![A described use](images/new.png)\n"
+    decorative = frozenset({("pics.md", "images/new.png")})
+    # The empty-alt use is exempt, the described one is fine, and the entry is
+    # still needed: no error either way.
+    assert _image_errors(body, decorative=decorative) == []
+
+
+def test_raw_html_and_reference_style_images_are_not_images_to_this_renderer() -> None:
+    # They come out as literal text on the site, so they are not images here
+    # (and the docs tell authors to write ![alt](path)); pinned so a renderer
+    # change that starts treating them as images is noticed.
+    body = '# Pics\n\n<img src="images/new.png">\n\n![alt][ref]\n\n[ref]: images/new.png\n'
+    assert render(body).images == []
 
 
 def test_every_guide_is_scanned_including_the_unpublished_one() -> None:
