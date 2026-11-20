@@ -857,25 +857,99 @@ def _parse_list(lines: list[str], start: int, ctx: _Context) -> tuple[str, int]:
 # ---------------------------------------------------------------------------
 
 
+_CONTAINER_PREFIX_RE = re.compile(r"^(?:\s*>)*\s*(?:(?:[-*+]|\d{1,9}[.)])\s+)?")
+_BARE_FENCE_RE = re.compile(r"^(`{3,}|~{3,})")
+
+
+def _fenced_lines(lines: list[str]) -> set[int]:
+    """Indices of lines inside (or delimiting) fenced code, at any nesting depth.
+
+    Only used to choose which source line an already-detected image is reported
+    on, never to decide whether something is an image. A fence inside a quote or
+    a list item reaches the renderer with its container stripped, so the container
+    prefix (``>`` markers, indentation, a list marker) is stripped here too.
+    """
+    fenced: set[int] = set()
+    fence_char: Optional[str] = None
+    fence_len = 0
+    for index, line in enumerate(lines):
+        bare = _CONTAINER_PREFIX_RE.sub("", line, count=1)
+        marker = _BARE_FENCE_RE.match(bare)
+        if fence_char is not None:
+            fenced.add(index)
+            if (
+                marker
+                and marker.group(1)[0] == fence_char
+                and len(marker.group(1)) >= fence_len
+                and not bare[len(marker.group(1)) :].strip()
+            ):
+                fence_char = None
+            continue
+        if marker:
+            fenced.add(index)
+            fence_char = marker.group(1)[0]
+            fence_len = len(marker.group(1))
+    return fenced
+
+
+def _line_images(line: str) -> list[str]:
+    """Destinations of ``![..](..)`` written on one line, skipping code and escapes."""
+    found: list[str] = []
+    i = 0
+    length = len(line)
+    while i < length:
+        char = line[i]
+        if char == "\\" and i + 1 < length and line[i + 1] in _ESCAPABLE:
+            i += 2
+            continue
+        if char == "`":
+            code = _code_span_at(line, i)
+            if code is not None:
+                i = code[1]
+                continue
+        if char == "!" and i + 1 < length and line[i + 1] == "[":
+            parsed = _link_at(line, i + 1)
+            if parsed is not None:
+                found.append(parsed[1])
+                i = parsed[3]
+                continue
+        i += 1
+    return found
+
+
 def _attribute_lines(lines: list[str], found: list[tuple[str, str]]) -> list[ImageRef]:
-    """Give each image the source line that holds its destination.
+    """Give each image the source line it was written on.
 
     The renderer parses images out of joined paragraphs and recursive blocks, so
     it does not know source lines. Each image, in document order, is placed on
-    the first line at or after the previous one that still has an unclaimed
-    occurrence of its destination, so the same destination used twice maps to two
-    lines. If none is found the previous line is reused rather than guessing.
+    the first line at or after the previous one that is not fenced code and has
+    an unclaimed ``![..](dest)`` for its destination, so the same destination
+    used twice maps to two lines, and a mention of the file in prose, a code span,
+    a plain link or a fenced example is never mistaken for the image. An image
+    whose syntax spans lines has no such line, so it falls back to the first
+    unfenced line containing the destination; failing that, the previous line.
     """
+    fenced = _fenced_lines(lines)
+    candidates = [
+        [] if index in fenced else _line_images(line)
+        for index, line in enumerate(lines)
+    ]
     claimed: dict[int, int] = {}
     cursor = 0
     refs: list[ImageRef] = []
     for alt, dest in found:
-        line_index = cursor
-        if dest:
+        line_index = None
+        for index in range(cursor, len(lines)):
+            if candidates[index].count(dest) > claimed.get(index, 0):
+                line_index = index
+                break
+        if line_index is None and dest:
             for index in range(cursor, len(lines)):
-                if lines[index].count(dest) > claimed.get(index, 0):
+                if index not in fenced and dest in lines[index]:
                     line_index = index
                     break
+        if line_index is None:
+            line_index = cursor
         claimed[line_index] = claimed.get(line_index, 0) + 1
         cursor = line_index
         refs.append(ImageRef(alt=alt, dest=dest, line=line_index + 1))

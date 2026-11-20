@@ -806,6 +806,37 @@ def test_the_same_destination_used_twice_is_attributed_to_both_lines() -> None:
     assert len(_image_errors(two)) == 2
 
 
+def _lines(markdown: str) -> list[int]:
+    return [image.line for image in render(markdown).images]
+
+
+def test_the_error_line_is_the_image_not_a_fenced_example_of_it() -> None:
+    # The same destination inside a fence, then the real image (the reviewer's repro).
+    assert _lines("# P\n\n```\n![](images/new.png)\n```\n\n![](images/new.png)\n") == [7]
+    quoted = "# P\n\n> ```\n> ![](images/new.png)\n> ```\n\n![](images/new.png)\n"
+    assert _lines(quoted) == [7]
+    deep = "# P\n\n10. one\n\n    ```md\n    ![](images/new.png)\n    ```\n\n![](images/new.png)\n"
+    assert _lines(deep) == [9]
+    errors = _image_errors("# Pics\n\n```\n![](images/new.png)\n```\n\n![](images/new.png)\n")
+    assert len(errors) == 1 and errors[0].startswith("docs/user/pics.md:7: "), errors
+
+
+def test_a_mention_of_the_file_is_not_mistaken_for_the_image() -> None:
+    assert _lines("# P\n\nSee `images/new.png` and images/new.png.\n\n![](images/new.png)\n") == [5]
+    assert _lines("# P\n\nx data.png y\n\n![](a.png)\n") == [5]
+    assert _lines("# P\n\n[the file](images/new.png)\n\n![](images/new.png)\n") == [5]
+    assert _lines("# P\n\nA `![](images/new.png)` span.\n\n![](images/new.png)\n") == [5]
+
+
+def test_two_uses_on_one_line_and_on_different_lines_each_get_their_own_line() -> None:
+    assert _lines("# P\n\n![a](x.png) and ![b](x.png)\n") == [3, 3]
+    assert _lines("# P\n\n![a](x.png)\n\n![b](x.png)\n") == [3, 5]
+
+
+def test_an_image_spanning_lines_is_reported_on_the_line_holding_its_destination() -> None:
+    assert _lines("# P\n\n![across\nlines](images/new.png)\n") == [4]
+
+
 def test_punctuation_alone_is_not_alt_text() -> None:
     for alt in (".", "-", "...", " "):
         errors = _image_errors(f"# Pics\n\n![{alt}](images/new.png)\n")
