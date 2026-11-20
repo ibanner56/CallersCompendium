@@ -16,17 +16,25 @@ import 'package:test/test.dart';
 ///    owed.
 ///
 /// Rules 1 and 2 already cover every third-party entry (it is either
-/// non-shareable or shareable with a subject); rule 3 is stated on its own
-/// because the exemption below must never reach it, and a test that says so
-/// fails if that changes.
+/// non-shareable or shareable with a subject), so rule 3 needs no term of its
+/// own in [missingNotes]; what it adds is that the exemption below must never
+/// reach a third-party entry, which [missingNotes] enforces and the synthetic
+/// tests pin.
 ///
 /// **The one exemption** is [preferenceSettingKeys]: the app-user preference
-/// settings that share the `_preference` classification (`appUser`,
-/// `shareable`, no note). They are exempt by identity, as
-/// `syncBookkeepingTables` is derived, because the reason is the same on every
-/// one (a working preference, which is the same on any device the user owns) and
-/// is stated once on the constant. A key leaves the exemption by being given its
-/// own classification; there is no other way in.
+/// settings that share the note-free `_preference` classification (`appUser`,
+/// `shareable`). It is derived with `identical`, as `syncBookkeepingTables` is.
+/// Dart canonicalises const values, so an inline entry with the same fields and
+/// no note is the same object and is exempt as well: the same classification
+/// has the same reason, a working preference that is the same on any device the
+/// user owns. A key leaves the exemption by being given a note or any different
+/// field.
+///
+/// **Scope:** the three client registries in `compendium_core`
+/// ([fieldClassifications], [settingsClassifications],
+/// [settingsPrefixClassifications]). The server keeps its own registry
+/// (`server/lib/src/privacy/server_field_registry.dart`), which this does not
+/// cover.
 ///
 /// The check is a function over a registry map, so the same code runs on the
 /// real registries (which must be clean) and on small synthetic ones that must
@@ -44,8 +52,7 @@ List<String> missingNotes(
     final c = entry.value;
     final owed =
         c.egress != EgressClass.shareable || // rule 1
-        c.subject != DataSubject.none || // rule 2
-        c.subject == DataSubject.thirdParty; // rule 3
+        c.subject != DataSubject.none; // rule 2 (and so rule 3)
     if (!owed || _hasNote(c)) continue;
     if (exemptKeys.contains(entry.key) && c.subject != DataSubject.thirdParty) {
       continue;
@@ -117,16 +124,6 @@ void main() {
         }
       },
     );
-
-    test('no third-party entry is exempt', () {
-      for (final key in preferenceSettingKeys) {
-        expect(
-          settingsClassifications[key]!.subject,
-          isNot(DataSubject.thirdParty),
-          reason: key,
-        );
-      }
-    });
   });
 
   group('the rule fails on what it is for', () {

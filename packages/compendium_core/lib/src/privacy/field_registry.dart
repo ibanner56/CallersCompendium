@@ -936,12 +936,13 @@ final Set<String> syncBookkeepingTables = {
 
 /// Shared by the five postal-address constants below (seven `venues` columns).
 const _venueAddressNote =
-    'A venue\'s postal address. Third-party data: the people at a venue never '
-    'use this app and cannot consent to a transfer. Never leaves the device: a '
-    'program share or PDF always clears it, with no opt-in '
-    '(sanitizeVenueForShare, after issue #853 found shares carrying it), and '
-    'Device Sync carries only fields classified shareable. The owner\'s own '
-    'full backup still holds it.';
+    'A venue\'s postal address, classified third-party like the venue\'s '
+    'contacts: the people it identifies never use this app and cannot consent '
+    'to a transfer. Never reaches a share, a PDF, Device Sync or other '
+    'project-operated infrastructure: a program share or PDF always clears it, '
+    'with no opt-in (sanitizeVenueForShare, after issue #853 found shares '
+    'carrying it), and Device Sync carries only fields classified shareable. '
+    'Only the owner\'s own full backup holds it.';
 
 const _contactStreet = DataClassification(
   term: DpvTerm.street,

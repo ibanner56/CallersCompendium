@@ -252,8 +252,8 @@ class DataClassification {
   /// [DataSubject.none], and every [DataSubject.thirdParty] entry with no
   /// exemption (`data_classification_note_test.dart` fails without it). Only a
   /// shareable entry about nobody may omit it, and the app-user preference
-  /// settings that share one classification (`preferenceSettingKeys`) are
-  /// noted once, on that constant.
+  /// settings that share one note-free classification (`preferenceSettingKeys`),
+  /// which are exempt rather than noted.
   final String? note;
 
   @override

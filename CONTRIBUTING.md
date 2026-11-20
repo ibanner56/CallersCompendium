@@ -246,8 +246,9 @@ an unclassified column or settings key. When you add one:
   personal-data field is `shareable`, so a test
   (`data_classification_note_test.dart`) fails without a note on every entry
   that is not `shareable`, every `shareable` entry whose subject is not `none`,
-  and every third-party entry. The app-user preference settings, which share one
-  classification, are the only exemption (`preferenceSettingKeys`).
+  and every third-party entry, in the three `compendium_core` registries. The
+  app-user preference settings, which share one note-free classification, are
+  the only exemption (`preferenceSettingKeys`).
 - Regenerate the catalogue:
   `fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart`
 - If you added a whole new table — including a raw or virtual one drift does not

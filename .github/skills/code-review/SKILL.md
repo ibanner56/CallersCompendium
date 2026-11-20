@@ -225,9 +225,9 @@ build. The axis most often wrong is the **subject**: venue contacts and
 choreographers are `thirdParty` even though the app user typed them — they cannot
 consent to a transfer they do not know about. A `note` is required where the
 classification is not `shareable`, is about a person, or is third-party
-(`data_classification_note_test.dart` enforces it). Do not accept a diff that *narrows a ratchet's
-detection pattern* to silence a false positive; exclusions go by name, with a
-reason. Detail:
+(`data_classification_note_test.dart` enforces it). Do not accept a diff that
+*narrows a ratchet's detection pattern* to silence a false positive; exclusions
+go by name, with a reason. Detail:
 [`.github/instructions/privacy-registry.instructions.md`](../../../.github/instructions/privacy-registry.instructions.md),
 background:
 [the privacy boundary that was prose](../../../docs/dev/agents/incidents.md#the-privacy-boundary-that-was-prose).
