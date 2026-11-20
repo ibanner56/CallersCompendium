@@ -17,9 +17,13 @@ What it looks at, in the whole PR (``<base>...<head>``, against the merge base):
   ``MoveDef(...)`` or ``MoveAlias(...)`` constructor call with an ``id:``, or a
   ``'<id>': FigureDefinition(...)`` map entry, in a Dart file under
   ``packages/compendium_core/lib/src/taxonomy/``. It is *changed* when it is new
-  or when its text, comments included and whitespace runs ignored, differs from
-  the merge base's. A deleted block, and a block that only moved, are not
-  reported.
+  or when its text, whitespace runs ignored, differs from the same figure's block
+  at the merge base *anywhere in that directory*, so a block moved to another file
+  or a file renamed or split is not reported. The block's text includes the
+  ``//`` comment lines directly above it (the ``// TCB "Swing"`` citations),
+  which are part of what the definition says. A deleted block is not reported. A
+  change to something a block only *uses* (a shared ``ParamSpec`` constant, a
+  helper) is not a change to the block's text and is not seen.
 - For each, the same-named figures in **other** dance forms at the head, matched
   on the **display name** (the ask is homonyms) and on the **ID stem** after the
   form's prefix (``ecd_``, later ``sq_``). A figure's form is the one whose prefix
@@ -30,7 +34,10 @@ What it looks at, in the whole PR (``<base>...<head>``, against the merge base):
 The forms and their prefixes are read from ``danceFormMovePrefixes`` in
 ``taxonomy_registry.dart``, not listed here, so a registered squares form is
 picked up by that edit alone. An id written ``'${_p}name'`` is resolved through
-the file's own ``const String _p = '...'``.
+the file's own string constant (``const``/``final``, typed or not, either quote).
+An id that is not a string literal (``id: customMoveId``) is skipped; an id whose
+interpolation cannot be resolved is *unavailable*, because skipping it would drop
+a whole form without a word.
 
 If it cannot tell -- an unresolvable ref, a git failure, a registry it cannot
 read, a block it cannot close -- it prints ``unavailable`` and says why, rather
@@ -152,7 +159,7 @@ def _close(masked: str, open_at: int) -> int:
     raise Unavailable("a definition block never closes")
 
 
-_CONSTS = re.compile(r"^const\s+String\s+(\w+)\s*=\s*'([^']*)'\s*;", re.MULTILINE)
+_CONSTS = re.compile(r"^[ \t]*(?:static\s+)?(?:const|final)\s+(?:String\s+)?(\w+)\s*=\s*(['\"])([^'\"\n$\\]*)\2\s*;", re.MULTILINE)
 _MOVE_CALL = re.compile(r"\b(?:MoveDef|MoveAlias)\(")
 _ID_ARG = re.compile(r"\bid:\s*(['\"])(.*?)\1", re.DOTALL)
 _NAME_ARG = re.compile(r"\bdisplayName:\s*(['\"])(.*?)\1", re.DOTALL)
@@ -160,7 +167,7 @@ _DEFINITION_ENTRY = re.compile(r"^[ \t]*(['\"])([A-Za-z0-9_${}]+)\1\s*:\s*Figure
 _INTERP = re.compile(r"\$\{(\w+)\}|\$(\w+)")
 
 
-def _resolve(literal: str, consts: dict[str, str]) -> str | None:
+def _resolve(literal: str, consts: dict[str, str], file: str) -> str:
     unresolved = False
 
     def sub(m: re.Match[str]) -> str:
@@ -172,11 +179,24 @@ def _resolve(literal: str, consts: dict[str, str]) -> str | None:
         return m.group(0)
 
     value = _INTERP.sub(sub, literal)
-    return None if unresolved else value
+    if unresolved:
+        raise Unavailable(f"{file}: cannot resolve the interpolation in {literal!r} (no string constant of that name)")
+    return value
 
 
 def _collapse(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
+
+
+def _with_leading_comments(src: str, start: int, end: int) -> str:
+    """``src[start:end]`` with the ``//`` comment lines directly above it."""
+    line_start = src.rfind("\n", 0, start) + 1
+    while line_start > 0:
+        prev_start = src.rfind("\n", 0, line_start - 1) + 1
+        if not src[prev_start : line_start - 1].lstrip().startswith("//"):
+            break
+        line_start = prev_start
+    return src[line_start:end]
 
 
 def blocks(src: str, file: str) -> list[Block]:
@@ -191,30 +211,27 @@ def blocks(src: str, file: str) -> list[Block]:
     # and a match counts only where the masked text still shows code (not a comment).
     consts = {}
     for m in _CONSTS.finditer(src):
-        if masked[m.start()] == "c":
-            consts[m.group(1)] = m.group(2)
+        if masked[m.end() - 1] == ";":
+            consts[m.group(1)] = m.group(3)
     found: list[Block] = []
     for m in _MOVE_CALL.finditer(masked):
         end = _close(masked, m.end() - 1)
         text = src[m.start() : end + 1]
         id_arg = _ID_ARG.search(text)
+        full = _with_leading_comments(src, m.start(), end + 1)
         if id_arg is None:
             continue
-        ident = _resolve(id_arg.group(2), consts)
-        if ident is None:
-            continue
+        ident = _resolve(id_arg.group(2), consts, file)
         name_arg = _NAME_ARG.search(text)
-        name = _resolve(name_arg.group(2), consts) if name_arg else None
-        found.append(Block("move", ident, file, _collapse(text), name))
+        name = _resolve(name_arg.group(2), consts, file) if name_arg else None
+        found.append(Block("move", ident, file, _collapse(full), name))
     for m in _DEFINITION_ENTRY.finditer(src):
         open_at = m.end() - 1
         if masked[open_at] != "(":
             continue  # inside a comment or a string
         end = _close(masked, open_at)
-        ident = _resolve(m.group(2), consts)
-        if ident is None:
-            continue
-        found.append(Block("definition", ident, file, _collapse(src[m.start() : end + 1]), None))
+        ident = _resolve(m.group(2), consts, file)
+        found.append(Block("definition", ident, file, _collapse(_with_leading_comments(src, m.start(), end + 1)), None))
     return found
 
 
@@ -231,8 +248,13 @@ def prefixes(registry_src: str) -> dict[str, str]:
             break
     else:
         raise Unavailable("danceFormMovePrefixes never closes")
-    body = registry_src[start.end() : k]
-    found = {m.group(1): m.group(2) for m in re.finditer(r"DanceForm\.(\w+)\s*:\s*'([^']+)'", body)}
+    found: dict[str, str] = {}
+    for m in re.finditer(r"DanceForm\.(\w+)\s*:\s*", masked[start.end() : k]):
+        at = start.end() + m.end()
+        value = re.match(r"(['\"])([^'\"\n$\\]+)\1", registry_src[at:k])
+        if value is None:
+            raise Unavailable(f"the prefix of DanceForm.{m.group(1)} is not a plain string literal")
+        found[m.group(1)] = value.group(2)
     if not found:
         raise Unavailable("danceFormMovePrefixes lists no form with a prefix")
     return found
@@ -278,6 +300,8 @@ def namesakes(
                 reasons.add("display name")
             if reasons:
                 file, known = found.get(other.id, (other.file, set()))
+                if other.kind == "move":
+                    file = other.file  # where the figure is defined, not its prose
                 found[other.id] = (file, known | reasons)
         if found:
             result.append(
@@ -299,6 +323,19 @@ def _show(ref: str, path: str) -> str | None:
     return res.stdout if res.returncode == 0 else None
 
 
+def base_blocks(root: str) -> list[Block]:
+    """Every block under the taxonomy directory at commit ``root`` (empty if it had none)."""
+    listing = _git("ls-tree", "-r", "--name-only", root, "--", TAXONOMY_DIR)
+    if listing.returncode != 0:
+        raise Unavailable(f"cannot list {TAXONOMY_DIR} at {root}: {listing.stderr.strip()}")
+    found: list[Block] = []
+    for path in sorted(p for p in listing.stdout.splitlines() if p.endswith(".dart")):
+        src = _show(root, path)
+        if src is not None:
+            found.extend(blocks(src, path))
+    return found
+
+
 def changed_blocks(base: str, head: str) -> tuple[list[Block], list[Block]]:
     """``(changed blocks, every block at head)`` under the taxonomy directory."""
     merge = _git("merge-base", base, head)
@@ -309,18 +346,17 @@ def changed_blocks(base: str, head: str) -> tuple[list[Block], list[Block]]:
     if listing.returncode != 0:
         raise Unavailable(f"cannot list {TAXONOMY_DIR} at {head}: {listing.stderr.strip()}")
     head_blocks: list[Block] = []
-    changed: list[Block] = []
+    touched: list[Block] = []
     for path in sorted(p for p in listing.stdout.splitlines() if p.endswith(".dart")):
         head_src = _show(head, path)
         if head_src is None:
             raise Unavailable(f"cannot read {path} at {head}")
         now = blocks(head_src, path)
         head_blocks.extend(now)
-        base_src = _show(root, path)
-        if base_src == head_src:
-            continue
-        before = {(b.kind, b.id): b.text for b in blocks(base_src, path)} if base_src is not None else {}
-        changed.extend(b for b in now if before.get((b.kind, b.id)) != b.text)
+        if _show(root, path) != head_src:
+            touched.extend(now)
+    before = {(b.kind, b.id): b.text for b in base_blocks(root)}
+    changed = [b for b in touched if before.get((b.kind, b.id)) != b.text]
     return changed, head_blocks
 
 

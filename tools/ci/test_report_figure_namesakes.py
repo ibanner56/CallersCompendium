@@ -186,7 +186,18 @@ def main() -> int:
     check("blocks: FigureDefinition entries are read, a commented one is not", [(b.kind, b.id) for b in defs] == [("definition", "box_the_gnat"), ("definition", "do_si_do")], repr(defs))
     commented = gate.blocks("/*\n  'x': FigureDefinition(a: 1),\n*/\n  'y': FigureDefinition(a: 1),\n", "f.dart")
     check("blocks: an entry inside a block comment is not a block", [b.id for b in commented] == ["y"], repr(commented))
-    check("blocks: an unresolvable interpolation is skipped, not guessed", gate.blocks("MoveDef(id: '${nope}x', displayName: 'x')", "f.dart") == [])
+    try:
+        gate.blocks("MoveDef(id: '${nope}x', displayName: 'x')", "f.dart")
+        check("blocks: an unresolvable interpolation is unavailable, never a silently dropped form", False)
+    except gate.Unavailable as error:
+        check("blocks: an unresolvable interpolation is unavailable, never a silently dropped form", "nope" in str(error), str(error))
+    for decl in ("const String _p = 'ecd_';", "const _p = 'ecd_';", 'const String _p = "ecd_";', "final String _p = 'ecd_';", "  static const String _p = 'ecd_';"):
+        got = [b.id for b in gate.blocks(decl + "\nMoveDef(id: '${_p}x', displayName: 'x')", "f.dart")]
+        check(f"blocks: the prefix constant may be written {decl!r}", got == ["ecd_x"], repr(got))
+    check("blocks: an id that is not a string literal is skipped (documented)", gate.blocks("MoveDef(id: customMoveId, displayName: 'x')", "f.dart") == [])
+    check("blocks: a constant in a comment is not read", gate.blocks("// const String _p = 'zz_';\nconst String _p = 'ecd_';\nMoveDef(id: '${_p}x')", "f.dart")[0].id == "ecd_x")
+    lead = gate.blocks("// TCB \"Swing\"\n// second line\n'x': FigureDefinition(a: 1),\n\n// detached\n\n'y': FigureDefinition(a: 1),\n", "f.dart")
+    check("blocks: the // lines directly above a block are part of it, a detached comment is not", "TCB" in lead[0].text and "second line" in lead[0].text and "detached" not in lead[1].text, repr([b.text for b in lead]))
     try:
         gate.blocks("const MoveDef(id: 'a', displayName: 'a'", "f.dart")
         check("blocks: an unclosed block is unavailable", False)
@@ -196,6 +207,13 @@ def main() -> int:
     check("prefixes: read from the registry", gate.prefixes(REGISTRY) == {"ecd": "ecd_"})
     check("prefixes: a third form is picked up with no code change", gate.prefixes("const Map<DanceForm, String> danceFormMovePrefixes = {DanceForm.ecd: 'ecd_', DanceForm.squares: 'sq_'};") == {"ecd": "ecd_", "squares": "sq_"})
     check("prefixes: an entry in a comment is not read", gate.prefixes("// {DanceForm.x: 'x_'}\nconst Map<DanceForm, String> danceFormMovePrefixes = {DanceForm.ecd: 'ecd_'};") == {"ecd": "ecd_"})
+    check("prefixes: an entry in a comment inside the map is not read", gate.prefixes("const Map<DanceForm, String> danceFormMovePrefixes = {\n  DanceForm.ecd: 'ecd_',\n  // DanceForm.squares: 'sq_', (not yet)\n};") == {"ecd": "ecd_"})
+    check("prefixes: a double-quoted prefix is read", gate.prefixes('const Map<DanceForm, String> danceFormMovePrefixes = {DanceForm.ecd: "ecd_"};') == {"ecd": "ecd_"})
+    try:
+        gate.prefixes("const Map<DanceForm, String> danceFormMovePrefixes = {DanceForm.ecd: 'ecd_', DanceForm.squares: squaresPrefix};")
+        check("prefixes: a prefix that is not a literal is unavailable, not dropped", False)
+    except gate.Unavailable:
+        check("prefixes: a prefix that is not a literal is unavailable, not dropped", True)
     for bad in ("nothing here", "const Map<DanceForm, String> danceFormMovePrefixes = {};"):
         try:
             gate.prefixes(bad)
@@ -241,7 +259,8 @@ def main() -> int:
     with tmp:
         edit(root, "ecd_taxonomy.dart", "defaultValue: 4)},\n    ),\n    MoveDef(\n      id: '${_p}pass_through'", "defaultValue: 8)},\n    ),\n    MoveDef(\n      id: '${_p}pass_through'")
         res = run(root)
-        check("e2e: it is symmetric: editing the ECD block lists contra's, and its alias by name", "ecd_box_the_gnat (ecd; changed in ecd_taxonomy.dart)" in res.stdout and "-> box_the_gnat (contra" in res.stdout, res.stdout)
+        check("e2e: it is symmetric: editing the ECD block lists contra's", "ecd_box_the_gnat (ecd; changed in ecd_taxonomy.dart)" in res.stdout and "-> box_the_gnat (contra" in res.stdout, res.stdout)
+        check("e2e: the namesake's file is where its figure is defined, not its prose file", "-> box_the_gnat (contra; contra_taxonomy.dart;" in res.stdout, res.stdout)
 
     tmp, root = fresh()
     with tmp:
@@ -269,6 +288,44 @@ def main() -> int:
         edit(root, "ecd_taxonomy.dart", "    MoveDef(\n      id: '${_p}swing',", "    MoveDef(\n      id: '${_p}box_the_gnat_two',\n      displayName: 'box the gnat',\n      params: {},\n    ),\n    MoveDef(\n      id: '${_p}swing',")
         res = run(root)
         check("e2e: a new block is a changed block", "ecd_box_the_gnat_two (ecd; changed in ecd_taxonomy.dart)" in res.stdout and "-> box_the_gnat (contra" in res.stdout and "same display name" in res.stdout, res.stdout)
+
+    # A block moved to another file, a renamed file and a split: not changes.
+    tmp, root = fresh()
+    with tmp:
+        git(root, "mv", D + "ecd_taxonomy.dart", D + "ecd_moves.dart")
+        commit(root, "rename")
+        check("e2e: a renamed file lists nothing", run(root).stdout == "", run(root).stdout)
+        text = (root / D / "contra_taxonomy.dart").read_text()
+        start = text.index("    const MoveDef(\n      id: 'box_the_gnat'")
+        end = text.index("    const MoveDef(\n      id: 'do_si_do'")
+        block = text[start:end]
+        (root / D / "contra_taxonomy.dart").write_text(text[:start] + text[end:], encoding="utf-8")
+        write(root, "contra_extra.dart", "const extra = [\n" + block + "];\n")
+        commit(root, "move a block to a new file")
+        check("e2e: a block moved to another file lists nothing", run(root).stdout == "", run(root).stdout)
+        edit(root, "contra_extra.dart", "defaultValue: 4)}", "defaultValue: 6)}")
+        res = run(root)
+        check("e2e: a block moved and then edited is reported once, from its new file", res.stdout.count("box_the_gnat (contra; changed in contra_extra.dart)") == 1, res.stdout)
+
+    # A comment directly above a block is part of it; helpers a block only uses are not.
+    tmp, root = fresh()
+    with tmp:
+        edit(root, "contra_figure_definitions.dart", "  // A note (with parens) above the entry.\n", "  // A note (with parens) above the entry, reviewed.\n")
+        res = run(root)
+        check("e2e: editing the comment directly above a FigureDefinition entry reports it", "box_the_gnat (contra; changed in contra_figure_definitions.dart)" in res.stdout, res.stdout)
+
+    # A form that cannot be read must be said, not dropped without a word.
+    tmp, root = fresh()
+    with tmp:
+        edit(root, "ecd_taxonomy.dart", "const String _p = 'ecd_';", "const String _p = 'ecd_' + 'x';")
+        edit(root, "contra_taxonomy.dart", "defaultValue: 4)},\n    ),\n    const MoveDef(\n      id: 'do_si_do'", "defaultValue: 8)},\n    ),\n    const MoveDef(\n      id: 'do_si_do'")
+        res = run(root)
+        check("e2e: a prefix constant the scanner cannot read is unavailable, never an empty report", res.returncode == 0 and "unavailable" in res.stdout and "cannot resolve" in res.stdout, res.stdout)
+    tmp, root = fresh()
+    with tmp:
+        edit(root, "ecd_taxonomy.dart", "const String _p = 'ecd_';", 'const _p = "ecd_";')
+        edit(root, "contra_taxonomy.dart", "defaultValue: 4)},\n    ),\n    const MoveDef(\n      id: 'do_si_do'", "defaultValue: 8)},\n    ),\n    const MoveDef(\n      id: 'do_si_do'")
+        check("e2e: a differently written prefix constant still finds the namesake", "ecd_box_the_gnat" in run(root).stdout)
 
     # A third form, registered by the registry edit alone.
     squares = "const String _p = 'sq_';\nconst squaresTaxonomy = Taxonomy(moves: [\n  MoveDef(\n    id: '${_p}box_the_gnat',\n    displayName: 'box the gnat',\n    params: {},\n  ),\n]);\n"
