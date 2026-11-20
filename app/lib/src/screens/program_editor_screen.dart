@@ -4001,7 +4001,12 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             onRestoreDeletedDance: _restoreDeletedSlotDance,
             formationFor: _formationForDance,
             mixerFor: _mixerForDance,
-            formFor: (id) => _danceById(id)?.form,
+            // A dance in Recently deleted names no form and makes no mix, as
+            // on the program's page and in Perform.
+            formFor: (id) => switch (_danceById(id)) {
+              final dance? when !dance.isDeleted => dance.form,
+              _ => null,
+            },
             dialect: _dialect,
             dialectFor: _dialectForSlotDance,
             canonicalizeDiscouragedTerms: CanonicalDiscouragedTermsScope.of(

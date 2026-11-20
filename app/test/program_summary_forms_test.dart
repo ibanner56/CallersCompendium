@@ -25,7 +25,11 @@ Dance _dance(String id, String title, DanceForm form) => Dance(
 );
 
 /// Opens the program of [dances] in the wide programs shell's summary.
-Future<void> _pumpSummary(WidgetTester tester, List<Dance> dances) async {
+Future<void> _pumpSummary(
+  WidgetTester tester,
+  List<Dance> dances, {
+  Set<String> deleted = const {},
+}) async {
   tester.view.physicalSize = const Size(1400, 900);
   tester.view.devicePixelRatio = 1.0;
   addTearDown(() {
@@ -35,6 +39,9 @@ Future<void> _pumpSummary(WidgetTester tester, List<Dance> dances) async {
   final repos = openTestRepositories();
   for (final dance in dances) {
     await repos.dances.create(dance);
+  }
+  for (final id in deleted) {
+    await repos.dances.softDelete(id, at: _now);
   }
   await repos.programs.create(
     Program(
@@ -89,7 +96,73 @@ void main() {
       _dance('a', 'One', DanceForm.contra),
       _dance('b', 'Two', DanceForm.contra),
     ]);
-    expect(find.textContaining('Contra ·'), findsNothing);
+    // The slot rows name no form (the program's own forms line and its list
+    // row say "Contra" once for all of them).
+    expect(find.text('Contra · Improper'), findsNothing);
     expect(find.text('Improper'), findsNWidgets(2));
+  });
+
+  testWidgets('the program names its forms at the top and in the list '
+      '(ADR-006)', (tester) async {
+    await _pumpSummary(tester, [
+      _dance('e', 'Hole in the Wall', DanceForm.ecd),
+      _dance('c', 'Contra One', DanceForm.contra),
+    ]);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('program-summary-forms')),
+        matching: find.text('Contra + English (ECD)'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.textContaining(RegExp(r'^Contra \+ English \(ECD\) · ')),
+      findsOneWidget,
+      reason: 'the programs list row leads with the forms',
+    );
+  });
+
+  testWidgets('a deleted dance does not count toward the forms', (
+    tester,
+  ) async {
+    await _pumpSummary(
+      tester,
+      [
+        _dance('e', 'Hole in the Wall', DanceForm.ecd),
+        _dance('c', 'Contra One', DanceForm.contra),
+      ],
+      deleted: {'e'},
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('program-summary-forms')),
+        matching: find.text('Contra'),
+      ),
+      findsOneWidget,
+    );
+    // Nor does any row name its form, as the program no longer mixes them.
+    expect(find.text('Contra · Improper'), findsNothing);
+  });
+
+  testWidgets('a dance in Recently deleted names no form in a mixed program', (
+    tester,
+  ) async {
+    await _pumpSummary(
+      tester,
+      [
+        _dance('e', 'Hole in the Wall', DanceForm.ecd),
+        _dance('c', 'Contra One', DanceForm.contra),
+        _dance('gone', 'Gone Dance', DanceForm.ecd),
+      ],
+      deleted: {'gone'},
+    );
+    expect(find.text('Contra · Improper'), findsOneWidget);
+    // Only the live English dance's row names its form.
+    expect(find.text('English (ECD) · Duple minor'), findsOneWidget);
+  });
+
+  testWidgets('a program with no dances names no form', (tester) async {
+    await _pumpSummary(tester, const []);
+    expect(find.byKey(const ValueKey('program-summary-forms')), findsNothing);
   });
 }
