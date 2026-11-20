@@ -218,7 +218,7 @@ void main() {
         'Woman five swing',
         'Man five cast up',
         'Woman one and Man two swing',
-        'Woman one gate Man two',
+        'Woman one and Man two cast off',
       ]) {
         expect(tcb(line).isCustom, isTrue, reason: line);
       }

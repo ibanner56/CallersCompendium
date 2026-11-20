@@ -3,12 +3,13 @@
   "user_visible": true,
   "app": {
     "fixed": [
-      "A hey started by partners, neighbors, shadows, the opposites or a single dancer now names the dancers on the ends \"others\" when they ricochet, instead of repeating the starting dancers' name, and typing or pasting that line back keeps its ricochets."
+      "A hey started by partners, neighbors, shadows, the opposites or a single dancer now calls the other dancers \"others\" when they ricochet, instead of repeating the starting dancers' name, and typing or pasting that line back keeps its ricochets.",
+      "A half hey started by first or second corners keeps both corners' ricochets when you type or paste it back."
     ]
   },
   "core": {
     "fixed": [
-      "Render a non-pair hey's ends ricochet as \"others\", and read a hey's ricochets back for any starting dancer, including the display-only names (`third corners`, `opposites`, `third role1` …)."
+      "Render the other pair's ricochet in a hey no pair starts as \"others\", and read a hey's displayed ricochets back for any starting dancer when its second pass is unspecified, including the display-only names (`third corners`, `opposites`, `third role1` …) and a half hey's second clause that starts with `first` or `second`."
     ]
   }
 }

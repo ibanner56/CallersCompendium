@@ -1601,14 +1601,20 @@ bool _eatHeyRicochetClause(
   String? length,
   List<int> slots,
 ) {
-  // `others`: the display's name for the dancers on the ends when no pair
-  // inverts the one that starts the hey (see [_heyRicochetSlot]).
+  // `others`: the display's name for the other pair when no pair inverts the
+  // dancers that start the hey (see [_heyRicochetSlot]).
   final who = s.eat('others') ? 'others' : _displaySubject(s);
   if (who == null || !s.eat('ricochet')) return false;
 
   var meetingOffset = 0;
   if (length == 'half') {
-    if (s.peek() == 'first' || s.peek() == 'second') return false;
+    // A half hey's ricochet names no time. After a comma, though, `first` or
+    // `second` starts the next clause's subject ("first corners ricochet,
+    // second corners ricochet").
+    if (!s.previousTokenEndsWith(',') &&
+        (s.peek() == 'first' || s.peek() == 'second')) {
+      return false;
+    }
   } else {
     if (s.eat('first')) {
       if (!s.eat('time')) return false;
@@ -1648,7 +1654,7 @@ int? _heyRicochetSlot(
   int meetingOffset,
 ) {
   final center = pass1;
-  // The renderer's ends pair: the pair [invertPairDancerSet] names, else
+  // The renderer's other pair: the pair [invertPairDancerSet] names, else
   // `others`, for a dancer no pair inverts (`threes`, `partners`, a single
   // dancer …): "partners start a full hey … others ricochet first time".
   final inverted = invertPairDancerSet(pass1) ?? 'others';

@@ -48,9 +48,11 @@ void main() {
   });
 
   test('every dancer that starts a hey keeps its ricochets on read-back', () {
-    // The renderer names the ends pair by [invertPairDancerSet], falling back
+    // The renderer names the other pair by [invertPairDancerSet], falling back
     // to "others" for a dancer no pair inverts (`partners`, `neighbors`, a
-    // single dancer, `threes` …), so the reader has to accept the same.
+    // single dancer, `threes` …), so the reader has to accept the same. Every
+    // combination of the ricochets a length can reach, so a clause that stops
+    // the next one from reading is caught too.
     const reachable = {
       'lessThanHalf': [1],
       'half': [1, 2],
@@ -61,16 +63,22 @@ void main() {
     for (final dialect in Dialect.presets) {
       for (final pass1 in ParamVocab.dancerSets) {
         for (final MapEntry(key: length, value: slots) in reachable.entries) {
-          for (final slot in slots) {
+          for (var mask = 1; mask < 1 << slots.length; mask++) {
             final figure = testFigure(
               move: 'hey',
-              params: {'pass1': pass1, 'length': length, 'rico$slot': true},
+              params: {
+                'pass1': pass1,
+                'length': length,
+                for (var b = 0; b < slots.length; b++)
+                  if (mask & (1 << b) != 0) 'rico${slots[b]}': true,
+              },
             );
             final text = renderer.renderSummary(figure, dialect);
             final read = parseFreeTextFigureEntry(text, dialect: dialect);
             if (read.length != 1 ||
-                read.single.params['rico$slot'] != true ||
-                read.single.note != null) {
+                read.single.params['pass1'] != pass1 ||
+                read.single.note != null ||
+                renderer.renderSummary(read.single, dialect) != text) {
               failures.add('${dialect.name}: $text');
             }
           }

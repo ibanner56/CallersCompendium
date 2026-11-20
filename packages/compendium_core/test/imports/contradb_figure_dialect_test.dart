@@ -927,9 +927,9 @@ void main() {
       },
     );
 
-    test('a hey no pair inverts calls the dancers on the ends others', () {
+    test('a hey no pair inverts calls the other dancers others', () {
       // The renderer's own wording for a non-pair hey: no pair inverts
-      // `partners`, so the dancers on the ends are "others".
+      // `partners`, so the dancers who are not partners are "others".
       final f = _parse(
         'partners start a full hey - rights on ends, lefts in center - '
         'partners ricochet first time, others ricochet second time',
