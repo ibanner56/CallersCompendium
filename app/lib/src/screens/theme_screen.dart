@@ -9,8 +9,10 @@ import '../data/custom_theme.dart';
 import '../data/custom_themes_controller.dart';
 import '../data/custom_themes_scope.dart';
 import '../data/persisted_preference.dart';
+import '../data/reduce_motion_scope.dart';
 import '../data/repositories_scope.dart';
 import '../data/theme_search.dart';
+import '../theme/app_motion.dart';
 import '../theme/app_shapes.dart';
 import '../theme/app_spacing.dart';
 import '../theme/color_schemes.dart';
@@ -44,11 +46,18 @@ class ThemeScreen extends StatefulWidget {
 
 class _ThemeScreenState extends State<ThemeScreen> {
   final TextEditingController _searchController = TextEditingController();
+  final ScrollController _listController = ScrollController();
   String _query = '';
+
+  /// The custom theme just made with "Custom theme", and the key its card
+  /// carries until it has been scrolled into view (see [_reveal]).
+  String? _revealId;
+  final GlobalKey _revealKey = GlobalKey();
 
   @override
   void dispose() {
     _searchController.dispose();
+    _listController.dispose();
     super.dispose();
   }
 
@@ -93,6 +102,41 @@ class _ThemeScreenState extends State<ThemeScreen> {
       roles: edited.roles,
     );
     await controller.setActive(created.id);
+    if (!mounted) return;
+    // A new theme joins the end of the list, below every built-in card, and
+    // starts as a copy of the theme already in use, so nothing on screen would
+    // change: bring its card into view. A search it does not match is cleared
+    // first, or the card would not be there to show.
+    setState(() {
+      _revealId = created.id;
+      if (!_customEntry(l10n, created).matches(_query)) {
+        _searchController.clear();
+        _query = '';
+      }
+    });
+    _reveal(ReduceMotionScope.of(context));
+  }
+
+  /// Scrolls the card keyed by [_revealKey] into view once it is built. The
+  /// list builds lazily, so a card far below the fold may not exist yet: then
+  /// jump to the end of the list, where new themes go, and look again on the
+  /// next frame.
+  void _reveal(bool reduceMotion, {int attempts = 3}) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final card = _revealKey.currentContext;
+      if (card != null && card.mounted) {
+        Scrollable.ensureVisible(
+          card,
+          duration: reduceMotion ? Duration.zero : AppMotion.short,
+          alignment: 0.5,
+        );
+        return;
+      }
+      if (attempts == 0 || !_listController.hasClients) return;
+      _listController.jumpTo(_listController.position.maxScrollExtent);
+      _reveal(reduceMotion, attempts: attempts - 1);
+    });
   }
 
   Future<void> _edit(
@@ -222,6 +266,9 @@ class _ThemeScreenState extends State<ThemeScreen> {
         onPressed: _createNew,
         icon: const Icon(Icons.add),
         label: l10n.themeScreenNewCustomTheme,
+        // "Custom theme" alone reads like the saved cards ("Custom theme
+        // Plum"); the spoken name says the button makes one.
+        semanticLabel: l10n.themeScreenNewCustomThemeSemantic,
       ),
       body: Column(
         children: [
@@ -277,20 +324,25 @@ class _ThemeScreenState extends State<ThemeScreen> {
           onTap: () => _onThemeSelected(option),
         );
 
-    Widget customCard(CustomTheme theme, double width) => _CustomThemeCard(
-      key: ValueKey('custom-${theme.id}'),
-      width: width,
-      theme: theme,
-      selected: customs.activeId == theme.id,
-      onTap: () async => customs.setActive(theme.id),
-      onEdit: () async => _edit(customs, theme),
-      onDuplicate: () async => _duplicate(
-        customs,
-        theme,
-        l10n.commonDuplicateTitleSuffix(theme.name),
-      ),
-      onDelete: () async => _confirmDelete(customs, theme),
-    );
+    Widget customCard(CustomTheme theme, double width) {
+      final card = _CustomThemeCard(
+        key: ValueKey('custom-${theme.id}'),
+        width: width,
+        theme: theme,
+        selected: customs.activeId == theme.id,
+        onTap: () async => customs.setActive(theme.id),
+        onEdit: () async => _edit(customs, theme),
+        onDuplicate: () async => _duplicate(
+          customs,
+          theme,
+          l10n.commonDuplicateTitleSuffix(theme.name),
+        ),
+        onDelete: () async => _confirmDelete(customs, theme),
+      );
+      return theme.id == _revealId
+          ? KeyedSubtree(key: _revealKey, child: card)
+          : card;
+    }
 
     final children = <Widget>[];
     if (themeQueryIsEmpty(_query)) {
@@ -365,6 +417,7 @@ class _ThemeScreenState extends State<ThemeScreen> {
 
     return ListView(
       key: const ValueKey('theme-list'),
+      controller: _listController,
       // Lets the last card scroll clear of the floating Custom theme button.
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.md,
@@ -656,8 +709,9 @@ class _ThemePreviewCard extends StatelessWidget {
 
 /// A selectable card for one saved custom theme: a mini live sample in its own
 /// colors, a select affordance, and an overflow menu (edit / duplicate /
-/// delete). Selection is never color-only — the chosen card shows a check icon
-/// and a "Selected" label.
+/// delete). Selection is never color-only: the chosen card shows a filled check
+/// icon and a thicker outline. (Unlike a built-in card it has no "Selected"
+/// label; the actions menu takes that place.)
 class _CustomThemeCard extends StatelessWidget {
   const _CustomThemeCard({
     super.key,

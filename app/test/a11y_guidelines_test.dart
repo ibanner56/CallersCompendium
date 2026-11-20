@@ -225,11 +225,11 @@ void _screen(
   });
 }
 
-/// Scrolls the first scrollable on screen to its end in steps, collecting every
-/// framework error on the way ([list] picks the scrollable when the first one
-/// on screen is not it, such as a search field's). A lazy list builds only what is on screen, so a
-/// sweep that looks at the first screenful says nothing about the rest. It
-/// fails if the list does not scroll at all, because then it swept nothing new.
+/// Scrolls the first scrollable on screen ([list], when the first is not it,
+/// such as a search field's) to its end in steps, collecting every framework
+/// error on the way. A lazy list builds only what is on screen, so a sweep that
+/// looks at the first screenful says nothing about the rest. It fails if the
+/// list does not scroll at all, because then it swept nothing new.
 Future<List<String>> _scrollThrough(
   WidgetTester tester, {
   bool mustScroll = true,

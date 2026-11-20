@@ -2016,6 +2016,10 @@
   "@themeScreenNewCustomTheme": {
     "x-sourceSha256": "70a67d05f9bcdd1e499cecf43d11ce6455bb106d8c11101653cfdc622eb8b398"
   },
+  "themeScreenNewCustomThemeSemantic": "Nyt brugerdefineret tema",
+  "@themeScreenNewCustomThemeSemantic": {
+    "x-sourceSha256": "065207e0e6af9dd09d1817293ab0f8c63e9ede810e360a7474359d49a21f20c1"
+  },
   "appThemeKeywordRed": "rød, karminrød, skarlagen, koral",
   "@appThemeKeywordRed": {
     "x-sourceSha256": "1d64bee2cdabacebf4de4759d820da9e4a5674dffd64801fafaf37a28cd2b798"
@@ -2068,9 +2072,9 @@
   "@appThemeKeywordPastel": {
     "x-sourceSha256": "b6dd10eec27adb4d8b1dacb7aa0b70ffd9fbe90a3697f8ccf365d96140aedb37"
   },
-  "appThemeKeywordVivid": "levende, klar, mættet, neon, kraftig",
+  "appThemeKeywordVivid": "levende, mættet, neon, kraftig",
   "@appThemeKeywordVivid": {
-    "x-sourceSha256": "ad3f84dba7a843e54aa0b22c6bf9127f340b9058cc7e6bf93700cdc181fc9ad7"
+    "x-sourceSha256": "5f6a5f562c811b3ea3a46e428979769e7a22a20a88f9d666c75530cdd24f0796"
   },
   "appThemeKeywordMuted": "dæmpet, afdæmpet, rolig, mild",
   "@appThemeKeywordMuted": {

@@ -2163,6 +2163,9 @@ class AppLocalizationsDa extends AppLocalizations {
   String get themeScreenNewCustomTheme => 'Brugerdefineret tema';
 
   @override
+  String get themeScreenNewCustomThemeSemantic => 'Nyt brugerdefineret tema';
+
+  @override
   String get appThemeKeywordRed => 'rød, karminrød, skarlagen, koral';
 
   @override
@@ -2202,7 +2205,7 @@ class AppLocalizationsDa extends AppLocalizations {
   String get appThemeKeywordPastel => 'pastel, blød, sart';
 
   @override
-  String get appThemeKeywordVivid => 'levende, klar, mættet, neon, kraftig';
+  String get appThemeKeywordVivid => 'levende, mættet, neon, kraftig';
 
   @override
   String get appThemeKeywordMuted => 'dæmpet, afdæmpet, rolig, mild';

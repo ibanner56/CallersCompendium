@@ -1494,6 +1494,48 @@ void main() {
       expect(find.byKey(const ValueKey('theme-group-custom')), findsOneWidget);
     });
 
+    testWidgets('a theme made with Custom theme is scrolled into view', (
+      tester,
+    ) async {
+      // A short window, so the custom section at the end of the list starts
+      // far below the fold.
+      final ctx = await _pumpSettings(
+        tester,
+        section: 'appearance',
+        surfaceSize: const Size(1000, 700),
+      );
+      await _openThemeScreen(tester);
+      await tester.tap(find.byKey(const ValueKey('new-custom-theme')));
+      await tester.pumpAndSettle();
+      final editor = tester.widget<ThemeEditorScreen>(
+        find.byType(ThemeEditorScreen),
+      );
+      Navigator.of(
+        tester.element(find.byType(ThemeEditorScreen)),
+      ).pop(editor.initial);
+      await tester.pumpAndSettle();
+
+      final id = ctx.customThemes.themes.single.id;
+      expect(find.byKey(ValueKey('custom-$id')).hitTestable(), findsOneWidget);
+    });
+
+    testWidgets('the Custom theme button says it makes a new one', (
+      tester,
+    ) async {
+      final handle = tester.ensureSemantics();
+      await _pumpSettings(tester, section: 'appearance');
+      await _openThemeScreen(tester);
+      expect(
+        tester.getSemantics(find.byKey(const ValueKey('new-custom-theme'))),
+        containsSemantics(
+          label: 'New custom theme',
+          isButton: true,
+          hasTapAction: true,
+        ),
+      );
+      handle.dispose();
+    });
+
     testWidgets('renders a card for each saved custom theme', (tester) async {
       final ctx = await _pumpSettings(tester, section: 'appearance');
       await _openThemeScreen(tester);

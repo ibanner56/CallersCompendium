@@ -2688,6 +2688,10 @@
   "@themeScreenNewCustomTheme": {
     "description": "Label of the floating button on the Theme screen (shown with a + icon) that starts a new custom theme from the theme in use."
   },
+  "themeScreenNewCustomThemeSemantic": "New custom theme",
+  "@themeScreenNewCustomThemeSemantic": {
+    "description": "What a screen reader says for the floating \"Custom theme\" button on the Theme screen. Keep the visible button text (themeScreenNewCustomTheme) inside it, so voice control can still find the button by what it shows."
+  },
   "appThemeKeywordRed": "red, crimson, scarlet, coral",
   "@appThemeKeywordRed": {
     "description": "Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as red. Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs."
@@ -2740,7 +2744,7 @@
   "@appThemeKeywordPastel": {
     "description": "Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as pastel. Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs."
   },
-  "appThemeKeywordVivid": "vivid, bright, saturated, neon, bold",
+  "appThemeKeywordVivid": "vivid, saturated, neon, bold",
   "@appThemeKeywordVivid": {
     "description": "Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as vivid. Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs."
   },

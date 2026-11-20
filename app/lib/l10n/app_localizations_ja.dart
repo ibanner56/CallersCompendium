@@ -2063,6 +2063,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get themeScreenNewCustomTheme => 'カスタムテーマ';
 
   @override
+  String get themeScreenNewCustomThemeSemantic => '新しいカスタムテーマ';
+
+  @override
   String get appThemeKeywordRed => '赤, 赤い, 紅, 深紅, コーラル, レッド';
 
   @override
@@ -2102,7 +2105,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get appThemeKeywordPastel => 'パステル, 淡い, やわらかい';
 
   @override
-  String get appThemeKeywordVivid => '鮮やか, 明るい, ビビッド, ネオン';
+  String get appThemeKeywordVivid => '鮮やか, ビビッド, ネオン';
 
   @override
   String get appThemeKeywordMuted => '落ち着いた, くすんだ, 穏やか, 控えめ';

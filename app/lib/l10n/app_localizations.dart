@@ -3138,6 +3138,12 @@ abstract class AppLocalizations {
   /// **'Custom theme'**
   String get themeScreenNewCustomTheme;
 
+  /// What a screen reader says for the floating "Custom theme" button on the Theme screen. Keep the visible button text (themeScreenNewCustomTheme) inside it, so voice control can still find the button by what it shows.
+  ///
+  /// In en, this message translates to:
+  /// **'New custom theme'**
+  String get themeScreenNewCustomThemeSemantic;
+
   /// Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as red. Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs.
   ///
   /// In en, this message translates to:
@@ -3219,7 +3225,7 @@ abstract class AppLocalizations {
   /// Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as vivid. Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs.
   ///
   /// In en, this message translates to:
-  /// **'vivid, bright, saturated, neon, bold'**
+  /// **'vivid, saturated, neon, bold'**
   String get appThemeKeywordVivid;
 
   /// Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as muted. Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs.

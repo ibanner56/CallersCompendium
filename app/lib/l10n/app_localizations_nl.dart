@@ -2173,6 +2173,9 @@ class AppLocalizationsNl extends AppLocalizations {
   String get themeScreenNewCustomTheme => 'Aangepast thema';
 
   @override
+  String get themeScreenNewCustomThemeSemantic => 'Nieuw aangepast thema';
+
+  @override
   String get appThemeKeywordRed => 'rood, karmijn, scharlaken, koraal';
 
   @override

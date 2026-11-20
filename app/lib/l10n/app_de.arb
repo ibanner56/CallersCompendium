@@ -2016,6 +2016,10 @@
   "@themeScreenNewCustomTheme": {
     "x-sourceSha256": "70a67d05f9bcdd1e499cecf43d11ce6455bb106d8c11101653cfdc622eb8b398"
   },
+  "themeScreenNewCustomThemeSemantic": "Neues eigenes Design",
+  "@themeScreenNewCustomThemeSemantic": {
+    "x-sourceSha256": "065207e0e6af9dd09d1817293ab0f8c63e9ede810e360a7474359d49a21f20c1"
+  },
   "appThemeKeywordRed": "rot, karmin, scharlach, koralle",
   "@appThemeKeywordRed": {
     "x-sourceSha256": "1d64bee2cdabacebf4de4759d820da9e4a5674dffd64801fafaf37a28cd2b798"
@@ -2070,7 +2074,7 @@
   },
   "appThemeKeywordVivid": "lebhaft, leuchtend, kräftig, neon, satt",
   "@appThemeKeywordVivid": {
-    "x-sourceSha256": "ad3f84dba7a843e54aa0b22c6bf9127f340b9058cc7e6bf93700cdc181fc9ad7"
+    "x-sourceSha256": "5f6a5f562c811b3ea3a46e428979769e7a22a20a88f9d666c75530cdd24f0796"
   },
   "appThemeKeywordMuted": "gedämpft, dezent, ruhig, sanft",
   "@appThemeKeywordMuted": {

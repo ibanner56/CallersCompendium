@@ -577,7 +577,9 @@ in the Collection's title search; `data/theme_search.dart` holds the matcher.
 ## 4B. Custom themes — copy, edit & save locally (net-new; extends §4A)
 
 Beyond the built-in gallery, users can **copy any theme, tune every color, and
-save it on-device**. Custom themes are personal to the install; nothing syncs.
+save it on-device**. Custom themes were first personal to the install; they now
+travel with the other settings under Device Sync, as one whole-collection key
+(`custom_themes` in `syncWholeCollectionSettingKeys`, `sync_merge.dart`).
 
 ### 4B.1 Model & precedence
 

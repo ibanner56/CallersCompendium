@@ -2148,6 +2148,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get themeScreenNewCustomTheme => 'Custom theme';
 
   @override
+  String get themeScreenNewCustomThemeSemantic => 'New custom theme';
+
+  @override
   String get appThemeKeywordRed => 'red, crimson, scarlet, coral';
 
   @override
@@ -2187,7 +2190,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appThemeKeywordPastel => 'pastel, soft, candy';
 
   @override
-  String get appThemeKeywordVivid => 'vivid, bright, saturated, neon, bold';
+  String get appThemeKeywordVivid => 'vivid, saturated, neon, bold';
 
   @override
   String get appThemeKeywordMuted => 'muted, subdued, calm, gentle';

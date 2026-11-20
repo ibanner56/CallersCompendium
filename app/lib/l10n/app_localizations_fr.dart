@@ -2191,6 +2191,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get themeScreenNewCustomTheme => 'Thème personnalisé';
 
   @override
+  String get themeScreenNewCustomThemeSemantic => 'Nouveau thème personnalisé';
+
+  @override
   String get appThemeKeywordRed => 'rouge, cramoisi, écarlate, corail';
 
   @override

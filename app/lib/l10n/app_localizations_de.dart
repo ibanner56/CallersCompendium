@@ -2176,6 +2176,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get themeScreenNewCustomTheme => 'Eigenes Design';
 
   @override
+  String get themeScreenNewCustomThemeSemantic => 'Neues eigenes Design';
+
+  @override
   String get appThemeKeywordRed => 'rot, karmin, scharlach, koralle';
 
   @override
