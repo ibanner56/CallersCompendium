@@ -344,6 +344,77 @@ void main() {
       );
     });
 
+    testWidgets('an English combination is checked against English figures', (
+      tester,
+    ) async {
+      final entry = UserGlossaryEntry(
+        id: 'sl2',
+        kindName: UserGlossaryEntryKind.compound.name,
+        name: 'set and link twice',
+        definition: 'Set and link, then again.',
+        description: '',
+        payload: CompoundDefinition(
+          params: const [],
+          figures: [
+            Figure(move: 'ecd_set_and_link', params: const {'beats': 4}),
+            Figure(move: 'ecd_set_and_link', params: const {'beats': 4}),
+          ],
+          bindings: const [],
+          form: DanceForm.ecd.name,
+        ).toJson(),
+        createdAt: created,
+      );
+      final repos = await pump(tester, initial: entry);
+      // Its steps read as English figures, not as moves it doesn't know.
+      expect(find.textContaining('set and link'), findsWidgets);
+      await save(tester);
+      expect(find.byType(CompoundEditorScreen), findsNothing);
+      final saved = (await tester.runAsync(
+        () => repos.userGlossary.getById('sl2'),
+      ))!;
+      final figures = (saved.payload! as Map)['figures'] as List;
+      expect(figures.map((f) => (f as Map)['move']), [
+        'ecd_set_and_link',
+        'ecd_set_and_link',
+      ]);
+    });
+
+    testWidgets('English figures left after a change to Contra are named as '
+        'such', (tester) async {
+      final entry = UserGlossaryEntry(
+        id: 'sl2',
+        kindName: UserGlossaryEntryKind.compound.name,
+        name: 'set and link twice',
+        definition: 'Set and link, then again.',
+        description: '',
+        payload: CompoundDefinition(
+          params: const [],
+          figures: [
+            Figure(move: 'ecd_set_and_link', params: const {'beats': 4}),
+            Figure(move: 'ecd_set_and_link', params: const {'beats': 4}),
+          ],
+          bindings: const [],
+          form: DanceForm.ecd.name,
+        ).toJson(),
+        createdAt: created,
+      );
+      await pump(tester, initial: entry);
+      await choose(tester, const ValueKey('glossary-entry-form'), 'Contra');
+      await save(tester);
+      expect(find.byType(CompoundEditorScreen), findsOneWidget);
+      expect(
+        find.text(
+          '2 figures are from English (ECD), not Contra. Change the dance '
+          'type back, or remove them.',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.text("One of the figures isn't complete or valid yet."),
+        findsNothing,
+      );
+    });
+
     testWidgets('a combination keeps the dance form chosen for it', (
       tester,
     ) async {

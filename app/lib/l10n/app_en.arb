@@ -15356,6 +15356,21 @@
   "@compoundEditorInvalidFigures": {
     "description": "Error shown when a custom figure's parts don't validate."
   },
+  "compoundEditorOtherFormFigures": "{count, plural, =1{1 figure is} other{{count} figures are}} from {figureForm}, not {entryForm}. Change the dance type back, or remove {count, plural, =1{it} other{them}}.",
+  "@compoundEditorOtherFormFigures": {
+    "description": "Error shown when saving a combination whose figures belong to another dance type than the one picked for it, for example after its type was changed from English to Contra. {figureForm} and {entryForm} are dance type names such as 'Contra' or 'English (ECD)'.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "figureForm": {
+        "type": "String"
+      },
+      "entryForm": {
+        "type": "String"
+      }
+    }
+  },
   "compoundEditorTooLong": "One of the fields is too long.",
   "@compoundEditorTooLong": {
     "description": "Error shown when a custom figure's text is over its length limit."

@@ -11310,6 +11310,10 @@
   "@compoundEditorInvalidFigures": {
     "x-sourceSha256": "96082f358b6508b3b0536adaad2e8ee1c60c177ccc833540cac1e5352695a1c8"
   },
+  "compoundEditorOtherFormFigures": "{count, plural, =1{1 figur er} other{{count} figurer er}} fra {figureForm}, ikke {entryForm}. Skift dansetypen tilbage, eller fjern {count, plural, =1{den} other{dem}}.",
+  "@compoundEditorOtherFormFigures": {
+    "x-sourceSha256": "2baf3f9a13d7903479a8857530f22813086f8d62acfc63215103902eb139fee0"
+  },
   "compoundEditorTooLong": "Et af felterne er for langt.",
   "@compoundEditorTooLong": {
     "x-sourceSha256": "736493cc17bc71def69a380c2f68290cb2b0102df3e2479d40f6a6800b808694"

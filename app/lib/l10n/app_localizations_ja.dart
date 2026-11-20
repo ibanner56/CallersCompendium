@@ -11209,6 +11209,25 @@ class AppLocalizationsJa extends AppLocalizations {
   String get compoundEditorInvalidFigures => 'いずれかのフィギュアがまだ不完全か無効です。';
 
   @override
+  String compoundEditorOtherFormFigures(
+    int count,
+    String figureForm,
+    String entryForm,
+  ) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count個のフィギュア',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'それら',
+    );
+    return '$_temp0は$entryFormではなく$figureFormのものです。ダンスの種類を戻すか、$_temp1を削除してください。';
+  }
+
+  @override
   String get compoundEditorTooLong => 'いずれかの欄が長すぎます。';
 
   @override

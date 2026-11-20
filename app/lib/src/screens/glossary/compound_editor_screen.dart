@@ -19,13 +19,12 @@ import '../../theme/app_spacing.dart';
 import '../../theme/touch_density.dart';
 import '../../widgets/app_bar_text_action.dart';
 import '../../widgets/app_dropdown_field.dart';
+import '../../glossary/figure_titles.dart';
 import '../../widgets/confirm_discard_changes.dart';
 import '../../widgets/figure_list_editor.dart';
 import '../../widgets/user_figure_argument_editor.dart';
 import '../../widgets/wording_condition_notes.dart';
 import 'custom_figure_detail.dart' show compoundParamKindLabel;
-
-final FigureRenderer _renderer = FigureRenderer(contraTaxonomy);
 
 final RegExp _lineBreaks = RegExp('\r\n|[\r\n\u2028\u2029]');
 
@@ -208,6 +207,39 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
   /// The dance form the entry is offered in (#1023, maintainer decision 8).
   late String _form = widget.initialForm?.name ?? defaultGlossaryEntryForm;
 
+  /// The figures this entry is built from and checked against: those of the
+  /// form it is made for ([_form]), as a dance of that form offers them, or
+  /// contra's for a form this build does not know.
+  Taxonomy get _taxonomy => shippedTaxonomies.forForm(_danceForm);
+
+  DanceForm get _danceForm => DanceForm.values.firstWhere(
+    (f) => f.name == _form,
+    orElse: () => DanceForm.contra,
+  );
+
+  /// How many of [figures] (sub-figures included) are of a form this entry's
+  /// figures can't use, and the first such form; null when there are none.
+  ({int count, DanceForm form})? _otherFormFigures(List<Figure> figures) {
+    var count = 0;
+    DanceForm? form;
+    void walk(List<Figure> list) {
+      for (final figure in list) {
+        if (_taxonomy.resolve(figure.move) == null &&
+            shippedTaxonomies.anyForm.resolve(figure.move) != null) {
+          count++;
+          form ??= shippedTaxonomies.formOfMoveId(figure.move);
+        }
+        walk(figure.subFigures);
+      }
+    }
+
+    walk(figures);
+    return form == null ? null : (count: count, form: form!);
+  }
+
+  /// Renders this entry's figures with [_taxonomy].
+  FigureRenderer get _renderer => glossaryRenderer(_danceForm);
+
   /// A new figure's wording template, shown in the active dialect, and its
   /// default beats.
   final _template = TextEditingController();
@@ -229,6 +261,8 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
     _seeded = true;
     final initial = widget.initial ?? widget.copyOf;
     if (initial == null) return;
+    // The form comes first, so every field is shown through its renderer.
+    _form = glossaryEntryForm(initial.payload);
     final dialect = ActiveDialectScope.contraOf(context);
     String shown(String text) => _renderer.renderFreeText(text, dialect);
     _name.text = shown(initial.name);
@@ -236,7 +270,6 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
     _description.text = shown(initial.description);
     _keywords.text = [for (final k in initial.keywords) shown(k)].join(', ');
     _notes.text = initial.notes == null ? '' : shown(initial.notes!);
-    _form = glossaryEntryForm(initial.payload);
     // A term has no figure to load, nor does one being given its first.
     if (initial.kind == UserGlossaryEntryKind.term) return;
     if (_kind == UserGlossaryEntryKind.customFigure) {
@@ -377,7 +410,7 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
       final raw = rawFigures[i];
       if (raw is! Map) continue;
       try {
-        final figure = contraTaxonomy.normalizeFigureV35(
+        final figure = _taxonomy.normalizeFigureV35(
           figureFromJson(raw.cast<String, Object?>()),
         );
         if (figure.move == customMove || isContainerMove(figure.move)) {
@@ -505,9 +538,9 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
     if (move == null || draft.isContainerDraft || move == customMove) {
       return const [];
     }
-    final def = contraTaxonomy.resolve(move);
+    final def = _taxonomy.resolve(move);
     if (def == null) return const [];
-    final alias = contraTaxonomy.aliases[move];
+    final alias = _taxonomy.aliases[move];
     return [
       for (final slot in def.params.entries)
         if (slot.key != 'beats' &&
@@ -711,7 +744,7 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
         createdAt: DateTime.utc(2000),
       ),
     ]);
-    final renderer = FigureRenderer(contraTaxonomy, userFigures: catalog);
+    final renderer = FigureRenderer(_taxonomy, userFigures: catalog);
     final use = userFigureUseFigure(
       id: previewId,
       args: {
@@ -747,7 +780,7 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
     final allowed = allowedValues(
       _definitionNow(draft: draft, slot: slot, override: candidate),
       param.key,
-      contraTaxonomy,
+      _taxonomy,
     );
     if (allowed != null && allowed.isEmpty) {
       return l10n.compoundBindingNoSharedValues;
@@ -804,7 +837,7 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
         Iterable<UserGlossaryEntry> entries,
       ) => glossaryNameCollisions(
         canonicalizeGlossaryText(name, dialect),
-        taxonomy: contraTaxonomy,
+        taxonomy: _taxonomy,
         dialects: [
           dialect,
           ...?DialectLibraryScope.maybeOf(context)?.allCustomDialects,
@@ -890,7 +923,19 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
       final definition = _definitionNow(
         canonicalizeNote: (note) => canonicalizeText(note.trim(), dialect),
       );
-      final issues = validateCompound(definition, contraTaxonomy);
+      final issues = validateCompound(definition, _taxonomy);
+      // Figures of another form, left by a change of the form dropdown, are
+      // named as such rather than as merely invalid.
+      final otherForm = _otherFormFigures(definition.figures);
+      if (otherForm != null) {
+        errors.add(
+          l10n.compoundEditorOtherFormFigures(
+            otherForm.count,
+            danceFormLabel(l10n, otherForm.form),
+            danceFormLabel(l10n, _danceForm),
+          ),
+        );
+      }
       for (final issue in issues) {
         if (issue.severity != ValidationSeverity.error) continue;
         final message = switch (issue.code) {
@@ -908,6 +953,7 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
           CompoundIssueCodes.doubleBinding ||
           CompoundIssueCodes.beatsBinding ||
           CompoundIssueCodes.pinnedSlot => l10n.compoundEditorBindingInvalid,
+          _ when otherForm != null => null, // reported above
           _ => l10n.compoundEditorInvalidFigures,
         };
         if (message != null && !errors.contains(message)) errors.add(message);
@@ -1416,7 +1462,7 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
                 child: FigureListEditor(
                   drafts: _drafts,
                   pendingMoveTextController: _pendingMoveText,
-                  taxonomy: contraTaxonomy,
+                  taxonomy: _taxonomy,
                   phraseStructure: PhraseStructure.standard,
                   dialect: dialect,
                   onChanged: _changed,
