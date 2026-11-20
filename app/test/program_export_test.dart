@@ -383,11 +383,21 @@ void main() {
           null,
         ),
       );
-      Future<String?> copy(DanceForm secondForm) async {
+      Future<String?> copy(
+        DanceForm secondForm, {
+        DanceForm? thirdForm,
+        bool thirdDeleted = false,
+      }) async {
         clipboardText = null;
         final dances = {
           'd1': _dances['d1']!.copyWith(figures: const []),
           'd2': _dances['d2']!.copyWith(form: secondForm),
+          if (thirdForm != null)
+            'd3': _dances['d2']!.copyWith(
+              title: 'Gone Dance',
+              form: thirdForm,
+              deletedAt: thirdDeleted ? DateTime.utc(2026, 1, 1) : null,
+            ),
         };
         await tester.pumpWidget(
           MaterialApp(
@@ -397,14 +407,16 @@ void main() {
               appBar: AppBar(
                 actions: [
                   ProgramExportMenu(
-                    key: ValueKey(secondForm),
+                    key: ValueKey((secondForm, thirdForm, thirdDeleted)),
                     program: _program(
                       slots: [
                         ProgramSlot(id: 's1', position: 0, danceId: 'd1'),
                         ProgramSlot(id: 's2', position: 1, danceId: 'd2'),
+                        if (thirdForm != null)
+                          ProgramSlot(id: 's3', position: 2, danceId: 'd3'),
                       ],
                     ),
-                    titleFor: _titles,
+                    titleFor: (id) => id == 'd3' ? 'Gone Dance' : _titles(id),
                     danceFor: (id) => dances[id],
                   ),
                 ],
@@ -426,6 +438,30 @@ void main() {
       final single = await copy(DanceForm.contra);
       expect(single, contains("1. Rory O'More\n"));
       expect(single, isNot(contains('(Contra)')));
+
+      // A dance in Recently deleted counts for nothing, as on the program
+      // screens: it makes no mix of its own…
+      final deletedOnly = await copy(
+        DanceForm.contra,
+        thirdForm: DanceForm.ecd,
+        thirdDeleted: true,
+      );
+      expect(deletedOnly, contains("1. Rory O'More\n"));
+      expect(deletedOnly, isNot(contains('(Contra)')));
+      expect(deletedOnly, isNot(contains('(English (ECD))')));
+      // …and in a program that mixes without it, it names no form.
+      final mixedWithDeleted = await copy(
+        DanceForm.ecd,
+        thirdForm: DanceForm.ecd,
+        thirdDeleted: true,
+      );
+      expect(mixedWithDeleted, contains("1. Rory O'More (Contra)"));
+      expect(
+        mixedWithDeleted,
+        contains('2. The Nice Combination (English (ECD))'),
+      );
+      expect(mixedWithDeleted, contains('3. Gone Dance'));
+      expect(mixedWithDeleted, isNot(contains('Gone Dance (')));
     });
 
     for (final (setting, expected) in [
