@@ -14,7 +14,8 @@ corrections to the registry in §7, and answers to the
 In the template's terms: §2–§4 are the *context*, §5–§8 the proposed
 *decision*, §5 the *rationale*, and §9–§11 the *consequences* and *revisit
 triggers*. Once accepted, the square taxonomy follows the versioning process in
-[figure-taxonomy.md](../design/figure-taxonomy.md), as the contra one does.
+[figure-taxonomy.md](../design/figure-taxonomy.md) with a version of its own,
+as the ECD one does (§9).
 
 CALLERLAB timing figures in §2, §7 and Appendix A are reprinted with
 permission of CALLERLAB (§4.2).
@@ -47,7 +48,7 @@ square dances**, the phrased squares of the New England and contra
 community, with a **separate taxonomy** that owns every call ID. A call such
 as Allemande Left or Do-si-do is defined in the square taxonomy on its own
 terms, even where contra has a figure with the same name. This follows the
-approach ADR-006 proposed for English Country Dance.
+approach ADR-006 takes for English Country Dance (accepted 19 November 2026).
 
 ### 1.1 Maintainer requirements
 
@@ -57,7 +58,8 @@ proposals. Each is quoted in the pull request that adds this ADR.
 From the planning conversation, 12 November 2026:
 
 - The square taxonomy is **fully independent** of the contra taxonomy, as
-  ADR-006 proposes for ECD, even where figures share a name.
+  ADR-006 proposed (and has since adopted) for ECD, even where figures share
+  a name.
 - Calls carry **beat counts**.
 - Dance entry has a **toggle for free-form patter** that does not follow
   fixed phrasing.
@@ -104,8 +106,8 @@ decision.
 - **A dance is a phrased figure, a break or free-form patter** (§8.1), with
   contra-style phrase labels, a repeat order, and who becomes the new
   partner.
-- **The glossary's dance-form selector** is built over `DanceForm` values
-  (§8.3).
+- **Squares join the glossary's dance-form selector** that ADR-006 decided
+  to build (§8.3).
 
 ## 2. Background: traditional squares
 
@@ -139,34 +141,64 @@ ways that drive this design:
 ## 3. Where the app stands today
 
 These facts were checked against the code on 12 November 2026 and rechecked
-for this revision:
+on 20 November 2026, after the first ADR-006 implementation PRs (among
+them #2244, #2250 and #2273) landed:
 
 - `DanceForm` already has a `square` value
   ([enums.dart](../../packages/compendium_core/lib/src/model/enums.dart)), and
   search can filter on it.
 - The Caller's Companion importer maps a dance whose `Type` contains "square"
-  to `DanceForm.square`, maps the "Square" formation family to
-  `FormationShape.other` with detail "Square", and sets `mixer` from a
-  square's `SubType` ("Mixer, H H S S")
+  to `DanceForm.square`. From a `.USR` file it also maps the "Square"
+  formation family to `FormationShape.other` with detail "Square", and sets
+  `mixer` from a square's `SubType` ("Mixer, H H S S"); the text export
+  gives `other` with the raw text as detail and sets no `mixer`
   ([callers_companion_mapping.dart](../../packages/compendium_core/lib/src/imports/callers_companion_mapping.dart)).
   It parses the figure lines of these dances with the **contra** vocabulary
   (`parseFigureLinesFanOut`). So square dances imported so far hold contra
   moves (`swing`, `circle`, `promenade`, ...) or custom text. §8.4 deals
   with them.
-- ECD dances also exist today (the same importer maps "English" to
-  `DanceForm.ecd`). They hold contra moves too, because there is no ECD
-  taxonomy yet.
-- `FormationShape` has no square value.
-- The taxonomy is per-form by design (`Taxonomy.form`). In practice 63
-  non-test Dart files under `packages/` and `app/` refer to `contraTaxonomy`
-  by name, 58 of them under a `lib/` directory. Some are contra-only by
-  nature (the ContraDB and Caller's Box importers). The rest handle any dance
-  and would need to resolve the taxonomy from the dance (§11).
+- **ADR-006 built the first of the two shared parts squares need** (ADR-006
+  §12.1, F6).
+  `TaxonomyRegistry`
+  ([taxonomy_registry.dart](../../packages/compendium_core/lib/src/taxonomy/taxonomy_registry.dart))
+  chooses the taxonomy from the dance's form: `forForm` lays a form's own
+  taxonomy over contra's, `anyForm` resolves a stored ID of any form, and a
+  stored ID's prefix (`danceFormMovePrefixes`, today only `ecd_`) names the
+  form that defines it. Its comment says squares register the same way once
+  this ADR is accepted. Until then a square dance uses contra's taxonomy.
+  The dance editor offers only the dance form's own figures, and warns when
+  a dance holds another form's figures.
+- The second shared part, the glossary's dance-form selector, has not
+  landed: the glossary screen still names `contraTaxonomy` directly.
+- `FormationShape.square` exists, added for ECD square sets (ADR-006 F2).
+  But a square dance cannot choose it yet: `offeredFormationShapes` gives
+  square dances contra's shapes
+  ([formation.dart](../../packages/compendium_core/lib/src/model/formation.dart)).
+  Caller's Companion squares still map to `other` with detail "Square".
+- Each dance form has its own dialect library, square included (storage
+  keys `custom_dialects_square` and `active_dialect_ref_square`;
+  [dialect.md](../design/dialect.md)). Gendered role terms are never shown:
+  the maintainer's answer to ADR-006 §9.1 point 7 (recorded on 19 November
+  2026) rules them out of stored data and dialects, and ADR-006 applies it
+  to its own text. dialect.md records the same rule, dated 18 November.
+- ECD dances imported before ECD had a taxonomy keep their contra moves, and
+  a caller-run conversion maps their moves and formation to ECD ones
+  (ADR-006 F5; #2273). §8.4 follows the same pattern for squares.
+- ECD has its own taxonomy version (`ecdTaxonomyVersion`), with its own
+  heading in [figure-taxonomy.md](../design/figure-taxonomy.md), rows in the
+  version-history and version-bump gates under `tools/ci/`, and a one-time
+  rebuild marker for dances that held `ecd_` IDs before they were known.
+- 37 Dart files outside test directories under `packages/` and `app/` still
+  refer to `contraTaxonomy` by name, 33 of them under a `lib/` directory.
+  Some are contra-only by nature (the ContraDB and Caller's Box importers,
+  the registry's base). Others serve any form and still name contra's
+  taxonomy directly: the glossary, custom-figure, compound-figure and
+  shorthand screens among them.
 - `MoveDef` supports a beat default per move and a `ParamBeats` table that
   picks beats from **one** parameter's value.
 - Figures of your own already record a dance form
   (`UserFigureDefinition.form`, defaulting to `contra`), as do compound
-  definitions. What is missing is the glossary and editor filtering on it.
+  definitions. The glossary does not filter on it yet.
 - Dialect move wordings are keyed by move ID (`kMoveWordingBranchKeys` in
   [dialect.dart](../../packages/compendium_core/lib/src/dialect/dialect.dart)
   has a `promenade` entry).
@@ -214,10 +246,10 @@ What the 19 show:
 - **Partners.** 13 change partners every time through, and the source names
   the new partner (mostly the corner). 5 keep partners; 1 is unclear.
 - **Simultaneous actions.** 8 have two groups dancing different things at
-  once ("Four gents (acting as two facing couples) pass through", then "Gents
-  turn right in single file and go four steps while ladies pass through").
-  One (Interface Jig) also gives start offsets ("After 4 beats: Side ladies
-  chain").
+  once ("Four [Larks] (acting as two facing couples) pass through", then
+  "[Larks] turn right in single file and go four steps while [Robins] pass
+  through"). One (Interface Jig) also gives start offsets ("After 4 beats:
+  Side [Robins] chain").
 - **Labels.** Both books print contra-style phrase labels on every square.
   The syllabus versions omit them.
 - **No book prints an intro, break or ending.** The syllabi describe the
@@ -264,7 +296,7 @@ The square taxonomy is a separate `Taxonomy(form: DanceForm.square)`. Every
 call in it has its own definition, defaults, display template and glossary
 text. Where a square call and a contra move share a concept, they share
 **parameter names** (`who`, `hand`, `shoulder`, `beats`), as ADR-006 §5.1
-proposes for ECD. They never share a definition. Implementation may share
+does for ECD. They never share a definition. Implementation may share
 rendering helpers; the data stays separate.
 
 Every square move ID starts with `sq_`: `sq_swing`, `sq_hey`,
@@ -288,16 +320,18 @@ already appears there as a contra move, mostly as a balance-interrupted
 square through 2 in 8 beats, which is not the club call.
 
 *Alternative rejected:* plain IDs with the dance's form as the only
-discriminator. It lost on the points above. If this is accepted, ADR-006
-should probably adopt an `ecd_` prefix for the same reasons (§11).
+discriminator. It lost on the points above. ADR-006 made the same choice
+with `ecd_`, which the maintainer decided in November 2026.
 
-**Resolving a taxonomy.** Code that needs a taxonomy takes it from the dance:
-
-- `square` → the square taxonomy for `sq_` IDs. Unprefixed IDs in a square
-  dance resolve through the contra taxonomy as legacy figures until they are
-  migrated (§8.4).
-- `ecd` → the contra taxonomy, as today, until ADR-006 ships.
-- `contra` → the contra taxonomy.
+**Resolving a taxonomy.** Squares register in the existing
+`TaxonomyRegistry` (§3): `sq_` joins `danceFormMovePrefixes`, and the square
+taxonomy is added to `shippedTaxonomies`. Then `forForm(square)` is the
+square taxonomy over contra's, and an unprefixed ID in a square dance is a
+legacy contra move from an earlier import until it is converted (§8.4).
+As for ECD, the figure picker offers only the form's own (`sq_`) calls, and
+the square parser (§8.4) reads only square calls, so contra's layer under
+the square taxonomy serves only to show legacy moves. Nothing else in
+resolution changes.
 
 ### 5.2 Traditional squares first; club calls as borrowed vocabulary
 
@@ -367,8 +401,8 @@ they state the count they mean.
 ### 5.4 Formations describe calls, not dances
 
 Every square dance starts and ends in a squared set. At dance level the
-formation is simply a new `FormationShape.square`, and the importer stops
-using `other` + "Square".
+formation is the existing `FormationShape.square` (§3), and the Caller's
+Companion importer stops using `other` + "Square".
 
 For borrowed club calls, the registry records CALLERLAB's usual starting
 formations as glossary information. These are shipped data, not stored on
@@ -388,11 +422,14 @@ couple") is Q4.
 held squares name one group at a time, so a single token is enough. Two
 rules carry over from the existing taxonomy:
 
-- **Role-neutral storage.** "Gents" and "ladies" (the books' words), or
-  "men" and "women", are stored as `role1s` and `role2s` and shown in the
-  caller's chosen terms by the dialect system. Square callers may want
-  "gents and ladies" while calling contra with "larks and robins", so the
-  dialect needs role terms per dance form (§11).
+- **Role-neutral storage and display.** The books name the two roles with
+  gendered words. The parser reads them as `role1s` and `role2s`, and the
+  app shows the square dialect's role terms. Gendered role terms are never
+  stored or shown, for squares as for every form (§3). Stored values that
+  name a role use `role1` and `role2` (`role1Place`, not a gendered word).
+  Following ADR-006 §3, where a quotation in this ADR would show a gendered
+  role term, the default dialect's term takes its place in square brackets:
+  "[Lark]" for the first role and "[Robin]" for the second.
 - **Heads and sides mean the original heads and sides.** "At the head", for
   whoever is in the head position now, is a separate selector.
 
@@ -409,9 +446,9 @@ text in the line's note. §6.2 lists the selectors.
 The contra model's containers apply unchanged:
 
 - **`meanwhile`** for two or more groups dancing at the same time. The held
-  squares need it in 8 of 19 dances: gents star while ladies promenade,
-  ladies stand back to back while gents promenade single file, gents single
-  file while ladies pass through.
+  squares need it in 8 of 19 dances: the first role stars while the second
+  promenades, the second stands back to back while the first promenades
+  single file, the first goes single file while the second passes through.
 - **`sequence`** for a short run that must stand as one side of a
   `meanwhile`.
 - **`modifier`** where a source describes one action by another.
@@ -446,7 +483,7 @@ stored as `unspecified`, never filled with a usual value: Fuerst's bare
 | `turns` | How far a turn goes, in full turns | `0.5`, `0.75`, `1`, `1.5`, `2` |
 | `fraction` | How far around a circle, star or promenade | `quarter`, `half`, `threeQuarters`, `full` |
 | `direction` | A turning or travel direction | `left`, `right`, `in`, `out` |
-| `destination` | Where a promenade ends, as the source states it | `home`, `gentsPlace`, `ladiesPlace` |
+| `destination` | Where a promenade ends, as the source states it | `home`, `role1Place`, `role2Place` |
 | `where` | Where a call is danced | `across`, `alongTheLine`, `inTheCenter`, `withTheSides` |
 | `size` | Dancers in a circle or star | `2`, `4`, `8` |
 | `count` | A number of hands | Square Through 1–5 |
@@ -466,10 +503,10 @@ the line's note.
 
 - Everyone: `everyone`.
 - Identity in the square: `heads`, `sides`, `headPosition` ("at the head"),
-  `sidePosition`, `couple1` to `couple4`, `role1s` (gents), `role2s`
-  (ladies), `headRole1s`, `headRole2s`, `sideRole1s`, `sideRole2s`.
+  `sidePosition`, `couple1` to `couple4`, `role1s`, `role2s`, `headRole1s`,
+  `headRole2s`, `sideRole1s`, `sideRole2s`.
 - Relationships: `partners`, `corners`, `opposites`, `rightHandRole2`
-  ("right-hand lady"), `leftHandRole2`, and the original ones,
+  ("right-hand [Robin]"), `leftHandRole2`, and the original ones,
   `originalPartners`, `originalCorners`, `originalOpposites`.
 - Position: `facing` ("the one you face" or "meet"), `centers`, `ends`,
   `centerFour`, `outsideFour`, `leaders`, `trailers`.
@@ -490,12 +527,12 @@ it stands alone (number of lines in brackets).
 | ID | Parameters | Default beats | Seen | Notes |
 | --- | --- | --- | --- | --- |
 | `swing` | `who`, `whom`, `balance` | 8; 16 with a balance | 19 dances; 8 (14), 12 (3), 14 (1), 16 (3) | "Balance and swing" is one line, as the sources print it. |
-| `promenade` | `who`, `variant` (`couples`, `singleFile`, `outside`, `wrongWay`, `star`), `destination`, `fraction`, `direction` | 16 to a destination; ½: 8; ¾: 12 | 15; 16 (14), 8 (1) | Sources name a destination ("to the gent's place"), not a fraction. Single-file moves ("turn right in single file and go four steps") are `singleFile` with the source's words in the note. |
+| `promenade` | `who`, `variant` (`couples`, `singleFile`, `outside`, `wrongWay`, `star`), `destination`, `fraction`, `direction` | 16 to a destination; ½: 8; ¾: 12 | 15; 16 (14), 8 (1) | Sources name a destination ("to the [Lark]'s place"), not a fraction. Single-file moves ("turn right in single file and go four steps") are `singleFile` with the source's words in the note. |
 | `hand_turn` | `who`, `whom`, `hand`, `turns` | once: 4–8 (default 8); 1½: 8; twice: 8 | 11; 4 (4), 6 (1), 8 (8) | "Allemande left/right" and "turn ... by the hand" are aliases (Q8). Every source line names the person. |
 | `circle` | `who`, `direction`, `fraction`, `size` | 8 dancers: full 16, ½ 8; 4 dancers: ½ 4, ¾ 8, full 8 | 10; 4 (2), 8 (6) | Parkes's ¾ circle of four is 8 (CALLERLAB 6). |
 | `forward_and_back` | `who` | 8 | 10; 8 (11) | "Always a full eight beats in New England" (Parkes). "Forward again and ..." is Q10. |
 | `pass_thru` | `who` | 4 | 9; 4 (4) | Spelled "through" in the books, "thru" in some syllabi; dialect handles spelling. |
-| `chain` | `who`, `where`, `fraction` (`half` across, `full` over and back), `four`, `courtesy` (`normal`, `powerTurn`) | 8; over and back 16 | 8; 8 (8), 16 (1) | "Ladies chain", "four ladies chain", "the same two ladies chain", "chain along the line". `powerTurn` is Fuerst's "power turn", a courtesy turn with an extra half. |
+| `chain` | `who`, `where`, `fraction` (`half` across, `full` over and back), `four`, `courtesy` (`normal`, `powerTurn`) | 8; over and back 16 | 8; 8 (8), 16 (1) | "[Robins] chain", "four [Robins] chain", "the same two [Robins] chain", "chain along the line". `powerTurn` is Fuerst's "power turn", a courtesy turn with an extra half. |
 | `star` | `who`, `hand`, `fraction`, `size` | 4 dancers: once 8, ¾ 6 | 8; 8 (9), 6 (1), 4 (1) | |
 | `balance` | `who`, `whom`, `where` (`inPlace`, `wave`, `ring`) | 4 | 7; 4 (6) | Standalone balances, including in waves and rings. Before a swing it is the swing's `balance` flag. |
 | `dosido` | `who`, `whom`, `turns`, `shoulder` | 8 | 7; 8 (5) | Includes 1½ and "once around and a little bit more" into a wave. "See saw" is an alias for `shoulder: left` (§7.2). |
@@ -511,7 +548,7 @@ it stands alone (number of lines in brackets).
 
 Single uses in the held squares that stay `custom` lines unless more
 evidence appears: "stand back to back", "cross the set", "move to the
-right-hand lady", "split the sides", and Shadrack's Square's "move up". "Pass
+right-hand [Robin]", "split the sides", and Shadrack's Square's "move up". "Pass
 partner, swing the next" is two lines, `pass_by` and `swing`.
 
 ### 7.2 Borrowed club calls
@@ -540,7 +577,7 @@ glossary label (§5.2).
 | `flutterwheel` | `who`, `reverse` | 8; SS heads or sides 10, SS all 12 | Mainstream | |
 | `fold` | `who`, `variant` | fold 2, cross fold 4 | Mainstream | |
 | `grand_square` | none | 32 | Mainstream | |
-| `half_sashay` | `who`, `variant` (`halfSashay`, `rollaway`, `ladiesInMenSashay`) | 4 | Mainstream | |
+| `half_sashay` | `who`, `variant` (`halfSashay`, `rollaway`, `role2InRole1Sashay`) | 4 | Mainstream | |
 | `hinge` | `who`, `variant`, `hand` | single 2, couples 3 | Mainstream | |
 | `alamo_style` | none | 4 | Mainstream | |
 | `step_to_a_wave` | `who`, `hand` | 2 | Mainstream | Held squares form waves with no separate beats. |
@@ -576,7 +613,7 @@ glossary label (§5.2).
 | `cross_trail_thru` | `who`, `variant` (`traditional`, `callerlab`) | 6 | Advanced | ⚠ The Caller's Box glossary says the traditional form (pass, then cross over toward the corner) came from 1950s squares and that CALLERLAB later redefined it. Contras by John Coffman use it, and the contra taxonomy has `cross_trails`. Default `traditional`; `goodBeats` lists a wide spread because no source gives a traditional count. |
 
 CALLERLAB Mainstream calls that §7.1 already covers (Swing, Promenade,
-Allemande and Arm Turns, Circle, Forward and Back, Pass Thru, Ladies Chain,
+Allemande and Arm Turns, Circle, Forward and Back, Pass Thru, "[Robins] Chain",
 Star, Balance, Dosado, Separate, Right and Left Thru, Lead Right, U-Turn Back,
 Backtrack) take their traditional entries, with the CALLERLAB name as an alias
 where it differs. The Plus call See Saw is the `dosido` alias noted in §7.1,
@@ -620,7 +657,7 @@ The same sources show Mainstream calls in contras (Box the Gnat, Star Thru,
 Square Thru, Flutterwheel, Circulate, Spin the Top, Swing Thru), which §7.2
 already covers. They also show traditional square calls outside CALLERLAB that
 no held square uses: Allemande X, Catch All Eight, Mountain-style Do-si-do,
-grand ladies and gents chains, Birdie in the Cage and other Southern figures.
+grand chains for either role, Birdie in the Cage and other Southern figures.
 Those wait for a held square that uses them (§11).
 
 ## 8. Dance structure, entry, glossary and import
@@ -691,14 +728,16 @@ aid only.
 
 ### 8.3 Glossary dance-form selector
 
-The glossary screen gains a **dance-form selector** (maintainer requirement,
-§1.1). It lists every `DanceForm` that has a shipped taxonomy, in `DanceForm`
-order. After phase 1 that is Contra and Square; ECD appears once its taxonomy
-ships. The selector is a segmented control while there are up to three forms,
-and a dropdown beyond that. It is never a two-way switch.
+The glossary gains a **dance-form selector** (maintainer requirement, §1.1).
+ADR-006 decided to build it for any number of forms (F6, S1, S6); it has not
+landed yet (§3). Squares appear in it once their taxonomy is registered. This
+ADR proposes only how it looks with squares: it lists every `DanceForm` that
+has a shipped taxonomy, in `DanceForm` order (Contra, ECD, Square), as a
+segmented control while there are up to three forms and a dropdown beyond
+that. It is never a two-way switch.
 
-- The selected form is remembered as a new per-device setting, classified in
-  the privacy registry in the same PR.
+- Every form is available on every device. The glossary opens on the form
+  the new-dance form setting gives (ADR-006 S2, S6).
 - The square glossary lists the traditional core first, then the borrowed
   club calls with their CALLERLAB program label. Each entry shows its
   own-words definition, parameters and default beats.
@@ -710,7 +749,7 @@ and a dropdown beyond that. It is never a two-way switch.
 Traditional sources describe figures in prose with beat counts in
 parentheses, as Parkes does ("Head couples forward and back (8 beats)") or
 with the count first, as American Country Dances On-Line does ("(4) H/S
-ladies cross the set"). The square line parser reads that prose, as the
+[Robins] cross the set"). The square line parser reads that prose, as the
 contra importers already read Caller's Box and ContraDB lines. It does not
 expect callers' shorthand.
 
@@ -742,23 +781,28 @@ expect callers' shorthand.
     them. It maps contra moves whose meaning is clear (`swing`, `circle`,
     `promenade`, `star`, `allemande`, `chain`, `hey`, `shoulder_round`, ...)
     to the square calls, re-reads custom lines with the square parser, and
-    leaves anything else as it is. It also maps the contra selectors that
-    square imports may hold: since taxonomy v38 the maintainer's ruling
-    (#1975) maps Caller's Box `C1`, `C2` and `C3` to `firstCorners`,
-    `opposites` and `thirdCorners`, which become `corners`, `opposites`, and
-    `rightHandRole2` where the third corner is a gent's right-hand lady. §6.2
-    has no selector for a lady's third corner (her left-hand gent), so those
-    lines keep it in a note. The caller can also re-import from the original
-    file, through the existing re-import flow.
+    leaves anything else as it is. Like ECD's conversion, it also changes the
+    formation, from `other` + "Square" to `FormationShape.square`. It maps the
+    contra selectors that square imports may hold: since taxonomy v38 the
+    maintainer's ruling (#1975) maps Caller's Box `C1`, `C2` and `C3` to
+    `firstCorners`, `opposites` and `thirdCorners`, which become `corners`,
+    `opposites`, and `rightHandRole2` where the third corner is the
+    second-role dancer on a first-role dancer's right. §6.2 has no selector
+    for a second-role dancer's third corner (the first-role dancer on their
+    left), so those lines keep it in a note. The caller can also re-import
+    from the original file, through the existing re-import flow.
 
 ## 9. Delivery phases
 
-1. **Framework and traditional core.** Taxonomy resolution from the dance
-   (§5.1), the square taxonomy with the §7.1 registry and own-words
-   definitions, multi-parameter beats, `squareKind`, `freeForm`, the repeat
-   order and new-partner fields, the `singing` flag, `FormationShape.square`,
-   the per-phrase beat check (§5.3), role terms per dance form in the dialect
-   (§5.5), the glossary selector, and tests.
+1. **Framework and traditional core.** Registering squares in
+   `TaxonomyRegistry` with the `sq_` prefix (§5.1), a square taxonomy version
+   with its history heading, gate rows and rebuild marker as ECD has (§3),
+   moving the screens that still name contra's taxonomy to the registry, the
+   square taxonomy with the §7.1 registry and own-words definitions,
+   multi-parameter beats, offering `FormationShape.square` to square dances
+   (§5.4), `squareKind`, `freeForm`, the repeat order and new-partner fields,
+   the `singing` flag, the per-phrase beat check (§5.3), squares in the
+   glossary selector, and tests.
 2. **Borrowed club calls.** The §7.2 registry with CALLERLAB program labels,
    including the Plus and Advanced calls found in §7.3.
 3. **Entry and import.** Square editor behavior, shorthand, copying a break
@@ -791,8 +835,8 @@ The held squares state these often. *Recommendation: defer; keep them in the
 line's note for now.*
 
 **Q5. ID prefix.** *Answered by the maintainer (15 November 2026): the
-`sq_` prefix is accepted.* Still open: should ADR-006 adopt `ecd_` to
-match?
+`sq_` prefix is accepted.* ADR-006 has since adopted `ecd_`, so nothing is
+left open.
 
 **Q6. Breaks.** *Answered by the maintainer (15 November 2026): breaks are
 saved as separate records, and ideally the editor can put a break into
@@ -838,23 +882,25 @@ until more dances do; keep offsets in notes.*
 **Becomes easier:** callers can store, search and print traditional squares
 with the same structure contra has: phrase labels, beat counts, simultaneous
 actions and the contra-like vocabulary these squares share. The glossary
-becomes a reference for squares. Adding ECD later is a taxonomy plus data,
-with no change to the glossary selector.
+becomes a reference for squares. Squares reuse what ADR-006 built or
+decided: the taxonomy registry, the per-form dialects and the glossary
+selector.
 
 **Becomes harder, or costs:**
 
 - **Per-phrase check.** The phrase check in §5.3 is new editor and
   validation work, not something contra has today.
-- **Taxonomy resolution.** About 60 files name `contraTaxonomy` (§3). Each
-  one that can see a non-contra dance must resolve the taxonomy from the
-  dance. Phase 1 adds a test that fails if an `sq_` figure is ever validated
-  or rendered with the contra taxonomy.
-- **Dialect per form.** Role terms (gents/ladies versus larks/robins) need
-  to differ by dance form. The dialect system has one set today.
+- **Taxonomy registration.** ADR-006's registry resolves stored IDs, but
+  the glossary, custom-figure, compound and shorthand screens still name
+  contra's taxonomy directly (§3). Phase 1 moves them to the registry, and
+  adds a test that fails if an `sq_` figure is ever validated or rendered
+  without the square taxonomy.
+- **Taxonomy versioning.** A square taxonomy version adds a ledger heading,
+  gate rows and a one-time rebuild marker, as ECD's did. Adding it to the
+  version-bump policy is the maintainer's call, as it was for ECD (#2254).
 - **Schema and privacy.** `squareKind`, `singing`, `freeForm`, the repeat
-  order and the new partner are new persisted fields, and the glossary form
-  is a new setting. Each needs a privacy-registry classification in the PR
-  that adds it.
+  order and the new partner are new persisted fields. Each needs a
+  privacy-registry classification in the PR that adds it.
 - **Glossary text.** Own-words definitions for about 70 calls (19 in §7.1,
   49 in §7.2, and aliases) are real writing work, and need review by someone
   who calls traditional squares.
@@ -862,8 +908,6 @@ with no change to the glossary selector.
   moves. Keeping them separate (§1.1) means two definitions of a hey or a
   gypsy that must not drift into contradicting each other where the dances
   really are the same.
-- **ADR-006.** If the prefix in §5.1 is accepted, ADR-006 should be revised
-  to match before ECD is built.
 
 **Explicitly out of scope:** club (MWSD) calling beyond the borrowed calls in
 §7.2, simulating dancer positions, checking that a figure resolves,
@@ -878,7 +922,6 @@ animations, and any code, data or text from Taminations.
   Challenge call (§7.3).
 - Callers ask for stated positions or offsets (Q4, Q12).
 - More held squares surface with calls §7.1 does not cover.
-- The ECD taxonomy ships, to confirm the glossary selector needed no change.
 
 ---
 
@@ -891,12 +934,12 @@ encodings are this ADR's.
 
 ```text
 A.1. Head couples forward and circle left in the center, three quarters around (8 beats)
-     Heads swing opposite, moving out to gent's place (8)
-A.2. Head couples lead to the right and circle four; head gents break to a line of four (8)
+     Heads swing opposite, moving out to [Lark]'s place (8)
+A.2. Head couples lead to the right and circle four; head [Larks] break to a line of four (8)
      Forward and back (8)
 B.1. With the couple across, circle four to the left, three quarters around (8)
      Swing the corner (8)
-B.2. Promenade to the gent's place (16)
+B.2. Promenade to the [Lark]'s place (16)
 Sequence: Twice for heads, twice for sides.
 ```
 
@@ -909,7 +952,7 @@ A2  sq_circle_to_a_line  who=heads  beats=8
     sq_forward_and_back  who=everyone  beats=8
 B1  sq_circle            who=everyone  direction=left  fraction=threeQuarters  size=4  beats=8
     sq_swing             who=everyone  whom=corners  beats=8
-B2  sq_promenade         who=everyone  variant=couples  destination=gentsPlace  beats=16
+B2  sq_promenade         who=everyone  variant=couples  destination=role1Place  beats=16
 ```
 
 - The A1 circle's "forward" and the A2 "lead to the right and circle four"
@@ -923,8 +966,8 @@ B2  sq_promenade         who=everyone  variant=couples  destination=gentsPlace  
 ### A.2 Synchromesh Square (Tony Parkes), B1
 
 ```text
-B.1. Four gents (acting as two facing couples) pass through (4)
-     Gents turn right in single file and go four steps while ladies pass through (4)
+B.1. Four [Larks] (acting as two facing couples) pass through (4)
+     [Larks] turn right in single file and go four steps while [Robins] pass through (4)
      Swing the one you meet (original corner) (8)
 ```
 
