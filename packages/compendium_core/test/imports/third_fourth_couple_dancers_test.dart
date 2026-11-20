@@ -208,6 +208,22 @@ void main() {
       );
     });
 
+    test('only a spelled-out couple number up to four names a dancer', () {
+      // The reading is The Caller's Box's own spelling ("Woman one"): a digit
+      // is not it, there is no fifth couple, and a line naming two dancers is
+      // more than one subject. Each stays custom rather than half-read.
+      for (final line in [
+        'Woman 1 cast off',
+        'Man 3 swing',
+        'Woman five swing',
+        'Man five cast up',
+        'Woman one and Man two swing',
+        'Woman one and Man two cast off',
+      ]) {
+        expect(tcb(line).isCustom, isTrue, reason: line);
+      }
+    });
+
     test('a number after a group or after the move counts places', () {
       // Only a singular role followed by a couple number names a dancer. These
       // lines read the same before and after that reading was added.

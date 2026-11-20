@@ -3605,6 +3605,14 @@ class FigureRenderer {
           : '';
       // Ricochets: pick the pair pass as the ricochet subject; odd-index flags
       // reference the inverted (other) pair, matching ContraDB `heyWords`.
+      // When neither pass is a pair (`partners`, `neighbors`, a single dancer
+      // …) ContraDB prefixes an error and leaves the starting pair's ricochets
+      // blank ("Error (…) - … - ____ ricochet"), but already calls the other
+      // pair "others", its inversion of an empty pair. The app keeps the
+      // starting dancers' word and the same "others", as [_invertPair] names
+      // any pair it cannot invert: repeating the starting dancers' word for
+      // the other pair would make `rico1` and `rico2` read alike, and the line
+      // could not be read back (#2121).
       String center;
       if (_isPairToken(pass1)) {
         center = r._displaySubject(pass1, dialect);
@@ -3617,7 +3625,7 @@ class FigureRenderer {
           ? r._invertPair(pass1, dialect)
           : _isPairToken(pass2)
           ? r._invertPair(pass2, dialect)
-          : center;
+          : 'others';
       final ricoFlags = [
         params['rico1'],
         params['rico2'],
