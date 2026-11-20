@@ -1,0 +1,14 @@
+{
+  "id": "hey-ricochet-read-back",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "A hey started by partners, neighbors, shadows, the opposites or a single dancer now names the dancers on the ends \"others\" when they ricochet, instead of repeating the starting dancers' name, and typing or pasting that line back keeps its ricochets."
+    ]
+  },
+  "core": {
+    "fixed": [
+      "Render a non-pair hey's ends ricochet as \"others\", and read a hey's ricochets back for any starting dancer, including the display-only names (`third corners`, `opposites`, `third role1` …)."
+    ]
+  }
+}
