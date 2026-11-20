@@ -217,6 +217,26 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
     orElse: () => DanceForm.contra,
   );
 
+  /// How many of [figures] (sub-figures included) are of a form this entry's
+  /// figures can't use, and the first such form; null when there are none.
+  ({int count, DanceForm form})? _otherFormFigures(List<Figure> figures) {
+    var count = 0;
+    DanceForm? form;
+    void walk(List<Figure> list) {
+      for (final figure in list) {
+        if (_taxonomy.resolve(figure.move) == null &&
+            shippedTaxonomies.anyForm.resolve(figure.move) != null) {
+          count++;
+          form ??= shippedTaxonomies.formOfMoveId(figure.move);
+        }
+        walk(figure.subFigures);
+      }
+    }
+
+    walk(figures);
+    return form == null ? null : (count: count, form: form!);
+  }
+
   /// Renders this entry's figures with [_taxonomy].
   FigureRenderer get _renderer => glossaryRenderer(_danceForm);
 
@@ -241,6 +261,8 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
     _seeded = true;
     final initial = widget.initial ?? widget.copyOf;
     if (initial == null) return;
+    // The form comes first, so every field is shown through its renderer.
+    _form = glossaryEntryForm(initial.payload);
     final dialect = ActiveDialectScope.contraOf(context);
     String shown(String text) => _renderer.renderFreeText(text, dialect);
     _name.text = shown(initial.name);
@@ -248,7 +270,6 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
     _description.text = shown(initial.description);
     _keywords.text = [for (final k in initial.keywords) shown(k)].join(', ');
     _notes.text = initial.notes == null ? '' : shown(initial.notes!);
-    _form = glossaryEntryForm(initial.payload);
     // A term has no figure to load, nor does one being given its first.
     if (initial.kind == UserGlossaryEntryKind.term) return;
     if (_kind == UserGlossaryEntryKind.customFigure) {
@@ -903,6 +924,18 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
         canonicalizeNote: (note) => canonicalizeText(note.trim(), dialect),
       );
       final issues = validateCompound(definition, _taxonomy);
+      // Figures of another form, left by a change of the form dropdown, are
+      // named as such rather than as merely invalid.
+      final otherForm = _otherFormFigures(definition.figures);
+      if (otherForm != null) {
+        errors.add(
+          l10n.compoundEditorOtherFormFigures(
+            otherForm.count,
+            danceFormLabel(l10n, otherForm.form),
+            danceFormLabel(l10n, _danceForm),
+          ),
+        );
+      }
       for (final issue in issues) {
         if (issue.severity != ValidationSeverity.error) continue;
         final message = switch (issue.code) {
@@ -920,6 +953,7 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
           CompoundIssueCodes.doubleBinding ||
           CompoundIssueCodes.beatsBinding ||
           CompoundIssueCodes.pinnedSlot => l10n.compoundEditorBindingInvalid,
+          _ when otherForm != null => null, // reported above
           _ => l10n.compoundEditorInvalidFigures,
         };
         if (message != null && !errors.contains(message)) errors.add(message);

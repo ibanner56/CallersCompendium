@@ -37,7 +37,7 @@ class ShorthandMappingsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final controller = ShorthandMappingsScope.of(context);
     final dialect = ActiveDialectScope.contraOf(context);
-    final renderer = FigureRenderer(contraTaxonomy);
+    final renderer = FigureRenderer(shippedTaxonomies.anyForm);
     final mappings = controller.mappings;
     final l10n = AppLocalizations.of(context);
     final newShorthand = mappings.isEmpty
@@ -297,7 +297,7 @@ class _CompoundShorthandsSection extends StatefulWidget {
 
 class _CompoundShorthandsSectionState
     extends State<_CompoundShorthandsSection> {
-  static final FigureRenderer _renderer = FigureRenderer(contraTaxonomy);
+  static final FigureRenderer _renderer = FigureRenderer(shippedTaxonomies.anyForm);
 
   CompendiumRepositories? _repos;
   StreamSubscription<List<UserGlossaryEntry>>? _sub;
@@ -331,7 +331,7 @@ class _CompoundShorthandsSectionState
     if (entry == null || entry.kind != UserGlossaryEntryKind.compound) {
       return null;
     }
-    return decodeCompoundDefinition(entry.payload, contraTaxonomy);
+    return decodeCompoundDefinition(entry.payload, shippedTaxonomies.anyForm);
   }
 
   /// Every shorthand's token but the one being edited: the compound
@@ -604,7 +604,7 @@ class _CompoundShorthandsSectionState
       text: shorthand.figureName,
       beats: shorthand.beats,
     );
-    final renderer = FigureRenderer(contraTaxonomy, userFigures: userFigures);
+    final renderer = FigureRenderer(shippedTaxonomies.anyForm, userFigures: userFigures);
     final usable = renderer.renderUserFigureCanonical(use) != null;
     final shadowed = figureTokens.contains(shorthand.normalizedToken);
     // A compound shorthand with the same token is resolved first, so it wins

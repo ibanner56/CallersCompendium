@@ -482,7 +482,7 @@ class DanceEditorController extends ChangeNotifier {
     _compounds = {
       for (final entry in entries)
         if (entry.kind == UserGlossaryEntryKind.compound)
-          if (decodeCompoundDefinition(entry.payload, contraTaxonomy)
+          if (decodeCompoundDefinition(entry.payload, shippedTaxonomies.anyForm)
               case final definition?)
             entry.id: (entry: entry, definition: definition),
     };

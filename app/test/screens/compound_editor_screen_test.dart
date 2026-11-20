@@ -379,6 +379,42 @@ void main() {
       ]);
     });
 
+    testWidgets('English figures left after a change to Contra are named as '
+        'such', (tester) async {
+      final entry = UserGlossaryEntry(
+        id: 'sl2',
+        kindName: UserGlossaryEntryKind.compound.name,
+        name: 'set and link twice',
+        definition: 'Set and link, then again.',
+        description: '',
+        payload: CompoundDefinition(
+          params: const [],
+          figures: [
+            Figure(move: 'ecd_set_and_link', params: const {'beats': 4}),
+            Figure(move: 'ecd_set_and_link', params: const {'beats': 4}),
+          ],
+          bindings: const [],
+          form: DanceForm.ecd.name,
+        ).toJson(),
+        createdAt: created,
+      );
+      await pump(tester, initial: entry);
+      await choose(tester, const ValueKey('glossary-entry-form'), 'Contra');
+      await save(tester);
+      expect(find.byType(CompoundEditorScreen), findsOneWidget);
+      expect(
+        find.text(
+          '2 figures are from English (ECD), not Contra. Change the dance '
+          'type back, or remove them.',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.text("One of the figures isn't complete or valid yet."),
+        findsNothing,
+      );
+    });
+
     testWidgets('a combination keeps the dance form chosen for it', (
       tester,
     ) async {
