@@ -8536,7 +8536,7 @@ abstract class AppLocalizations {
   /// **'Close'**
   String get commonClose;
 
-  /// Label for the action that opens a dance's details: the tooltip on the details button and the title of the matching menu item.
+  /// Label for the action that opens a dance's details: the tooltip on details buttons in the program editor and the collection picker, and the title of the matching menu item.
   ///
   /// In en, this message translates to:
   /// **'View details'**
@@ -13956,7 +13956,7 @@ abstract class AppLocalizations {
   /// **'{count, plural, other{Modifier ({count} figures)}}'**
   String danceEditorModifierGroupLabel(num count);
 
-  /// Accessibility label for a modifier group.
+  /// Accessibility label for a modifier group. Placeholders stay declared beats, then count: that order is the generated method's parameter order, and its caller passes them positionally.
   ///
   /// In en, this message translates to:
   /// **'Modifier group, {count, plural, =1{1 figure} other{{count} figures}}, {beats, plural, =1{1 beat} other{{beats} beats}}.'**

@@ -92,7 +92,11 @@ void _collectArguments(String text, Set<String> names) {
     }
     final close = _closingBrace(text, i);
     final parts = text.substring(i + 1, close).split(',');
-    names.add(parts.first.trim());
+    final name = parts.first.trim();
+    if (name.isEmpty) {
+      throw FormatException('empty argument name in message', text, i);
+    }
+    names.add(name);
     if (parts.length > 2 &&
         const {'plural', 'select', 'selectordinal'}.contains(parts[1].trim())) {
       // `selector{sub-message}` pairs after the second comma; recurse into each.
@@ -374,6 +378,14 @@ void main() {
         'count',
         'total',
       });
+    });
+
+    test('rejects an argument with no name', () {
+      expect(() => icuArguments('Hello {}'), throwsFormatException);
+      expect(
+        () => icuArguments('Hello { , plural, other{x}}'),
+        throwsFormatException,
+      );
     });
 
     test('rejects unbalanced braces', () {

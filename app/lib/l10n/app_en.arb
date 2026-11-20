@@ -7199,7 +7199,7 @@
   },
   "viewDetails": "View details",
   "@viewDetails": {
-    "description": "Label for the action that opens a dance's details: the tooltip on the details button and the title of the matching menu item."
+    "description": "Label for the action that opens a dance's details: the tooltip on details buttons in the program editor and the collection picker, and the title of the matching menu item."
   },
   "programsNoDateSet": "No date set",
   "@programsNoDateSet": {
@@ -12407,7 +12407,7 @@
   },
   "danceEditorModifierGroupSemantic": "Modifier group, {count, plural, =1{1 figure} other{{count} figures}}, {beats, plural, =1{1 beat} other{{beats} beats}}.",
   "@danceEditorModifierGroupSemantic": {
-    "description": "Accessibility label for a modifier group.",
+    "description": "Accessibility label for a modifier group. Placeholders stay declared beats, then count: that order is the generated method's parameter order, and its caller passes them positionally.",
     "placeholders": {
       "beats": {
         "type": "num"

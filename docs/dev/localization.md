@@ -246,8 +246,9 @@ Guidelines:
 
 ## Adding a new UI string
 
-1. Add the key and its `@key` metadata (with a `description`) to
-   `app/lib/l10n/app_en.arb`, following the convention above.
+1. Add the key and its `@key` metadata (with a `description`, and a typed
+   `placeholders` entry for every `{argument}`) to `app/lib/l10n/app_en.arb`,
+   following the convention above.
 2. Regenerate and format:
    ```sh
    fvm flutter gen-l10n     # (also runs as part of `flutter pub get`)
