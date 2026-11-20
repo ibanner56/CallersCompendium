@@ -811,9 +811,8 @@ final Taxonomy contraTaxonomy = Taxonomy(
     // ("Cast back", "Ones cast down", "Men cast clockwise behind partner"),
     // and a default would claim a direction, distance or endpoint the source
     // did not state. The maintainer decided (2026-11-19) that this shape and
-    // ECD's `ecd_cast` be one; this is the shape, and the ECD taxonomy's side
-    // follows it (`cast_vocabulary.dart`, and `cast_test.dart`, which records
-    // where `ecd_cast` stands).
+    // ECD's `ecd_cast` be one; `ecd_cast` takes this shape (ADR-006 §9.4),
+    // and `cast_test.dart` pins that the two agree.
     //
     // "Cast off" is `down` with `places` 1 unless the line states a number:
     // the maintainer could see no difference between The Caller's Box's

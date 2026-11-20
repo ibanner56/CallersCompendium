@@ -54,7 +54,7 @@ void main() {
       expect(ecdTaxonomy.moves.keys.toSet(), {
         for (final id in _adrMovements) 'ecd_$id',
       });
-      expect(ecdTaxonomy.aliases.keys, ['ecd_swat_the_flea']);
+      expect(ecdTaxonomy.aliases.keys, ['ecd_swat_the_flea', 'ecd_hand_cast']);
       expect(ecdTaxonomy.form, DanceForm.ecd);
     });
 
@@ -571,6 +571,191 @@ void main() {
       expect(ecdDestinationPhrase('allImproper'), 'ending improper');
       expect(ecdDestinationPhrase(ParamVocab.unspecified), '');
       expect(ecdDestinationPhrase(null), '');
+    });
+  });
+
+  group('cast (§7.5, §9.4)', () {
+    String cast(Map<String, Object?> params) =>
+        _show(testFigure(move: 'ecd_cast', params: params));
+
+    test('takes contra cast\'s parameter shape', () {
+      final def = ecdTaxonomy.moves['ecd_cast']!;
+      expect(def.params.keys.toSet(), {
+        'who',
+        'direction',
+        'places',
+        'whom',
+        'destination',
+        'beats',
+      });
+      expect(def.params['direction']!.kind, ParamKind.choice);
+      expect(def.params['direction']!.choices, [
+        'left',
+        'right',
+        'up',
+        'down',
+        ParamVocab.unspecified,
+      ]);
+      expect(def.params['places']!.kind, ParamKind.places);
+      expect(def.params['places']!.choices, [ParamVocab.unspecified]);
+      expect(
+        def.params['destination']!.choices,
+        containsAll(['top', 'bottom', 'secondPlace', ParamVocab.unspecified]),
+      );
+      expect(def.params['destination']!.choices!.last, ParamVocab.unspecified);
+      expect(def.params['beats']!.defaultValue, 4);
+      // Only a cast ends at the top or bottom.
+      expect(ecdDestinations, isNot(contains('top')));
+      expect(ecdDestinations, isNot(contains('bottom')));
+    });
+
+    test('reads back when no direction is stated', () {
+      expect(cast({}), 'cast back');
+      expect(
+        cast({
+          'who': ['ones'],
+        }),
+        'ones cast back',
+      );
+    });
+
+    test('a shoulder is always shown, whoever casts', () {
+      // Never hidden as a role's usual shoulder, unlike a chain's hand.
+      expect(
+        cast({
+          'who': ['role2s'],
+          'direction': 'right',
+        }),
+        'role2s cast back right',
+      );
+      expect(
+        cast({
+          'who': ['role1s'],
+          'direction': 'left',
+        }),
+        'role1s cast back left',
+      );
+    });
+
+    test('a shoulder reads back left or back right', () {
+      expect(
+        cast({
+          'who': ['ones'],
+          'direction': 'left',
+        }),
+        'ones cast back left',
+      );
+      expect(cast({'direction': 'right'}), 'cast back right');
+    });
+
+    test('up and down read on their own, with any places', () {
+      expect(
+        cast({
+          'who': ['ones'],
+          'direction': 'down',
+          'places': 1,
+        }),
+        'ones cast down 1 place',
+      );
+      expect(
+        cast({
+          'who': ['twos'],
+          'direction': 'up',
+          'places': 2,
+        }),
+        'twos cast up 2 places',
+      );
+    });
+
+    test('around whom, and to a destination, including the bottom', () {
+      expect(
+        cast({
+          'who': ['ones'],
+          'whom': 'twos',
+        }),
+        'ones cast back around twos',
+      );
+      expect(
+        cast({
+          'who': ['ones'],
+          'direction': 'down',
+          'destination': 'bottom',
+        }),
+        'ones cast down to the bottom',
+      );
+      expect(
+        cast({
+          'who': ['ones'],
+          'direction': 'down',
+          'destination': 'secondPlace',
+        }),
+        'ones cast down to second place',
+      );
+    });
+
+    test('a return to place never reads back twice', () {
+      expect(
+        cast({
+          'who': ['ones'],
+          'destination': 'place',
+        }),
+        'ones cast back to place',
+      );
+      expect(
+        cast({'direction': 'left', 'destination': 'place'}),
+        'cast back left to place',
+      );
+      expect(
+        cast({'direction': 'down', 'destination': 'place'}),
+        'cast down to place',
+      );
+    });
+
+    test('canonical text words the direction as the display does', () {
+      expect(
+        _renderer.renderCanonical(
+          testFigure(
+            move: 'ecd_cast',
+            params: {
+              'who': ['ones'],
+              'direction': 'down',
+            },
+          ),
+        ),
+        'ones cast down',
+      );
+    });
+
+    test('a hand cast is a listed alias of gate that pins nothing', () {
+      final alias = ecdTaxonomy.aliases['ecd_hand_cast']!;
+      expect(alias.targetMove, 'ecd_gate');
+      expect(alias.pinnedParams, isEmpty);
+      expect(alias.listedAsMove, isTrue);
+      expect(ecdTaxonomy.resolve('ecd_hand_cast')?.id, 'ecd_gate');
+      expect(
+        _show(
+          testFigure(
+            move: 'ecd_hand_cast',
+            params: {
+              'who': ['ones'],
+            },
+          ),
+        ),
+        'ones hand cast',
+      );
+      // Its wording starts from gate's slots, so a wording keeps the dancers.
+      expect(
+        _renderer.moveWordingSlots('ecd_hand_cast'),
+        _renderer.moveWordingSlots('ecd_gate'),
+      );
+      expect(
+        _renderer.moveWordingErrorMissingSlots('ecd_hand_cast', '{move}'),
+        containsAll(['who', 'whom']),
+      );
+      expect(
+        ecdTaxonomy.moves['ecd_cast']!.searchKeywords,
+        contains('cast off'),
+      );
     });
   });
 

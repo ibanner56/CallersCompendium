@@ -121,6 +121,37 @@ void main() {
       );
       expect(find.text('circle · English (ECD)'), findsOneWidget);
     });
+
+    testWidgets(
+      'a listed alias of each form is offered, the other form named',
+      (tester) async {
+        // Contra's and ECD's "hand cast" (ADR-006 §9.4) are both listed as
+        // moves; a search over every dance tells them apart as it does moves.
+        for (final includeAliases in [true, false]) {
+          await _pump(
+            tester,
+            taxonomy: shippedTaxonomies.anyForm,
+            includeAliases: includeAliases,
+          );
+          await tester.enterText(
+            find.byKey(const ValueKey('move-input')),
+            'hand cast',
+          );
+          await tester.pumpAndSettle();
+          expect(
+            find.byKey(const ValueKey('move-option-hand_cast')),
+            findsOneWidget,
+            reason: 'includeAliases: $includeAliases',
+          );
+          expect(
+            find.byKey(const ValueKey('move-option-ecd_hand_cast')),
+            findsOneWidget,
+            reason: 'includeAliases: $includeAliases',
+          );
+          expect(find.text('hand cast · English (ECD)'), findsOneWidget);
+        }
+      },
+    );
   });
 
   testWidgets('matches and displays a dialect move substitution', (
