@@ -112,6 +112,18 @@ void main() {
       );
     });
 
+    test('an equal inline const entry is the same object, so exempt too', () {
+      // Documented in settings_registry.dart and in the header above: Dart
+      // canonicalises const values, so "by identity" means "equal fields".
+      const inline = DataClassification(
+        term: DpvTerm.nonPersonal,
+        subject: DataSubject.appUser,
+        egress: EgressClass.shareable,
+      );
+      final shared = settingsClassifications[preferenceSettingKeys.first]!;
+      expect(identical(inline, shared), isTrue);
+    });
+
     test(
       'every exempt key is an app-user, shareable, note-free preference',
       () {
