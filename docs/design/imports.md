@@ -2314,9 +2314,10 @@ ECD dance.
   a count the line was given (a Caller's Companion `(8)`, a re-checked
   line's stored count) and over a count the figure takes by default; a line
   whose rest also states a count in beats (`1-4 (6) …`, `… 6 beats`,
-  `ecdRestStatesBeats`) is kept as text, so that count stays in its words. A
-  Caller's Companion compound prefix (`(4,4)`) is spread on a sequence's steps
-  only when its parts add up to the bars' count. A
+  `ecdRestStatesBeats`) is kept as text, so that count stays in its words.
+  So is a Caller's Companion line whose beat prefix (`(6)`, `(4,4)`)
+  disagrees with its bars, prefix included (`_ecdLineFigures`); a compound
+  prefix that agrees is spread on a sequence's steps. A
   section label may be `A1`, `a1`, `A1:` or `A1&A2`; brackets must pair. A
   line kept as text keeps the range in its words and the
   count. The meter comes from the editor in free-text entry and from the

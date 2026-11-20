@@ -444,7 +444,8 @@ beats a bar holds: two in 2/2, 2/4, 6/8 or 6/4, three in 3/2, 3/4, 9/8 or
 9/4, four in 4/4, 12/8 or 12/4. So `1-4` is 8 beats in 2/2 and 12 in 3/2.
 When the Music field gives no meter the app counts two beats a bar and says so
 in the review. The bars are the count: a line that also gives a count in beats,
-such as `1-4 (6) circle left`, comes across as written, with the bars' count.
+such as `1-4 (6) circle left` or `(6) 1-4 circle left`, comes across as
+written, with the bars' count.
 The dance's phrase structure is not changed to match its meter, so in a 3/2
 dance the A and B labels on the dance's page can fall in the wrong places
 until you set the phrase structure (for example 4*8*3).
@@ -908,7 +909,9 @@ them for only some dances — the app tells you so and leaves your dance
 unchanged, rather than replacing your figures with an empty list.
 
 Review the preview, then import to replace only the dance's **figures,
-formation, and progression**. This keeps your title, notes, rating, tags,
+formation, and progression**, with the dance form they are written in, and the
+meter and key if the dance has none. The Caller's Box and ContraDB hold contra
+dances, so refreshing an English dance from them makes it a contra dance. This keeps your title, notes, rating, tags,
 links, custom fields, authors, citations, and other saved metadata. The import
 review's **Re-import onto** does the same. Its **Same dance — replace** choices
 are different: they replace the dance's content (see

@@ -598,6 +598,7 @@ CcDanceMapping mapCallersCompanionDance(
           prefix.text,
           prefix.beats,
           prefix.parts,
+          line: line,
           ringDancers: ring,
           meter: meter,
         );
@@ -999,13 +1000,29 @@ bool callersCompanionDifficultyLabelMatches(
 /// [_allocateCompoundBeats] does for contra's split figures; otherwise the
 /// total is the figure's span. None of contra's other retries apply: they
 /// read contra's grammar.
+///
+/// A prefix count (`(6)`, `(4,4)`) that disagrees with the line's bar range
+/// keeps the whole [line] as text, prefix included, with the bars' count:
+/// the bars win, and the disagreement stays visible, as for a count written
+/// after the range ([ecdRestStatesBeats]).
 List<Figure> _ecdLineFigures(
   String text,
   int beats,
   List<int> parts, {
+  required String line,
   int? ringDancers,
   String? meter,
 }) {
+  final bars = beats > 0 ? ecdBarCount(text, meter: meter) : null;
+  if (bars != null && bars.beats != beats) {
+    return [
+      customFigure(
+        scrubFigureText(line),
+        beats: bars.beats,
+        origin: CustomOrigin.importGap,
+      ),
+    ];
+  }
   final figure = parseEcdFigureLine(
     text,
     beats: beats,

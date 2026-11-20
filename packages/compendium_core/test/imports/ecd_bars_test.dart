@@ -384,20 +384,34 @@ void main() {
       );
     });
 
-    test('a compound prefix the bars outcount is not spread on the steps', () {
+    test('a beat prefix that disagrees with the bars keeps the line as '
+        'text, with the bars\' count', () {
+      for (final line in [
+        '(6) 1-4 circle left',
+        '(4,4) 1-4 partners set and turn single',
+      ]) {
+        final dance = mapCallersCompanionDance(
+          record(music: 'Meter: 3/2', lines: [line]),
+          englishDances: true,
+        ).dance;
+        final figure = (dance.figuresSource as DecodedFigures).figures.single;
+        expect(figure.isCustom, isTrue, reason: line);
+        expect(figure.params['text'], line, reason: line);
+        expect(figure.params['beats'], 12, reason: line);
+      }
+    });
+
+    test('a beat prefix the bars agree with reads the line', () {
       final dance = mapCallersCompanionDance(
-        record(
-          music: 'Meter: 3/2',
-          lines: const ['(4,4) 1-4 partners set and turn single'],
-        ),
+        record(music: 'Meter: 2/2', lines: const ['(8) 1-4 circle left']),
         englishDances: true,
       ).dance;
       final figure = (dance.figuresSource as DecodedFigures).figures.single;
-      expect(figure.isSequence, isTrue);
-      expect(figure.params['beats'], 12);
-      final steps = [for (final s in figure.subFigures) s.params['beats']];
-      expect(steps, isNot([4, 4]));
-      // And with no bar range the parts stay on their steps.
+      expect(figure.move, 'ecd_circle');
+      expect(figure.params['beats'], 8);
+    });
+
+    test('a compound prefix with no bar range stays on its steps', () {
       final plain = mapCallersCompanionDance(
         record(
           music: 'Meter: 3/2',
