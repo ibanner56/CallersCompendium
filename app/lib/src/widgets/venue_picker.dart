@@ -209,7 +209,7 @@ class _VenuePickerState extends State<VenuePicker> {
         child: Row(
           children: [
             Expanded(child: Text(l10n.venueLoadError)),
-            TextButton(onPressed: _retry, child: Text(l10n.commonRetry)),
+            TextButton(onPressed: _retry, child: Text(l10n.commonTryAgain)),
           ],
         ),
       );

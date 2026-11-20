@@ -555,10 +555,10 @@ void main() {
       // The window-restore failure is now inside the bootstrapped future, so it
       // renders the error/retry screen rather than blanking the window.
       expect(
-        find.textContaining('Could not prepare the collection'),
+        find.textContaining("Couldn't prepare your library"),
         findsOneWidget,
       );
-      expect(find.text('Retry'), findsOneWidget);
+      expect(find.text('Try again'), findsOneWidget);
       expect(find.byType(AppShell), findsNothing);
     },
   );
@@ -593,7 +593,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-      find.textContaining('Could not prepare the collection'),
+      find.textContaining("Couldn't prepare your library"),
       findsOneWidget,
     );
     expect(sink.sources, ['main.bootstrap']);
@@ -632,7 +632,7 @@ void main() {
     expect(find.text('Copied'), findsOneWidget);
 
     // Retry must reopen the database: the failed LazyDatabase never recovers.
-    await tester.tap(find.text('Retry'));
+    await tester.tap(find.text('Try again'));
     await tester.pumpAndSettle();
 
     expect(find.byType(AppShell), findsOneWidget);
@@ -681,10 +681,10 @@ void main() {
       // First bootstrap: the derived rebuild threw, so the migration failure
       // reaches the AppBootstrap error/retry screen and the app is gated.
       expect(
-        find.textContaining('Could not prepare the collection'),
+        find.textContaining("Couldn't prepare your library"),
         findsOneWidget,
       );
-      expect(find.text('Retry'), findsOneWidget);
+      expect(find.text('Try again'), findsOneWidget);
       expect(find.byType(AppShell), findsNothing);
       expect(appData.repositories.rebuildAttempts, 1);
       // The repair debt has not cleared, so a pinned pre-repair copy stays.
@@ -692,11 +692,11 @@ void main() {
 
       // Retry rebuilds the database-backed world from appDataFactory; the fresh
       // healthy AppData migrates cleanly and the app recovers.
-      await tester.tap(find.text('Retry'));
+      await tester.tap(find.text('Try again'));
       await tester.pumpAndSettle();
 
       expect(
-        find.textContaining('Could not prepare the collection'),
+        find.textContaining("Couldn't prepare your library"),
         findsNothing,
       );
       expect(find.byType(AppShell), findsOneWidget);
@@ -750,7 +750,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('integrity check failed'), findsOneWidget);
+    expect(find.textContaining('failed its safety check'), findsOneWidget);
     // The warning is advisory — the collection still opens.
     expect(find.byType(AppShell), findsOneWidget);
   });
@@ -782,10 +782,13 @@ void main() {
       // warning is shown and the collection still opens. It must NOT reach the
       // error/retry screen — that path is reserved for a genuine DB-open
       // failure during window restore (Stage 1.6).
-      expect(find.textContaining('integrity check failed'), findsOneWidget);
+      expect(
+        find.textContaining("Couldn't finish checking your data"),
+        findsOneWidget,
+      );
       expect(find.byType(AppShell), findsOneWidget);
       expect(
-        find.textContaining('Could not prepare the collection'),
+        find.textContaining("Couldn't prepare your library"),
         findsNothing,
       );
     },
@@ -814,7 +817,7 @@ void main() {
 
     probe.complete(true);
     await tester.pumpAndSettle();
-    expect(find.textContaining('integrity check failed'), findsNothing);
+    expect(find.textContaining('failed its safety check'), findsNothing);
     expect(find.byType(AppShell), findsOneWidget);
   });
 
@@ -835,12 +838,12 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.byType(AppShell), findsOneWidget);
-    expect(find.textContaining('integrity check failed'), findsNothing);
+    expect(find.textContaining('failed its safety check'), findsNothing);
 
     probe.complete(false);
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('integrity check failed'), findsOneWidget);
+    expect(find.textContaining('failed its safety check'), findsOneWidget);
     expect(find.byType(AppShell), findsOneWidget);
   });
 
@@ -868,12 +871,12 @@ void main() {
     probe.completeError(StateError('quick_check failed to run'));
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('integrity check failed'), findsOneWidget);
-    expect(find.byType(AppShell), findsOneWidget);
     expect(
-      find.textContaining('Could not prepare the collection'),
-      findsNothing,
+      find.textContaining("Couldn't finish checking your data"),
+      findsOneWidget,
     );
+    expect(find.byType(AppShell), findsOneWidget);
+    expect(find.textContaining("Couldn't prepare your library"), findsNothing);
     expect(sink.sources, ['integrity-probe']);
   });
 
@@ -895,7 +898,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('integrity check failed'), findsNothing);
+    expect(find.textContaining('failed its safety check'), findsNothing);
     expect(find.byType(AppShell), findsOneWidget);
   });
 
@@ -2189,10 +2192,10 @@ void main() {
       );
       expect(find.byType(AppShell), findsNothing);
       // Retrying can't help — the fix is to update the app — so it's hidden.
-      expect(find.text('Retry'), findsNothing);
+      expect(find.text('Try again'), findsNothing);
       // This is not the generic failure path.
       expect(
-        find.textContaining('Could not prepare the collection'),
+        find.textContaining("Couldn't prepare your library"),
         findsNothing,
       );
     },
@@ -3098,7 +3101,7 @@ void main() {
       expect(migrated, isFalse);
       expect(find.textContaining('create an automatic backup'), findsOneWidget);
       expect(find.byType(AppShell), findsNothing);
-      expect(find.text('Retry'), findsNothing);
+      expect(find.text('Try again'), findsNothing);
       // The terminal icon reflects the actual cause (unwritable backups dir),
       // not the always-on disc_full glyph the review flagged (issue #442).
       expect(find.byIcon(Icons.folder_off_outlined), findsOneWidget);
@@ -3136,8 +3139,8 @@ void main() {
       );
       expect(find.byIcon(Icons.folder_off_outlined), findsOneWidget);
       expect(find.byType(AppShell), findsNothing);
-      expect(find.text(l10n.commonRetry), findsNothing);
-      expect(find.text('Retry'), findsNothing);
+      expect(find.text(l10n.commonTryAgain), findsNothing);
+      expect(find.text('Try again'), findsNothing);
     });
   }
 
@@ -3218,7 +3221,7 @@ void main() {
       // The app opens normally instead of throwing out of `_loadPreferences`.
       expect(find.byType(AppShell), findsOneWidget);
       expect(
-        find.textContaining('Could not prepare the collection'),
+        find.textContaining("Couldn't prepare your library"),
         findsNothing,
       );
     },

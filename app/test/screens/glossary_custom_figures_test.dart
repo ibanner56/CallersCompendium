@@ -150,7 +150,7 @@ void main() {
       expect(find.byKey(customRow), findsNothing);
       // Adding is still offered, for a term only (#1023, maintainer
       // decision 9).
-      expect(find.byTooltip('Add your own figure'), findsNothing);
+      expect(find.byTooltip('Add your figure'), findsNothing);
       expect(find.byTooltip('Add a term'), findsOneWidget);
       expect(
         await tester.runAsync(() => h.repos.userGlossary.getById('grl')),

@@ -471,7 +471,7 @@ class _CollectionShellState extends State<CollectionShell> {
         _detailMessengerKey.currentState?.showSnackBar(
           SnackBar(
             content: Text(
-              AppLocalizations.of(context).danceReimportSourceFailed,
+              AppLocalizations.of(context).danceReimportApplyFailed,
             ),
           ),
         );

@@ -238,7 +238,7 @@ void main() {
           },
         ),
       );
-      expect(find.text('Share (program + dances)'), findsNothing);
+      expect(find.text('Share program and dances'), findsNothing);
       await tester.tap(find.text('Save program file…'));
       await tester.pumpAndSettle();
 
@@ -555,7 +555,10 @@ void main() {
       await tester.tap(find.text('Share set list (text)'));
       await tester.pumpAndSettle();
 
-      expect(find.text("Couldn't share this set list"), findsOneWidget);
+      expect(
+        find.text("Couldn't share this set list. Try again."),
+        findsOneWidget,
+      );
     });
 
     testWidgets('share receives a non-null sharePositionOrigin', (
@@ -618,7 +621,10 @@ void main() {
       await tester.tap(find.text('Export / print PDF'));
       await tester.pumpAndSettle();
 
-      expect(find.text("Couldn't export this set list"), findsOneWidget);
+      expect(
+        find.text("Couldn't export this set list. Try again."),
+        findsOneWidget,
+      );
     });
 
     testWidgets(
@@ -653,7 +659,10 @@ void main() {
         await tester.tap(find.text('Share set list (text)'));
         await tester.pumpAndSettle();
 
-        expect(find.text("Couldn't share this set list"), findsOneWidget);
+        expect(
+          find.text("Couldn't share this set list. Try again."),
+          findsOneWidget,
+        );
         expect(sink.sources, ['program_export_menu._guard']);
       },
     );
@@ -690,19 +699,22 @@ void main() {
         await tester.tap(find.text('Export / print PDF'));
         await tester.pumpAndSettle();
 
-        expect(find.text("Couldn't export this set list"), findsOneWidget);
+        expect(
+          find.text("Couldn't export this set list. Try again."),
+          findsOneWidget,
+        );
         expect(sink.sources, ['program_export_menu._guard']);
       },
     );
 
     testWidgets(
-      'offers "Share (program + dances)" only when danceFor is given',
+      'offers "Share program and dances" only when danceFor is given',
       (tester) async {
         // Without danceFor: no bundle action.
         await _pumpMenu(tester, _program());
         await tester.tap(find.byKey(const ValueKey('program-export-menu')));
         await tester.pumpAndSettle();
-        expect(find.text('Share (program + dances)'), findsNothing);
+        expect(find.text('Share program and dances'), findsNothing);
         // Close the menu.
         await tester.tapAt(const Offset(5, 5));
         await tester.pumpAndSettle();
@@ -728,7 +740,7 @@ void main() {
         await tester.pumpAndSettle();
         await tester.tap(find.byKey(const ValueKey('program-export-menu')));
         await tester.pumpAndSettle();
-        expect(find.text('Share (program + dances)'), findsOneWidget);
+        expect(find.text('Share program and dances'), findsOneWidget);
       },
     );
 
@@ -773,7 +785,7 @@ void main() {
 
         await tester.tap(find.byKey(const ValueKey('program-export-menu')));
         await tester.pumpAndSettle();
-        await tester.tap(find.text('Share (program + dances)'));
+        await tester.tap(find.text('Share program and dances'));
         await tester.pumpAndSettle();
 
         expect(captured, isNotNull);
@@ -854,7 +866,7 @@ void main() {
         await tester.pumpAndSettle();
         await tester.tap(find.byKey(const ValueKey('program-export-menu')));
         await tester.pumpAndSettle();
-        await tester.tap(find.text('Share (program + dances)'));
+        await tester.tap(find.text('Share program and dances'));
         await tester.pumpAndSettle();
         return (written: written, shared: shared);
       }
@@ -879,7 +891,12 @@ void main() {
 
         expect(result.written, isEmpty);
         expect(result.shared, isNull);
-        expect(find.text("Couldn't share this program"), findsOneWidget);
+        expect(
+          find.text(
+            "Couldn't share this program. Your program is unchanged. Try again.",
+          ),
+          findsOneWidget,
+        );
       });
     });
 
@@ -919,15 +936,20 @@ void main() {
 
       await tester.tap(find.byKey(const ValueKey('program-export-menu')));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Share (program + dances)'));
+      await tester.tap(find.text('Share program and dances'));
       await tester.pumpAndSettle();
 
-      expect(find.text("Couldn't share this program"), findsOneWidget);
+      expect(
+        find.text(
+          "Couldn't share this program. Your program is unchanged. Try again.",
+        ),
+        findsOneWidget,
+      );
     });
 
     for (final jsonExport in [false, true]) {
       testWidgets(
-        '${jsonExport ? 'Export as JSON file' : 'Share (program + dances)'} '
+        '${jsonExport ? 'Export as JSON file' : 'Share program and dances'} '
         'carries a custom level that only an alternate uses, with '
         'hideAlternates',
         (tester) async {
@@ -987,12 +1009,17 @@ void main() {
           await tester.pumpAndSettle();
           await tester.tap(
             find.text(
-              jsonExport ? 'Export as JSON file' : 'Share (program + dances)',
+              jsonExport ? 'Export as JSON file' : 'Share program and dances',
             ),
           );
           await tester.pumpAndSettle();
 
-          expect(find.text("Couldn't share this program"), findsNothing);
+          expect(
+            find.text(
+              "Couldn't share this program. Your program is unchanged. Try again.",
+            ),
+            findsNothing,
+          );
           expect(find.textContaining("Couldn't"), findsNothing);
           final json = jsonExport
               ? savedJson
@@ -1027,7 +1054,7 @@ void main() {
 
         await tester.tap(find.byKey(const ValueKey('program-export-menu')));
         await tester.pumpAndSettle();
-        await tester.tap(find.text('Share (program + dances)'));
+        await tester.tap(find.text('Share program and dances'));
         await tester.pumpAndSettle();
 
         // The dialog offers only the populated contact fields (contact 1),
@@ -1082,7 +1109,7 @@ void main() {
 
       await tester.tap(find.byKey(const ValueKey('program-export-menu')));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Share (program + dances)'));
+      await tester.tap(find.text('Share program and dances'));
       await tester.pumpAndSettle();
 
       // Opt only the email in.
@@ -1124,7 +1151,7 @@ void main() {
 
       await tester.tap(find.byKey(const ValueKey('program-export-menu')));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Share (program + dances)'));
+      await tester.tap(find.text('Share program and dances'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Cancel'));
       await tester.pumpAndSettle();
@@ -1158,7 +1185,7 @@ void main() {
 
       await tester.tap(find.byKey(const ValueKey('program-export-menu')));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Share (program + dances)'));
+      await tester.tap(find.text('Share program and dances'));
       await tester.pumpAndSettle();
       expect(
         find.byKey(const ValueKey('venue-contact-share-dialog')),
@@ -1205,7 +1232,7 @@ void main() {
 
         await tester.tap(find.byKey(const ValueKey('program-export-menu')));
         await tester.pumpAndSettle();
-        await tester.tap(find.text('Share (program + dances)'));
+        await tester.tap(find.text('Share program and dances'));
         await tester.pumpAndSettle();
 
         expect(
@@ -1244,7 +1271,7 @@ void main() {
 
       await tester.tap(find.byKey(const ValueKey('program-export-menu')));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Share (program + dances)'));
+      await tester.tap(find.text('Share program and dances'));
       await tester.pumpAndSettle();
 
       expect(
@@ -1434,7 +1461,7 @@ void main() {
           .toList();
       expect(titles, const [
         'Share set list (text)',
-        'Share (program + dances)',
+        'Share program and dances',
         'Copy set list',
         'Export as JSON file',
         'Export / print PDF',
@@ -1643,7 +1670,7 @@ void main() {
       await tester.tap(find.text('Export as JSON file'));
       await tester.pumpAndSettle();
 
-      expect(find.text("Couldn't copy this JSON."), findsOneWidget);
+      expect(find.text("Couldn't copy this JSON. Try again."), findsOneWidget);
     });
 
     testWidgets('emits the same payload as the .ccshare action', (
@@ -1735,7 +1762,7 @@ void main() {
           ..remove('exportedAt');
       }
 
-      final bundle = await payloadFor('Share (program + dances)');
+      final bundle = await payloadFor('Share program and dances');
       final json = await payloadFor('Export as JSON file');
 
       // Guard the guard: a comparison of two empty-ish payloads would pass

@@ -31,6 +31,15 @@ String databaseBelowFloorHeadline(AppLocalizations l10n) =>
 String databaseBelowFloorBody(AppLocalizations l10n, String bridgeTag) =>
     l10n.migrationBelowFloorBody(bridgeTag);
 
+/// Terminal-screen label for the primary button that opens the release page
+/// of [bridgeTag], the version that can update the old data.
+String databaseBelowFloorGetBridge(AppLocalizations l10n, String bridgeTag) =>
+    l10n.migrationBelowFloorGetBridge(bridgeTag);
+
+/// Terminal-screen label above the two reset buttons.
+String databaseBelowFloorStartFresh(AppLocalizations l10n) =>
+    l10n.migrationBelowFloorStartFresh;
+
 /// Terminal-screen label for the "Back up + reset" button on the below-floor
 /// recovery screen.
 String databaseBelowFloorBackUpAndReset(AppLocalizations l10n) =>

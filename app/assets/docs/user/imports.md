@@ -134,7 +134,7 @@ A few honest notes about these online imports:
 - Figures come in as recognized moves where the app can read them and as
   plain-text figures otherwise, the same as every other import.
 - To have every dance you import on its own tagged automatically — a "no card"
-  tag, say — choose the tags under **Settings → Defaults → Import defaults**.
+  tag, say — choose the tags under **Settings ▸ Defaults ▸ Import defaults**.
   See [Settings](./settings.md#import-defaults).
 
 ### What the app will and won't fetch
@@ -176,10 +176,10 @@ see where the dances came from.
 
 1. Open **Collection** and choose **Import dances**, choose **Browse published
    collections** on the card that shows while the sample dance is your only
-   dance, or open **Settings** → **General** → **Import…**.
+   dance, or open **Settings** ▸ **General** ▸ **Import…**.
 2. Under the source selector, choose a published collection to review its
    title, version, dance count, and availability. You can also browse the same
-   catalog from **Settings** → **General** → **Published collections**.
+   catalog from **Settings** ▸ **General** ▸ **Published collections**.
 3. Select **Import collection** and review what it contains.
 4. Confirm the import when you are ready. Nothing is added until you commit it,
    and the same review flow lets you skip items you do not want.
@@ -201,10 +201,10 @@ connection), it **needs a newer app version** (update the app), it **could not
 be verified** (its signature did not match a key this app trusts; if it keeps
 happening, update the app, because the catalog may have moved to a newer
 signing key), or it is **temporarily unavailable** (it failed another safety
-check, so nothing was imported). Choose **Retry** to try again without leaving
+check, so nothing was imported). Choose **Try again** to run it again without leaving
 the screen (it is not offered when the catalog or collection is in a format
 only a newer app can read). Failures are
-recorded in **Settings** → **Diagnostics**.
+recorded in **Settings** ▸ **Diagnostics**.
 
 ## Bring in a list of dance titles
 
@@ -212,8 +212,8 @@ If you have a list of titles written down — an evening's set list, a workshop
 handout, dances a friend recommended — you can paste the whole list at once and
 let the app find them, **without** building a program.
 
-1. Open **Collection** and choose **Import dances**, or open **Settings** →
-   **General** → **Import…**.
+1. Open **Collection** and choose **Import dances**, or open **Settings** ▸
+   **General** ▸ **Import…**.
 2. In the source selector, choose **a list of titles**.
 3. Paste your titles, **one per line**, and choose **Review import**.
 4. The app checks each title against your own collection first, then searches
@@ -294,7 +294,7 @@ can't be opened
 ### Open a shared program someone sent you
 
 If another caller shares a **program bundle** with you — the
-**Share (program + dances)** file described in
+**Share program and dances** file described in
 [Share, print & export](./sharing.md#share-a-program-with-its-dances) — you can
 often open the file directly:
 
@@ -319,7 +319,7 @@ often open the file directly:
   symbolic link to a file or, on Windows, a file inside a folder that is a
   symbolic link or junction, the app says it couldn't read the shared file:
   copy the file itself to a local folder first.
-- **Any device**: go to **Settings › General** and choose **Import…**, then
+- **Any device**: go to **Settings ▸ General** and choose **Import…**, then
   pick the file.
   On Android the file picker lists every file of unknown type as well as share
   files, so choose the one you saved.
@@ -337,7 +337,7 @@ adds get your [default import tags](./settings.md#import-defaults), next to
 the tags the sender gave them.
 
 A full **backup** opened this way is not imported: the app says it is a
-backup, and that **Settings › General › Restore from a backup** is where to
+backup, and that **Settings ▸ General ▸ Restore from a backup** is where to
 bring it in (see [below](#move-your-whole-library-backup-and-restore)).
 
 This intake is deliberately safe. The file is treated as untrusted input: it is
@@ -511,8 +511,8 @@ others reads "Choreography: others, not named". A dance you imported before
 keeps its credit; if you re-import it with **Also update title and credit**,
 it is credited to the named people only, without the note, and an author
 called "Others" from the earlier import stays in your list. Fix it in
-**Settings › General › Library › Authors** (see
-[Settings](./settings.md#library)): delete it once no dance credits it, or merge
+**Settings ▸ General ▸ Dances ▸ Authors** (see
+[Settings](./settings.md#dances)): delete it once no dance credits it, or merge
 it into another author.
 
 Your **notes and sources** come across with each dance. Your calling notes
@@ -582,7 +582,7 @@ open the app.
 
 An English country dance imported before the app knew English figures, or
 converted from the **ECD** tag above, still holds the contra moves it was
-read with. Those still show correctly, but **Settings → General → Import →
+read with. Those still show correctly, but **Settings ▸ General ▸ Import ▸
 Convert English dances** can turn them into English figures, so they read in your
 English dialect and can be edited with English options.
 
@@ -684,7 +684,7 @@ moving between devices is a clean round trip: what you save is what you get back
 For step-by-step backup and restore, see
 [Backup & portability](./backup-portability.md). In short:
 
-- **Export a backup** — open **Settings › General**, find **Export a backup**,
+- **Export a backup** — open **Settings ▸ General**, find **Export a backup**,
   and choose **Export**. The app writes one `.json` file containing your entire
   collection, programs, custom fields, dialects, themes, and settings. Keep it
   somewhere safe or copy it to another device.
@@ -929,7 +929,7 @@ your collection (or imports it for you) as it reads the list:
 Both live in the **Import program** menu on the **Programs** screen rather than
 the **Import…** flow here, because they build a program, not just add dances. For
 step-by-step instructions, see
-[Programs & matrix › Import a program from ContraDB](./programs.md#import-a-program-from-contradb)
+[Programs & matrix ▸ Import a program from ContraDB](./programs.md#import-a-program-from-contradb)
 and [Build from a list of titles](./programs.md#build-from-a-list-of-titles).
 
 If you want the dances but **not** a program, use

@@ -106,9 +106,9 @@
   "@menuUserGuide": {
     "description": "Help menu item that opens the in-app User Guide. Shown only on macOS, in the app's menu bar (PlatformMenuBar). Title case, as macOS menu items are written in English."
   },
-  "appBootstrapPreparing": "Preparing your collection",
+  "appBootstrapPreparing": "Preparing your library",
   "@appBootstrapPreparing": {
-    "description": "Accessibility label on the startup loading spinner shown while the collection database is being prepared."
+    "description": "Accessibility label on the startup loading spinner shown while the library database is being prepared."
   },
   "appBootstrapRebuildingIndex": "Rebuilding search index",
   "@appBootstrapRebuildingIndex": {
@@ -124,9 +124,9 @@
       }
     }
   },
-  "appBootstrapError": "Could not prepare the collection.",
+  "appBootstrapError": "Couldn't prepare your library. Try again.",
   "@appBootstrapError": {
-    "description": "Error message shown on the startup screen when preparing the collection fails; accompanied by a Retry button."
+    "description": "Error message shown on the startup screen when preparing the library fails; accompanied by a Try again button."
   },
   "appBootstrapCopyDetails": "Copy details",
   "@appBootstrapCopyDetails": {
@@ -142,7 +142,7 @@
   },
   "appBootstrapReleasesLink": "Open the Releases page",
   "@appBootstrapReleasesLink": {
-    "description": "Button on the terminal startup screens (newer data, too-old data, backup could not be made, data could not be moved) that opens the project's GitHub Releases page in the browser, where newer builds and the migration-bridge build can be downloaded."
+    "description": "Button on the terminal startup screens (newer data, backup could not be made, data could not be moved) that opens the project's GitHub Releases page in the browser, where newer builds and the migration-bridge build can be downloaded."
   },
   "migrationDowngradeVersions": "Your data uses storage format {fileVersion}. This version of the app reads up to format {appVersion}.",
   "@migrationDowngradeVersions": {
@@ -162,23 +162,23 @@
   },
   "migrationDowngradeMessage": "This data was created by a newer version of Caller's Compendium. Update the app, then reopen it.",
   "@migrationDowngradeMessage": {
-    "description": "Terminal startup-screen message shown when the on-disk data was written by a newer app version than the one running (no downgrade path). No Retry is offered; the app has to be updated and reopened."
+    "description": "Terminal startup-screen message shown when the on-disk data was written by a newer app version than the one running (no downgrade path). No Try again is offered; the app has to be updated and reopened."
   },
   "migrationRelocationBothExist": "Caller's Compendium didn't start because it found saved data files in the new location and also in a folder an earlier version used. Nothing was changed or deleted. Keep the copy you want, move the other one out of the way, then reopen the app. The FAQ entry \"Where is my data stored?\" lists the locations.",
   "@migrationRelocationBothExist": {
-    "description": "Terminal startup-screen message shown when the one-time move of the database out of the old folder found data files in both the new location and an old location. Nothing is deleted. No Retry is offered."
+    "description": "Terminal startup-screen message shown when the one-time move of the database out of the old folder found data files in both the new location and an old location. Nothing is deleted. No Try again is offered."
   },
   "migrationRelocationMultipleLegacy": "Caller's Compendium didn't start because it found saved data in more than one folder used by earlier versions. Nothing was changed or deleted. Keep the copy you want, move the others out of the way, then reopen the app. The FAQ entry \"Where is my data stored?\" lists the locations.",
   "@migrationRelocationMultipleLegacy": {
-    "description": "Terminal startup-screen message shown when the one-time move of the database found saved data in more than one old location (Windows: Documents and the Roaming fallback) and none in the new location. Nothing is deleted. No Retry is offered."
+    "description": "Terminal startup-screen message shown when the one-time move of the database found saved data in more than one old location (Windows: Documents and the Roaming fallback) and none in the new location. Nothing is deleted. No Try again is offered."
   },
   "migrationRelocationFailed": "Caller's Compendium didn't start because it couldn't finish moving your saved data to its new location. Nothing was deleted. Free up space, close other programs that may be using it, or check the folder permissions, then reopen the app to try again.",
   "@migrationRelocationFailed": {
-    "description": "Terminal startup-screen message shown when the one-time move of the database out of the Documents folder failed (disk full, unwritable folder, locked file). Nothing is deleted. No Retry is offered."
+    "description": "Terminal startup-screen message shown when the one-time move of the database out of the Documents folder failed (disk full, unwritable folder, locked file). Nothing is deleted. No Try again is offered."
   },
   "migrationRelocationLegacyUnreachable": "Caller's Compendium didn't start because it couldn't reach your Documents folder, where earlier versions kept your saved data. Nothing was changed or created. If Documents is on another drive or a network folder, reconnect it, then reopen the app. If you have no Documents folder, create an empty one, then reopen the app. The FAQ entry \"Where is my data stored?\" has more.",
   "@migrationRelocationLegacyUnreachable": {
-    "description": "Terminal startup-screen message shown when there is no database in the new location yet and the Documents folder (where earlier versions kept the database) cannot be reached, so the app cannot tell whether a library is waiting there. Nothing is created. No Retry is offered."
+    "description": "Terminal startup-screen message shown when there is no database in the new location yet and the Documents folder (where earlier versions kept the database) cannot be reached, so the app cannot tell whether a library is waiting there. Nothing is created. No Try again is offered."
   },
   "migrationRelocationCopiesHeading": "Each copy's size and when it last changed (the larger, more recently changed copy is usually your library):",
   "@migrationRelocationCopiesHeading": {
@@ -229,7 +229,7 @@
   "@migrationSnapshotCauseDiskFull": {
     "description": "Plain-language sentence naming the likely cause of a failed pre-migration backup: the device is low on storage. Embedded into the snapshot-failure copy."
   },
-  "migrationSnapshotCauseUnwritableBackupsDir": "The automatic backups folder could not be written to.",
+  "migrationSnapshotCauseUnwritableBackupsDir": "Couldn't write to the automatic backups folder.",
   "@migrationSnapshotCauseUnwritableBackupsDir": {
     "description": "Plain-language sentence naming the likely cause of a failed pre-migration backup: the backups folder is not writable. Embedded into the snapshot-failure copy."
   },
@@ -243,7 +243,7 @@
   },
   "migrationSnapshotInUseAbortedMessage": "Caller's Compendium didn't start because another app has your library open, so the automatic backup made before changing your saved data would miss your latest changes. Close any other app that has your library open, then reopen Caller's Compendium — or reopen it and choose to continue without a backup.",
   "@migrationSnapshotInUseAbortedMessage": {
-    "description": "Terminal startup-screen message shown when the automatic backup taken before a schema upgrade or a one-time data repair failed because another program has the app's data file open, and the user declined to proceed without one. No Retry is offered: the user reopens the app. Say \"app\", not \"program\": in this app a program is a dance set list."
+    "description": "Terminal startup-screen message shown when the automatic backup taken before a schema upgrade or a one-time data repair failed because another program has the app's data file open, and the user declined to proceed without one. No Try again is offered: the user reopens the app. Say \"app\", not \"program\": in this app a program is a dance set list."
   },
   "migrationSnapshotConsentTitle": "Couldn't back up your data",
   "@migrationSnapshotConsentTitle": {
@@ -269,7 +269,7 @@
   },
   "migrationBelowFloorHeadline": "This data is from a version too old to open",
   "@migrationBelowFloorHeadline": {
-    "description": "Headline on the below-floor recovery screen shown when the on-disk database was written by a build older than the minimum supported schema version. Terminal, no Retry."
+    "description": "Headline on the below-floor recovery screen shown when the on-disk database was written by a build older than the minimum supported schema version. Terminal, no Try again."
   },
   "migrationBelowFloorBody": "Your data can be recovered. Install {bridgeTag}, open the app once to let it update your data, then install this version again.\n\nIf you prefer to start fresh, use the options below — your current data will be lost.",
   "@migrationBelowFloorBody": {
@@ -280,6 +280,20 @@
         "example": "v0.1.0-beta.6"
       }
     }
+  },
+  "migrationBelowFloorGetBridge": "Get {bridgeTag}",
+  "@migrationBelowFloorGetBridge": {
+    "description": "Primary button on the below-floor recovery screen that opens the release page for the version that can update the old data. {bridgeTag} is that release's tag.",
+    "placeholders": {
+      "bridgeTag": {
+        "type": "String",
+        "example": "v0.9.2-beta"
+      }
+    }
+  },
+  "migrationBelowFloorStartFresh": "Start fresh instead",
+  "@migrationBelowFloorStartFresh": {
+    "description": "Label above the two reset buttons on the below-floor recovery screen, which abandon the old data instead of recovering it."
   },
   "migrationBelowFloorBackUpAndReset": "Back up + reset",
   "@migrationBelowFloorBackUpAndReset": {
@@ -293,7 +307,7 @@
   "@migrationBelowFloorBackupFailedTitle": {
     "description": "Title of the dialog shown when the pre-reset backup fails on the below-floor recovery screen. The reset is NOT performed when this dialog is shown."
   },
-  "migrationBelowFloorBackupFailedBody": "The backup could not be written, so your data has not been reset.",
+  "migrationBelowFloorBackupFailedBody": "Couldn't write the backup, so your data hasn't been reset. Free up some space, then try again.",
   "@migrationBelowFloorBackupFailedBody": {
     "description": "Body of the dialog shown when the pre-reset backup fails on the below-floor recovery screen. The reset is NOT performed."
   },
@@ -329,7 +343,7 @@
       }
     }
   },
-  "migrationBelowFloorResetOnlyConfirmBody": "No backup will be made. Resetting will permanently delete all your current data and replace it with a fresh, empty database. This cannot be undone.",
+  "migrationBelowFloorResetOnlyConfirmBody": "No backup will be made. Resetting will permanently delete all your current data and replace it with a fresh, empty database. This can't be undone.",
   "@migrationBelowFloorResetOnlyConfirmBody": {
     "description": "Body of the confirmation dialog shown before a Reset only action on the below-floor recovery screen. No backup is made. Must make the irreversibility and data loss explicit."
   },
@@ -337,7 +351,7 @@
   "@migrationBelowFloorWipeFailedTitle": {
     "description": "Title of the error dialog shown when the database file could not be deleted during a reset on the below-floor recovery screen. The database is intact."
   },
-  "migrationBelowFloorWipeFailedBody": "The database file could not be deleted. Your data has not been changed. Try closing other apps that may be using the file, then try again.",
+  "migrationBelowFloorWipeFailedBody": "Couldn't delete the database file. Your data hasn't been changed. Try closing other apps that may be using the file, then try again.",
   "@migrationBelowFloorWipeFailedBody": {
     "description": "Body of the error dialog shown when the database file could not be deleted. Instructs the user to close any apps locking the file and retry."
   },
@@ -465,7 +479,7 @@
   "@settingsDeveloperResetConfirmTitle": {
     "description": "Title of the confirmation dialog for resetting the database."
   },
-  "settingsDeveloperResetConfirmBody": "This permanently deletes every dance, program, collection, setting and note on this device and restarts the app as if it had just been installed. It cannot be undone.",
+  "settingsDeveloperResetConfirmBody": "This permanently deletes your whole library on this device (every dance, program, setting and note) and restarts the app as if it had just been installed. This can't be undone.",
   "@settingsDeveloperResetConfirmBody": {
     "description": "Body of the reset database confirmation dialog."
   },
@@ -485,7 +499,7 @@
   "@settingsDeveloperResetLeaveFailed": {
     "description": "Snackbar shown when leaving the sync store before a reset fails; the database is untouched and the device stays connected."
   },
-  "settingsDeveloperResetFailed": "Couldn't reset the database, so your data is unchanged. If this device was connected to a sync store, it has already left it.",
+  "settingsDeveloperResetFailed": "Couldn't reset the database. If this device was connected to a sync store, it has already left it.",
   "@settingsDeveloperResetFailed": {
     "description": "Snackbar shown when the reset did not delete the database (it threw, or the wipe failed). A connected device has already left its sync store by then."
   },
@@ -515,7 +529,7 @@
   "@glossarySelectPrompt": {
     "description": "Shown in the empty detail pane of the wide Glossary layout before a figure is selected."
   },
-  "glossaryCopyAsOwnFigure": "Copy as your own figure",
+  "glossaryCopyAsOwnFigure": "Copy to Custom Figures",
   "@glossaryCopyAsOwnFigure": {
     "description": "Button on a built-in figure's Glossary page that opens the editor on a new figure of the user's own, copied from it (#1023). The built-in figure is not changed."
   },
@@ -1146,7 +1160,7 @@
   "@settingsSyncFailurePeerUnavailableAdvice": {
     "description": "What the user can do about settingsSyncFailurePeerUnavailable, shown right after it. Must make sense both on the Device Sync status surface and on the pairing screen, so it does not point at screen positions (\"above\", \"below\")."
   },
-  "settingsSyncFailureInternal": "Something went wrong inside the app while syncing.",
+  "settingsSyncFailureInternal": "Syncing stopped because of a problem inside the app.",
   "@settingsSyncFailureInternal": {
     "description": "Device Sync failure reason, one sentence, shown under \"Last sync failed.\" on the status surface and in pairing, device-list and toolbar errors. Used when a failure inside the app rather than on the network. 'Diagnostics' is the exact title of the settingsDiagnosticsTitle section."
   },
@@ -1164,7 +1178,7 @@
       }
     }
   },
-  "settingsSyncFailureStatusCode": "The server answered with HTTP status {code}.",
+  "settingsSyncFailureStatusCode": "Server status code: {code}.",
   "@settingsSyncFailureStatusCode": {
     "description": "Part of the technical details line under a Device Sync failure: the HTTP status code the server answered with, for the user to quote when reporting the problem.",
     "placeholders": {
@@ -1358,7 +1372,7 @@
   "@syncConflictApply": {
     "description": "Button that saves the chosen versions. Each chosen version then reaches the other devices as an ordinary newer edit."
   },
-  "syncConflictDecideLater": "Decide later",
+  "syncConflictDecideLater": "Cancel",
   "@syncConflictDecideLater": {
     "description": "Closes the conflict choice without changing anything; the items stay listed until decided."
   },
@@ -1682,7 +1696,7 @@
   "@syncSettingDefaultProgramSortDirection": {
     "description": "Name of the synced setting holding the direction the Programs list opens in when a fixed default sort is chosen in Settings > Defaults (issue #1841). Distinct from the last-used direction."
   },
-  "syncSettingPerformStageTheme": "Stage theme in Perform",
+  "syncSettingPerformStageTheme": "Stage theme in Perform mode",
   "@syncSettingPerformStageTheme": {
     "description": "Name of the setting that turns on the dark stage theme in Perform, as a Device Sync conflict names it. It stays on each device now; a conflict over it can only be one queued by an older version of the app."
   },
@@ -1696,9 +1710,9 @@
       }
     }
   },
-  "settingsSyncConflictsCheckFailed": "Couldn't check for conflicts.",
+  "settingsSyncConflictsCheckFailed": "Couldn't check for conflicts. Try again.",
   "@settingsSyncConflictsCheckFailed": {
-    "description": "Title of the Device Sync row shown when counting unresolved sync conflicts failed. Shown with a Retry button, so a failed check is not mistaken for there being no conflicts."
+    "description": "Title of the Device Sync row shown when counting unresolved sync conflicts failed. Shown with a Try again button, so a failed check is not mistaken for there being no conflicts."
   },
   "commonSyncNowConflictsTooltip": "{count, plural, =1{Sync now (1 item needs your choice)} other{Sync now ({count} items need your choice)}}",
   "@commonSyncNowConflictsTooltip": {
@@ -1924,7 +1938,7 @@
   "@settingsSyncWipeConfirmTitle": {
     "description": "Title of the confirmation dialog before wiping the Device Sync store."
   },
-  "settingsSyncWipeConfirmBody": "Everything the store holds is deleted from the server, for every device at once, and this can't be undone. Your library stays on this device and on each of your other devices — but anything that had only ever reached another device through syncing will not arrive here. This device disconnects and forgets its sync phrase; your other devices will find the store gone the next time they sync, and will offer to set up a new phrase. Use this when you want to stop using this store's address: it is the only thing that removes what the store holds straight away. To keep syncing, set up a new phrase on each device — reconnecting with the old one puts a new store back at the same address.",
+  "settingsSyncWipeConfirmBody": "Everything the store holds is deleted from the server, for every device at once. This can't be undone. Your library stays on this device and on each of your other devices — but anything that had only ever reached another device through syncing will not arrive here. This device disconnects and forgets its sync phrase; your other devices will find the store gone the next time they sync, and will offer to set up a new phrase. Use this when you want to stop using this store's address: it is the only thing that removes what the store holds straight away. To keep syncing, set up a new phrase on each device — reconnecting with the old one puts a new store back at the same address.",
   "@settingsSyncWipeConfirmBody": {
     "description": "Body of the Device Sync wipe confirmation: irreversible, affects every device, keeps local libraries, detaches this device, and is the only thing that removes the store's contents at once (spec §5.3). Moving every device to a new phrase is the complementary step (spec §6.14 item 2): neither is presented as the whole answer. The phrase is the store's address, not a password or credential: do not use 'leaked', 'stolen', 'compromised' or account vocabulary."
   },
@@ -2110,7 +2124,7 @@
   "@settingsSyncPairingBackupOfferAccept": {
     "description": "Button that exports a backup during the pairing backup offer."
   },
-  "settingsSyncPairingBackupOfferSkip": "Skip",
+  "settingsSyncPairingBackupOfferSkip": "Not now",
   "@settingsSyncPairingBackupOfferSkip": {
     "description": "Button that declines the pairing backup offer and continues."
   },
@@ -2278,7 +2292,7 @@
   },
   "settingsAboutLicenseBody": "Caller's Compendium is free software, licensed under the GNU Affero General Public License, version 3 (AGPL-3.0-only). You are free to use, study, share, and modify it under that license. Because the AGPL requires it, the complete corresponding source code is offered to everyone who uses the app.",
   "@settingsAboutLicenseBody": {
-    "description": "Explanatory paragraph about the app's AGPL-3.0 license and the corresponding source-code offer. 'Caller's Compendium', 'GNU Affero General Public License', and 'AGPL-3.0-only' are proper nouns kept verbatim."
+    "description": "Explanatory paragraph about the app's AGPL-3.0-only license and the corresponding source-code offer. 'Caller's Compendium', 'GNU Affero General Public License', and 'AGPL-3.0-only' are proper nouns kept verbatim."
   },
   "settingsAboutViewSourceTitle": "View source on GitHub",
   "@settingsAboutViewSourceTitle": {
@@ -2292,11 +2306,11 @@
   "@settingsAboutFontsBody": {
     "description": "Paragraph introducing the bundled fonts. 'SIL Open Font License 1.1' is a proper noun kept verbatim; “View licenses” refers to the tile of the same name."
   },
-  "settingsAboutFontFrauncesSubtitle": "SIL Open Font License 1.1 · © The Fraunces Project Authors — display & headings",
+  "settingsAboutFontFrauncesSubtitle": "SIL Open Font License 1.1 · © The Fraunces Project Authors — display and headings",
   "@settingsAboutFontFrauncesSubtitle": {
     "description": "Attribution subtitle for the Fraunces typeface: its license, copyright, and role in the app. License name and copyright are proper nouns kept verbatim."
   },
-  "settingsAboutFontAtkinsonSubtitle": "SIL Open Font License 1.1 · © Braille Institute of America, Inc. — body, UI & Perform",
+  "settingsAboutFontAtkinsonSubtitle": "SIL Open Font License 1.1 · © Braille Institute of America, Inc. — body, UI and Perform mode",
   "@settingsAboutFontAtkinsonSubtitle": {
     "description": "Attribution subtitle for the Atkinson Hyperlegible typeface: its license, copyright, and role in the app. License name and copyright are proper nouns kept verbatim."
   },
@@ -2316,7 +2330,7 @@
   "@settingsAboutDanceDataHeader": {
     "description": "About section header for the dance-data provenance attribution."
   },
-  "settingsAboutDanceDataBody": "Dance data draws on The Caller's Box (Chris Page & Michael Dyck), whose collection is published under the Creative Commons Attribution-NonCommercial license (CC BY-NC), with gratitude.",
+  "settingsAboutDanceDataBody": "Dance data draws on The Caller's Box (Chris Page and Michael Dyck), whose collection is published under the Creative Commons Attribution-NonCommercial license (CC BY-NC), with gratitude.",
   "@settingsAboutDanceDataBody": {
     "description": "Paragraph crediting The Caller's Box dance-data source. 'The Caller's Box', the author names, and 'CC BY-NC' are proper nouns kept verbatim."
   },
@@ -2534,7 +2548,7 @@
   "@settingsUpdatesDownloadTitle": {
     "description": "Title of the assisted-download tile in its idle and failed states, offering to download the update."
   },
-  "settingsUpdatesDownloadError": "The update could not be downloaded.",
+  "settingsUpdatesDownloadError": "Couldn't download the update. Try again.",
   "@settingsUpdatesDownloadError": {
     "description": "Fallback error message when an assisted download fails without a more specific reason. The raw error is logged, not shown (CWE-209)."
   },
@@ -3132,14 +3146,9 @@
   "@settingsDefaultsStartingProgramMoveDown": {
     "description": "Tooltip for moving a starting-program entry down."
   },
-  "settingsDefaultsStartingProgramUnavailableDance": "Unavailable dance ({id})",
+  "settingsDefaultsStartingProgramUnavailableDance": "This dance is no longer available",
   "@settingsDefaultsStartingProgramUnavailableDance": {
-    "description": "Fallback label for a starting-program dance reference no longer in the collection.",
-    "placeholders": {
-      "id": {
-        "type": "String"
-      }
-    }
+    "description": "Fallback label for a starting-program dance reference that is no longer in the collection."
   },
   "settingsDefaultsDifficultyLevelEmpty": "A difficulty level needs a name.",
   "@settingsDefaultsDifficultyLevelEmpty": {
@@ -3428,11 +3437,11 @@
   "@settingsDefaultsMoveDefaultsTitle": {
     "description": "Sub-heading for per-move default parameter overrides."
   },
-  "settingsDefaultsUserFiguresTitle": "Your figures' defaults",
+  "settingsDefaultsUserFiguresTitle": "Custom Figures defaults",
   "@settingsDefaultsUserFiguresTitle": {
     "description": "Heading, under Move defaults in Settings, of the list of the user's own new figures (#1023), each linking to the figure where its defaults are set."
   },
-  "settingsDefaultsUserFiguresSubtitle": "Each of your new figures keeps its own defaults: the values it starts with and its beats. Choose one to change them.",
+  "settingsDefaultsUserFiguresSubtitle": "Each of your figures keeps its own defaults: the values it starts with and its beats. Choose one to change them.",
   "@settingsDefaultsUserFiguresSubtitle": {
     "description": "Explains the list of the user's own new figures under Move defaults (#1023): a figure's defaults are part of the figure, so choosing one opens it to edit them."
   },
@@ -3448,7 +3457,7 @@
   "@settingsDefaultsRemoveMoveTooltip": {
     "description": "Tooltip on the button that removes a per-move default override."
   },
-  "settingsDefaultsMoveGone": "This move is no longer in the taxonomy.",
+  "settingsDefaultsMoveGone": "This move is no longer available.",
   "@settingsDefaultsMoveGone": {
     "description": "Shown on a move-default card when the move no longer exists in the taxonomy."
   },
@@ -3506,11 +3515,11 @@
   "@settingsTagColoursEmptyBody": {
     "description": "Body of the empty state on the tag manager; says where tags come from."
   },
-  "settingsTagColoursSaveError": "Couldn't save that color. Please try again.",
+  "settingsTagColoursSaveError": "Couldn't save that color. Try again.",
   "@settingsTagColoursSaveError": {
     "description": "Snack-bar message shown when saving or clearing a tag color fails."
   },
-  "settingsTagColoursLoadError": "Couldn't load your tags.",
+  "settingsTagColoursLoadError": "Couldn't load your tags. Nothing was changed. Try again.",
   "@settingsTagColoursLoadError": {
     "description": "Shown on the tag-color screen when the tag list fails to load."
   },
@@ -3614,7 +3623,7 @@
   "@authorManagerEmptyBody": {
     "description": "Body of the empty state on the author manager."
   },
-  "authorManagerLoadError": "Couldn't load your authors.",
+  "authorManagerLoadError": "Couldn't load your authors. Nothing was changed. Try again.",
   "@authorManagerLoadError": {
     "description": "Shown in the Authors manager when the author list fails to load."
   },
@@ -3652,7 +3661,7 @@
   "@sourceManagerEmptyBody": {
     "description": "Body of the empty state on the source manager."
   },
-  "sourceManagerLoadError": "Couldn't load your sources.",
+  "sourceManagerLoadError": "Couldn't load your sources. Nothing was changed. Try again.",
   "@sourceManagerLoadError": {
     "description": "Shown in the Sources manager when the source list fails to load."
   },
@@ -3792,7 +3801,7 @@
       }
     }
   },
-  "libraryManagerEditFailed": "Couldn't save that change. Please try again.",
+  "libraryManagerEditFailed": "Couldn't save that change. Try again.",
   "@libraryManagerEditFailed": {
     "description": "Snackbar when a rename, merge or delete in the Tags, Authors or Sources manager fails."
   },
@@ -3870,9 +3879,9 @@
       }
     }
   },
-  "settingsGeneralLibraryHeader": "Library",
+  "settingsGeneralLibraryHeader": "Dances",
   "@settingsGeneralLibraryHeader": {
-    "description": "General settings section header for collection-library preferences."
+    "description": "General settings section header over the dance list and labeling preferences: title sorting, figure capitalization, tags, authors and sources."
   },
   "settingsGeneralSortIgnoreArticlesTitle": "Ignore leading articles when sorting",
   "@settingsGeneralSortIgnoreArticlesTitle": {
@@ -4092,9 +4101,9 @@
   "@settingsMatrixColumnsCompoundDelete": {
     "description": "Tooltip for deleting a compound column definition."
   },
-  "settingsGeneralPerformanceHeader": "Performance",
+  "settingsGeneralPerformanceHeader": "Perform mode",
   "@settingsGeneralPerformanceHeader": {
-    "description": "General settings section header for performance-mode display preferences."
+    "description": "Settings ▸ Program section header over the Perform mode preferences (auto-size cards)."
   },
   "settingsGeneralAutoSizePerformTitle": "Auto-size Perform cards",
   "@settingsGeneralAutoSizePerformTitle": {
@@ -4104,7 +4113,7 @@
   "@settingsGeneralAutoSizePerformSubtitle": {
     "description": "Subtitle explaining the auto-size Perform cards toggle. 'A-' and 'A+' refer to text-size controls."
   },
-  "settingsShowIndividualPerformTimerTitle": "Show timer for individual Perform",
+  "settingsShowIndividualPerformTimerTitle": "Show timer when performing one dance",
   "@settingsShowIndividualPerformTimerTitle": {
     "description": "Title of the Program settings toggle that shows an elapsed timer while performing a single dance outside a program."
   },
@@ -4112,19 +4121,19 @@
   "@settingsShowIndividualPerformTimerSubtitle": {
     "description": "Subtitle explaining the default-on individual Perform elapsed-timer toggle."
   },
-  "settingsConfirmPerformExitTitle": "Confirm before leaving Perform",
+  "settingsConfirmPerformExitTitle": "Confirm before leaving Perform mode",
   "@settingsConfirmPerformExitTitle": {
     "description": "Title of the Program settings toggle that makes the Perform close button and system Back ask before leaving Perform."
   },
-  "settingsConfirmPerformExitSubtitle": "Ask before the close button or Back takes you out of Perform. Turn this off to leave in one tap; program Perform keeps your place either way.",
+  "settingsConfirmPerformExitSubtitle": "Ask before the close button or Back takes you out of Perform mode. Turn this off to leave in one tap; Perform mode for a program keeps your place either way.",
   "@settingsConfirmPerformExitSubtitle": {
     "description": "Subtitle of the Program settings toggle that makes leaving Perform ask for confirmation."
   },
-  "settingsShowProgramSlotCallerNotesTitle": "Show caller notes in program Perform",
+  "settingsShowProgramSlotCallerNotesTitle": "Show caller notes when performing a program",
   "@settingsShowProgramSlotCallerNotesTitle": {
     "description": "Title of the default-on Program settings toggle that shows non-empty per-slot caller notes above dance titles in program Perform."
   },
-  "settingsShowProgramSlotCallerNotesSubtitle": "Show non-empty per-slot caller notes above the dance title in program Perform.",
+  "settingsShowProgramSlotCallerNotesSubtitle": "Show non-empty per-slot caller notes above the dance title when you perform a program.",
   "@settingsShowProgramSlotCallerNotesSubtitle": {
     "description": "Subtitle explaining the program Perform caller-note display toggle."
   },
@@ -4360,7 +4369,7 @@
   "@syncReviewIntro": {
     "description": "Introductory copy above persisted sync decision rows."
   },
-  "syncReviewLoadFailed": "Sync decisions could not be loaded.",
+  "syncReviewLoadFailed": "Couldn't load the sync decisions. Try again.",
   "@syncReviewLoadFailed": {
     "description": "Error state shown when loading the persisted sync decision queue fails."
   },
@@ -4368,7 +4377,7 @@
   "@syncReviewResolved": {
     "description": "Snackbar shown after a sync decision is applied successfully."
   },
-  "syncReviewActionFailed": "That sync decision could not be applied. The item was kept for another attempt.",
+  "syncReviewActionFailed": "Couldn't apply that sync decision. The item was kept, so you can try again.",
   "@syncReviewActionFailed": {
     "description": "Generic snackbar shown when a sync decision fails for an unexpected reason."
   },
@@ -4408,7 +4417,7 @@
   "@syncReviewKindSetting": {
     "description": "Kind label for a setting sync decision."
   },
-  "syncReviewKindGlossaryEntry": "Your own figure",
+  "syncReviewKindGlossaryEntry": "Your figure",
   "@syncReviewKindGlossaryEntry": {
     "description": "Kind label for a sync decision about one of the user's own figures: a compound figure they defined in the Glossary."
   },
@@ -4462,7 +4471,7 @@
   "@syncReviewMergeDiscardsContactsTitle": {
     "description": "Confirmation dialog title shown before merging two choreographer records held only on this device."
   },
-  "syncReviewMergeDiscardsContactsBody": "Only one record will be kept. The email address, location, and deceased marker on the other one are stored only on this device, so they cannot be recovered afterwards.",
+  "syncReviewMergeDiscardsContactsBody": "Only one record will be kept. The email address, location, and deceased marker on the other one are stored only on this device and will be lost. This can't be undone.",
   "@syncReviewMergeDiscardsContactsBody": {
     "description": "Confirmation dialog body warning that merging two choreographers discards the losing record's device-local contact details."
   },
@@ -4534,7 +4543,7 @@
   "@settingsGeneralReparseCustomFiguresTitle": {
     "description": "Title of the General settings row that re-parses imported custom-only figures."
   },
-  "settingsGeneralReparseCustomFiguresSubtitle": "Re-check imported dances whose figures were kept as unrecognized figures only because they could not be recognized at import time. If the app can now recognize them, they are upgraded in place — your tags, ratings, and notes are preserved. You preview and confirm before anything changes.",
+  "settingsGeneralReparseCustomFiguresSubtitle": "Re-check imported dances whose figures were kept as unrecognized figures only because they couldn't be recognized at import time. If the app can now recognize them, they are upgraded in place — your tags, ratings, and notes are preserved. You preview and confirm before anything changes.",
   "@settingsGeneralReparseCustomFiguresSubtitle": {
     "description": "Subtitle explaining the re-check custom figures action."
   },
@@ -4562,11 +4571,11 @@
   "@backupExported": {
     "description": "Snackbar confirming an unencrypted backup was exported."
   },
-  "backupExportFailed": "Couldn't export a backup.",
+  "backupExportFailed": "Couldn't export a backup. Your data is unchanged. Try again.",
   "@backupExportFailed": {
     "description": "Snackbar shown when backup export fails. The raw exception is logged separately, not shown in the UI."
   },
-  "backupRestoreIntegrityFailed": "This backup failed its integrity check, so it may be corrupt or was changed after it was exported. The restore was canceled and your data is unchanged.",
+  "backupRestoreIntegrityFailed": "This backup failed its safety check, so it may be damaged or was changed after it was exported. The restore was canceled and your data is unchanged.",
   "@backupRestoreIntegrityFailed": {
     "description": "Snackbar shown when a backup is refused because its SHA-256 integrity checksum did not verify (issue #536): the file is corrupt or was altered after export, so the restore does not run and data is unchanged."
   },
@@ -4596,15 +4605,15 @@
   "@backupRestored": {
     "description": "Snackbar confirming a backup restore completed without skipped problems."
   },
-  "backupRestoreFailed": "Couldn't restore the backup.",
+  "backupRestoreFailed": "Couldn't restore the backup. Try again.",
   "@backupRestoreFailed": {
     "description": "Snackbar shown when backup restore fails unexpectedly. The raw exception is logged separately, not shown in the UI."
   },
-  "backupRestoreSettingsFailed": "Your dances and programs were restored, but applying your saved settings failed. Your restored content is safe — you can retry applying settings.",
+  "backupRestoreSettingsFailed": "Your dances and programs were restored, but applying your saved settings failed. Your restored content is safe — you can try applying them again.",
   "@backupRestoreSettingsFailed": {
     "description": "Snackbar shown when a backup restore committed the core content (dances/programs) successfully but the separate settings-apply step failed (issue #608). Reassures the user their restored content is intact and points to the retry action. Never contains raw error text."
   },
-  "backupRestoreSettingsRetryAction": "Retry settings",
+  "backupRestoreSettingsRetryAction": "Try again",
   "@backupRestoreSettingsRetryAction": {
     "description": "Action button on the settings-restore-failed snackbar that re-applies only the settings portion of the backup. Keep short (a SnackBar action label)."
   },
@@ -4616,7 +4625,7 @@
   "@backupExportTitle": {
     "description": "Title of the backup export row and export-options dialog."
   },
-  "backupExportSubtitle": "Save your entire collection, programs, custom fields, dialects, themes, and settings to a single JSON file you can keep safe or move to another device.",
+  "backupExportSubtitle": "Save your entire library to a single JSON file you can keep safe or move to another device. It holds your dances, programs, custom fields, dialects, themes and settings.",
   "@backupExportSubtitle": {
     "description": "Subtitle for the General settings row that exports a complete app backup."
   },
@@ -4628,7 +4637,7 @@
   "@backupRestoreTitle": {
     "description": "Title of the backup restore row and restore dialog."
   },
-  "backupRestoreSubtitle": "Replace everything currently in the app with the contents of a backup file. This cannot be undone.",
+  "backupRestoreSubtitle": "Replace everything currently in the app with the contents of a backup file. This can't be undone.",
   "@backupRestoreSubtitle": {
     "description": "Subtitle for the General settings row that restores from a backup file."
   },
@@ -4670,7 +4679,7 @@
   "@backupOverdueHint": {
     "description": "Gentle hint shown under the backup reminder row when the selected cadence says a backup is overdue."
   },
-  "backupReminderBannerText": "Your backup is overdue. Export one now to keep your collection safe.",
+  "backupReminderBannerText": "Your backup is overdue. Export one now to keep your library safe.",
   "@backupReminderBannerText": {
     "description": "Text of the once-per-launch banner on the main screen shown when the user's chosen backup reminder cadence says a backup is overdue."
   },
@@ -4682,7 +4691,7 @@
   "@backupReminderBannerNotNow": {
     "description": "Banner action that dismisses the overdue-backup reminder banner for this launch."
   },
-  "backupRestoreDialogBody": "Restoring replaces everything currently in the app — your collection, programs, dialects, themes, and settings — with the backup's contents. This cannot be undone.",
+  "backupRestoreDialogBody": "Restoring replaces everything currently in the app — your collection, programs, dialects, themes, and settings — with the backup's contents. This can't be undone.",
   "@backupRestoreDialogBody": {
     "description": "Warning text in the restore-from-backup dialog explaining that restore destructively replaces current app data."
   },
@@ -4694,7 +4703,7 @@
   "@backupChooseFileAction": {
     "description": "Button label in the restore-from-backup dialog that opens a file chooser."
   },
-  "backupChooseFileFailed": "Couldn't read that file.",
+  "backupChooseFileFailed": "Couldn't read that file. Choose it again, or pick another file.",
   "@backupChooseFileFailed": {
     "description": "Snackbar shown in the restore-from-backup dialog when the chosen file could not be read for a reason other than being too large or not a valid backup."
   },
@@ -4756,7 +4765,7 @@
       }
     }
   },
-  "backupExportTooLarge": "Your collection is too large to export as a single backup ({sizeMb} MB; limit {limitMb} MB), so nothing was saved. Your data is unchanged.",
+  "backupExportTooLarge": "Your library is too large to export as a single backup ({sizeMb} MB; limit {limitMb} MB), so nothing was saved. Your data is unchanged.",
   "@backupExportTooLarge": {
     "description": "Snackbar shown when exporting a backup is refused because the encoded backup would exceed the size limit that restore can read; nothing is saved. 'MB' is the megabyte unit.",
     "placeholders": {
@@ -4810,7 +4819,7 @@
   "@diagnosticsNoDiagnosticsToExport": {
     "description": "Snackbar shown when the user tries to export diagnostics but the local diagnostics log is empty."
   },
-  "diagnosticsScrubbedExportUnavailable": "Couldn't prepare a safe (scrubbed) export, so nothing was saved. Please try again, or use full detail deliberately.",
+  "diagnosticsScrubbedExportUnavailable": "Couldn't prepare a safe (scrubbed) export, so nothing was saved. Try again, or use full detail deliberately.",
   "@diagnosticsScrubbedExportUnavailable": {
     "description": "Snackbar shown when a scrubbed diagnostics export cannot safely gather redaction terms, so no file is saved."
   },
@@ -4822,11 +4831,11 @@
   "@diagnosticsExportCancelled": {
     "description": "Snackbar shown when the diagnostics export/share flow is canceled."
   },
-  "diagnosticsExportFailed": "Couldn't export the diagnostics log.",
+  "diagnosticsExportFailed": "Couldn't export the diagnostics log. Try again.",
   "@diagnosticsExportFailed": {
     "description": "Snackbar shown when diagnostics log export fails. Details are not shown in the UI."
   },
-  "diagnosticsClearFailed": "Couldn't clear the diagnostics log.",
+  "diagnosticsClearFailed": "Couldn't clear the diagnostics log. Try again.",
   "@diagnosticsClearFailed": {
     "description": "Snackbar shown when clearing the local diagnostics log fails (for example, the file is held open by another program). Details are not shown in the UI."
   },
@@ -4834,7 +4843,7 @@
   "@diagnosticsClearLogTitle": {
     "description": "Title of the confirmation dialog for clearing the local diagnostics log."
   },
-  "diagnosticsClearLogBody": "This permanently deletes the local crash log from this device. This cannot be undone.",
+  "diagnosticsClearLogBody": "This permanently deletes the local crash log from this device. This can't be undone.",
   "@diagnosticsClearLogBody": {
     "description": "Body of the confirmation dialog for clearing the local diagnostics log."
   },
@@ -4906,11 +4915,11 @@
   "@diagnosticsClearLogRowSubtitle": {
     "description": "Subtitle for the row that clears the local diagnostics log."
   },
-  "crashFallbackTitle": "Something went wrong here",
+  "crashFallbackTitle": "Couldn't show this part of the app",
   "@crashFallbackTitle": {
     "description": "Title shown in the friendly crash fallback widget when a subtree fails to build."
   },
-  "crashFallbackBody": "This part of the app hit an unexpected error and couldn't be shown. The details were saved to a local diagnostics log (Settings ▸ Diagnostics) that never leaves your device.",
+  "crashFallbackBody": "This part of the app hit an unexpected error. The details were saved to a local diagnostics log (Settings ▸ Diagnostics) that never leaves your device. Go back and try again.",
   "@crashFallbackBody": {
     "description": "Body text in the friendly crash fallback widget explaining that details were saved locally only."
   },
@@ -4950,13 +4959,9 @@
   "@commonUndo": {
     "description": "Snackbar action that reverses the action just performed (delete, batch tag/level change)."
   },
-  "commonUndoFailed": "Couldn't undo that. Please check the result and try again.",
+  "commonUndoFailed": "Couldn't undo that. Check the result, then try again.",
   "@commonUndoFailed": {
     "description": "Snackbar shown when tapping Undo fails (for example, a full disk or a locked database), so the action may not have been reversed. Shared by every Undo prompt; screens whose Undo has a more specific failure (e.g. bulk performed marks) use their own string."
-  },
-  "commonRetry": "Retry",
-  "@commonRetry": {
-    "description": "Button that re-attempts a failed load."
   },
   "commonDelete": "Delete",
   "@commonDelete": {
@@ -5465,7 +5470,7 @@
   "@collectionClearSearchTooltip": {
     "description": "Tooltip for the button that clears the search text and all active filters."
   },
-  "collectionLoadError": "Could not load the collection.",
+  "collectionLoadError": "Couldn't load the collection. Nothing was changed. Try again.",
   "@collectionLoadError": {
     "description": "Message shown when the collection fails to load."
   },
@@ -5559,7 +5564,7 @@
       }
     }
   },
-  "collectionSearchError": "Something went wrong running the search.",
+  "collectionSearchError": "Couldn't run the search. Nothing was changed. Try again.",
   "@collectionSearchError": {
     "description": "Message shown when the local search fails."
   },
@@ -5939,7 +5944,7 @@
   "@collectionFacetNone": {
     "description": "Message shown when the collection has no facets to filter by."
   },
-  "collectionFacetAllHidden": "All filters are hidden. You can show them again in Settings → Defaults.",
+  "collectionFacetAllHidden": "All filters are hidden. You can show them again in Settings ▸ Defaults.",
   "@collectionFacetAllHidden": {
     "description": "Message shown in the filters panel when the collection has filters but the user has hidden every one of them in Settings (#1419). Distinct from collectionFacetNone, which means there is nothing to filter by."
   },
@@ -6284,7 +6289,7 @@
   "@collectionCreateTagButton": {
     "description": "Tooltip for the button that creates the typed tag in the batch add-tags dialog."
   },
-  "collectionBatchApplyError": "Could not apply batch changes. Try again.",
+  "collectionBatchApplyError": "Couldn't apply the batch changes. Try again.",
   "@collectionBatchApplyError": {
     "description": "Snackbar shown when applying a batch operation (tags, level, rating, tunes, custom field) fails."
   },
@@ -6498,9 +6503,9 @@
   "@danceNotFound": {
     "description": "Message shown when the requested dance cannot be loaded."
   },
-  "danceLoadError": "Couldn't load this dance.",
+  "danceLoadError": "Couldn't load this dance. Nothing was changed. Try again.",
   "@danceLoadError": {
-    "description": "Message shown on the dance detail screen when reading the dance failed, as opposed to the dance not existing (danceNotFound). Shown with a Retry button."
+    "description": "Message shown on the dance detail screen when reading the dance failed, as opposed to the dance not existing (danceNotFound). Shown with a Try again button."
   },
   "danceEditFab": "Edit",
   "@danceEditFab": {
@@ -6546,7 +6551,7 @@
   "@danceUnreadableReassurance": {
     "description": "Explanation shown under @danceFiguresUnreadable or @danceTunesUnreadable. Every clause must stay literally true of the behaviour: the row is intact, the stored text is written back verbatim, and an edit to another field preserves it. Do not claim the app will recover or repair the content, and do not mention syncing -- such a dance is withheld from Device Sync, which this string deliberately does not promise either way."
   },
-  "danceEditorFiguresUnreadable": "The saved figures can't be read, so they are not shown here. They are kept as they are unless you add figures of your own.",
+  "danceEditorFiguresUnreadable": "The saved figures can't be read, so they are not shown here. They are kept as they are unless you add figures yourself.",
   "@danceEditorFiguresUnreadable": {
     "description": "Shown in the dance editor above the figure list when the opened dance's stored figures could not be decoded (#1347). The final clause is literally the save rule: the editor preserves the stored text while the author has entered no figures, and replaces it once they have."
   },
@@ -6586,7 +6591,7 @@
   "@danceCallingHistoryEmpty": {
     "description": "Empty state for the calling-history section when the dance is in no program."
   },
-  "danceCallingHistoryError": "Could not load the calling history.",
+  "danceCallingHistoryError": "Couldn't load the calling history. Nothing was changed. Try again.",
   "@danceCallingHistoryError": {
     "description": "Shown in the calling-history section when its query fails, instead of the empty state — which would otherwise claim the dance has never been called."
   },
@@ -6988,15 +6993,15 @@
       }
     }
   },
-  "programsSaveError": "Could not save the program.",
+  "programsSaveError": "Couldn't save the program. Your changes are still here. Try again.",
   "@programsSaveError": {
     "description": "Snackbar shown when saving the program fails."
   },
-  "programsUndoPerformedError": "Could not undo marking; performed marks remain saved.",
+  "programsUndoPerformedError": "Couldn't undo that. The performed marks are still saved.",
   "@programsUndoPerformedError": {
     "description": "Snackbar shown when undoing a bulk performed marking fails; the performed marks remain saved."
   },
-  "programsUndoRefreshError": "Undo was saved, but the editor could not refresh.",
+  "programsUndoRefreshError": "Undo was saved, but the editor couldn't refresh. Reopen the program to see it.",
   "@programsUndoRefreshError": {
     "description": "Snackbar shown when bulk performed Undo is saved but the editor cannot refresh afterward."
   },
@@ -7142,9 +7147,13 @@
   "@programsLoading": {
     "description": "Accessible label for the progress spinner shown while a program loads in the editor."
   },
-  "programsLoadError": "Could not load the program.",
+  "programsLoadError": "Couldn't load the program. Nothing was changed. Try again.",
   "@programsLoadError": {
     "description": "Message shown in the program editor when the program fails to load."
+  },
+  "programsUndoRecoveryFailed": "Couldn't reload the program after that undo. Go back and reopen it to see its current state.",
+  "@programsUndoRecoveryFailed": {
+    "description": "Shown on the program editor when an Undo could not be recovered or the program could not be reloaded afterwards. It makes no claim about what was saved, and offers no retry; the user goes back."
   },
   "programsDeletedDanceFallback": "(deleted dance)",
   "@programsDeletedDanceFallback": {
@@ -7171,6 +7180,10 @@
   "programsSlotsLabel": "Slots",
   "@programsSlotsLabel": {
     "description": "Section heading above the list of program slots in the editor."
+  },
+  "programsSlotsHelper": "Each slot is one place in your set list: a dance, a note or a break.",
+  "@programsSlotsHelper": {
+    "description": "One-line helper under the Slots heading in the program editor."
   },
   "programsAddDanceButton": "Add dance",
   "@programsAddDanceButton": {
@@ -7337,7 +7350,7 @@
       }
     }
   },
-  "programsDialectHelper": "Used only in this program's Perform view. The editor, summary and exports keep the app dialect.",
+  "programsDialectHelper": "Used only in this program's Perform mode. The editor, summary and exports keep the app dialect.",
   "@programsDialectHelper": {
     "description": "Helper text under the program dialect field: where the dialect applies."
   },
@@ -7401,7 +7414,7 @@
       }
     }
   },
-  "programsListLoadError": "Could not load your programs.",
+  "programsListLoadError": "Couldn't load your programs. Nothing was changed. Try again.",
   "@programsListLoadError": {
     "description": "Error message shown when the Programs list fails to load."
   },
@@ -7643,11 +7656,11 @@
       }
     }
   },
-  "programsSummaryPerformedToggleError": "Could not update the performed mark. Please try again.",
+  "programsSummaryPerformedToggleError": "Couldn't update the performed mark. Try again.",
   "@programsSummaryPerformedToggleError": {
     "description": "Snackbar shown when a program-view dance row's mark-performed toggle could not be saved."
   },
-  "programsSummaryUndoPerformedToggleError": "Could not undo that change to the performed mark.",
+  "programsSummaryUndoPerformedToggleError": "Couldn't undo that change to the performed mark. Try again.",
   "@programsSummaryUndoPerformedToggleError": {
     "description": "Snackbar shown when undoing a single dance row's performed mark fails, for instance because the program was edited in the meantime."
   },
@@ -8319,7 +8332,7 @@
   "@performUndoNoLongerAvailable": {
     "description": "Snackbar shown when the user taps Undo on a live program adjustment after leaving Perform, but the program was edited in the meantime, so the undo is refused to keep that later edit."
   },
-  "performProgramChangedElsewhere": "This program had changed elsewhere since Perform opened. Perform now shows the latest version, with your change.",
+  "performProgramChangedElsewhere": "This program had changed elsewhere since Perform mode opened. Perform mode now shows the latest version, with your change.",
   "@performProgramChangedElsewhere": {
     "description": "Snackbar shown in Perform when saving a live program adjustment found that the program had been changed elsewhere (for example by Device Sync) since Perform opened it. The adjustment was saved on top of that change instead of overwriting it, and Perform now shows the updated program."
   },
@@ -8603,7 +8616,7 @@
   },
   "commonTryAgain": "Try again",
   "@commonTryAgain": {
-    "description": "Generic button to retry an action after an error (distinct from commonRetry 'Retry')."
+    "description": "Button label that repeats a failed action."
   },
   "exportTooltip": "Export",
   "@exportTooltip": {
@@ -8637,11 +8650,11 @@
   "@exportDanceCopied": {
     "description": "Snackbar confirming the dance text was copied to the clipboard."
   },
-  "exportShareDanceError": "Couldn't share this dance",
+  "exportShareDanceError": "Couldn't share this dance. Your dance is unchanged. Try again.",
   "@exportShareDanceError": {
     "description": "Snackbar shown when sharing a dance fails."
   },
-  "exportDanceError": "Couldn't export this dance",
+  "exportDanceError": "Couldn't export this dance. Your dance is unchanged. Try again.",
   "@exportDanceError": {
     "description": "Snackbar shown when exporting/printing a dance PDF fails."
   },
@@ -8649,7 +8662,7 @@
   "@exportShareSetListText": {
     "description": "Program export-menu item: share the set list as plain text."
   },
-  "exportShareProgramBundle": "Share (program + dances)",
+  "exportShareProgramBundle": "Share program and dances",
   "@exportShareProgramBundle": {
     "description": "Program export-menu item: share a bundle file containing the program and its dances."
   },
@@ -8729,27 +8742,27 @@
       }
     }
   },
-  "exportJsonSaveError": "Couldn't save this JSON file.",
+  "exportJsonSaveError": "Couldn't save this JSON file. Try again.",
   "@exportJsonSaveError": {
     "description": "Snackbar shown when saving a JSON export fails."
   },
-  "exportJsonCopyError": "Couldn't copy this JSON.",
+  "exportJsonCopyError": "Couldn't copy this JSON. Try again.",
   "@exportJsonCopyError": {
     "description": "Snackbar shown when copying a JSON export fails."
   },
-  "exportJsonShareError": "Couldn't share this JSON file.",
+  "exportJsonShareError": "Couldn't share this JSON file. Try again.",
   "@exportJsonShareError": {
     "description": "Snackbar shown when sharing a JSON export fails."
   },
-  "exportShareSetListError": "Couldn't share this set list",
+  "exportShareSetListError": "Couldn't share this set list. Try again.",
   "@exportShareSetListError": {
     "description": "Snackbar shown when sharing a set list fails."
   },
-  "exportShareProgramError": "Couldn't share this program",
+  "exportShareProgramError": "Couldn't share this program. Your program is unchanged. Try again.",
   "@exportShareProgramError": {
     "description": "Snackbar shown when sharing a program bundle fails."
   },
-  "exportSetListError": "Couldn't export this set list",
+  "exportSetListError": "Couldn't export this set list. Try again.",
   "@exportSetListError": {
     "description": "Snackbar shown when exporting/printing a set list PDF fails."
   },
@@ -9122,7 +9135,7 @@
       }
     }
   },
-  "onlineLoadError": "Couldn't load that dance from {source}.",
+  "onlineLoadError": "Couldn't load that dance from {source}. Try again.",
   "@onlineLoadError": {
     "description": "Snackbar/inline error shown when loading a dance preview from an online source fails.",
     "placeholders": {
@@ -9132,11 +9145,11 @@
       }
     }
   },
-  "onlineImportError": "Couldn't import that dance.",
+  "onlineImportError": "Couldn't import that dance. Try again.",
   "@onlineImportError": {
     "description": "Snackbar shown when directly importing an online dance fails."
   },
-  "onlineSearchFailed": "Couldn't search {source}. Please try again.",
+  "onlineSearchFailed": "Couldn't search {source}. Try again.",
   "@onlineSearchFailed": {
     "description": "Inline error shown when an online search fails unexpectedly. {source} is the online source's proper name (e.g. “The Caller's Box” / “ContraDB”), not translated.",
     "placeholders": {
@@ -9298,7 +9311,7 @@
   "@importProgramTitleLabel": {
     "description": "Label for the program-title text field in the import screens."
   },
-  "importProgramCreateError": "Couldn't save the imported program.",
+  "importProgramCreateError": "Couldn't save the imported program. Try again.",
   "@importProgramCreateError": {
     "description": "Snackbar shown when writing an imported program to the collection fails. The raw exception is logged (debugPrint), never shown, so storage internals/paths can't leak to the UI (CWE-209)."
   },
@@ -9357,7 +9370,7 @@
   "@importContraDbSearchHint": {
     "description": "Hint for the ContraDB program search field."
   },
-  "importContraDbListError": "Could not load the ContraDB program list.",
+  "importContraDbListError": "Couldn't load the ContraDB program list. Nothing was imported. Try again.",
   "@importContraDbListError": {
     "description": "Error shown when the ContraDB program index fails to load."
   },
@@ -9405,7 +9418,7 @@
       }
     }
   },
-  "importContraDbFetchGenericError": "Couldn't fetch that program.",
+  "importContraDbFetchGenericError": "Couldn't fetch that program. Try again.",
   "@importContraDbFetchGenericError": {
     "description": "Error shown when fetching a ContraDB program fails with an unexpected (non-curated) exception. The raw exception is logged (debugPrint), never shown, to avoid leaking internals (CWE-209)."
   },
@@ -9417,7 +9430,7 @@
   "@importContraDbEmptyProgram": {
     "description": "Shown when a fetched ContraDB program page contains no dances or notes."
   },
-  "importContraDbResolveError": "Couldn't import the ContraDB program.",
+  "importContraDbResolveError": "Couldn't import the ContraDB program. Try again.",
   "@importContraDbResolveError": {
     "description": "Snackbar shown when resolving a ContraDB program's activities before commit fails. The raw exception is logged (debugPrint), never shown, so no internals leak to the UI (CWE-209)."
   },
@@ -9484,7 +9497,7 @@
   "@importTitleListTitle": {
     "description": "App bar title of the plaintext (title list) program import screen."
   },
-  "importCollectionLoadError": "Could not load your collection.",
+  "importCollectionLoadError": "Couldn't load your collection. Nothing was changed. Try again.",
   "@importCollectionLoadError": {
     "description": "Error shown when the local collection fails to load in the title-list import screen."
   },
@@ -9524,7 +9537,7 @@
   "@importPlaintextUnmatched": {
     "description": "Per-line status: this title matched nothing, so it was kept as a note."
   },
-  "importPlaintextSearchError": "Couldn't search online.",
+  "importPlaintextSearchError": "Couldn't search online. Try again.",
   "@importPlaintextSearchError": {
     "description": "Snackbar shown when resolving unmatched title-list lines online fails. Deliberately does not name a source (issue #943: the resolver tries The Caller's Box then ContraDB). The raw exception is logged (debugPrint), never shown, so no internals leak to the UI (CWE-209)."
   },
@@ -9898,7 +9911,7 @@
   "@archiveIntakeRejectedTooLarge": {
     "description": "Rejection shown when a shared/AirDropped archive file exceeds the size cap. Generic; never echoes the path or size."
   },
-  "archiveIntakeRejectedUnreadable": "Couldn't read the shared file.",
+  "archiveIntakeRejectedUnreadable": "Couldn't read the shared file. Try again, or ask the sender to share it again.",
   "@archiveIntakeRejectedUnreadable": {
     "description": "Rejection shown when a shared archive file could not be read from disk at all. Generic; never echoes the path or the underlying OS error."
   },
@@ -9914,7 +9927,7 @@
   "@archiveIntakeRejectedNoContent": {
     "description": "Rejection shown when a shared archive decoded successfully but carried neither dances nor programs."
   },
-  "archiveIntakeRejectedBackup": "That file is a backup, not a share file. To bring it into this device, go to Settings › General and choose Restore from a backup.",
+  "archiveIntakeRejectedBackup": "That file is a backup, not a share file. To bring it into this device, go to Settings ▸ General and choose Restore from a backup.",
   "@archiveIntakeRejectedBackup": {
     "description": "Snackbar shown when a full backup file is opened with the app (Open with, AirDrop, or a tap in Files) instead of being restored. Names the Settings path to Restore from a backup."
   },
@@ -9922,7 +9935,7 @@
   "@importErrorInsecureScheme": {
     "description": "Error shown when an import URL does not use the https scheme."
   },
-  "importErrorBlockedHost": "That URL points to a network location that cannot be imported from.",
+  "importErrorBlockedHost": "That URL points to a network location the app can't import from. Check the URL and try again.",
   "@importErrorBlockedHost": {
     "description": "Error shown when an import URL resolves to a blocked or private network location (SSRF guard). Never echoes the URL."
   },
@@ -10188,7 +10201,7 @@
       }
     }
   },
-  "importIssueArchiveCustomFieldKeyConflictGeneric": "A custom field in this file could not use its key, which is already taken, so its values go into a field with a numbered key instead.",
+  "importIssueArchiveCustomFieldKeyConflictGeneric": "A custom field in this file couldn't use its key, which is already taken, so its values go into a field with a numbered key instead.",
   "@importIssueArchiveCustomFieldKeyConflictGeneric": {
     "description": "Import review warning for a shared file (INTAKE-2), used when the key is held by another field of the same file or by a field the user deleted, so no field is named and no difference is claimed (the file's text is never shown). The values go into a field under a numbered key."
   },
@@ -10422,7 +10435,7 @@
   "@importRecordErrorNotContraDbDance": {
     "description": "Import review: the content is not a ContraDB dance export or page (ImportErrorCode.notContraDbDance). Typed; raw error detail is not shown (CWE-209)."
   },
-  "importRecordErrorNotUsrDatabase": "This isn't a Caller's Companion library file (.USR). In Caller's Companion, find the .USR file in its data folder.",
+  "importRecordErrorNotUsrDatabase": "This isn't a Caller's Companion data file (.USR). In Caller's Companion, find the .USR file in its data folder.",
   "@importRecordErrorNotUsrDatabase": {
     "description": "Import review: the file is not a readable Caller's Companion .USR database (ImportErrorCode.notUsrDatabase). Typed; raw error detail is not shown (CWE-209)."
   },
@@ -10450,7 +10463,7 @@
   "@importRecordErrorCommit": {
     "description": "Import review: a per-record error at the commit stage. Generic; raw error detail is not shown (CWE-209)."
   },
-  "importReviewUsrSubtitle": "Choose the Caller's Companion .USR file to migrate its dances and program history. Nothing is added to your collection until you review and confirm.",
+  "importReviewUsrSubtitle": "Choose the Caller's Companion .USR file to migrate its dances and program history. Nothing is added to your library until you review and confirm.",
   "@importReviewUsrSubtitle": {
     "description": "Explanatory text for the Caller's Companion .USR file import."
   },
@@ -10458,14 +10471,9 @@
   "@importReviewChooseUsr": {
     "description": "Button to pick a Caller's Companion .USR file."
   },
-  "importReviewFileReady": "File ready ({bytes} bytes).",
+  "importReviewFileReady": "File ready.",
   "@importReviewFileReady": {
-    "description": "Confirmation that a binary import file was picked, showing its size.",
-    "placeholders": {
-      "bytes": {
-        "type": "int"
-      }
-    }
+    "description": "Confirmation that a binary import file was picked."
   },
   "importReviewGenericSubtitle": "Choose a file, paste its contents, or fetch it from a URL. Nothing is added to your collection until you review and confirm.",
   "@importReviewGenericSubtitle": {
@@ -10528,7 +10536,7 @@
   "@importReviewCouldNotRead": {
     "description": "Title shown when the import payload could not be parsed."
   },
-  "importReviewPlanFailedBody": "Something went wrong reading this import. Try again; if it keeps happening, the file may be damaged.",
+  "importReviewPlanFailedBody": "Couldn't read this import. Nothing was added. Try again; if it keeps happening, the file may be damaged.",
   "@importReviewPlanFailedBody": {
     "description": "Body text shown when planning the import threw an unexpected error. Generic; the error text is never shown (CWE-209)."
   },
@@ -10839,7 +10847,7 @@
   "@importReviewUndone": {
     "description": "Snackbar confirming the import was undone."
   },
-  "importReviewEditError": "Couldn't import that dance to edit.",
+  "importReviewEditError": "Couldn't import that dance to edit. Try again.",
   "@importReviewEditError": {
     "description": "Snackbar shown when committing a single record so it can be edited fails."
   },
@@ -10901,7 +10909,7 @@
       }
     }
   },
-  "importReviewImportError": "Couldn't complete the import.",
+  "importReviewImportError": "Couldn't complete the import. Try again.",
   "@importReviewImportError": {
     "description": "Snackbar shown when an import commit (or commit-for-edit) throws. The raw exception is logged (debugPrint), never shown, so storage internals/paths can't leak to the UI (CWE-209)."
   },
@@ -10984,7 +10992,7 @@
   "@danceEditorDetailsSection": {
     "description": "Section heading for the primary dance metadata fields in the dance editor."
   },
-  "danceEditorTitleRequiredLabel": "Title *",
+  "danceEditorTitleRequiredLabel": "Title",
   "@danceEditorTitleRequiredLabel": {
     "description": "Required dance/source title field label; the asterisk marks the field as required."
   },
@@ -11043,6 +11051,10 @@
   "danceEditorHookHint": "One-line \"why call this\"",
   "@danceEditorHookHint": {
     "description": "Hint text for the hook field."
+  },
+  "danceEditorHookHelper": "Why you would call this dance, in one line. It can appear on calling cards and in what you share.",
+  "@danceEditorHookHelper": {
+    "description": "Helper text under the Hook field in the dance editor."
   },
   "danceEditorWalkthroughLabel": "Walkthrough",
   "@danceEditorWalkthroughLabel": {
@@ -11700,7 +11712,7 @@
   "@danceEditorCiteSourceHint": {
     "description": "Hint text for attaching or creating a published source citation."
   },
-  "danceEditorSaveError": "Couldn't save the dance.",
+  "danceEditorSaveError": "Couldn't save the dance. Your changes are still here. Try again.",
   "@danceEditorSaveError": {
     "description": "Clean snackbar shown when saving a dance fails; the raw exception is logged instead of shown (CWE-209)."
   },
@@ -11822,7 +11834,7 @@
   "@danceEditorDeleteDanceTooltip": {
     "description": "Tooltip for the app-bar action that deletes the current dance."
   },
-  "danceEditorLoadError": "Could not load the dance.",
+  "danceEditorLoadError": "Couldn't load the dance. Nothing was changed. Try again.",
   "@danceEditorLoadError": {
     "description": "Message shown when the dance editor fails to load a dance."
   },
@@ -11834,7 +11846,7 @@
   "@danceEditorChoreographerDetailsIntro": {
     "description": "Introductory copy explaining shared and private choreographer details."
   },
-  "danceEditorNameRequiredLabel": "Name *",
+  "danceEditorNameRequiredLabel": "Name",
   "@danceEditorNameRequiredLabel": {
     "description": "Required name field label; the asterisk marks the field as required."
   },
@@ -12098,7 +12110,7 @@
       }
     }
   },
-  "danceEditorCompoundSemantic": "{summary}, your own figure{unavailable, select, yes{, can't be expanded} other{}}",
+  "danceEditorCompoundSemantic": "{summary}, your figure{unavailable, select, yes{, can't be expanded} other{}}",
   "@danceEditorCompoundSemantic": {
     "description": "Screen-reader phrase for a figure row that is one of the user's own custom figures. unavailable is 'yes' when it can no longer be expanded.",
     "placeholders": {
@@ -12126,7 +12138,7 @@
       }
     }
   },
-  "danceEditorCompoundUnavailable": "This figure of yours can't be expanded: it has been deleted or changed, or doesn't accept these values. Saving keeps only its name, beats, note and progression mark.",
+  "danceEditorCompoundUnavailable": "Your figure can't be expanded: it has been deleted or changed, or doesn't accept these values. Saving keeps only its name, beats, note and progression mark.",
   "@danceEditorCompoundUnavailable": {
     "description": "Shown on a dance's figure row that is one of the user's own custom figures when it can no longer be expanded into figures; the dance then saves it as a custom figure whose text is the name."
   },
@@ -12528,7 +12540,7 @@
       }
     }
   },
-  "danceEditorUnrecognizedMoveReadOnly": "Unrecognized move \"{move}\" — not in this version's taxonomy. Shown read-only so its data is preserved; it will edit normally again if the move becomes known. You can still reorder or delete it.",
+  "danceEditorUnrecognizedMoveReadOnly": "Unrecognized move \"{move}\": this version of the app doesn't know it. It is shown read-only so its data is preserved, and it will edit normally again if the move becomes known. You can still reorder or delete it.",
   "@danceEditorUnrecognizedMoveReadOnly": {
     "description": "Read-only explanation for a figure whose move id is not in the active taxonomy.",
     "placeholders": {
@@ -12763,11 +12775,11 @@
       }
     }
   },
-  "updateBannerDownloadFailed": "The update could not be downloaded.",
+  "updateBannerDownloadFailed": "Couldn't download the update. Try again.",
   "@updateBannerDownloadFailed": {
     "description": "Fallback update-banner error shown when the assisted download fails and no specific message is available."
   },
-  "updateDownloadFailureDestination": "Could not choose a place to download the update.",
+  "updateDownloadFailureDestination": "Couldn't choose a place to download the update. Try again, or use \"View release\".",
   "@updateDownloadFailureDestination": {
     "description": "Assisted-download error (desktop update banner and Settings ▸ Updates) shown when no folder could be prepared to receive the update file, or (on Windows and Linux) when something already occupied the app-chosen download path."
   },
@@ -12775,7 +12787,7 @@
   "@updateDownloadFailureDestinationOccupied": {
     "description": "macOS assisted-download error shown when the place chosen in the Save panel holds a folder, a symbolic link, or a file that could not be removed, so the update was not saved there. The user can start the download again and pick another name or folder. \"View release\" must match the translation of updateBannerViewRelease."
   },
-  "updateDownloadFailureIncomplete": "The download was incomplete and was deleted. Please try again, or use \"View release\".",
+  "updateDownloadFailureIncomplete": "Couldn't finish the download, and the incomplete file was deleted. Try again, or use \"View release\".",
   "@updateDownloadFailureIncomplete": {
     "description": "Assisted-download error shown when the downloaded file's size did not match the update manifest, so it was deleted. \"View release\" must match the translation of updateBannerViewRelease, the button that opens the release page for a manual download."
   },
@@ -12783,19 +12795,19 @@
   "@updateDownloadFailureRefusedHost": {
     "description": "Assisted-download error shown when the download URL was refused because its host is not on the allowed list. \"View release\" must match the translation of updateBannerViewRelease."
   },
-  "updateDownloadFailureUnreachable": "The update could not be downloaded. Check your connection and try again, or use \"View release\".",
+  "updateDownloadFailureUnreachable": "Couldn't download the update. Check your connection and try again, or use \"View release\".",
   "@updateDownloadFailureUnreachable": {
     "description": "Assisted-download error shown when the download failed for a network or other transport reason. \"View release\" must match the translation of updateBannerViewRelease."
   },
-  "updateDownloadFailureServerError": "The update server could not provide the file. Try again later, or use \"View release\".",
+  "updateDownloadFailureServerError": "The update server couldn't provide the file. Try again later, or use \"View release\".",
   "@updateDownloadFailureServerError": {
     "description": "Update download error shown when the server answered with an error status (for example 404 or 5xx)."
   },
-  "updateDownloadFailureDiskFull": "There is not enough free disk space to save the update. Free up some space and try again, or use \"View release\".",
+  "updateDownloadFailureDiskFull": "There isn't enough free disk space to save the update. Free up some space and try again, or use \"View release\".",
   "@updateDownloadFailureDiskFull": {
     "description": "Update download error shown when writing the downloaded file failed because the disk is full."
   },
-  "updateDownloadFailureUnwritable": "The update could not be saved because the download location is not writable. Check its permissions and try again, or use \"View release\".",
+  "updateDownloadFailureUnwritable": "Couldn't save the update because the download location isn't writable. Check its permissions and try again, or use \"View release\".",
   "@updateDownloadFailureUnwritable": {
     "description": "Update download error shown when the downloaded file could not be created or written because of permissions."
   },
@@ -12803,19 +12815,19 @@
   "@updateDownloadFailureChecksumMismatch": {
     "description": "Assisted-download error shown when the downloaded file did not match the manifest's checksum, so the file was deleted. Keep the wording plain; do not name the hash algorithm. \"View release\" must match the translation of updateBannerViewRelease."
   },
-  "updateDownloadFailureHandoffFailed": "The update was downloaded and verified, but could not be opened automatically. Use \"View release\" to finish installing.",
+  "updateDownloadFailureHandoffFailed": "The update was downloaded and verified, but couldn't be opened automatically. Use \"View release\" to finish installing.",
   "@updateDownloadFailureHandoffFailed": {
     "description": "Assisted-download error shown when the verified installer or disk image could not be handed to the operating system. \"View release\" must match the translation of updateBannerViewRelease."
   },
-  "updateDownloadFailureInstallFailed": "Something went wrong while installing the update. Try again, or use \"View release\" to download it manually.",
+  "updateDownloadFailureInstallFailed": "Couldn't install the update. Try again, or use \"View release\" to download it manually.",
   "@updateDownloadFailureInstallFailed": {
     "description": "Assisted-download error shown when an unexpected error interrupted the install step. \"View release\" must match the translation of updateBannerViewRelease."
   },
-  "startupIntegrityCheckIncomplete": "A database integrity check failed to complete, so your data could not be verified this launch. If problems persist, consider restoring from a backup. Technical details were saved to Settings ▸ Diagnostics.",
+  "startupIntegrityCheckIncomplete": "Couldn't finish checking your data this time, so it couldn't be verified. If problems continue, consider restoring from a backup. Technical details were saved to Settings ▸ Diagnostics.",
   "@startupIntegrityCheckIncomplete": {
     "description": "Dismissible banner shown once at launch when the database integrity check itself threw an error, so the data's health is unknown. \"Settings ▸ Diagnostics\" must match the translated navigation labels."
   },
-  "startupIntegrityCheckFailed": "A database integrity check failed. Your local data may be corrupt — consider restoring from a backup.",
+  "startupIntegrityCheckFailed": "Your data failed its safety check and may be damaged. Consider restoring from a backup.",
   "@startupIntegrityCheckFailed": {
     "description": "Dismissible banner shown once at launch when the database integrity check ran and reported a problem. The app still opens; the failure is advisory."
   },
@@ -12919,7 +12931,7 @@
   "@retirementBannerGetUpdate": {
     "description": "End-of-support banner action that opens the page for the newer release (or the list of releases)."
   },
-  "retirementBannerLater": "Later",
+  "retirementBannerLater": "Dismiss",
   "@retirementBannerLater": {
     "description": "End-of-support banner action that hides the banner until the app is next launched."
   },
@@ -13147,7 +13159,7 @@
       }
     }
   },
-  "userGuideLoadError": "The user guide could not be loaded.",
+  "userGuideLoadError": "Couldn't load the user guide. Try again.",
   "@userGuideLoadError": {
     "description": "Message shown when the bundled user-guide content fails to load."
   },
@@ -13196,7 +13208,7 @@
   "@shorthandsCompoundTitle": {
     "description": "Heading of the list of shorthands for the user's own figures on the shorthands screen (compound shorthands, #709, and shorthands for new figures, #1023), and the name of the compound shorthands' setting in sync notices: tokens that stand for one of the user's own Custom Figures with fixed values."
   },
-  "shorthandsUserFigureSyncLabel": "Shorthands for your new figures",
+  "shorthandsUserFigureSyncLabel": "Shorthands for new figures",
   "@shorthandsUserFigureSyncLabel": {
     "description": "The name of the setting holding the shorthands for the user's own new figures (#1023), in sync notices and the sync conflict view. A new figure is one with its own wording, as opposed to a combination of built-in figures."
   },
@@ -13220,7 +13232,7 @@
   "@shorthandsCompoundShadowed": {
     "description": "Shown under a compound shorthand whose token a figure shorthand also has (possible when two devices each add one before syncing); the figure shorthand is used."
   },
-  "shorthandsUserFigureShadowedByCompound": "Not used: a shorthand for one of your combinations has the same text.",
+  "shorthandsUserFigureShadowedByCompound": "Not used: a shorthand for a combination has the same text.",
   "@shorthandsUserFigureShadowedByCompound": {
     "description": "Shown under a shorthand for one of the user's new figures (#1023) whose token a shorthand for one of their combinations also has (possible when two devices each add one before syncing); the combination's shorthand is used. A combination is a user's figure made of built-in figures."
   },
@@ -13232,7 +13244,7 @@
   "@compoundShorthandEditorNoFigure": {
     "description": "Error when saving a compound shorthand without choosing a figure."
   },
-  "compoundShorthandEditorNoCompounds": "You have no figures of your own yet. Add one in the Glossary first.",
+  "compoundShorthandEditorNoCompounds": "You have no custom figures yet. Add one in the Glossary first.",
   "@compoundShorthandEditorNoCompounds": {
     "description": "Shown in the compound shorthand editor when the user has no usable custom figures."
   },
@@ -13407,7 +13419,7 @@
       }
     }
   },
-  "importUserFiguresFailed": "{count, plural, =1{1 figure could not be saved to your Glossary.} other{{count} figures could not be saved to your Glossary.}}",
+  "importUserFiguresFailed": "{count, plural, =1{Couldn't save 1 figure to your Glossary.} other{Couldn't save {count} figures to your Glossary.}}",
   "@importUserFiguresFailed": {
     "description": "Line in the import result after the shared-figures step when some figures could not be stored (for example, the Glossary is full); {count} is how many.",
     "placeholders": {
@@ -13541,7 +13553,7 @@
   "@reparseConfirmUpgrade": {
     "description": "Confirm-dialog action that performs the custom-figure upgrade."
   },
-  "reparseFailed": "Could not upgrade figures. Please try again.",
+  "reparseFailed": "Couldn't upgrade the figures. Try again.",
   "@reparseFailed": {
     "description": "Snackbar shown when the custom-figure upgrade fails."
   },
@@ -13600,11 +13612,11 @@
   "@reparseEmptyBody": {
     "description": "Body of the empty state when no custom figures can be upgraded."
   },
-  "reparseErrorTitle": "Could not check your figures",
+  "reparseErrorTitle": "Couldn't check your figures",
   "@reparseErrorTitle": {
     "description": "Title of the error state when scanning for upgradable figures fails."
   },
-  "reparseErrorBody": "Something went wrong while scanning your collection. Nothing was changed. You can try again.",
+  "reparseErrorBody": "Couldn't scan your collection. Nothing was changed. Try again.",
   "@reparseErrorBody": {
     "description": "Body of the error state when scanning for upgradable figures fails."
   },
@@ -13682,7 +13694,7 @@
   "@ecdMigrationNothingSnack": {
     "description": "Snackbar shown when a conversion run changed nothing."
   },
-  "ecdMigrationFailed": "Could not convert the dances. Nothing was changed. Please try again.",
+  "ecdMigrationFailed": "Couldn't convert the dances. Nothing was changed. Try again.",
   "@ecdMigrationFailed": {
     "description": "Snackbar shown when the English-dance conversion fails."
   },
@@ -13694,7 +13706,7 @@
   "@ecdMigrationEmptyBody": {
     "description": "Empty-state body when no English dance has anything the conversion can change (some may still hold contra moves it leaves alone)."
   },
-  "ecdMigrationErrorTitle": "Could not check your English dances",
+  "ecdMigrationErrorTitle": "Couldn't check your English dances",
   "@ecdMigrationErrorTitle": {
     "description": "Error-state title when scanning English dances fails."
   },
@@ -13745,7 +13757,7 @@
   "@customFieldsNewField": {
     "description": "Button that creates a new custom field."
   },
-  "customFieldsLoadError": "Could not load custom fields.",
+  "customFieldsLoadError": "Couldn't load custom fields. Nothing was changed. Try again.",
   "@customFieldsLoadError": {
     "description": "Error shown when the custom-field definitions fail to load."
   },
@@ -13802,7 +13814,7 @@
   "@customFieldsEditorEditTitle": {
     "description": "Editor title when editing an existing custom field."
   },
-  "customFieldsLabelLabel": "Label *",
+  "customFieldsLabelLabel": "Label",
   "@customFieldsLabelLabel": {
     "description": "Label for the custom-field display-label input (required)."
   },
@@ -13810,7 +13822,7 @@
   "@customFieldsLabelRequired": {
     "description": "Validation error when the custom-field label is empty."
   },
-  "customFieldsKeyLabel": "Key *",
+  "customFieldsKeyLabel": "Key",
   "@customFieldsKeyLabel": {
     "description": "Label for the custom-field machine-key input (required)."
   },
@@ -13829,6 +13841,10 @@
   "customFieldsKeyInvalid": "Key must start with a letter or underscore and contain only letters, digits, and underscores",
   "@customFieldsKeyInvalid": {
     "description": "Validation error when the machine key has invalid characters."
+  },
+  "customFieldsSaveFailed": "Couldn't save the field. Check its key and choices, then try again.",
+  "@customFieldsSaveFailed": {
+    "description": "Snackbar shown if the custom field editor is asked to save a definition the model rejects. Normally the form validators catch this first. The sheet stays open."
   },
   "customFieldsTypeFieldLabel": "Type",
   "@customFieldsTypeFieldLabel": {
@@ -13854,7 +13870,7 @@
   "@customFieldsSearchableSubtitleYesNo": {
     "description": "Subtitle for the 'Searchable' toggle on a yes/no field. A yes/no value is never found by the search bar, only by its filter, so this omits the search-bar half of customFieldsSearchableSubtitle."
   },
-  "customFieldsChoicesLabel": "Choices *",
+  "customFieldsChoicesLabel": "Choices",
   "@customFieldsChoicesLabel": {
     "description": "Section label for the list of choices on a choice-type field (required)."
   },
@@ -14035,9 +14051,9 @@
   "@recentlyDeletedTitle": {
     "description": "App-bar title for the recently-deleted (trash) screen."
   },
-  "recentlyDeletedLoadError": "Couldn't load your recently deleted items. Nothing has been removed.",
+  "recentlyDeletedLoadError": "Couldn't load your recently deleted items. Nothing has been removed. Try again.",
   "@recentlyDeletedLoadError": {
-    "description": "Shown on the recently-deleted screen when loading the deleted dances or programs fails, above a Retry button. Reassures the user that a failed load does not mean their deleted items are gone."
+    "description": "Shown on the recently-deleted screen when loading the deleted dances or programs fails, above a Try again button. Reassures the user that a failed load does not mean their deleted items are gone."
   },
   "recentlyDeletedDeleteTitle": "Delete permanently?",
   "@recentlyDeletedDeleteTitle": {
@@ -14155,7 +14171,7 @@
   "@venueNew": {
     "description": "Label for creating a new venue: the venue manager's add button and the venue editor sheet's title in create mode."
   },
-  "venueLoadError": "Could not load venues.",
+  "venueLoadError": "Couldn't load venues. Nothing was changed. Try again.",
   "@venueLoadError": {
     "description": "Error shown when the reusable venue records fail to load (venue manager and venue picker)."
   },
@@ -14255,7 +14271,7 @@
   "@venueEditorPartialSyncHint": {
     "description": "Persistent hint in the venue editor sheet, shown while Device Sync is on and this venue's address/contact fields are all empty (spec §6.13): names the fields that never sync, and warns that Notes is different because it does sync."
   },
-  "venueEditorNameLabel": "Name *",
+  "venueEditorNameLabel": "Name",
   "@venueEditorNameLabel": {
     "description": "Required venue name field label; the asterisk marks the field as required."
   },
@@ -14425,9 +14441,13 @@
   "@danceReimportInvalidJson": {
     "description": "Error shown when a JSON re-import file is invalid or has the wrong dance count."
   },
-  "danceReimportSourceFailed": "Could not load a dance from that source. Please try again.",
+  "danceReimportSourceFailed": "Couldn't load a dance from that source. Your dance wasn't changed. Try again.",
   "@danceReimportSourceFailed": {
     "description": "Error shown when a re-import source cannot be loaded."
+  },
+  "danceReimportApplyFailed": "Couldn't update the dance from that source. Your dance wasn't changed. Try again.",
+  "@danceReimportApplyFailed": {
+    "description": "Snackbar when applying a re-import to a dance fails; the write is one transaction, so the dance is unchanged."
   },
   "danceReimported": "Choreography updated.",
   "@danceReimported": {
@@ -14461,11 +14481,11 @@
   "@publishedCollectionsUnavailable": {
     "description": "Non-leaking error shown when the signed catalog or an archive was fetched but failed an integrity or trust check other than an unrecognized catalog signature."
   },
-  "publishedCollectionsUnverified": "Published collections could not be verified, so nothing was loaded. If this keeps happening, update the app.",
+  "publishedCollectionsUnverified": "Couldn't verify the published collections, so nothing was loaded. If this keeps happening, update the app.",
   "@publishedCollectionsUnverified": {
     "description": "Error shown when the signed published-collection catalog's signature does not match any key this app trusts. After a signing-key change, updating the app is the fix; it could also mean the catalog was tampered with, or that a network (for example a captive portal) replaced the signature file, so the wording does not claim any one cause."
   },
-  "publishedCollectionsOffline": "Published collections could not be reached. Check your connection and try again.",
+  "publishedCollectionsOffline": "Couldn't reach the published collections. Check your connection and try again.",
   "@publishedCollectionsOffline": {
     "description": "Error shown when the signed published-collection catalog or an archive could not be fetched because the network is unreachable."
   },
@@ -14746,7 +14766,7 @@
   "@settingsExperimentalShowCustomFiguresSubtitle": {
     "description": "Subtitle of the Custom Figures switch."
   },
-  "settingsExperimentalCustomFiguresManageTitle": "Your figures",
+  "settingsExperimentalCustomFiguresManageTitle": "Custom Figures",
   "@settingsExperimentalCustomFiguresManageTitle": {
     "description": "Title of the row in the Experimental settings that opens the Custom Figures screen, where the user's own figures are added and edited."
   },
@@ -14758,7 +14778,7 @@
   "@customFiguresTitle": {
     "description": "App bar title of the Custom Figures screen, which lists the user's own figures."
   },
-  "customFiguresEmpty": "You haven't made any figures of your own yet. Choose + to add one.",
+  "customFiguresEmpty": "You haven't made any custom figures yet. Choose + to add one.",
   "@customFiguresEmpty": {
     "description": "Shown on the Custom Figures screen when the user has no figures of their own yet."
   },
@@ -14766,11 +14786,11 @@
   "@customFiguresEmptyTitle": {
     "description": "Title of the empty Custom figures list."
   },
-  "glossaryAddCustomFigure": "Add your own figure",
+  "glossaryAddCustomFigure": "Add your figure",
   "@glossaryAddCustomFigure": {
     "description": "Tooltip of the Glossary's add button, which opens the editor for a new custom figure; also the label of the Custom Figures screen's button while that screen is empty."
   },
-  "customFiguresNewFigure": "New figure",
+  "customFiguresNewFigure": "Add your figure",
   "@customFiguresNewFigure": {
     "description": "Label of the floating button on the Custom Figures screen that opens the editor for a new figure of the user's own. Keep it short: it is one line at the bottom of a phone screen, beside a + icon."
   },
@@ -14858,11 +14878,11 @@
   "@glossaryNotesTooLong": {
     "description": "Shown when the user's notes on a built-in figure in the Glossary are over the length that can be stored."
   },
-  "glossaryOverBudget": "Your Glossary has reached its size limit, so this could not be saved. Make room by deleting or shortening other figures or notes, then try again.",
+  "glossaryOverBudget": "Your Glossary has reached its size limit, so this couldn't be saved. Make room by deleting or shortening other figures or notes, then try again.",
   "@glossaryOverBudget": {
     "description": "Shown when saving one of the user's own figures, or their notes on a built-in figure, is refused because the whole Glossary (all their figures and notes together) is at its size limit. The text of the item being saved is not the problem."
   },
-  "compoundEditorTitleNew": "New figure",
+  "compoundEditorTitleNew": "Add your figure",
   "@compoundEditorTitleNew": {
     "description": "Title of the editor for a new custom figure."
   },
@@ -15319,7 +15339,7 @@
       }
     }
   },
-  "danceEditorUserFigureUnavailable": "This figure of yours isn't available, so this row keeps the wording it has.",
+  "danceEditorUserFigureUnavailable": "Your figure isn't available, so this row keeps the wording it has.",
   "@danceEditorUserFigureUnavailable": {
     "description": "Shown on a dance editor row that uses one of the user's own figures when the figure is deleted or can no longer be read."
   },
@@ -16249,7 +16269,7 @@
       }
     }
   },
-  "callingCardEditorPreviewError": "Couldn't draw the preview.",
+  "callingCardEditorPreviewError": "Couldn't draw the preview. Try again.",
   "@callingCardEditorPreviewError": {
     "description": "Shown in place of the calling-card preview when it could not be rendered."
   },
@@ -16365,7 +16385,7 @@
   "@callingCardHelpIntro": {
     "description": "Help: how the layout text is read."
   },
-  "callingCardHelpFields": "A block prints only what the dance has, and only fields turned on under Settings › Defaults › Shared dance fields. A row with nothing to print takes no space. When a card is too full, everything on it shrinks evenly to fit, down to half size.",
+  "callingCardHelpFields": "A block prints only what the dance has, and only fields turned on under Settings ▸ Defaults ▸ Shared dance fields. A row with nothing to print takes no space. When a card is too full, everything on it shrinks evenly to fit, down to half size.",
   "@callingCardHelpFields": {
     "description": "Help: what gates a block, and what happens when a card is too full."
   },

@@ -180,7 +180,7 @@ void main() {
   });
 
   for (final (label, extension) in [
-    ('Share (program + dances)', '.ccshare'),
+    ('Share program and dances', '.ccshare'),
     ('Export as JSON file', '.json'),
   ]) {
     testWidgets('$label still carries the whole program with every toggle '
