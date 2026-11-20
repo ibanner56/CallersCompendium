@@ -34,9 +34,12 @@ prevent on its own are in
   commit subject and pull request title must be
   `docs(release): prepare vX.Y.Z` for a stable release or
   `docs(release): prepare vX.Y.Z-beta` for a beta release, using the actual
-  version literal (the merged #937 release used
-  `docs(release): prepare v0.1.0-beta.7`). Never use `chore(release)` unless a
-  maintainer explicitly overrides this convention. This remains true when the
+  version literal, with X.Y.Z equal to `app/pubspec.yaml`'s version (for the
+  `v0.10.0-beta` tag: `docs(release): prepare v0.10.0-beta`). The title is
+  checked by `tools/ci/check_release_pr_title.py`; commit subjects are not,
+  because squash-merge makes the title `main`'s subject. Never use
+  `chore(release)` unless a maintainer explicitly overrides this convention.
+  This remains true when the
   preparation changes version literals, issue-template metadata, or generated
   changelogs.
 - **Review the compiler diff and rendered notes.** The compiler prevents shared
