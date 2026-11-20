@@ -8666,6 +8666,10 @@
   "@validationSequenceSpanMismatch": {
     "x-sourceSha256": "427e750a1e703341b792f9be009cf9daebbe04105d73c0b8adacd90815d84d34"
   },
+  "validationPhraseCountMismatch": "フィギュアの合計は{actual}ですが、フレーズ構造では{expected}が必要です。",
+  "validationSequenceExceedsPhraseCount": "フィギュア{position}のシーケンスは{actual}で、1フレーズ（{limit}）より長くなっています。",
+  "validationSequenceSpanNoRoomCount": "フィギュア{position}のシーケンスで長さのあるステップが{actual}を使い、{expected}のうち残りのステップの分がありません。",
+  "validationSequenceSpanMismatchCount": "フィギュア{position}のシーケンスのステップは{actual}ですが、シーケンスは{expected}です。",
   "validationSequenceSpanNoRoom": "フィギュア{position}のシーケンスで長さのあるステップが{actual}拍を使い、{expected}拍のうち残りのステップの分がありません。",
   "@validationSequenceSpanNoRoom": {
     "x-sourceSha256": "97810e6b9ede26094cde824e19231d33c0149ab076d3f9157c2025a6a594fae9"

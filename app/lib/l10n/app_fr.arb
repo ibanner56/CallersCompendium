@@ -8666,6 +8666,10 @@
   "@validationSequenceSpanMismatch": {
     "x-sourceSha256": "427e750a1e703341b792f9be009cf9daebbe04105d73c0b8adacd90815d84d34"
   },
+  "validationPhraseCountMismatch": "Les figures totalisent {actual} ; la structure de phrase en attend {expected}.",
+  "validationSequenceExceedsPhraseCount": "Une séquence de la figure {position} dure {actual}, plus qu’une phrase ({limit}).",
+  "validationSequenceSpanNoRoomCount": "Les étapes minutées de la séquence de la figure {position} durent {actual}, sans rien laisser de ses {expected} aux autres.",
+  "validationSequenceSpanMismatchCount": "Les étapes de la séquence de la figure {position} durent {actual} ; la séquence dure {expected}.",
   "validationSequenceSpanNoRoom": "Les étapes minutées de la séquence de la figure {position} durent {actual} temps, sans rien laisser de ses {expected} aux autres.",
   "@validationSequenceSpanNoRoom": {
     "x-sourceSha256": "97810e6b9ede26094cde824e19231d33c0149ab076d3f9157c2025a6a594fae9"

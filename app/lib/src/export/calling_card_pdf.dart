@@ -598,6 +598,14 @@ class _CardBuilder {
       }
     }
     final s = b.size;
+    // An English dance's count column is in bars, as on screen (ADR-006
+    // §5.5); a count that is no whole number of half bars stays in beats.
+    final dance = entry.dance;
+    final beatsPerBar = danceBeatsPerBar(
+      dance.form,
+      dance.phraseStructure,
+      meter: dance.meter,
+    );
     final rows = <pw.Widget>[];
     for (var i = 0; i < sections.length; i++) {
       if (i > 0 && b.dividers) {
@@ -631,7 +639,10 @@ class _CardBuilder {
             pw.Expanded(
               child: pw.Column(
                 crossAxisAlignment: pw.CrossAxisAlignment.stretch,
-                children: [for (final sf in section) _figureLine(b, sf.figure)],
+                children: [
+                  for (final sf in section)
+                    _figureLine(b, sf.figure, beatsPerBar),
+                ],
               ),
             ),
           ],
@@ -644,7 +655,18 @@ class _CardBuilder {
     );
   }
 
-  pw.Widget _figureLine(CallingCardBlock b, Figure figure) {
+  /// A figure's count as the card's count column shows it: its bars where
+  /// the dance is timed in bars of [beatsPerBar] beats, else its beats, and
+  /// nothing for a figure with no count.
+  static String _countText(Figure figure, int? beatsPerBar) {
+    if (figure.beats <= 0) return '';
+    final bars = beatsPerBar == null
+        ? null
+        : barsText(figure.beats, beatsPerBar);
+    return bars ?? '${figure.beats}';
+  }
+
+  pw.Widget _figureLine(CallingCardBlock b, Figure figure, int? beatsPerBar) {
     final s = b.size;
     final marker = figure.progression ? ' ¶' : '';
     final note = figure.note?.trim() ?? '';
@@ -657,7 +679,7 @@ class _CardBuilder {
             pw.SizedBox(
               width: s * 1.6,
               child: pw.Text(
-                figure.beats > 0 ? '${figure.beats}' : '',
+                _countText(figure, beatsPerBar),
                 textAlign: pw.TextAlign.right,
                 style: pw.TextStyle(
                   fontSize: s * 0.8,

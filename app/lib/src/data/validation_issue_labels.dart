@@ -49,12 +49,22 @@ const String otherFormFiguresValidationCode = 'other_form_figures';
 /// [keyLabel], when given, names a dialect entry's source key, the move a
 /// substitution is for: the dialect editor names a figure of your own by its
 /// name rather than its `userFigure:<id>` key (#1023).
+///
+/// [beatsPerBar], when given, is the bar of a dance timed in bars
+/// ([danceBeatsPerBar]): its counts then read in bars, as its figures do,
+/// where every count in the message is a whole number of half bars.
 String validationIssueMessage(
   AppLocalizations l10n,
   ValidationIssue issue, {
   String Function(String key)? keyLabel,
+  int? beatsPerBar,
 }) {
-  final localized = _localizedValidation(l10n, issue, keyLabel ?? (k) => k);
+  final localized = _localizedValidation(
+    l10n,
+    issue,
+    keyLabel ?? (k) => k,
+    beatsPerBar,
+  );
   if (localized != null) return localized;
   // No specific localization (unknown code, or expected structured data
   // missing/ill-typed): generic, non-leaking fallback. The diagnostic English
@@ -72,16 +82,31 @@ String? _localizedValidation(
   AppLocalizations l10n,
   ValidationIssue issue,
   String Function(String key) keyLabel,
+  int? beatsPerBar,
 ) {
   final data = issue.data;
+  // The counts as bars ("32 bars"), or null to read them in beats: without
+  // a bar, or where any of them is no whole number of half bars.
+  List<String>? inBars(List<int> counts) {
+    if (beatsPerBar == null) return null;
+    final texts = [
+      for (final beats in counts)
+        if (barsText(beats, beatsPerBar) case final bars?)
+          l10n.danceFigureBars(bars, beats * 2 ~/ beatsPerBar),
+    ];
+    return texts.length == counts.length ? texts : null;
+  }
+
   switch (issue.code) {
     case 'phrase_overflow':
     case 'phrase_underflow':
       final actual = data['actual'];
       final expected = data['expected'];
-      return (actual is int && expected is int)
-          ? l10n.validationPhraseBeatMismatch(actual, expected)
-          : null;
+      if (actual is! int || expected is! int) return null;
+      if (inBars([actual, expected]) case [final a, final e]) {
+        return l10n.validationPhraseCountMismatch(a, e);
+      }
+      return l10n.validationPhraseBeatMismatch(actual, expected);
     case incompleteFigureValidationCode:
       final position = data['position'];
       return position is int ? l10n.validationIncompleteFigure(position) : null;
@@ -89,15 +114,23 @@ String? _localizedValidation(
       final position = data['position'];
       final actual = data['actual'];
       final limit = data['limit'];
-      return (position is int && actual is int && limit is int)
-          ? l10n.validationSequenceExceedsPhrase(position, actual, limit)
-          : null;
+      if (position is! int || actual is! int || limit is! int) return null;
+      if (inBars([actual, limit]) case [final a, final l]) {
+        return l10n.validationSequenceExceedsPhraseCount(position, a, l);
+      }
+      return l10n.validationSequenceExceedsPhrase(position, actual, limit);
     case 'sequence_span_mismatch':
       final position = data['position'];
       final actual = data['actual'];
       final expected = data['expected'];
       if (position is! int || actual is! int || expected is! int) return null;
-      return data['allTimed'] == false
+      final noRoom = data['allTimed'] == false;
+      if (inBars([actual, expected]) case [final a, final e]) {
+        return noRoom
+            ? l10n.validationSequenceSpanNoRoomCount(position, a, e)
+            : l10n.validationSequenceSpanMismatchCount(position, a, e);
+      }
+      return noRoom
           ? l10n.validationSequenceSpanNoRoom(position, actual, expected)
           : l10n.validationSequenceSpanMismatch(position, actual, expected);
     case otherFormFiguresValidationCode:

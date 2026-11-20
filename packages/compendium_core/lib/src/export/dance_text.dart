@@ -1,5 +1,6 @@
 import '../dialect/dialect.dart';
 import '../dialect/renderer.dart';
+import '../model/bar_count.dart';
 import '../model/dance.dart';
 import '../model/phrase_structure.dart';
 import '../taxonomy/taxonomy_registry.dart';
@@ -132,6 +133,11 @@ String danceToPlainText(
     lines.add('');
     lines.add('${labels.figures}:');
     final sectioned = deriveSections(content.figures, dance.phraseStructure);
+    final beatsPerBar = danceBeatsPerBar(
+      dance.form,
+      dance.phraseStructure,
+      meter: dance.meter,
+    );
     for (final sf in sectioned) {
       final text = canonicalizeDiscouragedTerms
           ? fig.renderSummaryWithCanonicalDiscouragedTerms(
@@ -139,7 +145,7 @@ String danceToPlainText(
               cardDialect,
             )
           : fig.renderSummary(sf.figure, cardDialect);
-      final beatsLabel = labels.beats(sf.figure.beats);
+      final beatsLabel = labels.count(sf.figure.beats, beatsPerBar);
       final marker = sf.figure.progression ? ' ¶' : '';
       lines.add('${sf.label}  $text ($beatsLabel)$marker');
       final note = sf.figure.note?.trim();

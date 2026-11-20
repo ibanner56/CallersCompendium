@@ -20,7 +20,12 @@
 /// English defaults are the single source of truth mirrored into `app_en.arb`.
 library;
 
+import '../model/bar_count.dart';
+
 String _englishBeats(int beats) => '$beats ${beats == 1 ? 'beat' : 'beats'}';
+
+String _englishBars(String bars, int halfBars) =>
+    '$bars ${halfBars <= 2 ? 'bar' : 'bars'}';
 
 String _englishMinutes(int minutes) => '$minutes min';
 
@@ -34,7 +39,8 @@ String _englishOmittedCaption(int count) =>
 
 /// Field-name labels for the single-dance card export ([danceToPlainText] and
 /// the dance PDF). [beats] renders a beat count with its (locale-aware,
-/// pluralized) unit, e.g. `"16 beats"` / `"1 beat"`.
+/// pluralized) unit, e.g. `"16 beats"` / `"1 beat"`; [bars] renders a count of
+/// bars, for a dance timed in bars ([count]).
 class DanceExportLabels {
   const DanceExportLabels({
     this.formation = 'Formation',
@@ -49,6 +55,7 @@ class DanceExportLabels {
     this.hook = 'Hook',
     this.sources = 'Sources',
     this.beats = _englishBeats,
+    this.bars = _englishBars,
     this.pageOf = _englishPageOf,
   });
 
@@ -76,6 +83,22 @@ class DanceExportLabels {
   /// `DanceShareField.sources` is selected.
   final String sources;
   final String Function(int beats) beats;
+
+  /// A count of bars with its unit, e.g. `"4 bars"` / `"1½ bars"`: [bars] is
+  /// the count as written ([barsText]) and `halfBars` the same count in half
+  /// bars, which picks the plural (1 is half a bar, 2 is one bar).
+  final String Function(String bars, int halfBars) bars;
+
+  /// A figure's count of [beats] as an export shows it: in bars of
+  /// [beatsPerBar] beats for a dance timed in bars ([danceBeatsPerBar]), or in
+  /// beats where [beatsPerBar] is null or the count is not a whole number of
+  /// half bars, as the editor shows it.
+  String count(int beats, int? beatsPerBar) {
+    final text = beatsPerBar == null ? null : barsText(beats, beatsPerBar);
+    return text == null
+        ? this.beats(beats)
+        : bars(text, beats * 2 ~/ beatsPerBar!);
+  }
 
   /// Page footer of the dance PDF, e.g. `"Page 2 of 3"`.
   final String Function(int page, int pages) pageOf;

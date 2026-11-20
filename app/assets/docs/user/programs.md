@@ -222,7 +222,10 @@ picker.*
 
 A program can mix types of dance, such as contra and English. When it does,
 each dance in your program names its type at the start of the line under its
-title, and each is shown in its own type's [dialect](./dialects.md). The
+title, in the builder and on the program's summary, and each is shown in its
+own type's [dialect](./dialects.md). Perform mode names the type beside the
+formation, and the set list you copy, share or print names it in brackets after
+the dance, before any length: "3. Hole in the Wall (English (ECD); 5 min)". The
 **Type** section of the picker's **Filters** panel narrows the list to the
 types you choose.
 

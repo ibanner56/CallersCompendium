@@ -41,6 +41,11 @@ import 'export_labels.dart';
 ///   an empty list (or all-blank names) also omits the suffix — this is
 ///   independent of the figures-appendix opt-in, so it appears on every
 ///   numbered dance, whether or not that dance has any figures.
+/// - [formLabelFor] resolves a slot's `danceId` to the display name of its
+///   dance form ("English"), already localized, or `null` to name none. The
+///   app names the form only when the program mixes forms (ADR-006 S5), as
+///   its program screens do; `null` (the default) never names it. The name
+///   leads the slot's parenthesised details.
 ///
 /// Layout:
 /// ```
@@ -50,7 +55,7 @@ import 'export_labels.dart';
 /// Caller: <caller>
 /// Level: <dancerLevel>
 ///
-/// 1. <dance title | free text>[ — <author suffix>][ — <slot note>][ (guest: <x>; <n> min)]
+/// 1. <dance title | free text>[ — <author suffix>][ — <slot note>][ (<form>; guest: <x>; <n> min)]
 ///    ALT: <alt line, same format, no number>
 /// 2. ...
 ///
@@ -73,6 +78,7 @@ String programToPlainText(
   Dialect? dialect,
   bool canonicalizeDiscouragedTerms = false,
   List<String> Function(String danceId)? authorNamesFor,
+  String? Function(String danceId)? formLabelFor,
   bool includeTitle = true,
   bool includeCallerBand = true,
   bool includeDateVenue = true,
@@ -108,6 +114,7 @@ String programToPlainText(
         dialect: dialect,
         canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
         authorNamesFor: authorNamesFor,
+        formLabelFor: formLabelFor,
       );
       lines.add(setListPrimaryLine(group.primary, primary, labels, () => ++n));
       for (final alt in group.alternates) {
@@ -119,6 +126,7 @@ String programToPlainText(
           dialect: dialect,
           canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
           authorNamesFor: authorNamesFor,
+          formLabelFor: formLabelFor,
         );
         lines.add('   ${labels.alt}: $alternate');
       }
@@ -237,7 +245,9 @@ List<String> programHeaderLines(
 
 /// Builds the content of a single slot line (without the number or `ALT:`
 /// prefix): the dance title or free text, an optional author suffix, an
-/// optional per-slot note, an optional `(guest: …; N min)` suffix. The
+/// optional per-slot note, an optional `(<form>; guest: …; N min)` suffix,
+/// each part only when present ([formLabelFor] as on [programToPlainText]).
+/// The
 /// slot's performed status is never rendered. Throws [ArgumentError] when
 /// [canonicalizeDiscouragedTerms] is set without both [renderer] and [dialect].
 String programSlotLine(
@@ -248,6 +258,7 @@ String programSlotLine(
   Dialect? dialect,
   bool canonicalizeDiscouragedTerms = false,
   List<String> Function(String danceId)? authorNamesFor,
+  String? Function(String danceId)? formLabelFor,
 }) {
   _requireCanonicalizationDeps(canonicalizeDiscouragedTerms, renderer, dialect);
   final buffer = StringBuffer();
@@ -290,7 +301,11 @@ String programSlotLine(
     );
   }
 
+  final formLabel = slot.danceId == null
+      ? null
+      : formLabelFor?.call(slot.danceId!);
   final meta = <String>[
+    if (_has(formLabel)) formLabel!.trim(),
     if (_has(slot.guestCaller)) '${labels.guest}: ${slot.guestCaller!.trim()}',
     if (slot.plannedTotalMinutes != null)
       labels.minutes(slot.plannedTotalMinutes!),

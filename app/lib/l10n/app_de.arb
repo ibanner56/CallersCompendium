@@ -8666,6 +8666,10 @@
   "@validationSequenceSpanMismatch": {
     "x-sourceSha256": "427e750a1e703341b792f9be009cf9daebbe04105d73c0b8adacd90815d84d34"
   },
+  "validationPhraseCountMismatch": "Die Figuren ergeben insgesamt {actual}; die Phrasierungsstruktur erwartet {expected}.",
+  "validationSequenceExceedsPhraseCount": "Eine Sequenz in Figur {position} dauert {actual} und ist länger als eine Phrase ({limit}).",
+  "validationSequenceSpanNoRoomCount": "Die Schritte mit Zeitangabe in der Sequenz in Figur {position} dauern {actual}, sodass von ihren {expected} für die übrigen nichts bleibt.",
+  "validationSequenceSpanMismatchCount": "Die Schritte der Sequenz in Figur {position} dauern {actual}; die Sequenz dauert {expected}.",
   "validationSequenceSpanNoRoom": "Die Schritte mit Zeitangabe in der Sequenz in Figur {position} dauern {actual} Schläge, sodass von ihren {expected} für die übrigen nichts bleibt.",
   "@validationSequenceSpanNoRoom": {
     "x-sourceSha256": "97810e6b9ede26094cde824e19231d33c0149ab076d3f9157c2025a6a594fae9"

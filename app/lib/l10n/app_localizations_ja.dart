@@ -8477,6 +8477,38 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String validationPhraseCountMismatch(String actual, String expected) {
+    return 'フィギュアの合計は$actualですが、フレーズ構造では$expectedが必要です。';
+  }
+
+  @override
+  String validationSequenceExceedsPhraseCount(
+    int position,
+    String actual,
+    String limit,
+  ) {
+    return 'フィギュア$positionのシーケンスは$actualで、1フレーズ（$limit）より長くなっています。';
+  }
+
+  @override
+  String validationSequenceSpanNoRoomCount(
+    int position,
+    String actual,
+    String expected,
+  ) {
+    return 'フィギュア$positionのシーケンスで長さのあるステップが$actualを使い、$expectedのうち残りのステップの分がありません。';
+  }
+
+  @override
+  String validationSequenceSpanMismatchCount(
+    int position,
+    String actual,
+    String expected,
+  ) {
+    return 'フィギュア$positionのシーケンスのステップは$actualですが、シーケンスは$expectedです。';
+  }
+
+  @override
   String validationSequenceSpanNoRoom(int position, int actual, int expected) {
     return 'フィギュア$positionのシーケンスで長さのあるステップが$actual拍を使い、$expected拍のうち残りのステップの分がありません。';
   }

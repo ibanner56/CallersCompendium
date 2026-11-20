@@ -8666,6 +8666,10 @@
   "@validationSequenceSpanMismatch": {
     "x-sourceSha256": "427e750a1e703341b792f9be009cf9daebbe04105d73c0b8adacd90815d84d34"
   },
+  "validationPhraseCountMismatch": "Figurerne varer i alt {actual}; frastrukturen forventer {expected}.",
+  "validationSequenceExceedsPhraseCount": "En sekvens i figur {position} varer {actual}, længere end én frase ({limit}).",
+  "validationSequenceSpanNoRoomCount": "De tidsangivne trin i sekvensen i figur {position} varer {actual}, så der intet er tilbage af dens {expected} til resten.",
+  "validationSequenceSpanMismatchCount": "Trinnene i sekvensen i figur {position} varer {actual}; sekvensen varer {expected}.",
   "validationSequenceSpanNoRoom": "De tidsangivne trin i sekvensen i figur {position} varer {actual} slag, så der intet er tilbage af dens {expected} til resten.",
   "@validationSequenceSpanNoRoom": {
     "x-sourceSha256": "97810e6b9ede26094cde824e19231d33c0149ab076d3f9157c2025a6a594fae9"

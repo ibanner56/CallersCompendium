@@ -495,4 +495,59 @@ void main() {
       });
     });
   });
+
+  group('an English dance is counted in bars (ADR-006 §5.5)', () {
+    Dance ecd({String meter = '', String phrase = '4*8*2'}) =>
+        dance(phraseStructure: phrase).copyWith(
+          form: DanceForm.ecd,
+          meter: meter,
+          figures: [
+            Figure(move: 'ecd_siding', params: const {'beats': 8}),
+            Figure(move: 'ecd_turn_single', params: const {'beats': 3}),
+            Figure(move: 'ecd_cast', params: const {'beats': 21}),
+          ],
+        );
+
+    test('a count of whole and half bars reads in bars', () {
+      final text = render(ecd());
+      expect(text, contains('(4 bars)'));
+      expect(text, contains('(1½ bars)'));
+      expect(text, isNot(contains('beats')));
+    });
+
+    test('a count that is no whole number of half bars stays in beats', () {
+      // 3/4: a bar of three beats has no half bar, so 21 beats is 7 bars but
+      // 8 beats is not a whole number of bars.
+      final text = render(ecd(meter: '3/4', phrase: '4*24*2'));
+      expect(text, contains('(7 bars)'));
+      expect(text, contains('(8 beats)'));
+    });
+
+    test('a contra dance stays in beats', () {
+      final text = render(
+        dance(
+          figures: [
+            Figure(
+              move: 'swing',
+              params: const {'who': 'partners', 'beats': 8},
+            ),
+          ],
+        ),
+      );
+      expect(text, contains('(8 beats)'));
+      expect(text, isNot(contains('bars')));
+    });
+  });
+
+  group('DanceExportLabels.count', () {
+    const labels = DanceExportLabels();
+    test('bars with a bar, beats without one', () {
+      expect(labels.count(8, 2), '4 bars');
+      expect(labels.count(2, 2), '1 bar');
+      expect(labels.count(1, 2), '½ bar');
+      expect(labels.count(3, 2), '1½ bars');
+      expect(labels.count(8, null), '8 beats');
+      expect(labels.count(4, 3), '4 beats');
+    });
+  });
 }

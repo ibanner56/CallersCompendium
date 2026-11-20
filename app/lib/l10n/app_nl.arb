@@ -8666,6 +8666,10 @@
   "@validationSequenceSpanMismatch": {
     "x-sourceSha256": "427e750a1e703341b792f9be009cf9daebbe04105d73c0b8adacd90815d84d34"
   },
+  "validationPhraseCountMismatch": "De figuren duren samen {actual}; de fraseopbouw verwacht {expected}.",
+  "validationSequenceExceedsPhraseCount": "Een reeks in figuur {position} duurt {actual}, langer dan één frase ({limit}).",
+  "validationSequenceSpanNoRoomCount": "De getimede stappen van de reeks in figuur {position} duren {actual}, zodat er van de {expected} niets overblijft voor de rest.",
+  "validationSequenceSpanMismatchCount": "De stappen van de reeks in figuur {position} duren {actual}; de reeks duurt {expected}.",
   "validationSequenceSpanNoRoom": "De getimede stappen van de reeks in figuur {position} duren {actual} tellen, zodat er van de {expected} niets overblijft voor de rest.",
   "@validationSequenceSpanNoRoom": {
     "x-sourceSha256": "97810e6b9ede26094cde824e19231d33c0149ab076d3f9157c2025a6a594fae9"

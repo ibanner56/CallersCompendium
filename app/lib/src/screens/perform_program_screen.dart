@@ -365,6 +365,15 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
       : widget.danceOverrides[slot.danceId] ??
             widget.data.dancesById[slot.danceId];
 
+  /// Whether the program's dances are of more than one form, when each card
+  /// names its dance's form, as the builder and summary rows do (ADR-006 S5).
+  bool get _mixesForms =>
+      {
+        for (final slot in _program.slots)
+          if (_danceForSlot(slot) case final dance?) dance.form,
+      }.length >
+      1;
+
   /// Auto-size the card to fit the viewport (ROADMAP G.1). Initialised from the
   /// General setting (on by default) in [didChangeDependencies]; recomputes per
   /// slot as the shown dance/slot changes.
@@ -1913,6 +1922,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
           difficultyLevel: _difficultyLevelFor(dance),
           fitScaleCache: _fitScaleCache,
           scrollController: _cardScroll,
+          showForm: _mixesForms,
         );
       }
     }

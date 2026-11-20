@@ -8929,6 +8929,38 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String validationPhraseCountMismatch(String actual, String expected) {
+    return 'Die Figuren ergeben insgesamt $actual; die Phrasierungsstruktur erwartet $expected.';
+  }
+
+  @override
+  String validationSequenceExceedsPhraseCount(
+    int position,
+    String actual,
+    String limit,
+  ) {
+    return 'Eine Sequenz in Figur $position dauert $actual und ist länger als eine Phrase ($limit).';
+  }
+
+  @override
+  String validationSequenceSpanNoRoomCount(
+    int position,
+    String actual,
+    String expected,
+  ) {
+    return 'Die Schritte mit Zeitangabe in der Sequenz in Figur $position dauern $actual, sodass von ihren $expected für die übrigen nichts bleibt.';
+  }
+
+  @override
+  String validationSequenceSpanMismatchCount(
+    int position,
+    String actual,
+    String expected,
+  ) {
+    return 'Die Schritte der Sequenz in Figur $position dauern $actual; die Sequenz dauert $expected.';
+  }
+
+  @override
   String validationSequenceSpanNoRoom(int position, int actual, int expected) {
     return 'Die Schritte mit Zeitangabe in der Sequenz in Figur $position dauern $actual Schläge, sodass von ihren $expected für die übrigen nichts bleibt.';
   }
