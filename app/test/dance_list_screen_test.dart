@@ -1508,6 +1508,24 @@ void main() {
     expect(find.text('Other Title'), findsNothing);
   });
 
+  testWidgets('a mouse click on a desktop picks the search scope', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await _pumpScreen(tester, repos);
+    await tester.pumpAndSettle();
+    final field = find.byKey(const ValueKey('collection-search-scope'));
+
+    // A press, a frame, a release: the menu once closed on the press, so no
+    // click picked anything (#2292).
+    await pickDropdownEntry(tester, field, 'Author');
+
+    expect(
+      tester.state<FormFieldState<FullTextScope>>(field).value,
+      FullTextScope.author,
+    );
+  }, variant: TargetPlatformVariant.desktop());
+
   testWidgets('online mode restores the prior local scope when disabled', (
     tester,
   ) async {
