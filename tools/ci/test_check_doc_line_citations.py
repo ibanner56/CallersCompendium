@@ -22,7 +22,7 @@ sys.path.insert(0, str(HERE))
 
 import check_doc_line_citations as checker  # noqa: E402
 
-# Line 1 comment, 2 blank, 3 code, 4 block-comment star, 5 code.
+# Line 1 comment, 2 blank, 3 code, 4 block-comment open, 5 block-comment star, 6 code.
 DART = "// header\n\nvoid a() {}\n/* c\n * d\nvoid b() {}\n"
 
 
@@ -76,6 +76,13 @@ def test_ambiguous_basename_is_stale_but_repo_path_resolves() -> None:
     extra = {"app/test/a.dart": DART}
     assert stale("`a.dart:3`\n", extra) == ["a.dart:3"]
     assert stale("`app/lib/a.dart:3`\n", extra) == []
+
+
+def test_partial_path_resolves_by_suffix_or_is_ambiguous() -> None:
+    assert stale("`lib/a.dart:3` `lib/a.dart:1` `b/a.dart:3`\n") == ["lib/a.dart:1", "b/a.dart:3"]
+    extra = {"packages/x/lib/a.dart": DART}
+    assert stale("`lib/a.dart:3`\n", extra) == ["lib/a.dart:3"]  # two suffix matches
+    assert stale("`x/lib/a.dart:3`\n", extra) == []
 
 
 def test_audits_are_excluded() -> None:

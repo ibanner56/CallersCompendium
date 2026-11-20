@@ -56,7 +56,8 @@ whose only record is on a branch loses its provenance with it. So:
 - A `file.dart:N` line citation in `docs/**/*.md` goes stale whenever lines are
   added above it. Prefer a stable anchor (a symbol or widget key) where one
   exists. `python3 tools/ci/check_doc_line_citations.py` counts citations that
-  now land on a blank line, a comment or past the end of the file, against
+  now land on a blank line, a comment or past the end of the file, or whose path
+  no longer resolves (missing, or no longer unique), against
   `tools/ci/doc_line_citations_ceiling.json` (`docs/dev/audits/` is excluded:
   dated records). The ceiling is exact: a new stale citation fails, and so does
   a cleanup that does not lower the ceiling in the same PR.

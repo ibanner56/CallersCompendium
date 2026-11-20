@@ -274,7 +274,8 @@ mechanical; a diff that violates one is a hard fail, not an opinion:
   until the ceiling is lowered in the same change).
 - **doc-line-citations** — a backticked `file.dart:N` citation in `docs/**/*.md`
   (not `docs/dev/audits/`) must land on a code line, not a blank, a comment or
-  past the end of the file; the stale count must equal
+  past the end of the file, and its path must still resolve to one file; the
+  stale count must equal
   `tools/ci/doc_line_citations_ceiling.json` (above it fails; below it fails
   until the ceiling is lowered in the same change).
 - **caught-errors** — every caught user-facing error must reach the diagnostic

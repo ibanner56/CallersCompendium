@@ -13,11 +13,12 @@ prefer citing a stable anchor (a symbol or widget key) where one exists.
 Scope. ``docs/**/*.md`` except ``docs/dev/audits/`` (dated historical records).
 
 A citation is a backticked ``path.dart:N`` or ``path.dart:N-M``. The path is
-resolved as a repo-relative path first; otherwise as a basename that is unique
-among the tracked ``.dart`` files (``git ls-files``; a directory walk when the
+resolved as a repo-relative path first; otherwise as a basename or partial path
+(``model/x.dart``) that is a path suffix of exactly one of the tracked ``.dart`` files (``git ls-files``; a directory walk when the
 root is not a git checkout). It is **stale** when
 
-* the path is missing, or the basename is ambiguous;
+* the path is missing, or matches more than one file (so adding a same-named
+  file can raise the count without any doc changing);
 * the line is past the end of the file; or
 * the cited line (the first line of a range) is blank or comment-only
   (``//``, ``///``, ``/*``, ``*``).
@@ -88,15 +89,20 @@ def dart_files(root: Path) -> list[str]:
 
 
 def resolve(path: str, files: set[str], by_name: dict[str, list[str]]) -> tuple[str | None, str]:
-    """Return (resolved repo path, "") or (None, reason)."""
+    """Return (resolved repo path, "") or (None, reason).
+
+    An exact repo path wins. Otherwise [path] (a bare basename or a partial
+    path such as ``model/x.dart``) must be a path suffix of exactly one tracked
+    file.
+    """
     if path in files:
         return path, ""
-    if "/" not in path:
-        matches = by_name.get(path, [])
-        if len(matches) == 1:
-            return matches[0], ""
-        if len(matches) > 1:
-            return None, f"ambiguous basename, {len(matches)} files"
+    base = path.rsplit("/", 1)[-1]
+    matches = [f for f in by_name.get(base, []) if f == path or f.endswith("/" + path)]
+    if len(matches) == 1:
+        return matches[0], ""
+    if len(matches) > 1:
+        return None, f"ambiguous path, {len(matches)} files"
     return None, "file not found"
 
 
