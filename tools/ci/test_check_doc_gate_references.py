@@ -104,6 +104,15 @@ def main() -> int:
         check("both exemptions hold when cited", "EXEMPT" not in joined and "publish_collections" not in joined and "l10n_drift" not in joined, joined)
         check("exactly the three findings", len(found) == 3, joined)
 
+        # An exemption waives only its own rule: l10n_drift is owed no test, but must exist;
+        # publish_collections may be absent, but must not be exempt from anything else.
+        by_path = "`tools/ci/check_l10n_drift.py` cited by its full path\n"
+        check("exempt-untested: cited by full path, present, no test: silent", gate.check(root, {"docs/dev/c.md": by_path, "docs/dev/b.md": exempt_docs}) == [])
+        (root / "tools/ci/check_l10n_drift.py").unlink()
+        gone = "\n".join(gate.check(root, {"docs/dev/c.md": by_path, "docs/dev/b.md": exempt_docs}))
+        check("exempt-untested still has to exist", "docs/dev/c.md:1: cites tools/ci/check_l10n_drift.py, which does not exist" in gone, gone)
+        build(root, ["tools/ci/check_l10n_drift.py"])
+
         stale = gate.check(root, {"docs/dev/a.md": "`tools/ci/check_ok.py`\n"})
         check("an exemption cited nowhere is stale", sum("EXEMPT entry" in f and "cited by no document" in f for f in stale) == 2, "\n".join(stale))
 
