@@ -148,7 +148,9 @@ wording, saved unchanged, reads as the default line. Imported
   and shows each dance's formation details in that dance's dialect. A figure
   with no prefix is contra's and is shared by squares, which have no taxonomy
   yet: its column reads in the squares' dialect when only square dances in
-  the program use it, and in contra's otherwise (implementer's call; the
+  the program use it, and in contra's otherwise; a column no dance uses (a
+  baseline swing column) reads in the program's form when all its dances are
+  of one form (implementer's call; the
   alternative, always contra's, would word a square-only program's columns
   unlike its rows).
 

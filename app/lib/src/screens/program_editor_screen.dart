@@ -601,7 +601,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   DialectsByForm _dialects = DialectsByForm.defaults;
 
   /// The dialect of the program's own text and of what spans dances (the
-  /// picker's query, the matrix's columns): contra's. A program has no form
+  /// picker's query; a matrix column whose figure has no single form, see
+  /// [_dialectForMatrixColumn]): contra's. A program has no form
   /// (ADR-006 §12.2, S5); each dance reads in its own form's ([_dialects]).
   Dialect get _dialect => _dialects.forForm(DanceForm.contra);
 
@@ -623,8 +624,10 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   /// form's. A figure with no prefix is contra's, and is shared by every form
   /// that has no taxonomy of its own yet (squares): it reads in the form of
   /// the dances that use it when they are all of one form, and in [_dialect]
-  /// when they mix forms. A column of a figure of the user's own, or one that
-  /// isn't a figure, reads in [_dialect].
+  /// when they mix forms. A column no dance uses (a baseline swing column the
+  /// matrix always shows) reads in the program's form when all its dances are
+  /// of one form. A column of a figure of the user's own, or one that isn't a
+  /// figure, reads in [_dialect].
   Dialect _dialectForMatrixColumn(ProgramMatrix matrix, MatrixColumn column) {
     switch (column.kind) {
       case MatrixColumnKind.known ||
@@ -632,10 +635,15 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           MatrixColumnKind.unknown:
         final form = shippedTaxonomies.formOfMoveId(column.moveId);
         if (form != DanceForm.contra) return _dialects.forForm(form);
-        final users = {
+        var users = {
           for (final row in matrix.rows)
             if (row.contains(column)) _danceById(row.danceId)?.form,
         };
+        if (users.isEmpty) {
+          users = {
+            for (final row in matrix.rows) _danceById(row.danceId)?.form,
+          };
+        }
         return users.length == 1 && users.single != null
             ? _dialects.forForm(users.single!)
             : _dialect;

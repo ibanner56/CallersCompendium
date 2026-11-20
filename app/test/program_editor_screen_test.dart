@@ -4718,6 +4718,51 @@ void main() {
     expect(header('square swing'), findsNothing);
   });
 
+  testWidgets('a column no dance uses reads in a one-form program\'s '
+      'dialect (ADR-006 S5)', (tester) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(
+      _dance(
+        id: 'sq',
+        title: 'Square Dance',
+        figures: [
+          Figure(move: 'swing', params: const {'who': 'partners'}),
+        ],
+      ).copyWith(form: DanceForm.square),
+    );
+    await repos.programs.create(
+      _program(
+        id: 'p1',
+        title: 'Squares',
+        slots: [ProgramSlot(id: 's1', position: 0, danceId: 'sq')],
+      ),
+    );
+    final square = Dialect.canonical.copyWith(
+      name: 'Square test',
+      moves: {'swing': 'twirl'},
+    );
+    await _pumpBuilder(
+      tester,
+      repos,
+      programId: 'p1',
+      dialects: DialectsByForm({
+        DanceForm.contra: Dialect.canonical,
+        DanceForm.square: square,
+      }),
+    );
+    await tester.tap(find.byKey(const ValueKey('program-matrix-tab')));
+    await tester.pumpAndSettle();
+    final table = find.byKey(const ValueKey('program-matrix-table'));
+    Finder header(String text) =>
+        find.descendant(of: table, matching: find.textContaining(text));
+
+    // The partner swing the dance uses and the baseline neighbor swing it
+    // doesn't both read in the squares' dialect.
+    expect(header('partner twirl'), findsOneWidget);
+    expect(header('neighbor twirl'), findsOneWidget);
+    expect(header('swing'), findsNothing);
+  });
+
   testWidgets('Matrix tab renders the programming matrix from draft slots', (
     tester,
   ) async {
