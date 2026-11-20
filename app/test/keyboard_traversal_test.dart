@@ -296,7 +296,8 @@ typedef _Walk = ({
 ///
 /// With [strict] (the whole form is built, so nothing is lazy) the repeat must be
 /// the first stop: anything else is a loop Tab could not get out of, whatever its
-/// size. Otherwise it is the page wrapping round unless its loop is only a few
+/// size. Nothing is rebuilt under the walk there, so a first stop that came back
+/// as a different node would fail here too, plainly, rather than be guessed at. Otherwise it is the page wrapping round unless its loop is only a few
 /// stops, which is a trap.
 ///
 /// On a lazy list the controls scrolled far above are no longer built when Tab
@@ -317,15 +318,7 @@ Future<_Walk?> _walk(WidgetTester tester, {required bool strict}) async {
     await _tab(tester);
     final node = FocusManager.instance.primaryFocus;
     if (node == null || !_live(node)) continue;
-    var repeat = stops.indexWhere((s) => identical(s.node, node));
-    if (repeat < 0 &&
-        strict &&
-        stops.length > 1 &&
-        _describe(node) == stops.first.describe &&
-        (_globalRect(node).topLeft - stops.first.rect.topLeft).distance < 1) {
-      // The first stop's node was rebuilt while the walk was away.
-      repeat = 0;
-    }
+    final repeat = stops.indexWhere((s) => identical(s.node, node));
     if (repeat >= 0) {
       final loop = stops.length - repeat;
       return (
