@@ -612,7 +612,9 @@ sort: `title COLLATE NOCASE` (the default), `created_at DESC` / `updated_at
 DESC` (recently added / edited, each with a `title COLLATE NOCASE` tiebreak,
 since timestamps are stored at one-second precision and an import batch shares
 one instant), and — only for a bare Omni `FullTextFilter` leaf with at most two
-Unicode scalar values — `bm25(dance_fts)` relevance. Three sorts are **not**
+Unicode scalar values — `bm25(dance_fts)` relevance (each matching dance
+keeps its best score over the branches it is found by; see "Meter, key and
+interpreters" below). Three sorts are **not**
 expressible in that one statement and are
 applied as a **post-fetch pass in Dart** over the returned id set:
 
@@ -807,8 +809,22 @@ are ([dialect.md](dialect.md) "Canonicalization on input"):
   has no token for the prefix index and would empty the AND, so it is
   dropped. A word keeps its punctuation, so `do-si-do` and `(swing` are still
   literal substrings, and FTS operators the user typed (`AND`, `"…"`, `*`)
-  stay literal. Best match (`bm25`) is unchanged: it is offered only for a
-  whole query of at most two characters, which is always one word.
+  stay literal. Best match (`bm25`) is offered only for a whole query of at
+  most two characters, which is always one word.
+- **Meter, key and interpreters (ADR-006 F3, §9.2).** In All fields each word
+  also matches the dance's `meter`, its `musical_key` and the names of its
+  live interpreters (`dance_interpreters` joined to `choreographers` with
+  `deleted_at IS NULL`), read with `LIKE` from those rows rather than from the
+  text index (`_musicAndInterpreterMatch`). So they need no index column, no
+  rebuild, and follow a rename at once. A word of one or two characters must
+  start a word of the value (after a space, `/`, `-` or `(`: "D" finds
+  "D minor", "8" finds "6/8"), as the prefix index would; a longer one may sit
+  anywhere. A word with no letter or digit matches none of them. `LIKE` folds
+  ASCII case only, so unlike the text index an accent must be typed as stored.
+  The Title, Author and Figure scopes do not read them: an interpreter is not
+  an author. Best match adds them as one more branch with a score of 0, so a
+  dance found only by its meter, key or interpreter ranks after every dance
+  the text index scored (`bm25` is never above 0).
   A word that is only a *fragment* of an internal role token (`ro`, `rol`,
   `ole`; not `roll`, not a whole `role1s`) would otherwise match the token in
   nearly every dance, so in the all-fields search `figures_text` is matched

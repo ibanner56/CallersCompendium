@@ -151,6 +151,10 @@ void main() {
       expect(c.binds, [
         '"role2s"',
         '{title authors sources custom_values hook notes} : ("follows")',
+        // The meter, key and interpreters' names, as typed.
+        '%follows%',
+        '%follows%',
+        '%follows%',
       ]);
     });
 

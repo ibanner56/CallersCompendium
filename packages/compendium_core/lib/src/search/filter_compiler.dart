@@ -100,6 +100,14 @@ String _figureLikePattern(String text, {required bool prefix}) {
   return prefix ? '% $escaped%' : '%$escaped%';
 }
 
+/// [column] with a space before it and before each word inside it, where a
+/// word starts after a space, `/`, `-` or `(`, so a `LIKE '% x%'` pattern
+/// ([_figureLikePattern] with `prefix`) matches the start of any word, as the
+/// token-prefix index does.
+String _wordStarts(String column) =>
+    "(' ' || replace(replace(replace($column, '/', ' '), '-', ' '), "
+    "'(', ' '))";
+
 /// The `figures_text` condition that matches an FTS query (bound first) and still
 /// holds with the role tokens removed (pattern bound second).
 String _figureMatchWithoutRoleTokens(String table, {required bool prefix}) =>
@@ -216,37 +224,38 @@ class FilterCompiler {
         'OR ${_rawColumnsMatch(rawTextQuery)})';
     // bm25 returns lower (more negative) for better matches, so ascending
     // (the default) is best-match-first; descending flips to worst-match-first.
-    final order = dir == SortDirection.descending
-        ? 'bm25(dance_fts) DESC'
-        : 'bm25(dance_fts)';
-    if (fragment) {
-      // The figure text arrives as a second, role-token-free branch. Each row
-      // is scored by its own MATCH, and a dance found by both keeps its best
-      // (lowest) score; the direction then orders by that, as [order] does.
-      final direction = dir == SortDirection.descending ? ' DESC' : '';
-      final sql =
-          'SELECT dance_id FROM ('
-          'SELECT dance_fts.dance_id AS dance_id, bm25(dance_fts) AS score '
+    // Each branch scores its own rows and a dance found by several keeps its
+    // best (lowest) score, so the direction orders by that.
+    final direction = dir == SortDirection.descending ? ' DESC' : '';
+    final binds = <Object?>[query];
+    final branches = [
+      'SELECT dance_fts.dance_id AS dance_id, bm25(dance_fts) AS score '
           'FROM dance_fts JOIN dances ON dances.id = dance_fts.dance_id '
-          'WHERE dance_fts MATCH ? AND dances.deleted_at IS NULL '
-          'UNION ALL '
-          'SELECT dance_fts.dance_id, bm25(dance_fts) FROM dance_fts '
-          'JOIN dances ON dances.id = dance_fts.dance_id '
-          'WHERE figures_text MATCH ? AND dances.deleted_at IS NULL '
-          "AND (' ' || $_figuresTextWithoutRoleTokens) LIKE ? ESCAPE '\\'"
-          ') GROUP BY dance_id ORDER BY MIN(score)$direction';
-      return CompiledFilter(sql, [
-        query,
-        canonicalQuery,
-        _figureLikePattern(canonicalText, prefix: true),
-      ]);
-    }
-    final sql =
-        'SELECT dance_fts.dance_id FROM dance_fts '
+          'WHERE dance_fts MATCH ? AND dances.deleted_at IS NULL',
+    ];
+    if (fragment) {
+      // The figure text arrives as a second, role-token-free branch.
+      binds
+        ..add(canonicalQuery)
+        ..add(_figureLikePattern(canonicalText, prefix: true));
+      branches.add(
+        'SELECT dance_fts.dance_id, bm25(dance_fts) FROM dance_fts '
         'JOIN dances ON dances.id = dance_fts.dance_id '
-        'WHERE dance_fts MATCH ? AND dances.deleted_at IS NULL '
-        'ORDER BY $order';
-    return CompiledFilter(sql, [query]);
+        'WHERE figures_text MATCH ? AND dances.deleted_at IS NULL '
+        "AND (' ' || $_figuresTextWithoutRoleTokens) LIKE ? ESCAPE '\\'",
+      );
+    }
+    // The meter, key and interpreters are not in the text index
+    // ([_musicAndInterpreterMatch]); a dance found only by them has no bm25
+    // score, so it ranks after every scored match (bm25 is never above 0).
+    branches.add(
+      'SELECT id, 0 FROM dances WHERE deleted_at IS NULL AND '
+      '${_musicAndInterpreterMatch(filter.query.trim(), true, binds)}',
+    );
+    final sql =
+        'SELECT dance_id FROM (${branches.join(' UNION ALL ')}) '
+        'GROUP BY dance_id ORDER BY MIN(score)$direction';
+    return CompiledFilter(sql, binds);
   }
 
   /// SQL `ORDER BY` fragment for a [SearchSort] in [direction]. [SearchSort.author]
@@ -677,7 +686,8 @@ class FilterCompiler {
           binds.add(_rawColumnsMatch(rawTextQuery));
           final canonical =
               'id IN (SELECT dance_id FROM $table WHERE $table MATCH ?)';
-          return '($canonical OR $rawMatch)';
+          final music = _musicAndInterpreterMatch(raw, isPrefix, binds);
+          return '($canonical OR $rawMatch OR $music)';
         }
         // The word is only a fragment of an internal role token (see
         // [_hasInternalRoleTokenFragment]), so `figures_text` is matched only
@@ -689,8 +699,44 @@ class FilterCompiler {
         final canonicalColumns =
             'id IN (SELECT dance_id FROM $table WHERE $table MATCH ?)';
         final figures = _figureMatchWithoutRoleTokens(table, prefix: isPrefix);
-        return '($canonicalColumns OR $rawMatch OR $figures)';
+        final music = _musicAndInterpreterMatch(raw, isPrefix, binds);
+        return '($canonicalColumns OR $rawMatch OR $figures OR $music)';
     }
+  }
+
+  /// One word of an All fields search ([raw], as typed) against the dance's
+  /// meter, its key and the names of the people who interpreted it (ADR-006
+  /// §9.2, F3: "meter and key MUST be searchable"). These are read from the
+  /// dance's own row and its live interpreters, not from the text index, so
+  /// they need no index rebuild and follow a rename at once.
+  ///
+  /// A word matches as the index would match it: one or two characters
+  /// ([prefix]) must start a word of the value ("D" finds "D minor", "8"
+  /// finds "6/8", "in" does not find "D minor"); a longer word may sit
+  /// anywhere in it. `LIKE` folds ASCII case only, so unlike the text index
+  /// an accent must be typed as stored.
+  String _musicAndInterpreterMatch(
+    String raw,
+    bool prefix,
+    List<Object?> binds,
+  ) {
+    // A word with no letter or digit (or no word at all) would make a
+    // pattern that matches every value; it names no meter, key or person.
+    if (!_letterOrDigit.hasMatch(raw)) return '0';
+    final pattern = _figureLikePattern(raw, prefix: prefix);
+    String value(String column) => prefix ? _wordStarts(column) : column;
+    binds
+      ..add(pattern)
+      ..add(pattern)
+      ..add(pattern);
+    // Joined to `choreographers` with `deleted_at IS NULL`, as the author
+    // leaf is, so a deleted interpreter matches nothing.
+    return "(${value('meter')} LIKE ? ESCAPE '\\' "
+        "OR ${value('musical_key')} LIKE ? ESCAPE '\\' "
+        'OR EXISTS (SELECT 1 FROM dance_interpreters di '
+        'JOIN choreographers c ON c.id = di.choreographer_id '
+        'WHERE di.dance_id = dances.id AND c.deleted_at IS NULL '
+        "AND ${value('c.name')} LIKE ? ESCAPE '\\'))";
   }
 
   String _customField(CustomFieldFilter f, List<Object?> binds) {

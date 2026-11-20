@@ -170,8 +170,13 @@ what is already there.
 Use **Search in**, beside the search bar (above it on a narrow screen or with
 large text), to choose where your words are looked for: **All fields**,
 **Title**, **Author**, or **Figure**. **All fields** looks at titles, authors,
-sources, custom field values, hooks and notes, and finds each word exactly as
-you typed it. It skips yes/no fields, which you find with their filter, and
+sources, custom field values, hooks and notes, and at an English dance's meter,
+key and the people who interpreted it, and finds each word exactly as you typed
+it: `3/2`, `D minor` or `Sharp` each find the dances that have them. A word of
+one or two letters must start a word, so `D` finds the key "D minor" but `in`
+does not. Accents in a meter, key or interpreter's name must be typed as they
+were entered. **Author** looks only at the people who wrote a dance, not those
+who interpreted it. It skips yes/no fields, which you find with their filter, and
 any custom field with **Searchable** turned off (see
 [Make your own fields](#make-your-own-fields)).
 
