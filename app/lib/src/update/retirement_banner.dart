@@ -55,7 +55,7 @@ Future<void> openRetirementUpdatePage(
 
 /// App-wide end-of-support banner (ADR-002 §2 `retirements`). Hosted at the
 /// app shell beside the [UpdateBanner] so it shows on every tab. Non-modal, as
-/// ADR-002 §5 requires of anything the update client surfaces — but "Later"
+/// ADR-002 §5 requires of anything the update client surfaces — but "Dismiss"
 /// hides it only until the next launch, because the user cannot opt out of an
 /// end of support the way they can skip one update.
 ///

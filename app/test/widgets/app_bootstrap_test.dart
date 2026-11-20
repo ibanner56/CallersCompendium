@@ -72,7 +72,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-      find.textContaining('Could not prepare the collection'),
+      find.textContaining("Couldn't prepare your library"),
       findsOneWidget,
     );
     expect(find.text('Collection ready'), findsNothing);
@@ -80,7 +80,7 @@ void main() {
     expect(find.byType(BrandMark), findsOneWidget);
     expect(find.byIcon(Icons.error_outline), findsNothing);
 
-    await tester.tap(find.text('Retry'));
+    await tester.tap(find.text('Try again'));
     expect(retried, isTrue);
   });
 
@@ -173,7 +173,7 @@ void main() {
       ),
       findsOneWidget,
     );
-    expect(find.text('Retry'), findsNothing);
+    expect(find.text('Try again'), findsNothing);
     expect(find.text('Collection ready'), findsNothing);
   });
 
@@ -211,11 +211,39 @@ void main() {
         findsOneWidget,
       );
       // Body mentions the bridge tag.
-      expect(find.textContaining('v0.1.0-beta.6'), findsOneWidget);
+      expect(find.textContaining('Install v0.1.0-beta.6'), findsOneWidget);
+      // Recovering the data is the primary action: a filled button naming
+      // the bridge build.
+      final getBridge = find.byKey(const ValueKey('bootstrap-get-bridge'));
+      expect(getBridge, findsOneWidget);
+      expect(
+        find.ancestor(
+          of: find.text('Get v0.1.0-beta.6'),
+          matching: find.bySubtype<FilledButton>(),
+        ),
+        findsOneWidget,
+      );
+      // The two resets abandon the data, so they are outlined buttons under
+      // their own 'Start fresh instead' label, below the primary action.
+      final startFresh = find.text('Start fresh instead');
+      expect(startFresh, findsOneWidget);
+      for (final label in ['Back up + reset', 'Reset only']) {
+        final button = find.widgetWithText(OutlinedButton, label);
+        expect(button, findsOneWidget, reason: label);
+        expect(
+          tester.getTopLeft(button).dy,
+          greaterThan(tester.getBottomLeft(startFresh).dy),
+          reason: '$label sits under Start fresh instead',
+        );
+      }
+      expect(
+        tester.getTopLeft(startFresh).dy,
+        greaterThan(tester.getBottomLeft(getBridge).dy),
+      );
       // The content is gated.
       expect(find.text('Collection ready'), findsNothing);
       // No Retry: retrying cannot apply retired migration steps.
-      expect(find.text('Retry'), findsNothing);
+      expect(find.text('Try again'), findsNothing);
       // Both reset buttons are present.
       expect(find.text('Back up + reset'), findsOneWidget);
       expect(find.text('Reset only'), findsOneWidget);
@@ -263,10 +291,13 @@ void main() {
       await tester.pumpAndSettle();
 
       // Both buttons start enabled.
-      final backUpButton = find.widgetWithText(FilledButton, 'Back up + reset');
+      final backUpButton = find.widgetWithText(
+        OutlinedButton,
+        'Back up + reset',
+      );
       final resetButton = find.widgetWithText(OutlinedButton, 'Reset only');
       expect(
-        tester.widget<FilledButton>(backUpButton).onPressed,
+        tester.widget<OutlinedButton>(backUpButton).onPressed,
         isNotNull,
         reason: 'Back up + reset should be enabled before any tap',
       );
@@ -283,7 +314,7 @@ void main() {
 
       // While in-flight both buttons must be disabled (onPressed == null).
       expect(
-        tester.widget<FilledButton>(backUpButton).onPressed,
+        tester.widget<OutlinedButton>(backUpButton).onPressed,
         isNull,
         reason: 'Back up + reset should be disabled while in-flight',
       );
@@ -302,7 +333,7 @@ void main() {
       actionCompleter.complete();
       await tester.pumpAndSettle();
       expect(
-        tester.widget<FilledButton>(backUpButton).onPressed,
+        tester.widget<OutlinedButton>(backUpButton).onPressed,
         isNotNull,
         reason: 'Back up + reset should be re-enabled after action completes',
       );
@@ -505,7 +536,7 @@ void main() {
         await tester.pumpAndSettle();
 
         // R2-check-again: terminal means terminal, whatever could clear.
-        expect(find.text('Retry'), findsNothing);
+        expect(find.text('Try again'), findsNothing);
         expect(find.textContaining('Check again'), findsNothing);
         expect(find.text('Collection ready'), findsNothing);
 
@@ -521,12 +552,31 @@ void main() {
         expect(clipboardText, isNot(contains('jane.doe')));
         expect(clipboardText, isNot(contains('No space left')));
 
-        await tester.ensureVisible(
-          find.byKey(const ValueKey('bootstrap-releases-link')),
-        );
-        await tester.tap(find.byKey(const ValueKey('bootstrap-releases-link')));
-        await tester.pumpAndSettle();
-        expect(launcher.launchedUrls, [kReleasesPageUrl]);
+        if (entry.key == 'below floor') {
+          // Its way to help is the primary Get button, which opens the bridge
+          // build's release; the generic Releases link is not shown here.
+          expect(
+            find.byKey(const ValueKey('bootstrap-releases-link')),
+            findsNothing,
+          );
+          await tester.ensureVisible(
+            find.byKey(const ValueKey('bootstrap-get-bridge')),
+          );
+          await tester.tap(find.byKey(const ValueKey('bootstrap-get-bridge')));
+          await tester.pumpAndSettle();
+          expect(launcher.launchedUrls, [
+            '$kReleasesPageUrl/tag/v0.1.0-beta.6',
+          ]);
+        } else {
+          await tester.ensureVisible(
+            find.byKey(const ValueKey('bootstrap-releases-link')),
+          );
+          await tester.tap(
+            find.byKey(const ValueKey('bootstrap-releases-link')),
+          );
+          await tester.pumpAndSettle();
+          expect(launcher.launchedUrls, [kReleasesPageUrl]);
+        }
       });
     }
 

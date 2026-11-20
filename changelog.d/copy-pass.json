@@ -1,0 +1,14 @@
+{
+  "id": "copy-pass",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "One set of names throughout the app: Custom Figures for your own figures, Perform mode for the calling view, and \"library\" (your dances, programs and settings) versus \"collection\" (your dances only). The Settings header over tags, authors and sources is now Dances, and the Program header \"Performance\" is now Perform mode.",
+      "Error messages now say what happened, whether your work is safe where the app can tell, and what to do next, in plain words with no HTTP codes, ids or byte counts in the main sentence. \"Retry\" is \"Try again\" everywhere.",
+      "Buttons that defer or hide something now read Not now, Cancel or Dismiss instead of Later, Decide later or Skip, menu paths use one arrow, and required fields no longer carry an asterisk.",
+      "The startup screen for data that is too old to open now leads with a button to the release that can update it, with the two reset options below it under \"Start fresh instead\".",
+      "The program editor explains \"Slots\" and the dance editor explains \"Hook\" with a line of help.",
+      "Saving a custom field no longer can show raw developer text in an error."
+    ]
+  }
+}

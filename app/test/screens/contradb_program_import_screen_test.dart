@@ -212,7 +212,10 @@ void main() {
         findsOneWidget,
       );
       // The clean, generic message is shown…
-      expect(find.text('Couldn\'t fetch that program.'), findsOneWidget);
+      expect(
+        find.text('Couldn\'t fetch that program. Try again.'),
+        findsOneWidget,
+      );
       // …with a way forward, not a dead end.
       expect(find.byKey(const ValueKey('load-error-retry')), findsOneWidget);
       // …and none of the raw caught-exception text leaks into the UI.
@@ -932,7 +935,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-      find.text("Couldn't undo that. Please check the result and try again."),
+      find.text("Couldn't undo that. Check the result, then try again."),
       findsOneWidget,
     );
     expect(await repos.dances.listAll(), hasLength(2));

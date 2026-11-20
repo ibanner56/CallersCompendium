@@ -385,7 +385,7 @@ typed them. "Leads chain" and "the lead on the left" still use the role. Text sa
 
 With **Custom Figures** on (see [Settings](./settings.md)), the figures you
 built for the dance's form, in the [Glossary](./glossary.md) or from
-**Settings › Experimental › Your figures**, are offered when
+**Settings ▸ Experimental ▸ Custom Figures**, are offered when
 you choose a figure's move, listed first and marked with a person icon
 (announced as **Custom** by screen readers). They are found by their name or by
 any of their other names. A figure you built has one of two kinds, and each
@@ -665,7 +665,7 @@ nothing in it to lose.
 - **Hook** — one line on why you would call this dance. Printed and shared
   dance cards can show it, and the dance's published sources, once you turn on
   **Hook** and **Sources** under
-  [Settings › Defaults › Shared dance fields](./settings.md#shared-dance-fields).
+  [Settings ▸ Defaults ▸ Shared dance fields](./settings.md#shared-dance-fields).
 - **Walkthrough** — the step-by-step teach.
 
 ### Walkthrough
@@ -735,8 +735,8 @@ explicit about two things, and both matter:
   disagree. **Keep editing** takes you back to what you typed. After a merge,
   every dance that credited either author credits the one that's left, this
   dance included, and **Undo** in the message at the bottom of the screen puts
-  both back. The same merge is in **Settings → General → Library → Authors**;
-  see [Settings](./settings.md#library).
+  both back. The same merge is in **Settings ▸ General ▸ Dances ▸ Authors**;
+  see [Settings](./settings.md#dances).
 - **Email and location are private, and so is the deceased mark.** They are
   stored only on this device and are never shared or exported. See
   [Share, print & export](./sharing.md#what-stays-private) for exactly what
@@ -745,8 +745,8 @@ explicit about two things, and both matter:
 **Source details** works the same way: a source's details are shared across every
 dance that cites it, and editing them here updates the source everywhere it is
 referenced. To combine two copies of the same source, use **Merge into…** in
-**Settings → General → Library → Sources**; see
-[Settings](./settings.md#library).
+**Settings ▸ General ▸ Dances ▸ Sources**; see
+[Settings](./settings.md#dances).
 
 ## Undo, drafts, and saving
 
