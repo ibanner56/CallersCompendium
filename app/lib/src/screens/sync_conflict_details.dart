@@ -132,6 +132,18 @@ String syncConflictFigureNoteText(
   ).renderFreeText(text, _formDialect(context, form));
 }
 
+/// A walkthrough snippet stored under [signature], in canonical role words,
+/// as Settings shows it: in the dialect of its figure's form
+/// ([walkthroughSnippetForm]).
+String syncConflictSnippetText(
+  BuildContext context,
+  String signature,
+  String text,
+) => SyncConflictComparison._renderer.renderFreeText(
+  text,
+  _formDialect(context, walkthroughSnippetForm(signature)),
+);
+
 /// The built-in figure [figureId] names — a figure note's record id (#709) —
 /// exactly as the Glossary heads it in its form's dialect, a colliding alias
 /// qualified by the values it pins ([glossaryFigureTitle]); or null when the
@@ -713,10 +725,7 @@ class SyncConflictComparison extends StatelessWidget {
       case 'walkthrough_snippets':
         // In the dialect of the snippet's figure's form, as Settings shows it.
         return value is String
-            ? _renderer.renderFreeText(
-                value,
-                _formDialect(context, walkthroughSnippetForm(entry.key)),
-              )
+            ? syncConflictSnippetText(context, entry.key, value)
             : l10n.syncConflictValueNotSet;
       case 'shorthand_mappings':
         final figures = value is Map ? value['figures'] : null;

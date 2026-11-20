@@ -726,6 +726,21 @@ void main() {
       expect(find.textContaining('follows go.'), findsWidgets);
       expect(find.textContaining('larks go.'), findsWidgets);
       expect(find.textContaining('robins go.'), findsWidgets);
+
+      // Combining both heads each changed snippet with its text, in the same
+      // dialect, never in its stored role tokens.
+      await tester.ensureVisible(find.text('Combine both'));
+      await tester.tap(find.text('Combine both'));
+      await tester.pumpAndSettle();
+      expect(
+        find.text(
+          'Both devices changed these. For each, choose which to keep:',
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('leads go.'), findsOneWidget);
+      expect(find.text('larks go.'), findsOneWidget);
+      expect(find.textContaining('role1s'), findsNothing);
     });
 
     testWidgets('a shorthand for a new figure reads as the line it inserts, '

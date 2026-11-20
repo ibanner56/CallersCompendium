@@ -644,7 +644,7 @@ class _ConflictGroupTile extends StatelessWidget {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(_entryLabel(pair.local)),
+                              Text(_entryLabel(context, pair.local)),
                               SegmentedButton<bool>(
                                 key: ValueKey(
                                   'sync-conflict-entry-${pair.local.key}',
@@ -760,10 +760,15 @@ class _ConflictGroupTile extends StatelessWidget {
   static const String _combineBoth = 'combine-both';
 
   /// What a collection entry is known by: its name, or for a walkthrough
-  /// snippet (which has none) its text.
-  static String _entryLabel(SyncCollectionEntry entry) {
+  /// snippet (which has none) its text, in the dialect of its figure's form
+  /// as the comparison shows it.
+  String _entryLabel(BuildContext context, SyncCollectionEntry entry) {
     final value = entry.value;
-    return entry.label ?? (value is String ? value : entry.key);
+    if (entry.label case final label?) return label;
+    if (value is! String) return entry.key;
+    return group.recordId == 'walkthrough_snippets'
+        ? syncConflictSnippetText(context, entry.key, value)
+        : value;
   }
 
   String _recordTitle(BuildContext context, AppLocalizations l10n) {
