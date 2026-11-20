@@ -10,7 +10,7 @@ vX.Y.Z-beta`` (beta), never ``chore(release)``. Nothing linted it (#1262 used
 What it checks, and what it deliberately does not:
 
 - It applies only to a PR whose head changes the app version relative to the
-  PR base. Every other PR passes untouched.
+  merge base with the PR base. Every other PR passes untouched.
 - It checks the **PR title only**. Commits are squash-merged, so the title
   becomes ``main``'s subject; intermediate commits legitimately differ, so their
   subjects are never read.
@@ -89,10 +89,12 @@ def decide(title: str, base: str, head: str) -> str | None:
     head_version = pubspec_version(head_text)
     if head_version is None:
         raise Undecidable(f"no X.Y.Z `version:` in {PUBSPEC} at {head}")
-    verify = subprocess.run(["git", "rev-parse", "--verify", "--quiet", f"{base}^{{commit}}"], capture_output=True)
-    if verify.returncode != 0:
-        raise Undecidable(f"cannot resolve base ref {base}")
-    base_text = _show(base)
+    # The merge base, not the base tip: a PR cut before `main` was bumped must not
+    # look as though it lowers the version (the paths filter is a three-dot diff too).
+    merged = subprocess.run(["git", "merge-base", base, head], capture_output=True, text=True)
+    if merged.returncode != 0 or not merged.stdout.strip():
+        raise Undecidable(f"cannot find a merge base of {base} and {head}")
+    base_text = _show(merged.stdout.strip())
     base_version = pubspec_version(base_text) if base_text is not None else None
     return judge(title, base_version, head_version)
 

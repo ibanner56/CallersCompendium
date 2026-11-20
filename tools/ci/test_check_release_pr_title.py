@@ -111,6 +111,16 @@ def main() -> int:
         res = run(root, "Add a feature", bump, other)
         check("e2e: no version change passes any title", res.returncode == 0, res.stdout + res.stderr)
 
+        # A PR cut before main's release bump, touching pubspec but not `version:`
+        # (its base tip is ahead of it): not a release PR, so any title passes.
+        git(root, "checkout", "-q", base)
+        git(root, "checkout", "-q", "-b", "stale")
+        (root / "app" / "pubspec.yaml").write_text("name: app\nversion: 0.9.0\ndependencies: {x: 1}\n", encoding="utf-8")
+        git(root, "add", "-A")
+        git(root, "commit", "-q", "-m", "bump a dependency")
+        res = run(root, "Bump x", bump, "stale")
+        check("e2e: base ahead of the merge-base is not a version change", res.returncode == 0, res.stdout + res.stderr)
+
         # Cannot decide.
         res = run(root, None, base, bump)
         check("e2e: missing PR_TITLE is exit 2", res.returncode == 2, res.stdout + res.stderr)
