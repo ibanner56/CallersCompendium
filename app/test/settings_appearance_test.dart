@@ -158,13 +158,18 @@ void main() {
         openTestRepositories(),
         locale: const Locale('de'),
       );
-      // The gallery sits above the toggle the harness scrolled to; bring the
-      // top of the list back so its cards are built.
+      // The Theme row sits above the toggle the harness scrolled to; bring the
+      // top of the list back and open the Theme screen from it. A tall window
+      // builds every card, down to the Dark section.
       tester
           .state<ScrollableState>(find.byType(Scrollable).last)
           .position
           .jumpTo(0);
       await tester.pumpAndSettle();
+      await tester.binding.setSurfaceSize(const Size(1200, 3000));
+      await tester.tap(find.byKey(const ValueKey('appearance-theme')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('theme-search')), findsOneWidget);
     }
 
     testWidgets('group headings and generic theme names are German', (

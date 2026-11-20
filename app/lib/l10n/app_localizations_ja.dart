@@ -2066,7 +2066,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get appThemeKeywordRed => '赤, 赤い, 紅, 深紅, コーラル, レッド';
 
   @override
-  String get appThemeKeywordOrange => 'オレンジ, 橙, 琥珀, 銅';
+  String get appThemeKeywordOrange => 'オレンジ, だいだい色, アンバー, 銅';
 
   @override
   String get appThemeKeywordYellow => '黄, 黄色, 金, 金色, からし色, イエロー';
