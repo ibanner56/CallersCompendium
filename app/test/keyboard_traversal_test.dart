@@ -6,8 +6,15 @@
 // trap. Each screen here is walked with real Tab key events and checked three
 // ways:
 //
-//  1. No trap: Tab comes back to where it started within a bounded number of
-//     presses, and Shift+Tab walks the same stops in reverse.
+//  1. No trap: Tab wraps round the page within a bounded number of presses. A
+//     repeat of a stop is the page wrapping round unless its loop is only a few
+//     controls (under 5), which is a trap, wherever on the page it is. A trap
+//     of five or more controls inside a long lazy form cannot be told from a
+//     wrap this way (a lazy list's wrap lands on the first control still built,
+//     not the first stop); the reachability and Shift+Tab checks below are what
+//     would notice one. Shift+Tab, pressed as often, visits nearly as many
+//     distinct stops as Tab did (it is not compared stop for stop: see the note
+//     where it is checked).
 //  2. Reachable: every tappable, enabled semantics node on screen is covered by
 //     a Tab stop of about its own size (a stop for a small button inside a large
 //     row does not count as reaching the row).
@@ -44,6 +51,11 @@ import 'support/real_fonts.dart';
 
 /// A desktop window: the checklist's keyboard gate is a desktop gate.
 const _desktop = Size(1100, 800);
+
+/// A repeat is a trap, not the page wrapping round, when its loop is fewer than
+/// this many stops, or fewer than this many were walked at all (a control that
+/// swallows Tab on the first press repeats at once).
+const _minLoop = 5;
 
 /// The smallest a Tab stop may be on a side, in logical px. The smallest real
 /// control here is a 24 px tap target.
@@ -255,10 +267,23 @@ bool _reaches(_Stop stopNode, _Tappable target) {
 
 /// What a walk found: the stops, and every tappable seen on screen along the
 /// way that no stop reached.
-typedef _Walk = ({List<_Stop> stops, List<String> unreached});
+typedef _Walk = ({
+  List<_Stop> stops,
+  List<String> unreached,
 
-/// Tab from a fresh start until a stop repeats. `null` means no repeat within
-/// [_maxStops], that is, a trap or an unbounded traversal.
+  /// The stops of a loop that is too small to be the page going round, or a
+  /// note that Tab visited too few stops to have wrapped: a keyboard trap.
+  /// `null` when Tab wrapped round the page.
+  List<String>? trap,
+});
+
+/// Tab from a fresh start until a stop repeats, which is the page wrapping round
+/// unless its loop is only a few stops, which is a trap. `null` means no repeat
+/// within [_maxStops], that is, an unbounded traversal.
+///
+/// On a lazy list the controls scrolled far above are no longer built when Tab
+/// wraps, so it lands on the first control still built, not on the first stop;
+/// that is why a wrap is judged by the size of its loop, not by where it ends.
 ///
 /// A lazy list scrolls and builds as focus moves, so what is tappable changes
 /// from step to step. Each step therefore asks which of the tappables on screen
@@ -274,13 +299,23 @@ Future<_Walk?> _walk(WidgetTester tester) async {
     await _tab(tester);
     final node = FocusManager.instance.primaryFocus;
     if (node == null || !_live(node)) continue;
-    if (stops.any((s) => identical(s.node, node))) {
+    final repeat = stops.indexWhere((s) => identical(s.node, node));
+    if (repeat >= 0) {
+      final loop = stops.length - repeat;
       return (
         stops: stops,
         unreached: [
           for (final e in seen.entries)
             if (!reached.contains(e.key)) e.value,
         ],
+        trap: loop >= _minLoop && stops.length >= _minLoop
+            ? null
+            : [
+                if (stops.length < _minLoop)
+                  'Tab came back after only ${stops.length} stop(s)',
+                for (final s in stops.sublist(repeat))
+                  '${s.rect} ${s.describe}',
+              ],
       );
     }
     final stop = _Stop(
@@ -346,9 +381,14 @@ void _screen(
         walk,
         isNotNull,
         reason:
-            '$name: Tab did not return to its first stop in $_maxStops presses',
+            '$name: Tab did not come back to its first stop in $_maxStops presses',
       );
-      final stops = walk!.stops;
+      expect(
+        walk!.trap,
+        isNull,
+        reason: '$name: Tab is stuck in a loop of a few controls',
+      );
+      final stops = walk.stops;
       final real = stops.where((s) => !s.isWholeWindow).toList();
       expect(real, isNotEmpty, reason: '$name: Tab reached no control at all');
       // Shift+Tab must not trap either: pressed twice as often as Tab was, it
