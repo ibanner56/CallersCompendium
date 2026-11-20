@@ -35,9 +35,12 @@ prevent on its own are in
   `docs(release): prepare vX.Y.Z` for a stable release or
   `docs(release): prepare vX.Y.Z-beta` for a beta release, using the actual
   version literal, with X.Y.Z equal to `app/pubspec.yaml`'s version (for the
-  `v0.10.0-beta` tag: `docs(release): prepare v0.10.0-beta`). The title is
-  checked by `tools/ci/check_release_pr_title.py`; commit subjects are not,
-  because squash-merge makes the title `main`'s subject. Never use
+  `v0.10.0-beta` tag: `docs(release): prepare v0.10.0-beta`). When the PR
+  changes `app/pubspec.yaml`'s version, the title is checked by
+  `tools/ci/check_release_pr_title.py`; commit subjects are not, because
+  squash-merge makes the title `main`'s subject. Promoting an existing beta to
+  stable keeps the same core version, so that PR changes no version and its
+  title is not checked: get it right by hand. Never use
   `chore(release)` unless a maintainer explicitly overrides this convention.
   This remains true when the
   preparation changes version literals, issue-template metadata, or generated

@@ -25,8 +25,9 @@ step-by-step does not prevent on its own.
   `docs(release): prepare vX.Y.Z-beta` for beta releases in both the
   preparation commit subject and pull request title, with X.Y.Z equal to
   `app/pubspec.yaml`'s version (`docs(release): prepare v0.10.0-beta` for the
-  `v0.10.0-beta` tag). CI checks the PR title only
-  (`tools/ci/check_release_pr_title.py`). Do not substitute
+  `v0.10.0-beta` tag). When the PR changes the pubspec version, CI checks the
+  PR title only (`tools/ci/check_release_pr_title.py`); a stable promotion of an
+  existing beta changes no version and is not checked. Do not substitute
   `chore(release)` unless a maintainer explicitly overrides the convention,
   including when the preparation changes version literals, issue-template
   metadata, or generated changelogs.
