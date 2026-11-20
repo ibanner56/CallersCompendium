@@ -922,9 +922,8 @@ def _written_images(lines: list[str], fenced: set[int]) -> list[tuple[int, str]]
     """``(line index, dest)`` for each image as written, in document order.
 
     Reads the source the way the renderer does: each run of consecutive
-    unfenced, non-blank lines is joined (container prefixes such as ``>`` and list
-    markers stripped) and scanned as one piece of text, so an image whose syntax
-    wraps over lines is found whole. Each image is placed on the line holding its
+    unfenced, non-blank lines is joined and scanned as one piece of text, so an
+    image whose syntax wraps over lines is found whole. Each image is placed on the line holding its
     closing ``)``, which is where its destination is.
     """
     written: list[tuple[int, str]] = []
@@ -937,7 +936,7 @@ def _written_images(lines: list[str], fenced: set[int]) -> list[tuple[int, str]]
         first = index
         pieces: list[str] = []
         while index < total and index not in fenced and lines[index].strip():
-            pieces.append(_CONTAINER_PREFIX_RE.sub("", lines[index], count=1))
+            pieces.append(lines[index])
             index += 1
         starts = [0]
         for piece in pieces[:-1]:

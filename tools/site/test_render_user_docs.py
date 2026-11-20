@@ -822,6 +822,17 @@ def test_the_error_line_is_the_image_not_a_fenced_example_of_it() -> None:
     assert len(errors) == 1 and errors[0].startswith("docs/user/pics.md:7: "), errors
 
 
+def test_a_fence_with_a_blank_line_or_tildes_still_hides_its_example() -> None:
+    # A triple-backtick fence without blank lines also reads as one code span, so
+    # these are the shapes that only the explicit fence tracking handles.
+    blank_inside = "# P\n\n```\nfirst\n\n![](images/new.png)\n```\n\n![](images/new.png)\n"
+    assert _lines(blank_inside) == [9]
+    tilde = "# P\n\n~~~\n![](images/new.png)\n~~~\n\n![](images/new.png)\n"
+    assert _lines(tilde) == [7]
+    quoted_blank = "# P\n\n> ```\n> a\n>\n> ![](images/new.png)\n> ```\n\n![](images/new.png)\n"
+    assert _lines(quoted_blank) == [9]
+
+
 def test_a_mention_of_the_file_is_not_mistaken_for_the_image() -> None:
     assert _lines("# P\n\nSee `images/new.png` and images/new.png.\n\n![](images/new.png)\n") == [5]
     assert _lines("# P\n\nx data.png y\n\n![](a.png)\n") == [5]
