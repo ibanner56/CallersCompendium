@@ -225,10 +225,15 @@ explicitly mark N/A with a reason. "Gate" = must pass before tagging.
  (`app/test/a11y_guidelines_test.dart` sweeps the Collection, Programs list,
  summary and builder, Perform and its Adjust sheet, the Dance editor's first
  screenful, Dance detail (a long title, notes, a tag and a rating, scrolled to
- the end), every Settings page (each scrolled to the end), and the Tags manager
- at 2.0× on 360 and 412 dp with the real fonts. Settings' Diagnostics page is
- swept by its own case there, with an in-memory crash log, because the app's
- on-disk one never settles in a widget test. The editor's
+ the end), each Settings section page (scrolled to the end), and the Tags
+ manager at 2.0× on 360 and 412 dp with the real fonts. Settings' Diagnostics
+ page is swept by its own case there, with an in-memory crash log, because the
+ app's on-disk one never settles in a widget test. The Settings sweep does not
+ open the collapsed sections on the Defaults page, and does not reach the
+ screens a Settings page pushes (the calling-card layout and matrix-column
+ editors, sync pairing and devices). The sweep reports `RenderFlex` overflows,
+ which is what a fixed-height Column or Row around text produces; a fixed-height
+ box that only clips one line of text raises none and is not caught. The editor's
  Type/Formation dropdowns are covered only by `dance_editor_narrow_test.dart`.
  `app/test/dropdown_large_text_test.dart` checks those form dropdowns for
  overflow at 360 dp, 1.5× and 2.0× with long values (locale-dependent ones in
