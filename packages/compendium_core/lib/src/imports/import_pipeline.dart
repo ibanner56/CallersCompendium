@@ -1266,7 +1266,7 @@ class ImportPipeline {
   /// reappeared permanently after a rolled-back import — and worse, the revival
   /// had stamped `existence_at` strictly *past* the user's deletion, which is
   /// the value existence is ordered by, so the resurrection would outrank that
-  /// deletion on every peer once a sync client exists.
+  /// deletion on every peer.
   ///
   /// The choreographer removal asks for a **hard** delete (`permanent: true`),
   /// not the tombstone `ChoreographerRepository.delete` writes by default since
