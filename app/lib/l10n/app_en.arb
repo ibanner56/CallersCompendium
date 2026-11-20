@@ -10676,9 +10676,9 @@
       }
     }
   },
-  "importReviewReimportWarning": "{count, plural, =1{Re-import replaces the figures, formation and progression of 1 existing dance. Its rating, tags and notes stay.} other{Re-import replaces the figures, formation and progression of {count} existing dances. Their ratings, tags and notes stay.}}",
+  "importReviewReimportWarning": "{count, plural, =1{Re-import replaces the figures, formation and progression of 1 existing dance, and can change its dance form. Its rating, tags and notes stay.} other{Re-import replaces the figures, formation and progression of {count} existing dances, and can change their dance form. Their ratings, tags and notes stay.}}",
   "@importReviewReimportWarning": {
-    "description": "Pre-commit warning stating how many existing local dances a commit will re-import onto. A re-import replaces only their choreography.",
+    "description": "Pre-commit warning stating how many existing local dances a commit will re-import onto. A re-import replaces only their choreography, which takes the dance form with it (an English dance re-imported as contra becomes contra).",
     "placeholders": {
       "count": {
         "type": "int"
@@ -10897,7 +10897,7 @@
   "@importReviewEditReimportTitle": {
     "description": "Title of the confirmation shown when Import and edit is pressed on a row set to Re-import, because the matched dance is updated immediately, outside the batch Undo."
   },
-  "importReviewEditReimportBody": "Importing to edit replaces the figures, formation and progression of \"{title}\" in your collection immediately. The batch Undo will not restore them.",
+  "importReviewEditReimportBody": "Importing to edit replaces the figures, formation and progression of \"{title}\" in your collection immediately, and can change its dance form. The batch Undo will not restore them.",
   "@importReviewEditReimportBody": {
     "description": "Body of the Import and edit confirmation for a row set to Re-import with Also update title and credit off. The title is an untrusted local value rendered as plain text.",
     "placeholders": {
@@ -10907,7 +10907,7 @@
       }
     }
   },
-  "importReviewEditReimportTitleAndCreditBody": "Importing to edit replaces the figures, formation, progression, title and credit of \"{title}\" in your collection immediately. The batch Undo will not restore them.",
+  "importReviewEditReimportTitleAndCreditBody": "Importing to edit replaces the figures, formation, progression, title and credit of \"{title}\" in your collection immediately, and can change its dance form. The batch Undo will not restore them.",
   "@importReviewEditReimportTitleAndCreditBody": {
     "description": "Body of the Import and edit confirmation for a row set to Re-import with Also update title and credit ticked. The title is an untrusted local value rendered as plain text.",
     "placeholders": {
@@ -14285,6 +14285,10 @@
   "venueEditTitle": "Edit venue",
   "@venueEditTitle": {
     "description": "Title of the venue editor sheet when editing an existing venue."
+  },
+  "venueEditorSaveError": "Couldn't save the venue. Your changes are still here. Try again.",
+  "@venueEditorSaveError": {
+    "description": "Shown in the venue editor sheet when saving the venue fails. The sheet stays open with every field as the user left it."
   },
   "venueEditorSharedNote": "A venue is shared across every program held here, so edits to its address, contacts, or schedule show up on all of them.",
   "@venueEditorSharedNote": {

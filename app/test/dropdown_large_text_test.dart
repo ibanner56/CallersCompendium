@@ -1,8 +1,8 @@
 // Large-text overflow guards for the form dropdowns that #2162 left alone.
 //
-// A `DropdownButtonFormField` without `isExpanded` sizes itself to its widest
-// item, so a long label (a user's custom-field name, a choice, a difficulty
-// level, a column title) overflows its row at phone width and large text. Each
+// A dropdown that sizes itself to its widest item lets a long label (a user's
+// custom-field name, a choice, a difficulty level, a column title) overflow its
+// row at phone width and large text. Each
 // case pumps the real widget at 360 dp with the system text scale at 2.0 (and
 // 1.5), using the bundled fonts, filled with realistic long values, and asserts
 // that no RenderFlex overflow was reported.
@@ -15,6 +15,8 @@ import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/custom_fields_screen.dart';
 import 'package:compendium_app/src/screens/dance_editor/custom_field_editor.dart';
 import 'package:compendium_app/src/screens/dance_editor/editor_fields.dart';
+import 'package:compendium_app/src/screens/dance_editor/links_editor.dart';
+import 'package:compendium_app/src/screens/dance_editor/link_draft.dart';
 import 'package:compendium_app/src/screens/program_editor_screen.dart';
 import 'package:compendium_app/src/screens/settings/matrix_column_editor.dart';
 import 'package:compendium_app/src/theme/app_theme.dart';
@@ -24,6 +26,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'support/dropdown.dart';
 import 'support/l10n_harness.dart';
 import 'support/real_fonts.dart';
 import 'support/screen_size.dart';
@@ -80,33 +83,45 @@ void _expectNoOverflow(WidgetTester tester) {
   expect(tester.takeException(), isNull);
 }
 
-/// For a dropdown whose items are user-typed: the closed field ellipsizes the
-/// selected [full] text, and the open menu shows all of it (it wraps), so the
-/// value can always be read somewhere.
-Future<void> _expectEllipsizedClosedReadableOpen(
+/// For a dropdown whose items are user-typed: the closed field stays one line
+/// tall and holds the selected [full] text (it scrolls rather than wrapping),
+/// and the open menu shows all of it (it wraps), so the value can always be
+/// read somewhere.
+Future<void> _expectOneLineClosedReadableOpen(
   WidgetTester tester,
   Finder field,
   String full,
 ) async {
-  bool exceeds(Finder f) =>
-      tester.renderObject<RenderParagraph>(f).didExceedMaxLines;
-  final closed = find.descendant(of: field, matching: find.text(full));
+  final closed = find.descendant(
+    of: field,
+    matching: find.byType(EditableText),
+  );
   expect(closed, findsOneWidget);
-  expect(exceeds(closed), isTrue, reason: 'closed field should ellipsize');
+  final editable = tester.widget<EditableText>(closed);
+  expect(editable.controller.text, full);
+  expect(editable.maxLines, 1, reason: 'closed field should stay one line');
   await tester.ensureVisible(field);
   await tester.pumpAndSettle();
   await tester.tap(field);
   await tester.pumpAndSettle();
-  final inMenu = find.text(full).last;
-  expect(exceeds(inMenu), isFalse, reason: 'open menu should show it in full');
+  final inMenu = find.descendant(
+    of: find.byType(MenuItemButton),
+    matching: find.text(full),
+  );
+  expect(inMenu, findsOneWidget);
+  expect(
+    tester.renderObject<RenderParagraph>(inMenu).didExceedMaxLines,
+    isFalse,
+    reason: 'open menu should show it in full',
+  );
   _expectNoOverflow(tester);
 }
 
-/// Every `Text` inside the open menu's items must lay out in full and be
+/// Every `Text` inside the open menu's entries must lay out in full and be
 /// allowed to wrap (no ellipsis, no line cap).
-void _expectMenuItemsUnclipped<T>(WidgetTester tester) {
+void _expectMenuItemsUnclipped(WidgetTester tester) {
   final texts = find.descendant(
-    of: find.byType(DropdownMenuItem<T>),
+    of: find.byType(MenuItemButton),
     matching: find.byType(Text),
   );
   expect(texts, findsWidgets);
@@ -121,6 +136,24 @@ void _expectMenuItemsUnclipped<T>(WidgetTester tester) {
     expect(text.overflow, isNot(TextOverflow.ellipsis));
     expect(text.maxLines, isNull);
   }
+}
+
+/// Fails if the closed dropdown [field] cuts its value off: the closed field
+/// cannot ellipsize, so a value wider than its text box is silently clipped.
+void _expectClosedValueFits(WidgetTester tester, Finder field) {
+  final editable = tester.renderObject<RenderEditable>(
+    find.descendant(
+      of: field,
+      matching: find.byWidgetPredicate(
+        (w) => w.runtimeType.toString() == '_Editable',
+      ),
+    ),
+  );
+  expect(
+    editable.size.width,
+    greaterThanOrEqualTo(editable.getMaxIntrinsicWidth(double.infinity)),
+    reason: dropdownShown(tester, field),
+  );
 }
 
 Widget _scaffold(Widget body) => Scaffold(
@@ -160,7 +193,7 @@ void main() {
               scale: scale,
             );
             _expectNoOverflow(tester);
-            await _expectEllipsizedClosedReadableOpen(
+            await _expectOneLineClosedReadableOpen(
               tester,
               find.byKey(const ValueKey('custom-f1-choice')),
               _longChoice,
@@ -189,7 +222,7 @@ void main() {
           scale: scale,
         );
         _expectNoOverflow(tester);
-        await _expectEllipsizedClosedReadableOpen(
+        await _expectOneLineClosedReadableOpen(
           tester,
           find.byKey(const ValueKey('level-field')),
           long.label,
@@ -216,6 +249,41 @@ void main() {
             locale: locale,
           );
           _expectNoOverflow(tester);
+        });
+      }
+
+      for (final locale in testSupportedLocales) {
+        testWidgets('link kinds show in full beside the address in $locale', (
+          tester,
+        ) async {
+          final drafts = [
+            for (final kind in [
+              LinkKind.source,
+              LinkKind.video,
+              LinkKind.other,
+            ])
+              LinkDraft.empty()..kind = kind,
+          ];
+          await _pump(
+            tester,
+            _scaffold(
+              LinksEditor(
+                links: drafts,
+                onAdd: () {},
+                onRemove: (_) {},
+                onChanged: () {},
+              ),
+            ),
+            scale: scale,
+            locale: locale,
+          );
+          _expectNoOverflow(tester);
+          for (final draft in drafts) {
+            _expectClosedValueFits(
+              tester,
+              find.byKey(ValueKey('link-kind-${draft.id}')),
+            );
+          }
         });
       }
 
@@ -257,7 +325,7 @@ void main() {
             ),
           ]);
           _expectNoOverflow(tester);
-          await _expectEllipsizedClosedReadableOpen(
+          await _expectOneLineClosedReadableOpen(
             tester,
             find.byKey(const ValueKey('batch-custom-field-key')),
             _longFieldLabel,
@@ -275,16 +343,15 @@ void main() {
             ),
           ]);
           // Select the long option so the closed dropdown renders it.
-          await tester.tap(
-            find.byKey(const ValueKey('batch-custom-field-value-f1-2')),
-          );
-          await tester.pumpAndSettle();
-          await tester.tap(find.text(_longChoice).last);
-          await tester.pumpAndSettle();
-          _expectNoOverflow(tester);
-          await _expectEllipsizedClosedReadableOpen(
+          await pickDropdownEntry(
             tester,
-            find.byKey(const ValueKey('batch-custom-field-value-f1-2')),
+            find.byKey(const ValueKey('batch-custom-field-value-f1')),
+            _longChoice,
+          );
+          _expectNoOverflow(tester);
+          await _expectOneLineClosedReadableOpen(
+            tester,
+            find.byKey(const ValueKey('batch-custom-field-value-f1')),
             _longChoice,
           );
         });
@@ -336,12 +403,17 @@ void main() {
           );
           expect(status, findsOneWidget);
           _expectNoOverflow(tester);
+          // The pay currency beside the amount shows its code in full.
+          final currency = find.byKey(const ValueKey('program-pay-currency'));
+          await tester.ensureVisible(currency);
+          await tester.pumpAndSettle();
+          _expectClosedValueFits(tester, currency);
           // Open the menu: every status label must show in full there.
           await tester.ensureVisible(status);
           await tester.pumpAndSettle();
           await tester.tap(status);
           await tester.pumpAndSettle();
-          _expectMenuItemsUnclipped<ProgramStatus>(tester);
+          _expectMenuItemsUnclipped(tester);
           _expectNoOverflow(tester);
         });
       }
@@ -379,7 +451,7 @@ void main() {
         testWidgets('parameterized column move dropdown', (tester) async {
           await openDialog(tester, 'matrix-column-add-parameterized');
           _expectNoOverflow(tester);
-          await _expectEllipsizedClosedReadableOpen(
+          await _expectOneLineClosedReadableOpen(
             tester,
             find.byKey(const ValueKey('matrix-parameterized-move')),
             longest.displayName,
@@ -394,7 +466,7 @@ void main() {
           await tester.tap(add);
           await tester.pumpAndSettle();
           _expectNoOverflow(tester);
-          await _expectEllipsizedClosedReadableOpen(
+          await _expectOneLineClosedReadableOpen(
             tester,
             find.byKey(const ValueKey('matrix-compound-step-move-0')),
             longest.displayName,

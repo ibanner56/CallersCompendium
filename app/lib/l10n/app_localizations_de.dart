@@ -8307,9 +8307,9 @@ class AppLocalizationsDe extends AppLocalizations {
       count,
       locale: localeName,
       other:
-          'Neu importieren ersetzt Figuren, Formation und Progression von $count vorhandenen Tänzen. Ihre Bewertungen, Tags und Notizen bleiben.',
+          'Neu importieren ersetzt Figuren, Formation und Progression von $count vorhandenen Tänzen und kann ihre Tanzform ändern. Ihre Bewertungen, Tags und Notizen bleiben.',
       one:
-          'Neu importieren ersetzt Figuren, Formation und Progression von 1 vorhandenen Tanz. Seine Bewertung, Tags und Notizen bleiben.',
+          'Neu importieren ersetzt Figuren, Formation und Progression von 1 vorhandenen Tanz und kann seine Tanzform ändern. Seine Bewertung, Tags und Notizen bleiben.',
     );
     return '$_temp0';
   }
@@ -8495,12 +8495,12 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String importReviewEditReimportBody(String title) {
-    return 'Beim Importieren zum Bearbeiten werden Figuren, Formation und Progression von „$title“ in deiner Sammlung sofort ersetzt. „Rückgängig“ für den gesamten Import stellt sie nicht wieder her.';
+    return 'Beim Importieren zum Bearbeiten werden Figuren, Formation und Progression von „$title“ in deiner Sammlung sofort ersetzt, und seine Tanzform kann sich ändern. „Rückgängig“ für den gesamten Import stellt nichts davon wieder her.';
   }
 
   @override
   String importReviewEditReimportTitleAndCreditBody(String title) {
-    return 'Beim Importieren zum Bearbeiten werden Figuren, Formation, Progression, Titel und Autorenangabe von „$title“ in deiner Sammlung sofort ersetzt. „Rückgängig“ für den gesamten Import stellt sie nicht wieder her.';
+    return 'Beim Importieren zum Bearbeiten werden Figuren, Formation, Progression, Titel und Autorenangabe von „$title“ in deiner Sammlung sofort ersetzt, und seine Tanzform kann sich ändern. „Rückgängig“ für den gesamten Import stellt nichts davon wieder her.';
   }
 
   @override
@@ -11041,6 +11041,10 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get venueEditTitle => 'Veranstaltungsort bearbeiten';
+
+  @override
+  String get venueEditorSaveError =>
+      'Der Veranstaltungsort konnte nicht gespeichert werden. Deine Änderungen sind noch da. Versuche es erneut.';
 
   @override
   String get venueEditorSharedNote =>

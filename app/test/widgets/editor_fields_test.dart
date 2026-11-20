@@ -1,15 +1,16 @@
 import 'package:compendium_app/src/screens/dance_editor/editor_fields.dart';
+import 'package:compendium_app/src/widgets/app_dropdown_field.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../support/dropdown.dart';
 import '../support/l10n_harness.dart';
 
 /// Reads the value the field's own [FormFieldState] is holding — the exact
 /// thing the removed comment claimed does not update.
-T? _fieldValue<T>(WidgetTester tester) => tester
-    .state<FormFieldState<T>>(find.byType(DropdownButtonFormField<T>))
-    .value;
+T? _fieldValue<T>(WidgetTester tester) =>
+    tester.state<FormFieldState<T>>(findDropdown<T>()).value;
 
 /// Pumps [build] under a host that owns the model the way the dance editor
 /// does: the widget reports through `onChanged`, the host stores it, and the
@@ -40,56 +41,51 @@ Future<StateSetter> _pumpExternallyDriven(
 }
 
 void main() {
-  // Issue #775. `EnumDropdown` carried a value-based key justified by the claim
-  // that `DropdownButtonFormField` "does not re-initialize its state from
-  // `initialValue` after construction". It does:
-  // `_DropdownButtonFormFieldState.didUpdateWidget` calls
-  // `setValue(widget.initialValue)` (Flutter 3.44.6, `material/dropdown.dart`).
-  // Plain `FormField` is what does not — it syncs only `forceErrorText`
-  // (`widgets/form.dart`) — which is the likely source of the confusion.
+  // Issue #775. `EnumDropdown` once carried a value-based key justified by the
+  // claim that its dropdown "does not re-initialize its state from its value
+  // after construction". The app's dropdown, `AppDropdownField`, re-reads its
+  // value in `didUpdateWidget`, as the field it replaced did. Plain `FormField`
+  // is what does not — it syncs only `forceErrorText` (`widgets/form.dart`) —
+  // which is the likely source of the confusion.
   //
-  // This is the bare-SDK measurement the rest of the file relies on. It uses no
-  // app widget deliberately: if a later SDK regresses this, every guard below
-  // fails too, and this test says why in one place.
-  testWidgets(
-    'a stable-keyed DropdownButtonFormField follows a later initialValue',
-    (tester) async {
-      String? current = 'a';
-      final setModel = await _pumpExternallyDriven(
-        tester,
-        (setState) => DropdownButtonFormField<String>(
-          // Stable — nothing here varies with the value.
-          key: const ValueKey('measurement-dropdown'),
-          initialValue: current,
-          hint: const Text('HINT'),
-          items: const [
-            DropdownMenuItem(value: 'a', child: Text('Alpha')),
-            DropdownMenuItem(value: 'b', child: Text('Bravo')),
-          ],
-          onChanged: (v) => setState(() => current = v),
-        ),
-      );
-      expect(_fieldValue<String>(tester), 'a', reason: 'initial state');
-      expect(find.text('Alpha').hitTestable(), findsOneWidget);
+  // This is the measurement the rest of the file relies on, on the shared
+  // field alone: if it regresses, every guard below fails too, and this test
+  // says why in one place.
+  testWidgets('a stable-keyed AppDropdownField follows a later value', (
+    tester,
+  ) async {
+    String? current = 'a';
+    final setModel = await _pumpExternallyDriven(
+      tester,
+      (setState) => AppDropdownField<String?>(
+        // Stable — nothing here varies with the value.
+        key: const ValueKey('measurement-dropdown'),
+        value: current,
+        decoration: const InputDecoration(hintText: 'HINT'),
+        entries: const [
+          AppDropdownEntry(value: 'a', label: 'Alpha'),
+          AppDropdownEntry(value: 'b', label: 'Bravo'),
+        ],
+        onChanged: (v) => setState(() => current = v),
+      ),
+    );
+    final field = find.byKey(const ValueKey('measurement-dropdown'));
+    expect(_fieldValue<String?>(tester), 'a', reason: 'initial state');
+    expect(dropdownShown(tester, field), 'Alpha');
 
-      // 'a' -> 'b', changed from OUTSIDE the dropdown, key unchanged.
-      setModel(() => current = 'b');
-      await tester.pumpAndSettle();
-      expect(_fieldValue<String>(tester), 'b');
-      expect(find.text('Bravo').hitTestable(), findsOneWidget);
-      expect(find.text('Alpha').hitTestable(), findsNothing);
+    // 'a' -> 'b', changed from OUTSIDE the dropdown, key unchanged.
+    setModel(() => current = 'b');
+    await tester.pumpAndSettle();
+    expect(_fieldValue<String?>(tester), 'b');
+    expect(dropdownShown(tester, field), 'Bravo');
 
-      // 'b' -> null: the selection drops and the hint comes back.
-      setModel(() => current = null);
-      await tester.pumpAndSettle();
-      expect(_fieldValue<String>(tester), isNull);
-      // With no selection the items are not built at all — only the hint is —
-      // so this is an in-tree assertion, not a hit-test one.
-      expect(find.text('Bravo'), findsNothing);
-      expect(find.text('Alpha'), findsNothing);
-      expect(find.text('HINT'), findsOneWidget);
-    },
-  );
+    // 'b' -> null: the selection drops and the hint comes back.
+    setModel(() => current = null);
+    await tester.pumpAndSettle();
+    expect(_fieldValue<String?>(tester), isNull);
+    expect(dropdownShown(tester, field), isEmpty);
+    expect(find.text('HINT'), findsOneWidget);
+  });
 
   // The guards below pin what the deleted comments claimed, for the widgets
   // that carried them. They are what makes the claim checkable now that it is
@@ -138,10 +134,11 @@ void main() {
         ),
       );
 
-      await tester.tap(find.byType(DropdownButtonFormField<DanceStatus>));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text(DanceStatus.broken.name).last);
-      await tester.pumpAndSettle();
+      await pickDropdownEntry(
+        tester,
+        findDropdown<DanceStatus>(),
+        DanceStatus.broken.name,
+      );
 
       expect(status, DanceStatus.broken);
       expect(_fieldValue<DanceStatus>(tester), DanceStatus.broken);

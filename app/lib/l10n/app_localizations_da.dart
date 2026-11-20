@@ -8228,9 +8228,9 @@ class AppLocalizationsDa extends AppLocalizations {
       count,
       locale: localeName,
       other:
-          'Reimport erstatter figurer, formation og progression for $count eksisterende danse. Deres bedømmelser, tags og noter bevares.',
+          'Reimport erstatter figurer, formation og progression for $count eksisterende danse og kan ændre deres danseform. Deres bedømmelser, tags og noter bevares.',
       one:
-          'Reimport erstatter figurer, formation og progression for 1 eksisterende dans. Dens bedømmelse, tags og noter bevares.',
+          'Reimport erstatter figurer, formation og progression for 1 eksisterende dans og kan ændre dens danseform. Dens bedømmelse, tags og noter bevares.',
     );
     return '$_temp0';
   }
@@ -8412,12 +8412,12 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String importReviewEditReimportBody(String title) {
-    return 'Import til redigering erstatter figurer, formation og progression for „$title“ i din samling med det samme. Fortryd for hele importen gendanner dem ikke.';
+    return 'Import til redigering erstatter figurer, formation og progression for „$title“ i din samling med det samme og kan ændre dens danseform. Fortryd for hele importen gendanner dem ikke.';
   }
 
   @override
   String importReviewEditReimportTitleAndCreditBody(String title) {
-    return 'Import til redigering erstatter figurer, formation, progression, titel og forfatter for „$title“ i din samling med det samme. Fortryd for hele importen gendanner dem ikke.';
+    return 'Import til redigering erstatter figurer, formation, progression, titel og forfatter for „$title“ i din samling med det samme og kan ændre dens danseform. Fortryd for hele importen gendanner dem ikke.';
   }
 
   @override
@@ -10933,6 +10933,10 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get venueEditTitle => 'Rediger spillested';
+
+  @override
+  String get venueEditorSaveError =>
+      'Kunne ikke gemme spillestedet. Dine ændringer er der stadig. Prøv igen.';
 
   @override
   String get venueEditorSharedNote =>

@@ -49,6 +49,7 @@ import '../utils/confirm_delete.dart';
 import '../utils/safe_name.dart';
 import '../utils/undo_snack_bar.dart';
 import '../widgets/app_date_picker.dart';
+import '../widgets/app_dropdown_field.dart';
 import '../widgets/app_bar_text_action.dart';
 import '../widgets/app_shortcuts.dart';
 import '../widgets/collection_picker.dart';
@@ -4506,33 +4507,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         const SizedBox(height: AppSpacing.md),
         _buildPayField(l10n),
         const SizedBox(height: AppSpacing.md),
-        DropdownButtonFormField<ProgramStatus>(
-          // Field values read at the same weight as typed text; the dropdown's
-          // default is the bolder titleMedium.
-          style: Theme.of(context).textTheme.bodyLarge,
+        AppDropdownField<ProgramStatus>(
           key: const ValueKey('program-status'),
-          initialValue: _status,
-          // Fill the field so a long translated status cannot overflow at
-          // large text: the closed field ellipsizes beside its icon and the
-          // open menu wraps, so the full label can always be read.
-          isExpanded: true,
-          itemHeight: null,
-          selectedItemBuilder: (context) => [
-            for (final status in ProgramStatus.values)
-              Row(
-                children: [
-                  Icon(programStatusPresentation(status, l10n).icon, size: 18),
-                  const SizedBox(width: 8),
-                  Flexible(
-                    child: Text(
-                      programStatusPresentation(status, l10n).label,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
-          ],
+          value: _status,
           decoration: InputDecoration(
             labelText: l10n.programsStatusFieldLabel,
             // GIG-12: say what Performed writes, and that Mark all performed
@@ -4543,34 +4520,20 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             helperMaxLines: 4,
             border: const OutlineInputBorder(),
           ),
-          items: [
+          // Each status shows its icon, in the menu and in the closed field.
+          entries: [
             for (final status in ProgramStatus.values)
-              DropdownMenuItem(
+              AppDropdownEntry(
                 value: status,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      programStatusPresentation(status, l10n).icon,
-                      size: 18,
-                    ),
-                    const SizedBox(width: 8),
-                    Flexible(
-                      child: Text(
-                        programStatusPresentation(status, l10n).label,
-                      ),
-                    ),
-                  ],
-                ),
+                label: programStatusPresentation(status, l10n).label,
+                leadingIcon: Icon(programStatusPresentation(status, l10n).icon),
               ),
           ],
           onChanged: (value) {
-            if (value != null) {
-              setState(() {
-                _status = value;
-              });
-              _markDirty();
-            }
+            setState(() {
+              _status = value;
+            });
+            _markDirty();
           },
         ),
         const SizedBox(height: AppSpacing.md),
@@ -4624,33 +4587,30 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           ),
         ),
         const SizedBox(width: AppSpacing.sm),
-        SizedBox(
-          width: 120,
-          child: DropdownButtonFormField<String>(
-            // Field values read at the same weight as typed text; the dropdown's
-            // default is the bolder titleMedium.
-            style: Theme.of(context).textTheme.bodyLarge,
-            key: ValueKey('program-pay-currency:$current'),
-            initialValue: current,
-            isExpanded: true,
-            decoration: InputDecoration(
-              labelText: l10n.programsPayCurrencyLabel,
-              border: const OutlineInputBorder(),
-            ),
-            items: [
-              for (final code in choices)
-                DropdownMenuItem(
-                  key: ValueKey('program-pay-currency-option:$code'),
-                  value: code,
-                  child: Text(code),
-                ),
-            ],
-            onChanged: (code) {
-              if (code == null) return;
-              setState(() => _payCurrency = code);
-              _markDirty();
-            },
+        AppDropdownField<String>(
+          key: const ValueKey('program-pay-currency'),
+          value: current,
+          // Currency codes: typing one is quicker than scrolling for it.
+          filterable: true,
+          // As wide as a code, at any text size, so the code is never cut
+          // off; the amount takes the rest of the row.
+          fillWidth: false,
+          decoration: InputDecoration(
+            labelText: l10n.programsPayCurrencyLabel,
+            border: const OutlineInputBorder(),
           ),
+          entries: [
+            for (final code in choices)
+              AppDropdownEntry(
+                key: ValueKey('program-pay-currency-option:$code'),
+                value: code,
+                label: code,
+              ),
+          ],
+          onChanged: (code) {
+            setState(() => _payCurrency = code);
+            _markDirty();
+          },
         ),
       ],
     );
@@ -4669,52 +4629,45 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         : resolveProgramDialectInAnyForm(stored, library);
     final unavailable = stored != null && resolved == null;
     final value = unavailable ? stored : resolved?.name;
-    return KeyedSubtree(
-      // `initialValue` only seeds the field, so rebuild it when the value
-      // changes from outside the picker (draft restore, Undo merge).
-      key: ValueKey('program-dialect-field:${value ?? ''}'),
-      child: DropdownButtonFormField<String?>(
-        // Field values read at the same weight as typed text; the dropdown's
-        // default is the bolder titleMedium.
-        style: Theme.of(context).textTheme.bodyLarge,
-        key: const ValueKey('program-dialect'),
-        initialValue: value,
-        isExpanded: true,
-        decoration: InputDecoration(
-          labelText: l10n.programsDialectFieldLabel,
-          helperText: l10n.programsDialectHelper,
-          helperMaxLines: 3,
-          border: const OutlineInputBorder(),
-        ),
-        items: [
-          DropdownMenuItem<String?>(
-            key: const ValueKey('program-dialect-use-app'),
-            value: null,
-            child: Text(l10n.programsDialectUseApp),
-          ),
-          for (final name
-              in library == null
-                  ? const <String>[]
-                  : programDialectNames(library))
-            DropdownMenuItem<String?>(
-              key: ValueKey('program-dialect-option:$name'),
-              value: name,
-              child: Text(name),
-            ),
-          if (unavailable)
-            DropdownMenuItem<String?>(
-              key: const ValueKey('program-dialect-unavailable'),
-              value: stored,
-              child: Text(
-                l10n.programsDialectUnavailable(shownDialectName(stored)),
-              ),
-            ),
-        ],
-        onChanged: (name) {
-          setState(() => _dialectName = name);
-          _markDirty();
-        },
+    // The field follows [value], including a change from outside the picker
+    // (draft restore, Undo merge).
+    return AppDropdownField<String?>(
+      key: const ValueKey('program-dialect'),
+      value: value,
+      // The user's dialects: a list that grows.
+      filterable: true,
+      decoration: InputDecoration(
+        labelText: l10n.programsDialectFieldLabel,
+        helperText: l10n.programsDialectHelper,
+        helperMaxLines: 3,
+        border: const OutlineInputBorder(),
       ),
+      entries: [
+        AppDropdownEntry<String?>(
+          key: const ValueKey('program-dialect-use-app'),
+          value: null,
+          label: l10n.programsDialectUseApp,
+        ),
+        for (final name
+            in library == null
+                ? const <String>[]
+                : programDialectNames(library))
+          AppDropdownEntry<String?>(
+            key: ValueKey('program-dialect-option:$name'),
+            value: name,
+            label: name,
+          ),
+        if (unavailable)
+          AppDropdownEntry<String?>(
+            key: const ValueKey('program-dialect-unavailable'),
+            value: stored,
+            label: l10n.programsDialectUnavailable(shownDialectName(stored)),
+          ),
+      ],
+      onChanged: (name) {
+        setState(() => _dialectName = name);
+        _markDirty();
+      },
     );
   }
 

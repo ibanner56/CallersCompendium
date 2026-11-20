@@ -1,0 +1,46 @@
+# A release-preparation PR is titled for the version it prepares.
+#
+# `docs(release): prepare vX.Y.Z` (stable) or `... vX.Y.Z-beta` (beta), with
+# X.Y.Z equal to app/pubspec.yaml's version, never `chore(release)`. See
+# tools/ci/check_release_pr_title.py for what is and is not checked.
+#
+# It lives in its own workflow, not in ci.yml, because the title is the thing
+# it reads and `edited` is the event that fixes a wrong one: ci.yml does not
+# run on `edited`, and re-running the whole build on every title edit would be
+# wasteful. Only a PR that touches app/pubspec.yaml (or this gate) starts it.
+#
+# It is intentionally cheap (plain python3, no toolchain setup) and is not
+# marked a required status, so it never leaves a required check pending.
+name: Release PR title
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+    paths:
+      - 'app/pubspec.yaml'
+      - 'tools/ci/check_release_pr_title.py'
+      - 'tools/ci/test_check_release_pr_title.py'
+      - '.github/workflows/release-pr-title.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  release-pr-title:
+    name: Release PR title names its version
+    runs-on: ubuntu-latest
+    steps:
+      # Full history: the gate reads app/pubspec.yaml at the PR base commit.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Test the release-title gate
+        run: python3 tools/ci/test_check_release_pr_title.py
+      # The title is passed through the environment, never interpolated into the
+      # script, because a title is text a contributor chooses.
+      - name: Check the release-preparation PR title
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: python3 tools/ci/check_release_pr_title.py "$BASE_SHA" "$HEAD_SHA"

@@ -1,0 +1,9 @@
+{
+  "id": "venue-save-failure",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "If saving a venue fails, the venue editor now stays open with your changes and says the save failed, instead of closing as if it had saved."
+    ]
+  }
+}

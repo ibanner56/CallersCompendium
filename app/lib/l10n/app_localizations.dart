@@ -12250,10 +12250,10 @@ abstract class AppLocalizations {
   /// **'{count, plural, =1{1 existing dance will be overwritten} other{{count} existing dances will be overwritten}}'**
   String importReviewOverwriteWarning(int count);
 
-  /// Pre-commit warning stating how many existing local dances a commit will re-import onto. A re-import replaces only their choreography.
+  /// Pre-commit warning stating how many existing local dances a commit will re-import onto. A re-import replaces only their choreography, which takes the dance form with it (an English dance re-imported as contra becomes contra).
   ///
   /// In en, this message translates to:
-  /// **'{count, plural, =1{Re-import replaces the figures, formation and progression of 1 existing dance. Its rating, tags and notes stay.} other{Re-import replaces the figures, formation and progression of {count} existing dances. Their ratings, tags and notes stay.}}'**
+  /// **'{count, plural, =1{Re-import replaces the figures, formation and progression of 1 existing dance, and can change its dance form. Its rating, tags and notes stay.} other{Re-import replaces the figures, formation and progression of {count} existing dances, and can change their dance form. Their ratings, tags and notes stay.}}'**
   String importReviewReimportWarning(int count);
 
   /// Second sentence of the re-import warning: how many of those re-imports have Also update title and credit ticked.
@@ -12439,13 +12439,13 @@ abstract class AppLocalizations {
   /// Body of the Import and edit confirmation for a row set to Re-import with Also update title and credit off. The title is an untrusted local value rendered as plain text.
   ///
   /// In en, this message translates to:
-  /// **'Importing to edit replaces the figures, formation and progression of \"{title}\" in your collection immediately. The batch Undo will not restore them.'**
+  /// **'Importing to edit replaces the figures, formation and progression of \"{title}\" in your collection immediately, and can change its dance form. The batch Undo will not restore them.'**
   String importReviewEditReimportBody(String title);
 
   /// Body of the Import and edit confirmation for a row set to Re-import with Also update title and credit ticked. The title is an untrusted local value rendered as plain text.
   ///
   /// In en, this message translates to:
-  /// **'Importing to edit replaces the figures, formation, progression, title and credit of \"{title}\" in your collection immediately. The batch Undo will not restore them.'**
+  /// **'Importing to edit replaces the figures, formation, progression, title and credit of \"{title}\" in your collection immediately, and can change its dance form. The batch Undo will not restore them.'**
   String importReviewEditReimportTitleAndCreditBody(String title);
 
   /// Snackbar shown when an import commit (or commit-for-edit) throws. The raw exception is logged (debugPrint), never shown, so storage internals/paths can't leak to the UI (CWE-209).
@@ -15929,6 +15929,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Edit venue'**
   String get venueEditTitle;
+
+  /// Shown in the venue editor sheet when saving the venue fails. The sheet stays open with every field as the user left it.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save the venue. Your changes are still here. Try again.'**
+  String get venueEditorSaveError;
 
   /// Explanatory note at the top of the venue editor sheet: a venue record is shared across programs.
   ///

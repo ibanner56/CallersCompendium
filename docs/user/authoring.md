@@ -105,7 +105,10 @@ left`, `A1 1-8 lead up`) counts those bars by the dance's **Meter**: `1-4` is
 of the phrase structure, as the **Bars** field does.
 The bars are the count. A line that also states a count in beats
 (`1-4 (6) circle left`) is kept as you typed it, with the bars' count, so you
-can see the two disagree and fix whichever is wrong.
+can see the two disagree and fix whichever is wrong. A line with several bar
+ranges (`(5-8) circle left (9-12) circle right`) is kept as you typed it too,
+counted across all of them (or by its first range, past 64 beats); type
+each figure on its own line to have them read.
 A line under the
 box tells you how many figures it added and invites you to type another (a
 screen reader announces the count too); it goes away when you start typing.

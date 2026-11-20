@@ -8190,9 +8190,9 @@ class AppLocalizationsEn extends AppLocalizations {
       count,
       locale: localeName,
       other:
-          'Re-import replaces the figures, formation and progression of $count existing dances. Their ratings, tags and notes stay.',
+          'Re-import replaces the figures, formation and progression of $count existing dances, and can change their dance form. Their ratings, tags and notes stay.',
       one:
-          'Re-import replaces the figures, formation and progression of 1 existing dance. Its rating, tags and notes stay.',
+          'Re-import replaces the figures, formation and progression of 1 existing dance, and can change its dance form. Its rating, tags and notes stay.',
     );
     return '$_temp0';
   }
@@ -8375,12 +8375,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String importReviewEditReimportBody(String title) {
-    return 'Importing to edit replaces the figures, formation and progression of \"$title\" in your collection immediately. The batch Undo will not restore them.';
+    return 'Importing to edit replaces the figures, formation and progression of \"$title\" in your collection immediately, and can change its dance form. The batch Undo will not restore them.';
   }
 
   @override
   String importReviewEditReimportTitleAndCreditBody(String title) {
-    return 'Importing to edit replaces the figures, formation, progression, title and credit of \"$title\" in your collection immediately. The batch Undo will not restore them.';
+    return 'Importing to edit replaces the figures, formation, progression, title and credit of \"$title\" in your collection immediately, and can change its dance form. The batch Undo will not restore them.';
   }
 
   @override
@@ -10889,6 +10889,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get venueEditTitle => 'Edit venue';
+
+  @override
+  String get venueEditorSaveError =>
+      'Couldn\'t save the venue. Your changes are still here. Try again.';
 
   @override
   String get venueEditorSharedNote =>

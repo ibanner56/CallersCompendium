@@ -8277,9 +8277,9 @@ class AppLocalizationsNl extends AppLocalizations {
       count,
       locale: localeName,
       other:
-          'Opnieuw importeren vervangt de figuren, formatie en progressie van $count bestaande dansen. Hun beoordelingen, tags en notities blijven.',
+          'Opnieuw importeren vervangt de figuren, formatie en progressie van $count bestaande dansen en kan hun dansvorm wijzigen. Hun beoordelingen, tags en notities blijven.',
       one:
-          'Opnieuw importeren vervangt de figuren, formatie en progressie van 1 bestaande dans. De beoordeling, tags en notities blijven.',
+          'Opnieuw importeren vervangt de figuren, formatie en progressie van 1 bestaande dans en kan de dansvorm wijzigen. De beoordeling, tags en notities blijven.',
     );
     return '$_temp0';
   }
@@ -8464,12 +8464,12 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String importReviewEditReimportBody(String title) {
-    return 'Importeren om te bewerken vervangt de figuren, formatie en progressie van “$title” in je verzameling meteen. Ongedaan maken van de hele import herstelt ze niet.';
+    return 'Importeren om te bewerken vervangt de figuren, formatie en progressie van “$title” in je verzameling meteen en kan de dansvorm wijzigen. Ongedaan maken van de hele import herstelt ze niet.';
   }
 
   @override
   String importReviewEditReimportTitleAndCreditBody(String title) {
-    return 'Importeren om te bewerken vervangt de figuren, formatie, progressie, titel en auteur van “$title” in je verzameling meteen. Ongedaan maken van de hele import herstelt ze niet.';
+    return 'Importeren om te bewerken vervangt de figuren, formatie, progressie, titel en auteur van “$title” in je verzameling meteen en kan de dansvorm wijzigen. Ongedaan maken van de hele import herstelt ze niet.';
   }
 
   @override
@@ -11000,6 +11000,10 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get venueEditTitle => 'Locatie bewerken';
+
+  @override
+  String get venueEditorSaveError =>
+      'De locatie kon niet worden opgeslagen. Je wijzigingen staan er nog. Probeer het opnieuw.';
 
   @override
   String get venueEditorSharedNote =>

@@ -7,7 +7,7 @@ import '../../theme/app_spacing.dart';
 import '../../widgets/lingo_text_editing_controller.dart';
 import 'choice_option.dart' show AddChoiceResult;
 import '../../widgets/dirty_dialog_guard.dart';
-import '../../widgets/dropdown_selection.dart';
+import '../../widgets/app_dropdown_field.dart';
 import 'lingo_discouraged_hint.dart';
 
 /// Renders the editor control for a single [CustomFieldDef], dispatching on its
@@ -108,22 +108,16 @@ class CustomFieldEditor extends StatelessWidget {
           onChanged: (v) => onValueChanged(v),
         );
       case CustomFieldType.choice:
-        final dropdown = DropdownButtonFormField<String?>(
-          // Field values read at the same weight as typed text; the dropdown's
-          // default is the bolder titleMedium.
-          style: Theme.of(context).textTheme.bodyLarge,
+        final dropdown = AppDropdownField<String?>(
           key: ValueKey('custom-${def.id}-choice'),
-          initialValue: currentValue as String?,
-          // A user-typed option is unbounded: fill the slot, ellipsize the
-          // closed field, and let the open menu wrap so it can be read.
-          isExpanded: true,
-          itemHeight: null,
-          selectedItemBuilder: ellipsizedSelection(['—', ...?def.choices]),
+          value: currentValue as String?,
+          // Options the user typed: a list that grows.
+          filterable: true,
           decoration: InputDecoration(labelText: def.label),
-          items: [
-            const DropdownMenuItem(value: null, child: Text('—')),
+          entries: [
+            const AppDropdownEntry<String?>(value: null, label: '—'),
             for (final choice in def.choices ?? const <String>[])
-              DropdownMenuItem(value: choice, child: Text(choice)),
+              AppDropdownEntry<String?>(value: choice, label: choice),
           ],
           onChanged: (v) => onValueChanged(v),
         );

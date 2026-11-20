@@ -279,8 +279,9 @@ long wave, **Ordinary** for a promenade).
 ### Your own figures
 
 While **Custom Figures** is on, both sections also offer your own
-[new figures](./settings.md#glossary-and-custom-figures), listed by name after
-the moves that come with the app. Give one a name of its own under **Move
+[new figures](./settings.md#glossary-and-custom-figures) for the dialect's
+dance form, listed by name after the moves that come with the app: an English
+dialect offers your English figures, and a contra one your contra figures. Give one a name of its own under **Move
 substitutions**, or reword it under **Move wording templates**: a new template
 starts from the figure's own wording, uses the figure's own parameters as its
 slots, and previews with the figure's defaults; leave it as the figure's own
