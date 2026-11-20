@@ -4227,7 +4227,12 @@
   },
   "settingsProgramVenueCallCountOption": "{count, plural, =0{Don't show} =1{1 venue} other{{count} venues}}",
   "@settingsProgramVenueCallCountOption": {
-    "description": "Dropdown option for the number of repeated venues shown in calling history."
+    "description": "Dropdown option for the number of repeated venues shown in calling history.",
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
   },
   "settingsGeneralCapitalizeFiguresTitle": "Capitalize figures",
   "@settingsGeneralCapitalizeFiguresTitle": {
@@ -7202,9 +7207,12 @@
     "description": "Title of the bottom sheet for picking a dance to add to the program."
   },
   "commonClose": "Close",
-  "viewDetails": "View details",
   "@commonClose": {
     "description": "Generic Close button/tooltip label."
+  },
+  "viewDetails": "View details",
+  "@viewDetails": {
+    "description": "Label for the action that opens a dance's details: the tooltip on details buttons in the program editor and the collection picker, and the title of the matching menu item."
   },
   "programsNoDateSet": "No date set",
   "@programsNoDateSet": {
@@ -11104,7 +11112,9 @@
   "@danceEditorWordingOverridePreview": {
     "description": "Live preview of the rendered per-dance figure wording override.",
     "placeholders": {
-      "text": {}
+      "text": {
+        "type": "Object"
+      }
     }
   },
   "danceEditorSnippetDivergenceTitle": "Update your saved snippet?",
@@ -12420,11 +12430,24 @@
   },
   "danceEditorModifierGroupLabel": "{count, plural, other{Modifier ({count} figures)}}",
   "@danceEditorModifierGroupLabel": {
-    "description": "Visible heading for a modifier group's expanded editor."
+    "description": "Visible heading for a modifier group's expanded editor.",
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
   },
   "danceEditorModifierGroupSemantic": "Modifier group, {count, plural, =1{1 figure} other{{count} figures}}, {beats, plural, =1{1 beat} other{{beats} beats}}.",
   "@danceEditorModifierGroupSemantic": {
-    "description": "Accessibility label for a modifier group."
+    "description": "Accessibility label for a modifier group. Placeholders stay declared beats, then count: that order is the generated method's parameter order, and its caller passes them positionally.",
+    "placeholders": {
+      "beats": {
+        "type": "num"
+      },
+      "count": {
+        "type": "num"
+      }
+    }
   },
   "danceEditorAddModifierChild": "Add modifier",
   "@danceEditorAddModifierChild": {
