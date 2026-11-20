@@ -1,0 +1,17 @@
+{
+  "id": "ecd-search-meter-key-interpreter",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "Searching All fields now finds a dance by its meter, its key or the people who interpreted it: type 3/2, D minor or Sharp."
+    ]
+  },
+  "core": {
+    "added": [
+      "All fields search matches each word against the dance's meter, key and live interpreters' names."
+    ],
+    "changed": [
+      "The search index places the untimed steps of an English sequence by an even share of its span, rather than at the sequence's start."
+    ]
+  }
+}

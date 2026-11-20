@@ -2095,8 +2095,8 @@ void main() {
           const FullTextFilter('ab'),
           sort: SearchSort.relevance,
         );
-        expect(relevance.binds.single, contains('{title authors'));
-        expect(relevance.binds.single, isNot(contains('figures_text')));
+        expect(relevance.binds.first, contains('{title authors'));
+        expect(relevance.binds.first, isNot(contains('figures_text')));
       });
     });
 
@@ -3572,4 +3572,207 @@ FROM seq
       });
     },
   );
+
+  group(
+    'All fields finds the meter, key and interpreters (ADR-006 F3, §9.2)',
+    () {
+      Future<void> seed() async {
+        // ignore: unused_result
+        await choreographers.upsert(
+          Choreographer(id: 'sharp', name: 'Cecil Sharp'),
+        );
+        // ignore: unused_result
+        await choreographers.upsert(
+          Choreographer(id: 'playford', name: 'John Playford'),
+        );
+        await dances.create(
+          _dance(
+            id: 'hole',
+            title: 'Hole in the Wall',
+            authorIds: ['playford'],
+            form: DanceForm.ecd,
+          ).copyWith(
+            meter: '3/2',
+            musicalKey: 'D minor',
+            interpreterIds: ['sharp'],
+          ),
+        );
+        await dances.create(
+          _dance(
+            id: 'other',
+            title: 'Other',
+            form: DanceForm.ecd,
+          ).copyWith(meter: '6/8', musicalKey: 'G'),
+        );
+        await dances.create(_dance(id: 'plain', title: 'Plain'));
+      }
+
+      test('a meter, a key and an interpreter each find the dance', () async {
+        await seed();
+        expect(await dances.search(const FullTextFilter('3/2')), ['hole']);
+        expect(await dances.search(const FullTextFilter('d minor')), ['hole']);
+        expect(await dances.search(const FullTextFilter('Sharp')), ['hole']);
+        // Every word must still match somewhere (FIND-5).
+        expect(await dances.search(const FullTextFilter('Cecil minor')), [
+          'hole',
+        ]);
+        expect(await dances.search(const FullTextFilter('Sharp 6/8')), isEmpty);
+      });
+
+      test('a short word must start a word of the value', () async {
+        await seed();
+        // "D" starts "D minor"; "8" starts the 8 of "6/8"; "G" is the key.
+        expect(
+          await dances.search(const FullTextFilter('D')),
+          contains('hole'),
+        );
+        expect(await dances.search(const FullTextFilter('8')), ['other']);
+        expect(await dances.search(const FullTextFilter('G')), ['other']);
+        // "in" sits inside "minor" but starts no word of it, so it finds only
+        // the title with the word "in".
+        expect(await dances.search(const FullTextFilter('in')), ['hole']);
+        expect(await dances.search(const FullTextFilter('nor')), ['hole']);
+        expect(await dances.search(const FullTextFilter('no')), isEmpty);
+      });
+
+      test('a capital outside ASCII matches as stored', () async {
+        await seed();
+        // ignore: unused_result
+        await choreographers.upsert(
+          Choreographer(id: 'emile', name: 'Émile Dupont'),
+        );
+        await dances.create(
+          _dance(
+            id: 'emile-dance',
+            title: 'Interpreted',
+            form: DanceForm.ecd,
+          ).copyWith(interpreterIds: ['emile']),
+        );
+        expect(await dances.search(const FullTextFilter('Émile')), [
+          'emile-dance',
+        ]);
+        expect(await dances.search(const FullTextFilter('Ém')), [
+          'emile-dance',
+        ]);
+      });
+
+      test('a meter is found while it is typed', () async {
+        await seed();
+        expect(await dances.search(const FullTextFilter('3/')), ['hole']);
+        expect(await dances.search(const FullTextFilter('6/')), ['other']);
+      });
+
+      test('a short word may start with a separator', () async {
+        await seed();
+        // "/8" names the 8 of "6/8"; "(D" the D of "D minor".
+        expect(await dances.search(const FullTextFilter('/8')), ['other']);
+        expect(
+          await dances.search(const FullTextFilter('(D')),
+          contains('hole'),
+        );
+      });
+
+      test('a word of punctuation alone matches no meter', () async {
+        await seed();
+        expect(await dances.search(const FullTextFilter('/')), isEmpty);
+      });
+
+      test('a deleted interpreter matches nothing', () async {
+        await seed();
+        await db.customStatement(
+          "UPDATE choreographers SET deleted_at = 1 WHERE id = 'sharp'",
+        );
+        expect(await dances.search(const FullTextFilter('Sharp')), isEmpty);
+      });
+
+      test('the Author scope stays on the authors', () async {
+        await seed();
+        expect(
+          await dances.search(
+            const FullTextFilter('Sharp', scope: FullTextScope.author),
+          ),
+          isEmpty,
+        );
+        expect(
+          await dances.search(
+            const FullTextFilter('Playford', scope: FullTextScope.author),
+          ),
+          ['hole'],
+        );
+      });
+
+      test('relevance finds a key and ranks it after scored matches', () async {
+        await seed();
+        await dances.create(_dance(id: 'g-title', title: 'G Whiz'));
+        expect(
+          await dances.search(
+            const FullTextFilter('G'),
+            sort: SearchSort.relevance,
+          ),
+          ['g-title', 'other'],
+        );
+      });
+    },
+  );
+
+  group('an English sequence with untimed steps (ADR-006 §5.5)', () {
+    // One span of 32 beats, A1 and A2, holding three steps with no timing of
+    // their own: they share it evenly, so the last starts in A2.
+    Dance spanDance(DanceForm form) => _dance(
+      id: 'span',
+      title: 'Span',
+      form: form,
+      figures: [
+        Figure.sequence(
+          beats: 32,
+          figures: [
+            Figure(move: 'ecd_siding'),
+            Figure(move: 'ecd_turn_single'),
+            Figure(move: 'ecd_cast'),
+          ],
+        ),
+        Figure(move: 'ecd_circle', params: const {'beats': 32}),
+      ],
+    );
+
+    Future<List<String>> inSection(String move, String section) =>
+        dances.search(FigureFilter.leaf(move, section: section));
+
+    test('each step is placed by its share of the span', () async {
+      await dances.create(spanDance(DanceForm.ecd));
+      expect(await inSection('ecd_siding', 'A1'), ['span']);
+      expect(await inSection('ecd_turn_single', 'A1'), ['span']);
+      expect(await inSection('ecd_cast', 'A2'), ['span']);
+      expect(await inSection('ecd_cast', 'A1'), isEmpty);
+    });
+
+    test('a timed step keeps its own count', () async {
+      await dances.create(
+        _dance(
+          id: 'mixed',
+          title: 'Mixed',
+          form: DanceForm.ecd,
+          figures: [
+            Figure.sequence(
+              beats: 32,
+              figures: [
+                Figure(move: 'ecd_siding', params: const {'beats': 24}),
+                Figure(move: 'ecd_turn_single'),
+                Figure(move: 'ecd_cast'),
+              ],
+            ),
+            Figure(move: 'ecd_circle', params: const {'beats': 32}),
+          ],
+        ),
+      );
+      // Siding takes 0–24; the others share the last 8 beats, in A2.
+      expect(await inSection('ecd_turn_single', 'A2'), ['mixed']);
+      expect(await inSection('ecd_cast', 'A2'), ['mixed']);
+    });
+
+    test('a contra sequence is placed by its steps as stored', () async {
+      await dances.create(spanDance(DanceForm.contra));
+      expect(await inSection('ecd_cast', 'A1'), ['span']);
+    });
+  });
 }
