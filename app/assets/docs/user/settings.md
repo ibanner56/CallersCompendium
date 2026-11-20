@@ -379,8 +379,9 @@ The **Theme** row names the theme you're using; tap it to open the **Theme**
 screen. There the built-in themes are grouped under **System** (follows your
 device), **Default** (Light, Dark, Soft dark, then High contrast), **Light** and
 **Dark** — named color palettes, including editor-inspired schemes — with your
-saved custom themes under **Custom themes** after them. On a phone the theme
-cards sit in two columns. Selecting a theme previews and applies it right away.
+saved custom themes under **Custom themes** after them. On a phone the built-in
+theme cards sit in two columns (one at larger text sizes). Selecting a theme
+previews and applies it right away.
 There's a **High contrast** theme for maximum legibility — see the
 [Accessibility guide](./accessibility.md) for when it helps.
 
@@ -394,7 +395,8 @@ optional: *frappe* finds *Catppuccin Frappé*.
 
 - **+ Custom theme** — the floating button on the Theme screen opens an editor
   seeded from your current theme, so you start from something familiar. You can
-  tune any color in it.
+  tune any color in it. When you save, the new theme becomes your theme and the
+  screen scrolls to its card.
 - Saved custom themes are listed under **Custom themes** on the Theme screen,
   and can be selected, edited, duplicated, or deleted at any time.
   Deleting one offers **Undo**, which also makes it your theme again if it was.

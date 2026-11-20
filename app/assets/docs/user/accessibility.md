@@ -54,7 +54,7 @@ context — see the [Perform mode guide](./perform.md#set-the-stage).
 
 ## Themes, contrast, and the dark stage
 
-Open **Settings ▸ Appearance** to choose how the app looks. You'll find:
+Open **Settings ▸ Appearance ▸ Theme** to choose how the app looks. You'll find:
 
 - **System** — follows your device's light or dark setting automatically, and
   switches when your device does.
