@@ -66,8 +66,10 @@ List<String> orphanMetadata(Map<String, dynamic> arb) => [
 /// The argument names a message uses: `{name}`, and the selector argument of
 /// `{n, plural, ...}` / `{g, select, ...}` / `{n, selectordinal, ...}` together
 /// with every argument inside their sub-messages. Formatted arguments
-/// (`{d, date, yMd}`) count by name. Throws [FormatException] on unbalanced
-/// braces.
+/// (`{d, date, yMd}`) count by name. Throws [FormatException] on an unmatched
+/// `{` or an argument with no name. A stray `}` is not checked: whether
+/// gen-l10n rejects one is unconfirmed, and this test must not be stricter
+/// than the generator.
 Set<String> icuArguments(String message) {
   final names = <String>{};
   _collectArguments(message, names);
@@ -311,7 +313,7 @@ void main() {
       ]);
     });
 
-    test('unbalanced braces are reported, not crashed on', () {
+    test('an unmatched opening brace is reported, not crashed on', () {
       final arb = {
         'broken': 'Hello {name',
         '@broken': {'description': 'Fine.'},
@@ -388,7 +390,13 @@ void main() {
       );
     });
 
-    test('rejects unbalanced braces', () {
+    test('does not check a stray closing brace', () {
+      // Deliberate (see the doc comment): pinned so tightening it is a choice.
+      expect(icuArguments('Total } {n}'), {'n'});
+      expect(icuArguments('{n} }'), {'n'});
+    });
+
+    test('rejects an unmatched opening brace', () {
       expect(() => icuArguments('Hello {name'), throwsFormatException);
       expect(
         () => icuArguments('{n, plural, other{{n} items}'),
