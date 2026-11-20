@@ -164,8 +164,9 @@ void main() {
       'contra',
     );
     await tester.pumpAndSettle();
-    double top(String id) =>
-        tester.getTopLeft(find.byKey(ValueKey('command-result-program-$id'))).dy;
+    double top(String id) => tester
+        .getTopLeft(find.byKey(ValueKey('command-result-program-$id')))
+        .dy;
     expect(top('title'), lessThan(top('forms')));
   });
 

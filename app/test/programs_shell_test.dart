@@ -1073,7 +1073,10 @@ void main() {
       // route) reflects the new count with no back-navigation or manual
       // reload. Before the fix the tile stayed "1 dance" until re-navigated,
       // because the in-pane mutation never bumped the shared list refresh.
-      expect(find.text('Contra · 2 dances', skipOffstage: false), findsOneWidget);
+      expect(
+        find.text('Contra · 2 dances', skipOffstage: false),
+        findsOneWidget,
+      );
       expect(find.text('Contra · 1 dance', skipOffstage: false), findsNothing);
     },
   );

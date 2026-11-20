@@ -86,7 +86,6 @@ void main() {
         'contra': {DanceForm.contra},
       });
     });
-
   });
 
   group('create / getById', () {

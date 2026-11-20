@@ -201,7 +201,7 @@ class _CommandPaletteState extends State<CommandPalette> {
           rankTitleMatch(
             r.title,
             raw,
-          ignoreLeadingArticles: ignoreArticles,
+            ignoreLeadingArticles: ignoreArticles,
           )?.index ??
           // A program's forms match after every title match, so a title hit
           // is never cut off by the group's limit in favour of one.
