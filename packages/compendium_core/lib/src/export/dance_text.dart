@@ -62,7 +62,7 @@ import 'export_labels.dart';
 /// Level: <levelLabel>
 /// Mixer
 /// Status: <statusLabel>
-/// Phrase: <phraseStructure notation>
+/// Phrase: <phrase structure, see phraseStructureText>
 /// Hook: <hook>
 ///
 /// Figures:
