@@ -923,11 +923,18 @@ class _MoveField extends StatelessWidget {
         userFigureName,
         dialect,
       ),
-      // In the active dialect, as the suggestion that set it read.
+      // In the active dialect, as the suggestion that set it read, its form
+      // named when another form's figure is named alike ("circle · English
+      // (ECD)").
       final move =>
         taxonomy.resolve(move) == null
             ? move
-            : FigureRenderer(taxonomy).displayMoveName(move, dialect),
+            : moveLabelWithForm(
+                context,
+                taxonomy,
+                move,
+                FigureRenderer(taxonomy).displayMoveName(move, dialect),
+              ),
     };
     return MoveTypeAheadField(
       initialText: current,

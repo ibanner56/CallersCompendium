@@ -1,0 +1,10 @@
+{
+  "id": "ecd-form-labels",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "An English (ECD) dialect's editor offers only the built-in English country dance moves. An entry it already holds for a contra move is marked · Contra.",
+      "In the Collection's Advanced search, a Has figure row and a By phrase chip keep a figure's type after you pick it, as in \"circle · English (ECD)\", so it is not mistaken for contra's figure of the same name."
+    ]
+  }
+}
