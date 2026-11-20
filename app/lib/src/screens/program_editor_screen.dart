@@ -2925,8 +2925,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     if (_pickerImporting || _leaving) return;
     if (_parsedPay().isInvalid) {
       // The pay field lives in the collapsed "More details" drawer, whose
-      // fields are not built (so not validated) while it is closed: open it and
-      // show the error there instead of silently saving without the value.
+      // fields are hidden while it is closed, so an error on one could not be
+      // seen: open it and show the error there instead of silently saving
+      // without the value.
       _moreDetailsController.expand();
       WidgetsBinding.instance.addPostFrameCallback(
         (_) => _formKey.currentState?.validate(),

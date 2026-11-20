@@ -252,7 +252,9 @@ explicitly mark N/A with a reason. "Gate" = must pass before tagging.
  (`app/test/keyboard_traversal_test.dart` walks the Collection, Dance detail,
  Dance editor, Programs list, a program's summary and builder, Perform and
  Settings (its sidebar and the General page, which is what a desktop window
- shows) on a 1100×800 window with real Tab and Shift+Tab presses. It fails on a
+ shows) on a 1100×800 window with real Tab and Shift+Tab presses; the two
+ editors are walked both with their "More details" section collapsed (its
+ fields must stay out of the focus order) and opened. It fails on a
  keyboard trap, on a tappable control Tab never reaches, and on a Tab stop that
  gets no focus ring from the app's `FocusRingLayer`; it reads that layer's
  rectangle, not pixels, because Material's focus overlays do not appear in a

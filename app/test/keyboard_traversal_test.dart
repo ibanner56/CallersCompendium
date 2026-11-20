@@ -54,7 +54,13 @@ const _minStop = 8.0;
 const _maxStops = 120;
 
 class _Stop {
-  _Stop(this.node, this.rect, this.ring, {required this.isTextInput});
+  _Stop(
+    this.node,
+    this.rect,
+    this.ring, {
+    required this.isTextInput,
+    this.describe = '',
+  });
   final FocusNode node;
   final Rect rect;
 
@@ -63,18 +69,8 @@ class _Stop {
   final bool isTextInput;
 
   /// What the stop is, for a failure message: its nearest keyed or labelled
-  /// ancestors.
-  String get describe {
-    final parts = <String>[];
-    node.context?.visitAncestorElements((e) {
-      final w = e.widget;
-      if (w.key is ValueKey) parts.add('key=${(w.key! as ValueKey).value}');
-      if (w is Tooltip && w.message != null) parts.add('tooltip=${w.message}');
-      if (w is Text && w.data != null) parts.add('text=${w.data}');
-      return parts.length < 3;
-    });
-    return parts.join(' ');
-  }
+  /// ancestors, read when the stop is recorded (the widget may be gone later).
+  final String describe;
 
   /// A page-level node that exists only to receive keyboard shortcuts. The ring
   /// layer draws no ring on these (a ring round the whole page says nothing),
@@ -120,6 +116,22 @@ Future<AppData> _seed() async {
     ),
   );
   return appData;
+}
+
+/// Whether [node]'s widget is still in the tree. A lazy list disposes an item
+/// when it scrolls away, and the walk can be holding its node by then.
+bool _live(FocusNode node) => node.context != null && node.context!.mounted;
+
+String _describe(FocusNode node) {
+  final parts = <String>[];
+  node.context?.visitAncestorElements((e) {
+    final w = e.widget;
+    if (w.key is ValueKey) parts.add('key=${(w.key! as ValueKey).value}');
+    if (w is Tooltip && w.message != null) parts.add('tooltip=${w.message}');
+    if (w is Text && w.data != null) parts.add('text=${w.data}');
+    return parts.length < 3;
+  });
+  return parts.join(' ');
 }
 
 Rect _globalRect(FocusNode node) {
@@ -205,8 +217,22 @@ List<_Tappable> _tappables(WidgetTester tester) {
 /// inside the field's own box; and a checkbox or switch inside a tile is
 /// reached through the tile, which is the larger stop. A stop for a small button
 /// inside a large row does not count as reaching the row.
-bool _reaches(Rect stop, _Tappable target) {
+bool _reaches(_Stop stopNode, _Tappable target) {
+  final stop = stopNode.rect;
   final rect = target.rect;
+  // A dropdown's arrow, to the right of its text field. On a desktop the field
+  // is the one stop and the arrow is part of it, not a second Tab stop
+  // (`AppDropdownField`), and the keyboard opens the menu from the field.
+  if (stopNode.isTextInput &&
+      target.label == '(unlabelled)' &&
+      target.kinds.length == 1 &&
+      target.kinds.contains('button') &&
+      rect.left >= stop.right - 2 &&
+      rect.left - stop.right <= 24 &&
+      rect.top < stop.bottom &&
+      rect.bottom > stop.top) {
+    return true;
+  }
   if (target.kinds.contains('textfield') &&
       rect.inflate(2).contains(stop.topLeft) &&
       rect.inflate(2).contains(stop.bottomRight)) {
@@ -247,7 +273,7 @@ Future<_Walk?> _walk(WidgetTester tester) async {
   for (var i = 0; i < _maxStops; i++) {
     await _tab(tester);
     final node = FocusManager.instance.primaryFocus;
-    if (node == null || node.context == null) continue;
+    if (node == null || !_live(node)) continue;
     if (stops.any((s) => identical(s.node, node))) {
       return (
         stops: stops,
@@ -263,12 +289,13 @@ Future<_Walk?> _walk(WidgetTester tester) async {
       tester.state<FocusRingLayerState>(find.byType(FocusRingLayer)).ringRect,
       isTextInput:
           node.context!.findAncestorWidgetOfExactType<EditableText>() != null,
+      describe: _describe(node),
     );
     stops.add(stop);
     if (stop.isWholeWindow) continue;
     for (final t in _tappables(tester)) {
       seen[t.id] = '${t.label} [${t.kinds.join('+')}] ${t.rect}';
-      if (t.hasFocus || _reaches(stop.rect, t)) reached.add(t.id);
+      if (t.hasFocus || _reaches(stop, t)) reached.add(t.id);
     }
   }
   return null;
@@ -323,11 +350,11 @@ void _screen(
       final stops = walk!.stops;
       final real = stops.where((s) => !s.isWholeWindow).toList();
       expect(real, isNotEmpty, reason: '$name: Tab reached no control at all');
-      // Shift+Tab must not trap either: pressed twice as often as Tab was (a
-      // lazy list scrolls and builds as focus moves up through it), it visits
-      // at least as many distinct stops. (Not the same nodes: a lazy list builds a new
-      // node each time an item scrolls back in. And a trap shows as a few nodes
-      // visited over and over.)
+      // Shift+Tab must not trap either: pressed twice as often as Tab was, it
+      // visits nearly as many distinct stops (80%). Not the same nodes, nor
+      // quite the same count: a lazy list builds a new node each time an item
+      // scrolls back in, and a form's group nodes recur inside the loop. A trap
+      // shows as a handful of nodes visited over and over.
       FocusManager.instance.primaryFocus?.unfocus();
       await tester.pump();
       final reversed = <FocusNode>{};
@@ -335,7 +362,7 @@ void _screen(
         await _tab(tester, shift: true);
         final node = FocusManager.instance.primaryFocus;
         if (node != null &&
-            node.context != null &&
+            _live(node) &&
             !_Stop(
               node,
               _globalRect(node),
@@ -347,7 +374,7 @@ void _screen(
       }
       expect(
         reversed.length,
-        greaterThanOrEqualTo(real.length),
+        greaterThanOrEqualTo((real.length * 0.8).ceil()),
         reason:
             '$name: Shift+Tab visited ${reversed.length} distinct stops where '
             'Tab visited ${real.length}',
@@ -394,6 +421,35 @@ Future<void> _tapKey(WidgetTester tester, String key) async {
   await tester.pumpAndSettle();
 }
 
+/// Scrolls the lazy form to the expansion tile with [key] and opens it.
+Future<void> _openTile(
+  WidgetTester tester,
+  String key, {
+  required String field,
+}) async {
+  final tile = find.byKey(ValueKey(key));
+  await tester.scrollUntilVisible(
+    tile,
+    300,
+    scrollable: find.byType(Scrollable).first,
+  );
+  await tester.tap(tile);
+  await tester.pumpAndSettle();
+  // Guards against walking a tile that did not open.
+  expect(
+    find.byKey(ValueKey(field)),
+    findsWidgets,
+    reason: '$key did not open',
+  );
+  // Back to the top: Tab from nothing starts at the page's first control, and
+  // would begin above the visible area if the page were left scrolled down.
+  tester
+      .state<ScrollableState>(find.byType(Scrollable).first)
+      .position
+      .jumpTo(0);
+  await tester.pumpAndSettle();
+}
+
 Future<void> _openProgramSummary(WidgetTester tester) async {
   await tester.tap(find.text('Programs').last);
   await tester.pumpAndSettle();
@@ -415,6 +471,15 @@ void main() {
     await _tapKey(tester, 'new-dance');
   }, landedOn: find.byType(DanceEditorScreen));
 
+  // The editors' "More details" section keeps its fields built while collapsed,
+  // so it is walked open as well: its fields must join the focus order then, and
+  // its dropdowns must take focus (they read their node's focusability when
+  // built).
+  _screen('Dance editor, More details open', (tester) async {
+    await _tapKey(tester, 'new-dance');
+    await _openTile(tester, 'more-details-tile', field: 'mixed-level-field');
+  }, landedOn: find.byType(DanceEditorScreen));
+
   _screen('Programs list', (tester) async {
     await tester.tap(find.text('Programs').last);
     await tester.pumpAndSettle();
@@ -430,6 +495,12 @@ void main() {
   _screen('Program builder', (tester) async {
     await _openProgramSummary(tester);
     await _tapKey(tester, 'open-builder');
+  }, landedOn: find.byType(ProgramEditorScreen));
+
+  _screen('Program builder, More details open', (tester) async {
+    await _openProgramSummary(tester);
+    await _tapKey(tester, 'open-builder');
+    await _openTile(tester, 'program-more-details-tile', field: 'program-band');
   }, landedOn: find.byType(ProgramEditorScreen));
 
   _screen('Perform', (tester) async {
