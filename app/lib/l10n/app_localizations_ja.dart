@@ -8524,6 +8524,38 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String validationPhraseCountMismatch(String actual, String expected) {
+    return 'フィギュアの合計は$actualですが、フレーズ構造では$expectedが必要です。';
+  }
+
+  @override
+  String validationSequenceExceedsPhraseCount(
+    int position,
+    String actual,
+    String limit,
+  ) {
+    return 'フィギュア$positionのシーケンスは$actualで、1フレーズ（$limit）より長くなっています。';
+  }
+
+  @override
+  String validationSequenceSpanNoRoomCount(
+    int position,
+    String actual,
+    String expected,
+  ) {
+    return 'フィギュア$positionのシーケンスで長さのあるステップが$actualを使い、$expectedのうち残りのステップの分がありません。';
+  }
+
+  @override
+  String validationSequenceSpanMismatchCount(
+    int position,
+    String actual,
+    String expected,
+  ) {
+    return 'フィギュア$positionのシーケンスのステップは$actualですが、シーケンスは$expectedです。';
+  }
+
+  @override
   String validationSequenceSpanNoRoom(int position, int actual, int expected) {
     return 'フィギュア$positionのシーケンスで長さのあるステップが$actual拍を使い、$expected拍のうち残りのステップの分がありません。';
   }
@@ -11820,7 +11852,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get callingCardHelpBlockFigures =>
-      'フレーズ（A1、A2、B1、B2）ごとにまとめたフィギュアと、その拍数。';
+      'フレーズ（A1、A2、B1、B2）ごとにまとめたフィギュアと、その長さ（拍数。イングリッシュのダンスでは小節数）。';
 
   @override
   String get callingCardHelpBlockNotes => 'コーリングノート。';
@@ -11880,7 +11912,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get callingCardHelpOptionFigures =>
-      'figures 用：拍数、フィギュアごとのメモ、フレーズ名、フレーズ間の線を省きます。';
+      'figures 用：長さ、フィギュアごとのメモ、フレーズ名、フレーズ間の線を省きます。';
 
   @override
   String get callingCardHelpOptionThickness => '線の太さ（ポイント単位）。';

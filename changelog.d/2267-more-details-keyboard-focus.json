@@ -1,0 +1,9 @@
+{
+  "id": "2267-more-details-keyboard-focus",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "With a keyboard, Tab no longer moves into the hidden fields of a collapsed \"More details\" section in the Dance editor and the Program builder, where the focus ring could not be seen."
+    ]
+  }
+}

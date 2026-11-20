@@ -3366,4 +3366,46 @@ void main() {
       expect(find.text('follows chain'), findsOneWidget);
     });
   });
+
+  group('a program that mixes forms (ADR-006 S5)', () {
+    testWidgets('names the dance\'s form beside its formation', (tester) async {
+      final english = _dance(id: 'e', title: 'Hole in the Wall').copyWith(
+        form: DanceForm.ecd,
+        formation: const Formation(FormationShape.dupleMinor),
+        figures: [
+          Figure(move: 'ecd_siding', params: const {'beats': 8}),
+        ],
+      );
+      final contra = _dance(id: 'c', title: 'Contra One');
+      final data = await _dataWith([english, contra]);
+      await _pumpProgram(
+        tester,
+        program: _program([
+          _slot(id: 's1', position: 0, danceId: 'e'),
+          _slot(id: 's2', position: 1, danceId: 'c'),
+        ]),
+        data: data,
+      );
+      expect(
+        find.textContaining('English (ECD) · Duple minor'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('a program of one form names none', (tester) async {
+      final data = await _dataWith([
+        _dance(id: 'a', title: 'A'),
+        _dance(id: 'b', title: 'B'),
+      ]);
+      await _pumpProgram(
+        tester,
+        program: _program([
+          _slot(id: 's1', position: 0, danceId: 'a'),
+          _slot(id: 's2', position: 1, danceId: 'b'),
+        ]),
+        data: data,
+      );
+      expect(find.textContaining('Contra ·'), findsNothing);
+    });
+  });
 }

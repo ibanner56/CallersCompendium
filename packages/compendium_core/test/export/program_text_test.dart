@@ -743,4 +743,37 @@ void main() {
       },
     );
   });
+
+  group('the dance form on a slot line (ADR-006 S5)', () {
+    final mixed = program(
+      slots: [
+        ProgramSlot(id: 's1', position: 0, danceId: 'd1', danceMinutes: 5),
+        ProgramSlot(id: 's2', position: 1, danceId: 'd2'),
+        ProgramSlot(id: 's3', position: 2, text: 'Break'),
+      ],
+    );
+
+    test('leads the details when a form is named', () {
+      final text = programToPlainText(
+        mixed,
+        titleFor: titles,
+        formLabelFor: (id) => id == 'd1' ? 'English' : 'Contra',
+      );
+      expect(text, contains("1. Rory O'More (English; 5 min)"));
+      expect(text, contains('2. The Nice Combination (Contra)'));
+      expect(text, contains('\nBreak'));
+      expect(text, isNot(contains('Break (')));
+    });
+
+    test('a null or blank name adds nothing', () {
+      expect(
+        programToPlainText(mixed, titleFor: titles, formLabelFor: (_) => null),
+        programToPlainText(mixed, titleFor: titles),
+      );
+      expect(
+        programToPlainText(mixed, titleFor: titles, formLabelFor: (_) => ' '),
+        programToPlainText(mixed, titleFor: titles),
+      );
+    });
+  });
 }

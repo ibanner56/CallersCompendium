@@ -8714,6 +8714,22 @@
   "@validationSequenceSpanMismatch": {
     "x-sourceSha256": "427e750a1e703341b792f9be009cf9daebbe04105d73c0b8adacd90815d84d34"
   },
+  "validationPhraseCountMismatch": "De figuren duren samen {actual}; de fraseopbouw verwacht {expected}.",
+  "@validationPhraseCountMismatch": {
+    "x-sourceSha256": "cb74c7f6cd49148a70e50356760215c17a5226fb6a816f7fe87c5e1db050a30b"
+  },
+  "validationSequenceExceedsPhraseCount": "Een reeks in figuur {position} duurt {actual}, langer dan één frase ({limit}).",
+  "@validationSequenceExceedsPhraseCount": {
+    "x-sourceSha256": "bfee5fd2f8ee58fe06f82a78cf851e3eac4482597a4e2f83d02e1196bdeecd28"
+  },
+  "validationSequenceSpanNoRoomCount": "De getimede stappen van de reeks in figuur {position} duren {actual}, zodat er van de {expected} niets overblijft voor de rest.",
+  "@validationSequenceSpanNoRoomCount": {
+    "x-sourceSha256": "1707646c8720d381f7f361d4bf710f11d6b307ebf237d23dbedd6ca1d61e5853"
+  },
+  "validationSequenceSpanMismatchCount": "De stappen van de reeks in figuur {position} duren {actual}; de reeks duurt {expected}.",
+  "@validationSequenceSpanMismatchCount": {
+    "x-sourceSha256": "f4fb4371316538dc6ec58cd03ff72f6bd22e1b559fc4f99da7674c5583821004"
+  },
   "validationSequenceSpanNoRoom": "De getimede stappen van de reeks in figuur {position} duren {actual} tellen, zodat er van de {expected} niets overblijft voor de rest.",
   "@validationSequenceSpanNoRoom": {
     "x-sourceSha256": "97810e6b9ede26094cde824e19231d33c0149ab076d3f9157c2025a6a594fae9"
@@ -11858,9 +11874,9 @@
   "@callingCardHelpBlockMeta": {
     "x-sourceSha256": "1928a9d33c4ba8624ec07f3fca1ea6e98c0a289f9874f6f63a0307d616555f75"
   },
-  "callingCardHelpBlockFigures": "De figuren, gegroepeerd per frase (A1, A2, B1, B2), met hun tellen.",
+  "callingCardHelpBlockFigures": "De figuren, gegroepeerd per frase (A1, A2, B1, B2), met hun lengte: in tellen, of in maten voor een Engelse dans.",
   "@callingCardHelpBlockFigures": {
-    "x-sourceSha256": "b997a702c0d398fe95724d2317082254978be5305b3f4b00af9006e9e307d9c9"
+    "x-sourceSha256": "985fe97924f5a9014e82a0504a75da19db616ba5ebf9ca3aeaec7aa74302c0c6"
   },
   "callingCardHelpBlockNotes": "Je callnotities.",
   "@callingCardHelpBlockNotes": {
@@ -11934,9 +11950,9 @@
   "@callingCardHelpOptionWidth": {
     "x-sourceSha256": "0afe737da572d0c30038301980dd7d55bc4a700c34f9be9dd54a0bedf7bf0a5d"
   },
-  "callingCardHelpOptionFigures": "Voor figures: laat de tellen, de eigen notities van de figuren, de frasenamen of de lijnen tussen de frasen weg.",
+  "callingCardHelpOptionFigures": "Voor figures: laat de lengtes, de eigen notities van de figuren, de frasenamen of de lijnen tussen de frasen weg.",
   "@callingCardHelpOptionFigures": {
-    "x-sourceSha256": "78f5e1ff429d848df5d1d3e64e2631540427c45a28e44d6ad6abe705d9e2b630"
+    "x-sourceSha256": "eb914c5d76ce6a304c52fcffce0436dad682dbf9059a4863050f0d3cc49ca51a"
   },
   "callingCardHelpOptionThickness": "Hoe dik een lijn is, in punten.",
   "@callingCardHelpOptionThickness": {

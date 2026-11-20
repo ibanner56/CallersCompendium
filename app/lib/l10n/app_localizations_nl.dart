@@ -8943,6 +8943,38 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String validationPhraseCountMismatch(String actual, String expected) {
+    return 'De figuren duren samen $actual; de fraseopbouw verwacht $expected.';
+  }
+
+  @override
+  String validationSequenceExceedsPhraseCount(
+    int position,
+    String actual,
+    String limit,
+  ) {
+    return 'Een reeks in figuur $position duurt $actual, langer dan één frase ($limit).';
+  }
+
+  @override
+  String validationSequenceSpanNoRoomCount(
+    int position,
+    String actual,
+    String expected,
+  ) {
+    return 'De getimede stappen van de reeks in figuur $position duren $actual, zodat er van de $expected niets overblijft voor de rest.';
+  }
+
+  @override
+  String validationSequenceSpanMismatchCount(
+    int position,
+    String actual,
+    String expected,
+  ) {
+    return 'De stappen van de reeks in figuur $position duren $actual; de reeks duurt $expected.';
+  }
+
+  @override
   String validationSequenceSpanNoRoom(int position, int actual, int expected) {
     return 'De getimede stappen van de reeks in figuur $position duren $actual tellen, zodat er van de $expected niets overblijft voor de rest.';
   }
@@ -12379,7 +12411,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get callingCardHelpBlockFigures =>
-      'De figuren, gegroepeerd per frase (A1, A2, B1, B2), met hun tellen.';
+      'De figuren, gegroepeerd per frase (A1, A2, B1, B2), met hun lengte: in tellen, of in maten voor een Engelse dans.';
 
   @override
   String get callingCardHelpBlockNotes => 'Je callnotities.';
@@ -12446,7 +12478,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get callingCardHelpOptionFigures =>
-      'Voor figures: laat de tellen, de eigen notities van de figuren, de frasenamen of de lijnen tussen de frasen weg.';
+      'Voor figures: laat de lengtes, de eigen notities van de figuren, de frasenamen of de lijnen tussen de frasen weg.';
 
   @override
   String get callingCardHelpOptionThickness =>

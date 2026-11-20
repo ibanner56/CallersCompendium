@@ -203,6 +203,24 @@ class ProgramExportMenu extends StatelessWidget {
     ];
   }
 
+  /// Names each slot's dance form in the set list when the program mixes
+  /// forms, as the program screens do (ADR-006 S5); null, naming none, when
+  /// its dances share one form or none resolves.
+  String? Function(String danceId)? _formLabelFor(AppLocalizations l10n) {
+    final resolveDance = danceFor;
+    if (resolveDance == null) return null;
+    final forms = <DanceForm>{
+      for (final slot in program.slots)
+        if (slot.danceId case final id?)
+          if (resolveDance(id) case final dance?) dance.form,
+    };
+    if (forms.length < 2) return null;
+    return (danceId) => switch (resolveDance(danceId)) {
+      final dance? => danceFormLabel(l10n, dance.form),
+      null => null,
+    };
+  }
+
   /// The dialect of each dance form, or the app defaults when no scope is
   /// mounted (only in tests).
   static DialectsByForm _dialects(BuildContext context) =>
@@ -230,6 +248,7 @@ class ProgramExportMenu extends StatelessWidget {
           DanceShareFieldsScope.of(context).contains(DanceShareField.authors)
           ? _authorNamesFor
           : null,
+      formLabelFor: _formLabelFor(AppLocalizations.of(context)),
     );
   }
 
@@ -568,6 +587,7 @@ class ProgramExportMenu extends StatelessWidget {
     final resolvedAuthorNamesFor = shareFields.contains(DanceShareField.authors)
         ? _authorNamesFor
         : null;
+    final formLabelFor = _formLabelFor(l10n);
     final cardLabelsById = <String, DanceCardLabels>{
       if (appendDances != null)
         for (final entry in appendDances)
@@ -599,6 +619,7 @@ class ProgramExportMenu extends StatelessWidget {
         renderer: renderer,
         canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
         authorNamesFor: resolvedAuthorNamesFor,
+        formLabelFor: formLabelFor,
         cardLabelsFor: appendDances == null
             ? null
             : (dance) => cardLabelsById[dance.id]!,

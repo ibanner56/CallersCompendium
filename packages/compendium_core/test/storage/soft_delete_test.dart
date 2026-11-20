@@ -862,7 +862,7 @@ void main() {
     // interaction, so this is an ordinary path rather than an edge case. If the
     // restore's `existence_at` merely *ties* with the tombstone's, §6.4
     // resolves the tie in favour of the tombstone and the undo silently loses
-    // once sync exists.
+    // on every device that applies it.
     //
     // Both timestamps below are literally the same instant, so nothing about
     // this test depends on the clock advancing between the two calls.

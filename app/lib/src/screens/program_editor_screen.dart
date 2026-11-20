@@ -50,6 +50,7 @@ import '../utils/safe_name.dart';
 import '../utils/undo_snack_bar.dart';
 import '../widgets/app_date_picker.dart';
 import '../widgets/app_dropdown_field.dart';
+import '../widgets/exclude_focus_when_collapsed.dart';
 import '../widgets/app_bar_text_action.dart';
 import '../widgets/app_shortcuts.dart';
 import '../widgets/collection_picker.dart';
@@ -2924,8 +2925,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     if (_pickerImporting || _leaving) return;
     if (_parsedPay().isInvalid) {
       // The pay field lives in the collapsed "More details" drawer, whose
-      // fields are not built (so not validated) while it is closed: open it and
-      // show the error there instead of silently saving without the value.
+      // fields are hidden while it is closed, so an error on one could not be
+      // seen: open it and show the error there instead of silently saving
+      // without the value.
       _moreDetailsController.expand();
       WidgetsBinding.instance.addPostFrameCallback(
         (_) => _formKey.currentState?.validate(),
@@ -4454,103 +4456,113 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       ),
       expandedCrossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _buildVenueField(l10n),
-        const SizedBox(height: AppSpacing.md),
-        TextFormField(
-          key: const ValueKey('program-band'),
-          controller: _bandController,
-          textInputAction: TextInputAction.next,
-          onChanged: (_) => _markDirty(),
-          decoration: InputDecoration(
-            labelText: l10n.programsBandLabel,
-            hintText: l10n.programsBandHint,
-            border: const OutlineInputBorder(),
-          ),
-        ),
-        const SizedBox(height: AppSpacing.md),
-        TextFormField(
-          key: const ValueKey('program-caller'),
-          controller: _callerController,
-          textInputAction: TextInputAction.next,
-          onChanged: (_) => _markDirty(),
-          decoration: InputDecoration(
-            labelText: l10n.programsCallerLabel,
-            hintText: l10n.programsCallerHint,
-            border: const OutlineInputBorder(),
-          ),
-        ),
-        const SizedBox(height: AppSpacing.md),
-        TextFormField(
-          key: const ValueKey('program-dancer-level'),
-          controller: _levelController,
-          textInputAction: TextInputAction.next,
-          onChanged: (_) => _markDirty(),
-          decoration: InputDecoration(
-            labelText: l10n.programsDancerLevelLabel,
-            hintText: l10n.programsDancerLevelHint,
-            border: const OutlineInputBorder(),
-          ),
-        ),
-        const SizedBox(height: AppSpacing.md),
-        TextFormField(
-          key: const ValueKey('program-notes'),
-          controller: _notesController,
-          minLines: 3,
-          maxLines: 6,
-          onChanged: (_) => _markDirty(),
-          decoration: InputDecoration(
-            labelText: l10n.programsNotesLabel,
-            alignLabelWithHint: true,
-            border: const OutlineInputBorder(),
-          ),
-        ),
-        const SizedBox(height: AppSpacing.md),
-        _buildPayField(l10n),
-        const SizedBox(height: AppSpacing.md),
-        AppDropdownField<ProgramStatus>(
-          key: const ValueKey('program-status'),
-          value: _status,
-          decoration: InputDecoration(
-            labelText: l10n.programsStatusFieldLabel,
-            // GIG-12: say what Performed writes, and that Mark all performed
-            // sets it while that setting is on.
-            helperText: MarkAllSetsStatusScope.of(context)
-                ? l10n.programsStatusHelperMarkAllSetsStatus
-                : l10n.programsStatusHelper,
-            helperMaxLines: 4,
-            border: const OutlineInputBorder(),
-          ),
-          // Each status shows its icon, in the menu and in the closed field.
-          entries: [
-            for (final status in ProgramStatus.values)
-              AppDropdownEntry(
-                value: status,
-                label: programStatusPresentation(status, l10n).label,
-                leadingIcon: Icon(programStatusPresentation(status, l10n).icon),
+        ExcludeFocusWhenCollapsed(
+          controller: _moreDetailsController,
+          builder: (context) => Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildVenueField(l10n),
+              const SizedBox(height: AppSpacing.md),
+              TextFormField(
+                key: const ValueKey('program-band'),
+                controller: _bandController,
+                textInputAction: TextInputAction.next,
+                onChanged: (_) => _markDirty(),
+                decoration: InputDecoration(
+                  labelText: l10n.programsBandLabel,
+                  hintText: l10n.programsBandHint,
+                  border: const OutlineInputBorder(),
+                ),
               ),
-          ],
-          onChanged: (value) {
-            setState(() {
-              _status = value;
-            });
-            _markDirty();
-          },
-        ),
-        const SizedBox(height: AppSpacing.md),
-        _buildDialectField(l10n),
-        const SizedBox(height: AppSpacing.xs),
-        SwitchListTile(
-          key: const ValueKey('program-hide-alternates'),
-          contentPadding: EdgeInsets.zero,
-          title: Text(l10n.programsHideAlternatesTitle),
-          subtitle: Text(l10n.programsHideAlternatesSubtitle),
-          value: _hideAlternates,
-          onChanged: (value) {
-            setState(() {
-              _hideAlternates = value;
-            });
-            _markDirty();
-          },
+              const SizedBox(height: AppSpacing.md),
+              TextFormField(
+                key: const ValueKey('program-caller'),
+                controller: _callerController,
+                textInputAction: TextInputAction.next,
+                onChanged: (_) => _markDirty(),
+                decoration: InputDecoration(
+                  labelText: l10n.programsCallerLabel,
+                  hintText: l10n.programsCallerHint,
+                  border: const OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.md),
+              TextFormField(
+                key: const ValueKey('program-dancer-level'),
+                controller: _levelController,
+                textInputAction: TextInputAction.next,
+                onChanged: (_) => _markDirty(),
+                decoration: InputDecoration(
+                  labelText: l10n.programsDancerLevelLabel,
+                  hintText: l10n.programsDancerLevelHint,
+                  border: const OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.md),
+              TextFormField(
+                key: const ValueKey('program-notes'),
+                controller: _notesController,
+                minLines: 3,
+                maxLines: 6,
+                onChanged: (_) => _markDirty(),
+                decoration: InputDecoration(
+                  labelText: l10n.programsNotesLabel,
+                  alignLabelWithHint: true,
+                  border: const OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.md),
+              _buildPayField(l10n),
+              const SizedBox(height: AppSpacing.md),
+              AppDropdownField<ProgramStatus>(
+                key: const ValueKey('program-status'),
+                value: _status,
+                decoration: InputDecoration(
+                  labelText: l10n.programsStatusFieldLabel,
+                  // GIG-12: say what Performed writes, and that Mark all performed
+                  // sets it while that setting is on.
+                  helperText: MarkAllSetsStatusScope.of(context)
+                      ? l10n.programsStatusHelperMarkAllSetsStatus
+                      : l10n.programsStatusHelper,
+                  helperMaxLines: 4,
+                  border: const OutlineInputBorder(),
+                ),
+                // Each status shows its icon, in the menu and in the closed field.
+                entries: [
+                  for (final status in ProgramStatus.values)
+                    AppDropdownEntry(
+                      value: status,
+                      label: programStatusPresentation(status, l10n).label,
+                      leadingIcon: Icon(
+                        programStatusPresentation(status, l10n).icon,
+                      ),
+                    ),
+                ],
+                onChanged: (value) {
+                  setState(() {
+                    _status = value;
+                  });
+                  _markDirty();
+                },
+              ),
+              const SizedBox(height: AppSpacing.md),
+              _buildDialectField(l10n),
+              const SizedBox(height: AppSpacing.xs),
+              SwitchListTile(
+                key: const ValueKey('program-hide-alternates'),
+                contentPadding: EdgeInsets.zero,
+                title: Text(l10n.programsHideAlternatesTitle),
+                subtitle: Text(l10n.programsHideAlternatesSubtitle),
+                value: _hideAlternates,
+                onChanged: (value) {
+                  setState(() {
+                    _hideAlternates = value;
+                  });
+                  _markDirty();
+                },
+              ),
+            ],
+          ),
         ),
       ],
     );

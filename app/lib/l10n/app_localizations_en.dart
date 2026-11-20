@@ -8850,6 +8850,38 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String validationPhraseCountMismatch(String actual, String expected) {
+    return 'The figures total $actual; the phrase structure expects $expected.';
+  }
+
+  @override
+  String validationSequenceExceedsPhraseCount(
+    int position,
+    String actual,
+    String limit,
+  ) {
+    return 'A sequence in figure $position is $actual, longer than one phrase ($limit).';
+  }
+
+  @override
+  String validationSequenceSpanNoRoomCount(
+    int position,
+    String actual,
+    String expected,
+  ) {
+    return 'The timed steps of the sequence in figure $position take $actual, leaving none of its $expected for the rest.';
+  }
+
+  @override
+  String validationSequenceSpanMismatchCount(
+    int position,
+    String actual,
+    String expected,
+  ) {
+    return 'The steps of the sequence in figure $position take $actual; the sequence takes $expected.';
+  }
+
+  @override
   String validationSequenceSpanNoRoom(int position, int actual, int expected) {
     return 'The timed steps of the sequence in figure $position take $actual beats, leaving none of its $expected for the rest.';
   }
@@ -12258,7 +12290,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get callingCardHelpBlockFigures =>
-      'The figures, grouped by phrase (A1, A2, B1, B2), with their beats.';
+      'The figures, grouped by phrase (A1, A2, B1, B2), with their counts: beats, or bars for an English dance.';
 
   @override
   String get callingCardHelpBlockNotes => 'Your calling notes.';
@@ -12322,7 +12354,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get callingCardHelpOptionFigures =>
-      'For figures: leave out the beats, the figures\' own notes, the phrase names, or the lines between phrases.';
+      'For figures: leave out the counts, the figures\' own notes, the phrase names, or the lines between phrases.';
 
   @override
   String get callingCardHelpOptionThickness =>
