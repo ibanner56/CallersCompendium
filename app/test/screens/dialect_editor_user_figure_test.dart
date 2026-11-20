@@ -43,11 +43,16 @@ void main() {
     Dialect? initial,
     bool customFigures = true,
     bool storeFigure = true,
+    DanceForm form = DanceForm.contra,
+    List<UserGlossaryEntry> moreFigures = const [],
   }) async {
     final repos = openTestRepositories();
     repositories = repos;
     if (storeFigure) {
       await tester.runAsync(() => repos.userGlossary.upsert(zoom()));
+    }
+    for (final figure in moreFigures) {
+      await tester.runAsync(() => repos.userGlossary.upsert(figure));
     }
     final userFigures = UserFiguresController(repos.userGlossary);
     addTearDown(userFigures.dispose);
@@ -81,7 +86,7 @@ void main() {
                   popped = await Navigator.of(context).push<Dialect>(
                     MaterialPageRoute(
                       builder: (_) => DialectEditorScreen(
-                        form: DanceForm.contra,
+                        form: form,
                         initial:
                             initial ??
                             Dialect.larksRobins.copyWith(name: 'Mine'),
@@ -205,6 +210,52 @@ void main() {
     // wording: a list that would offer it with Custom Figures on.
     await open(tester, 'dialect-wordings-toggle');
     expect(offered(tester, 'dialect-add-move-wording'), isNot(contains(key)));
+  });
+
+  /// An English figure of your own; [zoom] is a contra one.
+  UserGlossaryEntry drift() => UserGlossaryEntry(
+    id: 'drift-id',
+    kindName: UserGlossaryEntryKind.customFigure.name,
+    name: 'drift',
+    definition: 'A drift.',
+    description: '',
+    payload: const {
+      'form': 'ecd',
+      'template': '{who} {move}',
+      'defaultBeats': 8,
+      'params': [
+        {'key': 'who', 'kind': 'dancerSet', 'default': 'partners'},
+      ],
+    },
+    createdAt: DateTime.utc(2026, 11, 20),
+  );
+  final driftKey = userFigureKeyFor('drift-id');
+
+  testWidgets('an English dialect offers only English figures of yours', (
+    tester,
+  ) async {
+    await pump(tester, form: DanceForm.ecd, moreFigures: [drift()]);
+    await open(tester, 'dialect-moves-toggle');
+    expect(offered(tester, 'dialect-add-move'), contains(driftKey));
+    expect(offered(tester, 'dialect-add-move'), isNot(contains(key)));
+    await open(tester, 'dialect-wordings-toggle');
+    expect(offered(tester, 'dialect-add-move-wording'), contains(driftKey));
+    expect(offered(tester, 'dialect-add-move-wording'), isNot(contains(key)));
+  });
+
+  testWidgets('a contra dialect does not offer an English figure', (
+    tester,
+  ) async {
+    await pump(tester, moreFigures: [drift()]);
+    await open(tester, 'dialect-moves-toggle');
+    expect(offered(tester, 'dialect-add-move'), contains(key));
+    expect(offered(tester, 'dialect-add-move'), isNot(contains(driftKey)));
+    await open(tester, 'dialect-wordings-toggle');
+    expect(offered(tester, 'dialect-add-move-wording'), contains(key));
+    expect(
+      offered(tester, 'dialect-add-move-wording'),
+      isNot(contains(driftKey)),
+    );
   });
 
   testWidgets('a name for a figure not on this device says so', (tester) async {

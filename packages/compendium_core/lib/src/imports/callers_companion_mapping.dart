@@ -1053,11 +1053,23 @@ List<Figure> _ecdLineFigures(
 /// The tune [music] text's meter (`2/2`, `6/8`) and key (`G`, `Dm`, `Bb`),
 /// each `''` when it does not state one. Caller's Companion keeps both in its
 /// free-text Music field, written `Key: G, Meter: 2/2`, `Key D Meter 3/4` or
-/// `Em 6/8`. Bounded to [kMaxMusicLabelLength] characters each.
+/// `Em 6/8`. A number after a track, disc or page word (`Track 3/4 of CD`) is
+/// no meter, and an opening `A` before a meter and a word in lower case or a
+/// kind of tune (`A 3/2 hornpipe`, `A 3/2 Hornpipe`) is the article, not the
+/// key, which such a text may give as `in G`: `A 6/8` alone, or
+/// `A 6/8 Trad.`, still reads key A. A meter after its own word
+/// (`Meter 3/2 of Playford`) is always the meter. Bounded to [kMaxMusicLabelLength] characters each.
 ({String meter, String key}) ccMusicMeterAndKey(String? music) {
   final text = music ?? '';
-  final meter = _ccMeter.firstMatch(text);
-  final key = _ccKeyWord.firstMatch(text) ?? _ccLeadingKey.firstMatch(text);
+  // A meter its own word names (`Meter 3/2 of Playford`) first; otherwise a
+  // track or disc number (`Track 3/4 of CD`, `CD 2/3`) is no meter.
+  final meter = _ccNamedMeter.firstMatch(text) ?? _ccMeter.firstMatch(text);
+  final key =
+      _ccKeyWord.firstMatch(text) ??
+      // `A 3/2 hornpipe` is a hornpipe, not one in A; it may say `in G`.
+      (_ccArticle.hasMatch(text)
+          ? _ccInKey.firstMatch(text)
+          : _ccLeadingKey.firstMatch(text));
   // Only a meter the bars can be counted by: `track 3/12` is no meter.
   final meterText = meter == null ? '' : '${meter.group(1)}/${meter.group(2)}';
   final stated = ecdBeatsPerBar(meterText).stated;
@@ -1070,16 +1082,52 @@ List<Figure> _ecdLineFigures(
   );
 }
 
-final RegExp _ccMeter = RegExp(r'(?<![\d/])(\d{1,2})\s*/\s*(\d{1,2})(?![\d/])');
-
-/// A key: its note, then `m`, `minor` or `major` when it says (`E minor`).
-const String _ccKey =
-    r'([A-G](?:b|#|♭|♯)?(?:\s*(?:minor|major)\b|m(?![A-Za-z]))?)';
-final RegExp _ccKeyWord = RegExp(
-  '\\bkey\\s*:?\\s*$_ccKey(?![A-Za-z])',
+/// A meter, but not a number after a word that numbers a recording or page
+/// (`Track 3/4`, `CD #2/3`, `p. 3/4`) or one followed by `of` (`3/4 of CD 2`
+/// counts tracks, not beats). One scan, with bounded look-arounds, so a long
+/// Music text costs no more than a short one per character.
+final RegExp _ccMeter = RegExp(
+  // A digit first, so the word check runs only where a number starts.
+  r'(?<![\d/])(?=\d)'
+  r'(?<!\b(?:tracks?|trk|tr|cds?|discs?|disks?|side|vol|volume|no|nr|number|page|pg|p)'
+  r'\s{0,3}[.:#]?\s{0,3}#?\s{0,3})'
+  r'(\d{1,2})\s{0,3}/\s{0,3}(\d{1,2})(?![\d/])(?!\s{1,3}of\b)',
   caseSensitive: false,
 );
-final RegExp _ccLeadingKey = RegExp('^\\s*$_ccKey\\s*[,;]?\\s+\\d');
+
+/// A meter after its own word (`Meter: 3/2`, `Time 6/8`), whatever follows.
+final RegExp _ccNamedMeter = RegExp(
+  r'\b(?:meter|metre|time(?:\s{1,3}signature)?)\s{0,3}:?\s{0,3}'
+  r'(\d{1,2})\s{0,3}/\s{0,3}(\d{1,2})(?![\d/])',
+  caseSensitive: false,
+);
+
+/// A Music text that opens with the article `A` before a meter and a word in
+/// lower case or a kind of tune (`A 3/2 hornpipe`, `A 6/8 Jig in G`), where
+/// `A` names no key.
+final RegExp _ccArticle = RegExp(
+  r'^\s*A\s+\d{1,2}\s*/\s*\d{1,2}\s+'
+  r'(?:[a-z]|(?:Hornpipe|Jig|Slip [Jj]ig|Reel|Waltz|Polka|March|Minuet|Air|'
+  r'Strathspey|Rant|Tune|Dance|Bourr[eé]e|Gavotte|Sarabande|Slide|Triple|'
+  r'Mazurka|Schottische)\b)',
+);
+
+/// A key: its note, then `m`, `minor` or `major` when it says (`E minor`,
+/// `G Minor`).
+///
+/// The key patterns bound each run of spaces, as the meter's do: two
+/// unbounded runs side by side backtrack over every split of a long run of
+/// spaces in a Music text, which has no length cap.
+const String _ccKey =
+    r'([A-G](?:b|#|♭|♯)?(?:\s{0,3}(?:[Mm]inor|[Mm]ajor)\b|m(?![A-Za-z]))?)';
+final RegExp _ccKeyWord = RegExp(
+  '\\bkey\\s{0,3}:?\\s{0,3}$_ccKey(?![A-Za-z])',
+  caseSensitive: false,
+);
+
+/// The key a tune is `in` (`A 6/8 jig in G`).
+final RegExp _ccInKey = RegExp('\\bin\\s{1,3}$_ccKey(?![A-Za-z])');
+final RegExp _ccLeadingKey = RegExp('^\\s{0,8}$_ccKey\\s{0,3}[,;]?\\s{1,3}\\d');
 
 (DanceForm, String?) _mapForm(
   String? raw,

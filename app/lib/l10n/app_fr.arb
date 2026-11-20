@@ -8062,9 +8062,9 @@
   "@importReviewOverwriteWarning": {
     "x-sourceSha256": "32e898771354de5a51675debb5473f13fe146fec3e2bf8e86485fb3f27407f54"
   },
-  "importReviewReimportWarning": "{count, plural, =1{La ré-importation remplace les figures, la formation et la progression d’une danse existante. Sa note, ses étiquettes et ses notes restent.} other{La ré-importation remplace les figures, la formation et la progression de {count} danses existantes. Leurs notes, étiquettes et remarques restent.}}",
+  "importReviewReimportWarning": "{count, plural, =1{La ré-importation remplace les figures, la formation et la progression d’une danse existante, et peut changer sa forme de danse. Sa note, ses étiquettes et ses notes restent.} other{La ré-importation remplace les figures, la formation et la progression de {count} danses existantes, et peut changer leur forme de danse. Leurs notes, étiquettes et remarques restent.}}",
   "@importReviewReimportWarning": {
-    "x-sourceSha256": "c5aa953aba540e25ed5200df2027d40bbc0253f2d5f2268e420c36b3a5b5eaae"
+    "x-sourceSha256": "d548797b9b55577a86321e62a9cd95264b667b0b4ee7d8341c4720c765bb06d3"
   },
   "importReviewReimportTitleWarning": "{count, plural, =1{L’une d’elles reprend aussi le titre et l’auteur du fichier.} other{{count} d’entre elles reprennent aussi le titre et l’auteur du fichier.}}",
   "@importReviewReimportTitleWarning": {
@@ -8186,13 +8186,13 @@
   "@importReviewEditReimportTitle": {
     "x-sourceSha256": "0ef9a017ae65f8bd0f7ca657bfb1ea8e3bae8ca0a57b4a9cfe4c4e142e01467d"
   },
-  "importReviewEditReimportBody": "L’importation pour modification remplace immédiatement les figures, la formation et la progression de « {title} » dans votre collection. L’annulation de l’import groupé ne les restaurera pas.",
+  "importReviewEditReimportBody": "L’importation pour modification remplace immédiatement les figures, la formation et la progression de « {title} » dans votre collection, et peut changer sa forme de danse. L’annulation de l’import groupé ne les restaurera pas.",
   "@importReviewEditReimportBody": {
-    "x-sourceSha256": "275389cd8066eadc9e742cd019dda14c517874a5a2552849c4fc3dac6232452d"
+    "x-sourceSha256": "250ecd80fa50eb51991eb4108c9a1cf4ad226e2057d7f891c60c45ad58f965f8"
   },
-  "importReviewEditReimportTitleAndCreditBody": "L’importation pour modification remplace immédiatement les figures, la formation, la progression, le titre et l’auteur de « {title} » dans votre collection. L’annulation de l’import groupé ne les restaurera pas.",
+  "importReviewEditReimportTitleAndCreditBody": "L’importation pour modification remplace immédiatement les figures, la formation, la progression, le titre et l’auteur de « {title} » dans votre collection, et peut changer sa forme de danse. L’annulation de l’import groupé ne les restaurera pas.",
   "@importReviewEditReimportTitleAndCreditBody": {
-    "x-sourceSha256": "62a5cb4886e354759fc6422859381272be05217b50b9c73e838470f91d3e3ee3"
+    "x-sourceSha256": "c17e5ec03ea007886a49c1399b60957f8f84c15d04debba0daa93309e81fe5c9"
   },
   "importReviewImportError": "Impossible de terminer l’importation. Réessayez.",
   "@importReviewImportError": {

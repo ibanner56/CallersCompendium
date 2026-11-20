@@ -8062,9 +8062,9 @@
   "@importReviewOverwriteWarning": {
     "x-sourceSha256": "32e898771354de5a51675debb5473f13fe146fec3e2bf8e86485fb3f27407f54"
   },
-  "importReviewReimportWarning": "{count, plural, =1{Neu importieren ersetzt Figuren, Formation und Progression von 1 vorhandenen Tanz. Seine Bewertung, Tags und Notizen bleiben.} other{Neu importieren ersetzt Figuren, Formation und Progression von {count} vorhandenen Tänzen. Ihre Bewertungen, Tags und Notizen bleiben.}}",
+  "importReviewReimportWarning": "{count, plural, =1{Neu importieren ersetzt Figuren, Formation und Progression von 1 vorhandenen Tanz und kann seine Tanzform ändern. Seine Bewertung, Tags und Notizen bleiben.} other{Neu importieren ersetzt Figuren, Formation und Progression von {count} vorhandenen Tänzen und kann ihre Tanzform ändern. Ihre Bewertungen, Tags und Notizen bleiben.}}",
   "@importReviewReimportWarning": {
-    "x-sourceSha256": "c5aa953aba540e25ed5200df2027d40bbc0253f2d5f2268e420c36b3a5b5eaae"
+    "x-sourceSha256": "d548797b9b55577a86321e62a9cd95264b667b0b4ee7d8341c4720c765bb06d3"
   },
   "importReviewReimportTitleWarning": "{count, plural, =1{Bei 1 davon werden auch Titel und Autorenangabe aus der Datei übernommen.} other{Bei {count} davon werden auch Titel und Autorenangabe aus der Datei übernommen.}}",
   "@importReviewReimportTitleWarning": {
@@ -8186,13 +8186,13 @@
   "@importReviewEditReimportTitle": {
     "x-sourceSha256": "0ef9a017ae65f8bd0f7ca657bfb1ea8e3bae8ca0a57b4a9cfe4c4e142e01467d"
   },
-  "importReviewEditReimportBody": "Beim Importieren zum Bearbeiten werden Figuren, Formation und Progression von „{title}“ in deiner Sammlung sofort ersetzt. „Rückgängig“ für den gesamten Import stellt sie nicht wieder her.",
+  "importReviewEditReimportBody": "Beim Importieren zum Bearbeiten werden Figuren, Formation und Progression von „{title}“ in deiner Sammlung sofort ersetzt, und seine Tanzform kann sich ändern. „Rückgängig“ für den gesamten Import stellt nichts davon wieder her.",
   "@importReviewEditReimportBody": {
-    "x-sourceSha256": "275389cd8066eadc9e742cd019dda14c517874a5a2552849c4fc3dac6232452d"
+    "x-sourceSha256": "250ecd80fa50eb51991eb4108c9a1cf4ad226e2057d7f891c60c45ad58f965f8"
   },
-  "importReviewEditReimportTitleAndCreditBody": "Beim Importieren zum Bearbeiten werden Figuren, Formation, Progression, Titel und Autorenangabe von „{title}“ in deiner Sammlung sofort ersetzt. „Rückgängig“ für den gesamten Import stellt sie nicht wieder her.",
+  "importReviewEditReimportTitleAndCreditBody": "Beim Importieren zum Bearbeiten werden Figuren, Formation, Progression, Titel und Autorenangabe von „{title}“ in deiner Sammlung sofort ersetzt, und seine Tanzform kann sich ändern. „Rückgängig“ für den gesamten Import stellt nichts davon wieder her.",
   "@importReviewEditReimportTitleAndCreditBody": {
-    "x-sourceSha256": "62a5cb4886e354759fc6422859381272be05217b50b9c73e838470f91d3e3ee3"
+    "x-sourceSha256": "c17e5ec03ea007886a49c1399b60957f8f84c15d04debba0daa93309e81fe5c9"
   },
   "importReviewImportError": "Der Import konnte nicht abgeschlossen werden. Versuche es erneut.",
   "@importReviewImportError": {

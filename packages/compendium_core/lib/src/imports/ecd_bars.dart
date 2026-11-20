@@ -63,9 +63,10 @@ const int _defaultBeatsPerBar = 2;
 /// Most bars one line's range may span: a whole 32-bar tune.
 const int _maxBars = 32;
 
-/// A line's leading bar range: how many [bars] it spans, and the line's
-/// [rest] after it.
-typedef EcdBarRange = ({int bars, String rest});
+/// A line's bar ranges: how many [bars] they span, how many [firstBars] the
+/// first one spans, the line's [rest] after the first one, and whether the
+/// line gives [several] ranges.
+typedef EcdBarRange = ({int bars, int firstBars, String rest, bool several});
 
 /// The bar range [line] starts with, or null when it starts with none.
 ///
@@ -75,16 +76,42 @@ typedef EcdBarRange = ({int bars, String rest});
 /// `last - first + 1` bars, at most a whole tune; a range running backwards or
 /// with nothing after it is not one. A lone number is not taken for a bar,
 /// since it may be part of the figure (`2 changes of rights and lefts`).
+///
+/// A line that goes on to further ranges, each starting the bar after the
+/// one before ends (`(5-8) X (9-12) Y`), spans all of them, so its count is
+/// from the first range's start to the last range's end, and [EcdBarRange.several]
+/// is true. A later range that does not follow on is part of the words.
 EcdBarRange? splitEcdBarRange(String line) {
   final match = _barRange.firstMatch(line);
   if (match == null) return null;
   final first = int.parse(match.group(1) ?? match.group(3)!);
-  final last = int.parse(match.group(2) ?? match.group(4)!);
+  var last = int.parse(match.group(2) ?? match.group(4)!);
   if (first < 1 || last < first || last - first + 1 > _maxBars) return null;
   final rest = match.group(5)!.trim();
   if (rest.isEmpty) return null;
-  return (bars: last - first + 1, rest: rest);
+  final firstBars = last - first + 1;
+  var several = false;
+  for (final later in _laterBarRange.allMatches(rest)) {
+    final from = int.parse(later.group(1) ?? later.group(3)!);
+    final to = int.parse(later.group(2) ?? later.group(4)!);
+    if (from != last + 1 || to < from || to - first + 1 > _maxBars) break;
+    last = to;
+    several = true;
+  }
+  return (
+    bars: last - first + 1,
+    firstBars: firstBars,
+    rest: rest,
+    several: several,
+  );
 }
+
+/// A bar range later in a line, alone or in brackets, not part of a longer
+/// number, a meter or a word.
+final RegExp _laterBarRange = RegExp(
+  r'\(\s*(\d{1,3})\s*[-–—]\s*(\d{1,3})\s*\)'
+  r'|(?<![\w/.-])(\d{1,3})\s*[-–—]\s*(\d{1,3})(?![\w/]|[.-]\d)',
+);
 
 final RegExp _barRange = RegExp(
   // A section label (`A1`, `a1`, `A1&2`, `A1&A2`, `A1:`), dropped.
@@ -97,15 +124,26 @@ final RegExp _barRange = RegExp(
   dotAll: true,
 );
 
-/// [line]'s leading bar range as a count: its bars times the beats in a bar
-/// of [meter], and the line's rest. Null when [line] starts with no range, or
-/// its count would be over 64 beats.
-({int beats, String rest})? ecdBarCount(String line, {String? meter}) {
+/// [line]'s bar ranges as a count: their bars times the beats in a bar of
+/// [meter], the line's rest after the first range, and whether it gave
+/// [several] ranges ([splitEcdBarRange]). Null when [line] starts with no
+/// range, or its count would be over 64 beats.
+///
+/// A line of several ranges names several figures, so the parsers keep it
+/// whole as text, with the count of all its ranges; when that would be over
+/// 64 beats, with its first range's count, as a line of one range would be.
+({int beats, String rest, bool several})? ecdBarCount(
+  String line, {
+  String? meter,
+}) {
   final range = splitEcdBarRange(line);
   if (range == null) return null;
-  final beats = range.bars * ecdBeatsPerBar(meter).beatsPerBar;
+  final perBar = ecdBeatsPerBar(meter).beatsPerBar;
+  var beats = range.bars * perBar;
+  // Ranges that run past the beats range keep the first one's count.
+  if (beats > _maxBeats) beats = range.firstBars * perBar;
   if (beats > _maxBeats) return null;
-  return (beats: beats, rest: range.rest);
+  return (beats: beats, rest: range.rest, several: range.several);
 }
 
 /// Whether [rest], a line after its bar range, also states a count in beats:

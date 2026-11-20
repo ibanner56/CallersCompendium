@@ -106,7 +106,41 @@ void main() {
         ('a1 1-4 Partners set', 4, 'Partners set'),
         ('A1&A2 1-8 Partners lead up', 8, 'Partners lead up'),
       ]) {
-        expect(splitEcdBarRange(line), (bars: bars, rest: rest), reason: line);
+        expect(splitEcdBarRange(line), (
+          bars: bars,
+          rest: rest,
+          several: false,
+          firstBars: bars,
+        ), reason: line);
+      }
+    });
+
+    test('a line of ranges that follow on spans them all', () {
+      for (final (line, bars) in [
+        ('(5-8) Partners set (9-12) Turn single', 8),
+        ('1-4 Lead up 5-8 Fall back', 8),
+        ('1-2 Set 3-4 Turn single (5-8) Circle left', 8),
+        ('1-4 Lead up – 5–8 fall back', 8),
+        ('1-4 Lead up a double. 5-8. Fall back', 8),
+      ]) {
+        final range = splitEcdBarRange(line)!;
+        expect(range.bars, bars, reason: line);
+        expect(range.several, isTrue, reason: line);
+      }
+    });
+
+    test('a later range that does not follow on is part of the words', () {
+      for (final (line, bars) in [
+        ('(5-8) Partners set (13-16) Turn single', 4),
+        ('1-4 Lead up 4-8 fall back', 4),
+        ('1-4 Circle in 3/4-time', 4),
+        ('1-4 Hey 2-3 times', 4),
+        ('1-4 Circle 5-8x', 4),
+        ('1-16 Lead up (17-40) fall back', 16),
+      ]) {
+        final range = splitEcdBarRange(line)!;
+        expect(range.bars, bars, reason: line);
+        expect(range.several, isFalse, reason: line);
       }
     });
 
@@ -183,6 +217,28 @@ void main() {
       expect(figure.params['beats'], 8);
     });
 
+    test('ranges past the beats range keep the first one\'s count', () {
+      const line = '(1-12) lead up and back (13-24) set and turn';
+      final figure = parseEcdFigureLine(line, meter: '3/2')!;
+      expect(figure.isCustom, isTrue);
+      expect(figure.params['text'], line);
+      expect(figure.params['beats'], 36);
+    });
+
+    test('a line of two ranges is kept whole, counted across both', () {
+      // The second reads as a sequence if the line is not kept whole, and
+      // its range would be lost.
+      for (final (line, beats) in [
+        ('(5-8) circle left (9-12) circle right', 24),
+        ('1-4 partners set (5-8) and turn single', 24),
+      ]) {
+        final figure = parseEcdFigureLine(line, meter: '3/2')!;
+        expect(figure.isCustom, isTrue, reason: line);
+        expect(figure.params['text'], line, reason: line);
+        expect(figure.params['beats'], beats, reason: line);
+      }
+    });
+
     test('a count over the beats range is not taken', () {
       final figure = parseEcdFigureLine('1-32 circle left', meter: '4/4')!;
       expect(figure.isCustom, isTrue);
@@ -224,6 +280,23 @@ void main() {
       expect(figures.single.params['beats'], 8);
     });
 
+    test('keeps a line of two ranges whole, counted across both', () {
+      for (final line in [
+        '(5-8) circle left (9-12) circle right',
+        '1-4 partners set (5-8) and turn single',
+      ]) {
+        final figures = parseFreeTextFigureEntry(
+          line,
+          taxonomy: ecd,
+          meter: '2/2',
+        );
+        expect(figures, hasLength(1), reason: line);
+        expect(figures.single.isCustom, isTrue, reason: line);
+        expect(figures.single.params['text'], line, reason: line);
+        expect(figures.single.params['beats'], 16, reason: line);
+      }
+    });
+
     test('keeps a line it cannot read whole, with the count', () {
       final figures = parseFreeTextFigureEntry(
         '1-4 something only this caller says',
@@ -259,6 +332,21 @@ void main() {
       expect(figures.single.params['text'], '1-4 circle left');
       expect(figures.single.params['beats'], isNull);
     });
+  });
+
+  test('re-check keeps a line of several ranges as text, with its stored '
+      'count', () {
+    const line = '(5-8) partners set (9-12) and turn single';
+    final out = reparseImportGapFigures(
+      [customFigure(line, beats: 8, origin: CustomOrigin.importGap)],
+      taxonomy: shippedTaxonomies.forForm(DanceForm.ecd),
+      meter: '2/2',
+      phraseStructure: PhraseStructure.standard,
+    );
+    expect(out.figures.single.isCustom, isTrue);
+    expect(out.figures.single.params['text'], line);
+    // A line still kept as text is not recounted (it is not upgraded).
+    expect(out.figures.single.params['beats'], 8);
   });
 
   test('re-check counts by the phrase structure when no meter is stated', () {
@@ -346,6 +434,16 @@ void main() {
         ('Key: G minor, Meter: 3/2', '3/2', 'G minor', 12),
         ('G major, 6/8', '6/8', 'G major', 8),
         ('F# 6/4', '6/4', 'F#', 8),
+        ('A 6/8', '6/8', 'A', 8),
+        ('A 6/8 Trad.', '6/8', 'A', 8),
+        ('A 6/8 Jig in G', '6/8', 'G', 8),
+        ('A 2/2 reel in A', '2/2', 'A', 8),
+        ('A 3/2 Hornpipe in G Minor', '3/2', 'G Minor', 12),
+        ('G Minor, 6/8', '6/8', 'G Minor', 8),
+        ('Meter 3/2 of Playford', '3/2', '', 12),
+        ('Am 3/2 hornpipe', '3/2', 'Am', 12),
+        ('Key: A, a 3/2 hornpipe', '3/2', 'A', 12),
+        ('Meter 3/4, track 2', '3/4', '', 12),
       ]) {
         final dance = mapCallersCompanionDance(
           record(music: music),
@@ -358,8 +456,32 @@ void main() {
       }
     });
 
+    test('an opening "A" before a meter and a word is no key', () {
+      for (final (music, meter) in [
+        ('A 3/2 hornpipe', '3/2'),
+        ('A 6/8 jig in the old style', '6/8'),
+        ('A 3/2 Hornpipe', '3/2'),
+      ]) {
+        final dance = mapCallersCompanionDance(
+          record(music: music),
+          englishDances: true,
+        ).dance;
+        expect(dance.meter, meter, reason: music);
+        expect(dance.musicalKey, '', reason: music);
+      }
+    });
+
     test('a number that is not a meter is not stored as one', () {
-      for (final music in ['Track 3/12', 'Learned 1/2/2003']) {
+      for (final music in [
+        'Track 3/12',
+        'Learned 1/2/2003',
+        'Track 3/4 of CD',
+        'Tracks 3/4',
+        'CD #2/3',
+        'Disc 2/2',
+        'p. 3/4',
+        'Tune 3/4 of the set',
+      ]) {
         final mapping = mapCallersCompanionDance(
           record(music: music),
           englishDances: true,
@@ -399,6 +521,18 @@ void main() {
         expect(figure.params['text'], line, reason: line);
         expect(figure.params['beats'], 12, reason: line);
       }
+    });
+
+    test('a line of several ranges is kept as text, counted across them', () {
+      const line = '(16) 1-4 partners set (5-8) and turn single';
+      final dance = mapCallersCompanionDance(
+        record(music: 'Meter: 2/2', lines: const [line]),
+        englishDances: true,
+      ).dance;
+      final figure = (dance.figuresSource as DecodedFigures).figures.single;
+      expect(figure.isCustom, isTrue);
+      expect(figure.params['text'], contains('1-4 partners set (5-8)'));
+      expect(figure.params['beats'], 16);
     });
 
     test('a beat prefix the bars agree with reads the line', () {

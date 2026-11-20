@@ -7890,7 +7890,7 @@ class AppLocalizationsJa extends AppLocalizations {
       count,
       locale: localeName,
       other:
-          '再インポートで$count件の既存のダンスのフィギュア、フォーメーション、プログレッションが置き換えられます。評価、タグ、メモは残ります。',
+          '再インポートで$count件の既存のダンスのフィギュア、フォーメーション、プログレッションが置き換えられ、ダンスの形式が変わることもあります。評価、タグ、メモは残ります。',
     );
     return '$_temp0';
   }
@@ -8059,12 +8059,12 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String importReviewEditReimportBody(String title) {
-    return '編集のためにインポートすると、コレクション内の「$title」のフィギュア、フォーメーション、プログレッションがすぐに置き換えられます。一括インポートの「元に戻す」では復元されません。';
+    return '編集のためにインポートすると、コレクション内の「$title」のフィギュア、フォーメーション、プログレッションがすぐに置き換えられ、ダンスの形式が変わることもあります。一括インポートの「元に戻す」では復元されません。';
   }
 
   @override
   String importReviewEditReimportTitleAndCreditBody(String title) {
-    return '編集のためにインポートすると、コレクション内の「$title」のフィギュア、フォーメーション、プログレッション、タイトル、作者がすぐに置き換えられます。一括インポートの「元に戻す」では復元されません。';
+    return '編集のためにインポートすると、コレクション内の「$title」のフィギュア、フォーメーション、プログレッション、タイトル、作者がすぐに置き換えられ、ダンスの形式が変わることもあります。一括インポートの「元に戻す」では復元されません。';
   }
 
   @override

@@ -740,7 +740,8 @@ void main() {
 
       const reimportOne =
           'Re-import replaces the figures, formation and progression of 1 '
-          'existing dance. Its rating, tags and notes stay.';
+          'existing dance, and can change its dance form. Its rating, tags and '
+          'notes stay.';
       expect(
         find.byKey(const ValueKey('import-reimport-warning')),
         findsOneWidget,
@@ -823,7 +824,8 @@ void main() {
       expect(
         find.text(
           'Re-import replaces the figures, formation and progression of 1 '
-          'existing dance. Its rating, tags and notes stay.',
+          'existing dance, and can change its dance form. Its rating, tags and '
+          'notes stay.',
         ),
         findsOneWidget,
       );
@@ -833,7 +835,8 @@ void main() {
       await tester.pumpAndSettle();
       const reimportTwo =
           'Re-import replaces the figures, formation and progression of 2 '
-          'existing dances. Their ratings, tags and notes stay.';
+          'existing dances, and can change their dance form. Their ratings, '
+          'tags and notes stay.';
       expect(find.text(reimportTwo), findsOneWidget);
       expect(find.bySemanticsLabel('Warning: $reimportTwo'), findsOneWidget);
       expect(
