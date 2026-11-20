@@ -55,6 +55,47 @@ Future<WalkthroughSnippetLibraryController> _pumpWithSnippet(
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  testWidgets('each snippet is shown in its figure\'s form\'s dialect '
+      '(ADR-006 W5)', (tester) async {
+    final repos = openTestRepositories();
+    final controller = WalkthroughSnippetLibraryController(repos.settings);
+    addTearDown(controller.dispose);
+    await controller.setSnippet('swing', 'role1s swing');
+    await controller.setSnippet('ecd_honor', 'role1s honor');
+    final dialects = ValueNotifier(
+      DialectsByForm({
+        DanceForm.contra: Dialect.larksRobins,
+        DanceForm.ecd: Dialect.canonical,
+      }),
+    );
+    addTearDown(dialects.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        home: RepositoriesScope(
+          repositories: repos,
+          child: ActiveDialectScope.byForm(
+            dialects: dialects,
+            child: WalkthroughSnippetLibraryScope(
+              controller: controller,
+              child: const WalkthroughSnippetsScreen(),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final renderer = FigureRenderer(shippedTaxonomies.anyForm);
+    final contra = renderer.renderFreeText('role1s swing', Dialect.larksRobins);
+    final ecd = renderer.renderFreeText('role1s honor', Dialect.canonical);
+    // A control: the two dialects word the role differently.
+    expect(contra, 'larks swing');
+    expect(ecd, isNot(contains('larks')));
+    expect(find.text(contra), findsOneWidget);
+    expect(find.text(ecd), findsOneWidget);
+  });
+
   Future<void> tapRowDelete(WidgetTester tester) async {
     await tester.tap(
       find.byWidgetPredicate(

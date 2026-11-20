@@ -184,6 +184,13 @@ def test_non_markdown_paths_route_to_their_suites() -> None:
         validation_changed=True,
         core_tests_changed=True,
     )
+    for driver in (b"tools/ci/check_app_coverage.py", b"tools/ci/run_app_tests_with_coverage.py"):
+        expect(
+            f"app test driver {driver.decode()} reaches the app suite, not the builds",
+            (driver,),
+            validation_changed=True,
+            app_tests_changed=True,
+        )
     expect(
         "unrelated non-markdown path (e.g. a tool script) still runs validation only",
         (b"tools/brand/generate_icons.py",),

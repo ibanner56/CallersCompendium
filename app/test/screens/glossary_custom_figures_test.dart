@@ -219,6 +219,9 @@ void main() {
     );
 
     Future<void> open(WidgetTester tester) async {
+      // An English figure of the user's is listed under English.
+      await tester.tap(find.byKey(const ValueKey('glossary-form-ecd')));
+      await tester.pumpAndSettle();
       await search(tester, 'zoom');
       await tester.tap(
         find.byKey(const ValueKey('glossary-entry-custom:zoom-id')),
@@ -529,6 +532,8 @@ void main() {
           ),
         ],
       );
+      await tester.tap(find.byKey(const ValueKey('glossary-form-ecd')));
+      await tester.pumpAndSettle();
       await search(tester, 'zesty');
       await tester.tap(find.byKey(termRow));
       await tester.pumpAndSettle();

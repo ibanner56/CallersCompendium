@@ -49,9 +49,10 @@ searchKeywords: [allemande, almond]
   any form, for code with no single dance in hand (programs, the repository,
   sync, search). It resolves IDs; it is not a vocabulary to parse a dance's
   text with, so the repository re-parses a dance's import-gap lines with
-  `forForm(dance.form)`. Glossary, dialect, shorthand and Settings defaults
-  surfaces, including decoding a stored compound's figures, still use
-  contra's taxonomy directly, until they gain a form of their own.
+  `forForm(dance.form)`. The Glossary lists each form's built-in figures
+  from `forForm(form)`; the user's own figures and terms, shorthand and
+  Settings defaults surfaces, including decoding a stored compound's figures,
+  still use contra's taxonomy directly, until they gain a form of their own.
 - **English Country Dance has its own taxonomy** (`ecdTaxonomy`,
   `ecd_taxonomy.dart`): the 52 movements of ADR-006 §7, each stored under an
   `ecd_` ID, and two aliases (`ecd_swat_the_flea`, and `ecd_hand_cast`,

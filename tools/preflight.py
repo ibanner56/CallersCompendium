@@ -69,8 +69,9 @@ LOCK_POLL_SECONDS = 2.0
 # `numberOfProcessors / 2` test processes -- 8 here -- and each holds a full
 # engine: measured 5.1 GB peak at 8 against 3.3 GB at 4, for 196s against
 # 208-235s over three capped runs. Half a minute is worth 1.8 GB on a host whose
-# spare commit is ~5 GB. CI pins its own concurrency (`--concurrency=4` /
-# `-j 4`, enforced by test_preflight.py), so this cap does not reach it.
+# spare commit is ~5 GB. CI pins its own concurrency (`-j 4` on the app test
+# wrapper, `--concurrency=4` / `-j 4` on the other test commands, enforced by
+# test_preflight.py), so this cap does not reach it.
 MAX_TEST_JOBS = 4
 TEST_JOBS_ENV = "PREFLIGHT_TEST_JOBS"
 
@@ -502,6 +503,11 @@ STEPS: tuple[Step, ...] = (
         (py("tools/ci/test_check_core_coverage.py"),),
     ),
     Step(
+        "app-coverage-tests",
+        "the app coverage-floor calculation and the stale-report cleanup",
+        (py("tools/ci/test_check_app_coverage.py"),),
+    ),
+    Step(
         "flutter-version-tests",
         "the .fvmrc-vs-toolchain guard's banner parsing and verdict",
         (py("tools/ci/test_check_flutter_version.py"),),
@@ -577,8 +583,14 @@ STEPS: tuple[Step, ...] = (
     Step(
         "app-tests",
         "app suite (includes the privacy classification ratchets)",
-        (fvm("flutter", "test", f"--concurrency={TEST_JOBS}"),),
-        cwd=ROOT / "app",
+        (fvm_py("tools/ci/run_app_tests_with_coverage.py", "-j", str(TEST_JOBS)),),
+        fast=False,
+        needs_binary="fvm",
+    ),
+    Step(
+        "app-coverage",
+        "the app's generated-source-excluded line-coverage floor (reads app-tests' report)",
+        (fvm_py("tools/ci/check_app_coverage.py"),),
         fast=False,
         needs_binary="fvm",
     ),
