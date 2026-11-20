@@ -2314,6 +2314,12 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
 `ecdTaxonomyVersion` (`ecd_taxonomy.dart`) is the same kind of documentary
 marker for the English Country Dance taxonomy, logged here.
 
+**Every bump appends an entry here, in the same PR.**
+`tools/ci/check_version_history.py` fails a PR that moves the constant without
+a `- vN` entry under this heading; a contra entry above it does not count. A
+change added to a version that has not shipped yet amends that version's entry
+instead, which the gate cannot see.
+
 - v1: ADR-006 §7's registry: 52 movements under `ecd_` IDs, the
     `ecd_swat_the_flea` alias, `ParamKind.dancerList` for `who`, and the
     §6.3 template notation. Migration: no stored figure changes. A dance
