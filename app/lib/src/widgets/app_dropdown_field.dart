@@ -263,7 +263,8 @@ class _AppDropdownFieldState<T> extends FormFieldState<T> {
   }
 
   /// Reopens a menu a scroll shut, once the scroll is over and the menu has
-  /// finished closing (it animates shut, and reads as open until then).
+  /// finished closing (it reads as open for a moment after it is told to
+  /// close).
   void _maybeReopen() {
     if (!_reopenAfterScroll || !mounted) return;
     if (_scroll?.isScrollingNotifier.value ?? false) return;

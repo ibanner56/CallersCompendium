@@ -611,8 +611,8 @@ void main() {
     // is outside it. Had the press on an entry taken the field's focus, the
     // menu, which closes on that blur, would be gone before the release, and
     // no click would pick anything (#2292).
-    testWidgets('a mouse click picks an entry, and the focus comes back to '
-        'the field', (tester) async {
+    testWidgets('a mouse click picks an entry, and the field keeps the '
+        'focus', (tester) async {
       String? picked = 'a';
       await _pump(tester, value: 'a', onChanged: (v) => picked = v);
       await press(tester, find.byKey(_fieldKey));
@@ -687,6 +687,19 @@ void main() {
       await gesture.up();
       await gesture.removePointer();
       await tester.pumpAndSettle();
+      expect(find.byType(MenuItemButton), findsWidgets, reason: 'still open');
+      expect(
+        tester
+            .widget<EditableText>(
+              find.descendant(
+                of: find.byKey(_fieldKey),
+                matching: find.byType(EditableText),
+              ),
+            )
+            .focusNode
+            .hasFocus,
+        isTrue,
+      );
       await tester.sendKeyEvent(LogicalKeyboardKey.tab);
       await tester.pumpAndSettle();
       expect(find.byType(MenuItemButton), findsNothing);
