@@ -1,4 +1,4 @@
-import 'package:compendium_core/compendium_core.dart' show foldForTitleMatch;
+import 'package:compendium_core/compendium_core.dart' show foldForSearch;
 
 /// The words a query is split into: runs of letters and digits, so
 /// punctuation and spacing never have to match ("rosé-pine" searches for
@@ -12,17 +12,17 @@ final RegExp _separators = RegExp(r'[^\p{L}\p{N}]+', unicode: true);
 /// section and brightness headings — matched from their start, so typing
 /// "re" offers red and retro but not every theme tagged green.
 ///
-/// Both are folded once, here, with the same case- and accent-insensitive fold
-/// the Collection's title search uses, so "rose" finds "Rosé Pine" and
-/// "frappe" finds "Catppuccin Frappé".
+/// Both are folded once, here, with the app's case- and accent-insensitive
+/// search fold ([foldForSearch]), so "rose" finds "Rosé Pine" and "frappe"
+/// finds "Catppuccin Frappé".
 class ThemeSearchEntry {
   ThemeSearchEntry({
     required Iterable<String> names,
     required Iterable<String> terms,
-  }) : _names = [for (final n in names) foldForTitleMatch(n)],
+  }) : _names = [for (final n in names) foldForSearch(n)],
        _terms = [
          for (final t in terms)
-           for (final word in foldForTitleMatch(t).split(_separators))
+           for (final word in foldForSearch(t).split(_separators))
              if (word.isNotEmpty) word,
        ];
 
@@ -33,7 +33,7 @@ class ThemeSearchEntry {
   /// in a name or start a term, so "dark purple" narrows to the dark themes
   /// that are purple. A query with no words matches everything.
   bool matches(String query) {
-    for (final word in foldForTitleMatch(query).split(_separators)) {
+    for (final word in foldForSearch(query).split(_separators)) {
       if (word.isEmpty) continue;
       final found =
           _names.any((name) => name.contains(word)) ||
@@ -48,4 +48,4 @@ class ThemeSearchEntry {
 /// spacing are set aside. The Theme screen shows its grouped gallery until it
 /// does, so a query of a lone space or comma never collapses the headings.
 bool themeQueryIsEmpty(String query) =>
-    foldForTitleMatch(query).split(_separators).every((w) => w.isEmpty);
+    foldForSearch(query).split(_separators).every((w) => w.isEmpty);

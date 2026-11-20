@@ -551,8 +551,8 @@ in one run, in the same order. A theme is found by its name, its section, its
 brightness, or a few hand-picked keywords — color and character words
 (`AppThemeKeyword`, assigned in `AppThemeSelection.keywords`), each resolved to
 localized synonyms by `appThemeKeywordTerms`. Every word of the query must match
-(a name anywhere inside, a keyword from its start), case- and accent-folded as
-in the Collection's title search; `data/theme_search.dart` holds the matcher.
+(a name anywhere inside, a keyword from its start), case- and accent-folded by
+`foldForSearch`; `data/theme_search.dart` holds the matcher.
 
 ### 4A.6 Attribution & licensing
 

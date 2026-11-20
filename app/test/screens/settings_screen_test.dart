@@ -1527,7 +1527,7 @@ void main() {
       await _openThemeScreen(tester);
       expect(
         tester.getSemantics(find.byKey(const ValueKey('new-custom-theme'))),
-        containsSemantics(
+        isSemantics(
           label: 'New custom theme',
           isButton: true,
           hasTapAction: true,
