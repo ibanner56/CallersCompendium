@@ -165,28 +165,50 @@ conversely, a row a peer holds live cannot be removed locally without the next
 pass taking the "absent from baseline, present remotely → download" path
 (§6.3) and restoring it, reversing the deletion on every pass.
 
-That condition is currently **assumed, not enforced**. Its production callers
-divide in two:
+That condition is enforced where the hard delete happens, not assumed of each
+caller. Every hard-delete path reads the durable marker (§3.2, written at §6.3
+step 7) and **tombstones a marked record instead of erasing it**:
+`DanceRepository.hardDelete`, `ProgramRepository.hardDelete` and
+`VenueRepository.hardDelete`, `ChoreographerRepository.delete(permanent: true)`,
+and the permanent deletes of the other record kinds. A pass writes the markers
+in a transaction that first checks that no record it would mark for the first
+time was hard-deleted since the scan, and builds again under the lock when one
+was, so a hard delete that lands on either side of the marker leaves a tombstone
+or leaves the record out of the manifest. Its production callers divide in two:
 
 - **Safe by construction** — the editor draft keys (`editor_draft:<id>`,
   `program_editor_draft:<id>`), which are never published because they carry no
   `shareable` classification at all (§3.3).
-- **Not enforced** — import undo, on choreographers (`import_pipeline.dart`) and
-  venues (`compendium_archive_import.dart`,
+- **Guarded by the marker** — import undo, on dances, choreographers, programs
+  and venues (`import_pipeline.dart`, `compendium_archive_import.dart`,
   `callers_companion_usr_import.dart`). `ImportSession` is in memory, so the
-  undo window lasts as long as the user leaves the screen open, and nothing
-  excludes a sync pass from landing inside it.
+  undo window lasts as long as the user leaves the screen open, and a pass can
+  land inside it: Device Sync is opt-in, but once it is on, an import's own
+  writes arm the debounced post-change pass (§6.12). If a pass has published the
+  import, undo tombstones its rows and peers receive the deletion; rows no pass
+  has marked are still erased. A venue a surviving program row still names, a
+  tombstoned one included, is kept live rather than orphaning that reference
+  (#1357). `app/test/sync/sync_import_undo_two_device_test.dart` runs the whole
+  sequence on two devices: import, a pass that publishes it, undo, and the
+  passes after.
 
-A client implementation MUST therefore either suspend sync for the duration of
+*Amended (#2266):* this section used to say the condition was "currently
+assumed, not enforced", and that nothing excluded a pass from landing inside an
+import's undo window. The pass can land there, and the repositories' marker
+check is what makes that safe. The first of the two options below (suspending
+sync for the session) is not implemented and not needed.
+
+A client implementation MUST either suspend sync for the duration of
 an undoable import session, or treat a publication attempt as forfeiting the
 right to hard delete — falling back to a tombstone for any record this device
-has named in a final manifest snapshot selected for publication. The marker is
-written before blob negotiation, so a failed negotiation, upload, or manifest
-`PUT` may conservatively leave a marker even when no peer could fetch the
-bytes. That over-mark is intentional: the alternative is silently losing the
-ability to publish deletion evidence. The sibling case has already shipped as a
-real defect once: an import undo left a *revived* row live (#903), which would
-have outranked that deletion on every peer once a client exists.
+has named in a final manifest snapshot selected for publication. This client
+takes the second route. The marker is written before blob negotiation, so a
+failed negotiation, upload, or manifest `PUT` may conservatively leave a marker
+even when no peer could fetch the bytes. That over-mark is intentional: the
+alternative is silently losing the ability to publish deletion evidence. The
+sibling case has already shipped as a real defect once: an import undo left a
+*revived* row live (#903), which would have outranked that deletion on every
+peer.
 
 A client taking the forfeiture route MUST evaluate that predicate against the
 durable marker in §3.2, written at §6.3 step 7, and MUST NOT evaluate it against
