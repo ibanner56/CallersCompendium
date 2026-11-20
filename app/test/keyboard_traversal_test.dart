@@ -6,15 +6,16 @@
 // trap. Each screen here is walked with real Tab key events and checked three
 // ways:
 //
-//  1. No trap: Tab wraps round the page within a bounded number of presses. A
-//     repeat of a stop is the page wrapping round unless its loop is only a few
-//     controls (under 5), which is a trap, wherever on the page it is. A trap
-//     of five or more controls inside a long lazy form cannot be told from a
-//     wrap this way (a lazy list's wrap lands on the first control still built,
-//     not the first stop); the reachability and Shift+Tab checks below are what
-//     would notice one. Shift+Tab, pressed as often, visits nearly as many
-//     distinct stops as Tab did (it is not compared stop for stop: see the note
-//     where it is checked).
+//  1. No trap: Tab wraps round the page within a bounded number of presses.
+//     In the ordinary window a repeat is the page wrapping round unless its loop
+//     is only a few controls (under 5): a long form is built lazily, and its
+//     wrap lands on the first control still built, not the first stop, so a
+//     larger trap there cannot be told from a wrap. So each long screen is
+//     walked again in a window tall enough to build all of it ("whole form
+//     built"), where nothing is lazy, the wrap must return to the very first
+//     stop, and a trap of any size fails. Shift+Tab, pressed as often, visits
+//     nearly as many distinct stops as Tab did (it is not compared stop for
+//     stop: see the note where it is checked).
 //  2. Reachable: every tappable, enabled semantics node on screen is covered by
 //     a Tab stop of about its own size (a stop for a small button inside a large
 //     row does not count as reaching the row).
@@ -280,9 +281,10 @@ typedef _Walk = ({
   List<_Stop> stops,
   List<String> unreached,
 
-  /// The stops of a loop that is too small to be the page going round, or a
-  /// note that Tab visited too few stops to have wrapped: a keyboard trap.
-  /// `null` when Tab wrapped round the page.
+  /// The stops of a loop Tab could not leave (in the whole-form mode any loop
+  /// that is not a return to the first stop; otherwise one of only a few
+  /// controls), or a note that Tab visited too few stops to have wrapped: a
+  /// keyboard trap. `null` when Tab wrapped round the page.
   List<String>? trap,
 });
 
@@ -446,7 +448,7 @@ void _walkScreen(
       expect(
         walk!.trap,
         isNull,
-        reason: '$name: Tab is stuck in a loop of a few controls',
+        reason: '$name: Tab is stuck in a loop it cannot leave',
       );
       final stops = walk.stops;
       final real = stops.where((s) => !s.isWholeWindow).toList();

@@ -255,8 +255,9 @@ explicitly mark N/A with a reason. "Gate" = must pass before tagging.
  shows) on a 1100×800 window with real Tab and Shift+Tab presses; the two
  editors are walked both with their "More details" section collapsed (its
  fields must stay out of the focus order) and opened. It fails on a
- keyboard trap of fewer than five controls (a larger trap inside a long form
- is not told apart from Tab wrapping round, so the manual gate still owns it),
+ keyboard trap (the long screens are walked a second time in a window tall
+ enough to build the whole form, where a trap of any size is caught; in the
+ ordinary window only a loop of under five controls is),
  on a tappable control Tab never reaches, and on a Tab stop that gets no focus
  ring from the app's `FocusRingLayer`; it reads that layer's
  rectangle, not pixels, because Material's focus overlays do not appear in a
