@@ -39,6 +39,7 @@ Markdown were an untrusted community contribution:
 
 from __future__ import annotations
 
+import bisect
 import html
 import re
 import unicodedata
@@ -892,64 +893,92 @@ def _fenced_lines(lines: list[str]) -> set[int]:
     return fenced
 
 
-def _line_images(line: str) -> list[str]:
-    """Destinations of ``![..](..)`` written on one line, skipping code and escapes."""
-    found: list[str] = []
+def _scan_images(text: str) -> list[tuple[int, str]]:
+    """``(end, dest)`` of each ``![..](..)`` in ``text``, skipping code and escapes."""
+    found: list[tuple[int, str]] = []
     i = 0
-    length = len(line)
+    length = len(text)
     while i < length:
-        char = line[i]
-        if char == "\\" and i + 1 < length and line[i + 1] in _ESCAPABLE:
+        char = text[i]
+        if char == "\\" and i + 1 < length and text[i + 1] in _ESCAPABLE:
             i += 2
             continue
         if char == "`":
-            code = _code_span_at(line, i)
+            code = _code_span_at(text, i)
             if code is not None:
                 i = code[1]
                 continue
-        if char == "!" and i + 1 < length and line[i + 1] == "[":
-            parsed = _link_at(line, i + 1)
+        if char == "!" and i + 1 < length and text[i + 1] == "[":
+            parsed = _link_at(text, i + 1)
             if parsed is not None:
-                found.append(parsed[1])
+                found.append((parsed[3], parsed[1]))
                 i = parsed[3]
                 continue
         i += 1
     return found
 
 
+def _written_images(lines: list[str], fenced: set[int]) -> list[tuple[int, str]]:
+    """``(line index, dest)`` for each image as written, in document order.
+
+    Reads the source the way the renderer does: each run of consecutive
+    unfenced, non-blank lines is joined (container prefixes such as ``>`` and list
+    markers stripped) and scanned as one piece of text, so an image whose syntax
+    wraps over lines is found whole. Each image is placed on the line holding its
+    closing ``)``, which is where its destination is.
+    """
+    written: list[tuple[int, str]] = []
+    index = 0
+    total = len(lines)
+    while index < total:
+        if index in fenced or not lines[index].strip():
+            index += 1
+            continue
+        first = index
+        pieces: list[str] = []
+        while index < total and index not in fenced and lines[index].strip():
+            pieces.append(_CONTAINER_PREFIX_RE.sub("", lines[index], count=1))
+            index += 1
+        starts = [0]
+        for piece in pieces[:-1]:
+            starts.append(starts[-1] + len(piece) + 1)
+        for end, dest in _scan_images("\n".join(pieces)):
+            written.append((first + bisect.bisect_right(starts, end - 1) - 1, dest))
+    return written
+
+
 def _attribute_lines(lines: list[str], found: list[tuple[str, str]]) -> list[ImageRef]:
     """Give each image the source line it was written on.
 
     The renderer parses images out of joined paragraphs and recursive blocks, so
-    it does not know source lines. Each image, in document order, is placed on
-    the first line at or after the previous one that is not fenced code and has
-    an unclaimed ``![..](dest)`` for its destination, so the same destination
-    used twice maps to two lines, and a mention of the file in prose, a code span,
-    a plain link or a fenced example is never mistaken for the image. An image
-    whose syntax spans lines has no such line, so it falls back to the first
-    unfenced line containing the destination; failing that, the previous line.
+    it does not know source lines. :func:`_written_images` reads the source the
+    same way and, when it finds exactly the destinations the renderer did, in the
+    same order, the images pair up one to one: that is exact, whatever else the
+    document says about the same files (a fenced example, a code span, a link, a
+    mention in prose, a wrapped image, a later reuse).
+
+    If the two ever disagree, each image falls back to the first unfenced line at
+    or after the previous one that still has an unclaimed occurrence of its
+    destination as text, and failing that to the previous line. Only the reported
+    line depends on this; which images exist comes from the renderer alone.
     """
     fenced = _fenced_lines(lines)
-    candidates = [
-        [] if index in fenced else _line_images(line)
-        for index, line in enumerate(lines)
-    ]
+    written = _written_images(lines, fenced)
+    if [dest for _, dest in written] == [dest for _, dest in found]:
+        return [
+            ImageRef(alt=alt, dest=dest, line=line_index + 1)
+            for (alt, dest), (line_index, _) in zip(found, written)
+        ]
     claimed: dict[int, int] = {}
     cursor = 0
     refs: list[ImageRef] = []
     for alt, dest in found:
-        line_index = None
-        for index in range(cursor, len(lines)):
-            if candidates[index].count(dest) > claimed.get(index, 0):
-                line_index = index
-                break
-        if line_index is None and dest:
+        line_index = cursor
+        if dest:
             for index in range(cursor, len(lines)):
-                if index not in fenced and dest in lines[index]:
+                if index not in fenced and lines[index].count(dest) > claimed.get(index, 0):
                     line_index = index
                     break
-        if line_index is None:
-            line_index = cursor
         claimed[line_index] = claimed.get(line_index, 0) + 1
         cursor = line_index
         refs.append(ImageRef(alt=alt, dest=dest, line=line_index + 1))

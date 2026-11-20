@@ -41,6 +41,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import render_user_docs as rud  # noqa: E402
+import markdown_to_html as mth  # noqa: E402
 from markdown_to_html import render  # noqa: E402
 
 REPO_ROOT = rud.REPO_ROOT
@@ -835,6 +836,37 @@ def test_two_uses_on_one_line_and_on_different_lines_each_get_their_own_line() -
 
 def test_an_image_spanning_lines_is_reported_on_the_line_holding_its_destination() -> None:
     assert _lines("# P\n\n![across\nlines](images/new.png)\n") == [4]
+
+
+def test_a_wrapped_image_does_not_take_the_line_of_a_later_use_of_its_destination() -> None:
+    # The reviewer's repro: the wrapped image has no one-line form of its own.
+    assert _lines("# P\n\n![across\nlines](x.png)\n\n![b](x.png)\n") == [4, 6]
+
+
+def test_lines_are_exact_inside_lists_quotes_tables_and_links() -> None:
+    assert _lines("# P\n\n- one ![](x.png)\n- two ![](y.png)\n") == [3, 4]
+    assert _lines("# P\n\n| h |\n| --- |\n| ![](x.png) |\n") == [5]
+    assert _lines("# P\n\n> q ![](x.png)\n") == [3]
+    assert _lines("# P\n\n[![](x.png)](https://example.com)\n") == [3]
+
+
+def test_the_real_corpus_pairs_images_exactly_and_never_falls_back() -> None:
+    # check_images() reports a line for each image; the fallback is a heuristic,
+    # so pin that every real guide takes the exact path: the images read from the
+    # source are precisely the ones the renderer parsed, in the same order.
+    for path in sorted(rud.USER_DOCS.glob("*.md")):
+        source = path.read_text(encoding="utf-8").replace("\r\n", "\n")
+        lines = mth._strip_html_comments(source.split("\n"))
+        written = [dest for _, dest in mth._written_images(lines, mth._fenced_lines(lines))]
+        assert written == [image.dest for image in render(source).images], path.name
+
+
+def test_the_fallback_still_reports_a_sensible_line_when_the_two_readings_disagree() -> None:
+    # A destination the renderer reports but the source scan did not find (here
+    # forced): placed on the first unfenced line that mentions it, else the cursor.
+    lines = ["intro", "mentions ghost.png here", "```", "ghost.png", "```"]
+    refs = mth._attribute_lines(lines, [("", "ghost.png"), ("", "nowhere.png")])
+    assert [(r.dest, r.line) for r in refs] == [("ghost.png", 2), ("nowhere.png", 2)]
 
 
 def test_punctuation_alone_is_not_alt_text() -> None:
