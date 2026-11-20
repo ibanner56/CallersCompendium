@@ -224,8 +224,16 @@ explicitly mark N/A with a reason. "Gate" = must pass before tagging.
  content; layouts reflow instead of overflowing off-screen.
  (`app/test/a11y_guidelines_test.dart` sweeps the Collection, Programs list,
  summary and builder, Perform and its Adjust sheet, the Dance editor's first
- screenful, and the Tags manager at 2.0× on 360 and 412 dp with the real fonts.
- It does not cover Dance detail/card or Settings, and the editor's
+ screenful, Dance detail (a long title, notes, a tag and a rating, scrolled to
+ the end), each Settings section page (scrolled to the end), and the Tags
+ manager at 2.0× on 360 and 412 dp with the real fonts. Settings' Diagnostics
+ page is swept by its own case there, with an in-memory crash log, because the
+ app's on-disk one never settles in a widget test. The Settings sweep does not
+ open the collapsed sections on the Defaults page, and does not reach the
+ screens a Settings page pushes (the calling-card layout and matrix-column
+ editors, sync pairing and devices). The sweep reports `RenderFlex` overflows,
+ which is what a fixed-height Column or Row around text produces; a fixed-height
+ box that only clips one line of text raises none and is not caught. The editor's
  Type/Formation dropdowns are covered only by `dance_editor_narrow_test.dart`.
  `app/test/dropdown_large_text_test.dart` checks those form dropdowns for
  overflow at 360 dp, 1.5× and 2.0× with long values (locale-dependent ones in
@@ -241,6 +249,21 @@ explicitly mark N/A with a reason. "Gate" = must pass before tagging.
  element is reachable via Tab order, has a visible focus indicator at every
  step, no keyboard trap exists, and fast dance entry (roadmap power-user
  flow) is possible without the mouse.
+ (`app/test/keyboard_traversal_test.dart` walks the Collection, Dance detail,
+ Dance editor, Programs list, a program's summary and builder, Perform and
+ Settings (its sidebar and the General page, which is what a desktop window
+ shows) on a 1100×800 window with real Tab and Shift+Tab presses; the two
+ editors are walked both with their "More details" section collapsed (its
+ fields must stay out of the focus order) and opened. It fails on a
+ keyboard trap of fewer than five controls (a larger trap inside a long form
+ is not told apart from Tab wrapping round, so the manual gate still owns it),
+ on a tappable control Tab never reaches, and on a Tab stop that gets no focus
+ ring from the app's `FocusRingLayer`; it reads that layer's
+ rectangle, not pixels, because Material's focus overlays do not appear in a
+ widget test's image. It does not check the ring's contrast
+ (`palette_contrast_test.dart` does), Enter/Space activation, text editing,
+ dialogs and menus, or fast dance entry. It supplements this gate, not
+ replaces it.)
 - [ ] **Deferred (advisory, not gating).** NVDA, Narrator, and Orca full
  screen-reader passes remain tracked as aspirational in
  [`accessibility-baseline.md`](../research/accessibility-baseline.md) but are
