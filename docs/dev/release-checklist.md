@@ -43,7 +43,7 @@ explicitly mark N/A with a reason. "Gate" = must pass before tagging.
  manifest, any hardcoded constant).
 - [ ] `kCompendiumSchemaVersion` matches the schema actually shipped; if it moved
  since the last tag, a migration + migration test exists for every step.
- (Reminder: never bump schema in a patch release.)
+ (Never bump schema in a patch release; `check_changelog_promoted.py` refuses it.)
 - [ ] If `kCompendiumSchemaVersion` or `contraTaxonomyVersion` moved since the
  versioned CHANGELOG section was last compiled, that section has a **Data /
  Migrations** entry stating old → new and what the migration does. Each moved

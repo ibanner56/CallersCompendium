@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Reject release tags whose fragments are not compiled into CHANGELOG history."""
+"""Reject release tags whose fragments are not compiled into CHANGELOG history.
+
+It also holds a release to the schema rule in ``CONTRIBUTING.md`` ("Never bump
+``schemaVersion`` in a PATCH release"): see :func:`_schema_step_errors`.
+"""
 
 from __future__ import annotations
 
@@ -22,6 +26,20 @@ TAXONOMY_CONSTANT = "contraTaxonomyVersion"
 _DONE_MARKER = re.compile(r"'(__[a-z0-9_]+_done__)'")
 _CORE = r"(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)"
 _SELECTED_VERSION = re.compile(rf"^(?P<core>{_CORE})(?:-beta)?$")
+
+
+# A published release tag: ``v0.3.1``, ``v0.3.1-beta``, ``v0.1.0-beta.7``.
+_RELEASE_TAG = re.compile(
+    r"^v?(?P<major>\d+)\.(?P<minor>\d+)\.(?P<patch>\d+)(?:-[0-9A-Za-z.-]+)?$"
+)
+
+
+def _release_core(ref: str) -> tuple[int, int, int] | None:
+    """``(major, minor, patch)`` of a ``vX.Y.Z[-suffix]`` tag, or None if it is not one."""
+    match = _RELEASE_TAG.fullmatch(ref)
+    if match is None:
+        return None
+    return (int(match["major"]), int(match["minor"]), int(match["patch"]))
 
 
 def _core_version(version: str) -> str:
@@ -163,14 +181,23 @@ def validate(
         errors.append(
             f"could not read {SCHEMA_CONSTANT} from {database} at {previous_ref!r}."
         )
-    elif previous_schema != current_schema and not _migration_reaches(
-        _section(changelog_text, _core_version(version)), current_schema
-    ):
-        errors.append(
-            f"schema changed ({previous_schema} -> {current_schema}), but "
-            f"## [{core}]'s Data / Migrations section does "
-            f"not contain a schema range ending at {current_schema}."
+    else:
+        errors.extend(
+            _schema_step_errors(
+                version=version,
+                previous_ref=previous_ref,
+                previous_schema=previous_schema,
+                current_schema=current_schema,
+            )
         )
+        if previous_schema != current_schema and not _migration_reaches(
+            _section(changelog_text, core), current_schema
+        ):
+            errors.append(
+                f"schema changed ({previous_schema} -> {current_schema}), but "
+                f"## [{core}]'s Data / Migrations section does "
+                f"not contain a schema range ending at {current_schema}."
+            )
 
     errors.extend(
         _taxonomy_errors(
@@ -189,6 +216,51 @@ def validate(
         )
     )
     return errors
+
+
+def _schema_step_errors(
+    *, version: str, previous_ref: str, previous_schema: int, current_schema: int,
+) -> list[str]:
+    """Hold a release to ``CONTRIBUTING.md``: never bump the schema in a PATCH release.
+
+    A schema change is a data-format change and rides at least a MINOR version
+    bump. A *patch release* is one whose ``X.Y`` is the previous published tag's
+    and whose ``Z`` is above zero, ``-beta`` included: ``0.3.0-beta`` ->
+    ``0.3.1-beta`` and ``0.3.1-beta`` -> ``0.3.1`` both are, ``0.3.0-beta`` ->
+    ``0.4.0-beta`` and a ``0.3.0-beta`` -> ``0.3.0`` promotion are not. The
+    schema must also never go down, at any step. Only the release being cut is
+    judged; earlier tags that broke the rule are not flagged again.
+
+    An increase against a previous ref that is not a ``vX.Y.Z`` tag cannot be
+    classified, and is refused rather than waved through.
+    """
+    tag = f"v{version}"
+    if current_schema < previous_schema:
+        return [
+            f"{SCHEMA_CONSTANT} went down: {previous_schema} at {previous_ref} -> "
+            f"{current_schema} in {tag}. A release never lowers the schema."
+        ]
+    if current_schema == previous_schema:
+        return []
+    current = _release_core(_core_version(version))
+    previous = _release_core(previous_ref)
+    if previous is None or current is None:
+        return [
+            f"{SCHEMA_CONSTANT} rose ({previous_schema} at {previous_ref} -> "
+            f"{current_schema} in {tag}), but {previous_ref!r} is not a vX.Y.Z "
+            "release tag, so this cannot be told from a patch release. Pass the "
+            "previous published tag as --previous-ref."
+        ]
+    if current[:2] == previous[:2] and current[2] > 0:
+        return [
+            f"{tag} is a PATCH release (same {current[0]}.{current[1]} line as "
+            f"{previous_ref}) but bumps {SCHEMA_CONSTANT} from {previous_schema} "
+            f"({previous_ref}) to {current_schema} ({tag}). Never bump the schema "
+            "in a PATCH release: a schema change rides at least a MINOR version "
+            "(CONTRIBUTING.md, \"Database schema migrations\"). Move the change "
+            "to the next minor release, or cut this release without it."
+        ]
+    return []
 
 
 def _repair_marker_errors(

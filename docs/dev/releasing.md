@@ -158,6 +158,10 @@ and produces no Android artifact.
      `v0.1.0-beta.1` already exist, because strict SemVer ranks the bare beta
      below them. Choose a newer `X.Y.Z` core instead.
    - **Never bump `schemaVersion` in a PATCH release** (ADR-002 §7).
+     `tools/ci/check_changelog_promoted.py` refuses one, `-beta` included: a
+     release on the previous published tag's `X.Y` line with `Z` above zero
+     whose schema rose fails, naming both tags and both values. Cut the change as
+     the next minor release instead.
    - **Update the static build-version hints in every issue form.** GitHub issue
      forms cannot read the latest release tag dynamically. Set every explicit
      SemVer literal in `.github/ISSUE_TEMPLATE/*.yml` and `*.yaml` to the same

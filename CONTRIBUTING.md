@@ -169,7 +169,10 @@ When you change the schema:
   README there covers regeneration — note that `drift_dev` cannot run from this
   workspace and is driven from a throwaway project.
 - **Never bump `schemaVersion` in a PATCH release.** A schema change is a
-  data-format change and rides at least a MINOR version bump.
+  data-format change and rides at least a MINOR version bump. The release
+  workflow enforces it (`tools/ci/check_changelog_promoted.py`): a release on
+  the same `X.Y` line as the previous published tag, with `Z` above zero, `-beta`
+  included, fails if the schema rose, and a release never lowers it.
 
 #### Adding to an unreleased version
 
