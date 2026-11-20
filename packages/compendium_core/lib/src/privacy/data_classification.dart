@@ -247,13 +247,16 @@ class DataClassification {
   /// Why this classification. A reviewer should not have to guess why a
   /// personal-data field is [EgressClass.shareable].
   ///
-  /// Required, as a non-empty trimmed string, on every entry that is not
+  /// Required, as a non-empty trimmed string, in the three `compendium_core`
+  /// registries (`fieldClassifications`, `settingsClassifications`,
+  /// `settingsPrefixClassifications`), on every entry that is not
   /// [EgressClass.shareable], every entry whose [subject] is not
   /// [DataSubject.none], and every [DataSubject.thirdParty] entry with no
   /// exemption (`data_classification_note_test.dart` fails without it). Only a
   /// shareable entry about nobody may omit it, and the app-user preference
   /// settings that share one note-free classification (`preferenceSettingKeys`),
-  /// which are exempt rather than noted.
+  /// which are exempt rather than noted. The server package's own registry is
+  /// not checked.
   final String? note;
 
   @override
