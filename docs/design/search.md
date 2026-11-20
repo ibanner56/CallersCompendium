@@ -521,7 +521,13 @@ each step takes the next group (leaves below a step's own nested container
 share that step's group), so a "balance and swing" kept as one sequence
 matches `ThenFilter(balance, swing)` exactly as two adjacent figures would, and
 not `ThenFilter(swing, balance)`. Each step also takes the section it starts
-in, so a step that begins the next phrase is found in that phrase. A sequence **nested** in a meanwhile or
+in, so a step that begins the next phrase is found in that phrase. In an
+English sequence that states one span for steps with no timing of their own
+(ADR-006 §5.5), those steps share what the timed ones leave of the span,
+evenly and in order, for placing them (`DanceRepository._sequenceStepBeats`).
+A share of 0 (a span already full) puts such a step where the step before it
+ends, so on a phrase boundary it takes the earlier phrase; the editor warns
+about that span (`sequence_span_mismatch`). A sequence **nested** in a meanwhile or
 modifier keeps its parent's single group: its steps are concurrent with the
 other side, and one integer cannot order them against both, so `Then` does not
 see inside it. For dances without a top-level sequence the groups are exactly
@@ -811,29 +817,32 @@ are ([dialect.md](dialect.md) "Canonicalization on input"):
   literal substrings, and FTS operators the user typed (`AND`, `"…"`, `*`)
   stay literal. Best match (`bm25`) is offered only for a whole query of at
   most two characters, which is always one word.
-- **Meter, key and interpreters (ADR-006 F3, §9.2).** In All fields each word
-  also matches the dance's `meter`, its `musical_key` and the names of its
-  live interpreters (`dance_interpreters` joined to `choreographers` with
-  `deleted_at IS NULL`), read with `LIKE` from those rows rather than from the
-  text index (`_musicAndInterpreterMatch`), as two `id IN` subqueries beside
-  the index branches. Measured with `benchmark/search_benchmark.dart` (20,000
-  dances, none with a meter), a bare search's median rose from 0.47 ms to
-  2.5 ms, well inside the 50 ms target. So they need no index column, no
-  rebuild, and follow a rename at once. A word of one or two characters must
-  start a word of the value (after a space, `/`, `-` or `(`: "D" finds
-  "D minor", "8" finds "6/8"), as the prefix index would; a longer one may sit
-  anywhere. A word with no letter or digit matches none of them. `LIKE` folds
-  ASCII case only, so unlike the text index an accent must be typed as stored.
-  The Title, Author and Figure scopes do not read them: an interpreter is not
-  an author. Best match adds them as one more branch with a score of 0, so a
-  dance found only by its meter, key or interpreter ranks after every dance
-  the text index scored (`bm25` is never above 0).
   A word that is only a *fragment* of an internal role token (`ro`, `rol`,
   `ole`; not `roll`, not a whole `role1s`) would otherwise match the token in
   nearly every dance, so in the all-fields search `figures_text` is matched
   only where the text still holds with `role1`/`role2`/`role1s`/`role2s`
   removed (`filter_compiler.dart`, `_figureMatchWithoutRoleTokens`). The
   Figure scope is unchanged.
+- **Meter, key and interpreters (ADR-006 F3, §9.2).** In All fields each word
+  also matches the dance's `meter`, its `musical_key` and the names of its
+  live interpreters (`dance_interpreters` joined to `choreographers` with
+  `deleted_at IS NULL`), in a dance of any form. They are read with `LIKE`
+  from those rows rather than from the text index (`_musicAndInterpreterMatch`),
+  as two `id IN` subqueries beside the index branches, so they need no index
+  column, no rebuild, and follow a rename at once. Measured with
+  `benchmark/search_benchmark.dart` (20,000 dances, none with a meter), a bare
+  search's median rose from 0.47 ms to 2.5 ms, well inside the 50 ms target.
+  A word of one or two characters must start a word of the value, where a word
+  starts after a space, `/`, `-` or `(` ("D" finds "D minor", "8" and "6/"
+  find "6/8"), close to what the prefix index does (it splits on every
+  punctuation mark); a longer one may sit anywhere. A word with no letter or
+  digit matches none of them. `LIKE` folds ASCII case only, so a letter
+  outside ASCII ("É") must be typed as stored, capital included. The Title,
+  Author and Figure scopes do not read them: an interpreter is not an author.
+  Best match adds them as one more branch with a score of 0, the worst a
+  `bm25` score can be: a dance found only by its meter, key or interpreter
+  ranks after every dance the text index scored, and before them when the
+  direction is flipped.
 - **`FigureLeaf.move` / `FigureQuery` moves**: the move name is canonicalized
   to its taxonomy id before binding to `f.move = ?`. A caller who typed a
   dialect/synonym move name resolves to the same canonical `move` stored in

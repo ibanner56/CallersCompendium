@@ -3,18 +3,15 @@
   "user_visible": true,
   "app": {
     "added": [
-      "Searching All fields now finds an English dance by its meter, its key or the people who interpreted it: type 3/2, D minor or Sharp."
-    ],
-    "fixed": [
-      "In an English dance, figures that share one span of bars with no timing of their own are now searched in the phrase they fall in, rather than all in the phrase where the span starts."
+      "Searching All fields now finds a dance by its meter, its key or the people who interpreted it: type 3/2, D minor or Sharp."
     ]
   },
   "core": {
     "added": [
       "All fields search matches each word against the dance's meter, key and live interpreters' names."
     ],
-    "fixed": [
-      "The search index places the untimed steps of an English sequence by an even share of its span."
+    "changed": [
+      "The search index places the untimed steps of an English sequence by an even share of its span, rather than at the sequence's start."
     ]
   }
 }
