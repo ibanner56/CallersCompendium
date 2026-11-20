@@ -2,7 +2,8 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
-/// Every form dropdown in the app, file by file in source order, by the source
+/// Every dropdown in the app, form fields and list rows' compact controls
+/// alike, file by file in source order, by the source
 /// text of its `key` argument and of its `filterable` argument (whether typing
 /// filters its menu; `false` when it is left out).
 ///
@@ -36,6 +37,15 @@ const _sites = <String, List<(String, String)>>{
   'lib/src/screens/dance_editor/links_editor.dart': [
     (r"ValueKey('link-kind-${draft.id}')", 'false'),
   ],
+  'lib/src/screens/dialect_editor_screen.dart': [
+    // Every move a dialect can rename, plus the user's own figures.
+    ("const ValueKey('dialect-add-move')", 'true'),
+    ("const ValueKey('dialect-add-move-wording')", 'true'),
+    ("const ValueKey('dialect-add-dancer')", 'false'),
+  ],
+  'lib/src/screens/import_review_screen.dart': [
+    ("const ValueKey('import-source-select')", 'false'),
+  ],
   'lib/src/screens/glossary/compound_editor_screen.dart': [
     ("const ValueKey('glossary-entry-form')", 'false'),
     (r"ValueKey('compound-param-$i-kind')", 'false'),
@@ -53,12 +63,42 @@ const _sites = <String, List<(String, String)>>{
     ("const ValueKey('program-pay-currency')", 'true'),
     ("const ValueKey('program-dialect')", 'true'),
   ],
+  'lib/src/screens/settings/calling_card_section.dart': [
+    ("const ValueKey('calling-card-size')", 'false'),
+    ("const ValueKey('calling-card-unit')", 'false'),
+  ],
+  'lib/src/screens/settings/defaults_section.dart': [
+    ("const ValueKey('defaults-collection-sort')", 'false'),
+    ("const ValueKey('defaults-program-sort')", 'false'),
+    ("const ValueKey('defaults-dance-form')", 'false'),
+    ("const ValueKey('defaults-dance-formation')", 'false'),
+    ("const ValueKey('defaults-dance-progression')", 'false'),
+  ],
+  'lib/src/screens/settings/general_section.dart': [
+    ("const ValueKey('general-undo-prompt-seconds')", 'false'),
+    ("const ValueKey('general-soft-delete-retention')", 'false'),
+    ("const ValueKey('backup-reminder-cadence')", 'false'),
+  ],
   'lib/src/screens/settings/matrix_column_editor.dart': [
     ("const ValueKey('matrix-parameterized-move')", 'true'),
     (r"ValueKey('matrix-compound-step-move-$index')", 'true'),
   ],
+  'lib/src/screens/settings/program_section.dart': [
+    ("const ValueKey('program-venue-call-count')", 'false'),
+  ],
+  'lib/src/screens/settings/regional_section.dart': [
+    ("const ValueKey('regional-language')", 'false'),
+    ("const ValueKey('regional-date-format')", 'false'),
+    ("const ValueKey('regional-first-day-of-week-dropdown')", 'false'),
+  ],
   'lib/src/widgets/advanced_query_builder.dart': [
+    (r"ValueKey('group-kind-${group.id}')", 'false'),
     (r"ValueKey('tag-${node.id}')", 'true'),
+    (r"ValueKey('fig-group-kind-${group.id}')", 'false'),
+    // Grows only through a dance's named phrases, beyond the standard A1 to
+    // B2, so it stays a short list: select-only.
+    (r"ValueKey('section-${figure.id}')", 'false'),
+    (r"ValueKey('param-${figure.id}-$paramKey')", 'false'),
   ],
   'lib/src/widgets/batch_custom_field_dialog.dart': [
     (r"ValueKey('batch-custom-field-value-${def.id}')", 'true'),
@@ -76,6 +116,13 @@ const _sites = <String, List<(String, String)>>{
 
 const _wrapper = 'lib/src/widgets/app_dropdown_field.dart';
 
+/// Files that may still build a plain `DropdownButton`, each with the reason
+/// its menu can go without the High contrast outline. A plain
+/// `DropdownButton` paints its menu with a fixed decoration that no theme can
+/// outline; a list row's trailing control uses `AppDropdownField(compact:
+/// true)` instead. Empty: every dropdown in the app is outlined.
+const _plainDropdownAllowlist = <String, String>{};
+
 Iterable<File> _dartSources() => Directory('lib')
     .listSync(recursive: true)
     .whereType<File>()
@@ -90,6 +137,47 @@ void main() {
           file.path,
     ];
     expect(offenders, isEmpty);
+  });
+
+  test('no plain DropdownButton comes back outside the allowlist: its menu '
+      'cannot take the High contrast outline', () {
+    final offenders = [
+      for (final file in _dartSources())
+        if (_buildsPlainDropdown(file.readAsStringSync()) &&
+            !_plainDropdownAllowlist.containsKey(
+              file.path.replaceAll(r'\', '/'),
+            ))
+          file.path.replaceAll(r'\', '/'),
+    ];
+    expect(offenders, isEmpty);
+    // An allowlisted file that no longer needs its entry loses it, so the
+    // list never grows stale.
+    for (final path in _plainDropdownAllowlist.keys) {
+      expect(
+        _buildsPlainDropdown(File(path).readAsStringSync()),
+        isTrue,
+        reason: '$path no longer builds a plain DropdownButton',
+      );
+    }
+  });
+
+  test('the plain DropdownButton scan finds a use and skips prose', () {
+    // Positive controls: a generic or bare construction is a use, wherever it
+    // starts a line; the same words in a comment, or another widget whose
+    // name merely starts with them, are not.
+    expect(
+      _buildsPlainDropdown('final d = DropdownButton<int>(value: 1);'),
+      isTrue,
+    );
+    expect(_buildsPlainDropdown('child: DropdownButton(\n  value: 1,'), isTrue);
+    expect(_buildsPlainDropdown('const DropdownButton<String>('), isTrue);
+    expect(
+      _buildsPlainDropdown('/// a [DropdownButton<int>] asserts'),
+      isFalse,
+    );
+    expect(_buildsPlainDropdown('// DropdownButton<int>('), isFalse);
+    expect(_buildsPlainDropdown('DropdownButtonHideUnderline('), isFalse);
+    expect(_buildsPlainDropdown('DropdownButtonFormField<int>('), isFalse);
   });
 
   test('the scan sees code, not comments', () {
@@ -126,6 +214,11 @@ void main() {
     expect(found, _sites);
   });
 }
+
+/// Whether [src] constructs a plain `DropdownButton` (with or without type
+/// arguments) in code, not in a comment.
+bool _buildsPlainDropdown(String src) =>
+    RegExp(r'\bDropdownButton\s*(<|\()').hasMatch(_code(src));
 
 /// [src] with its `//` comments blanked, so prose naming a widget is not read
 /// as a use of it. Quotes are tracked, so a `//` inside a string is kept.

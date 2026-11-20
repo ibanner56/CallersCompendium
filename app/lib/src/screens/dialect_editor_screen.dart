@@ -14,6 +14,7 @@ import '../widgets/confirm_discard_changes.dart';
 import '../widgets/section_header.dart';
 import '../widgets/wording_condition_notes.dart';
 import '../widgets/app_bar_text_action.dart';
+import '../widgets/app_dropdown_field.dart';
 
 /// Full-screen term editor for a single named [Dialect] (`docs/design/ux.md`
 /// §6). Edits the pieces a dialect of one dance [DialectEditorScreen.form] can
@@ -1127,20 +1128,24 @@ class _MoveSubstitutionsEditor extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (available.isNotEmpty)
-            DropdownButton<String>(
+            AppDropdownField<String?>(
               key: const ValueKey('dialect-add-move'),
-              hint: Text(
-                l10n.dialectEditorAddMove,
-                style: TextStyle(
+              compact: true,
+              // Every move that can be renamed, and the user's own figures: a
+              // long list that grows with the user's data, so typing narrows it.
+              filterable: true,
+              // A pick adds a row; the field goes back to its hint.
+              clearsAfterPick: true,
+              value: null,
+              decoration: InputDecoration(
+                hintText: l10n.dialectEditorAddMove,
+                hintStyle: TextStyle(
                   color: Theme.of(context).colorScheme.secondary,
                 ),
               ),
-              value: null,
-              isExpanded: true,
-              iconEnabledColor: Theme.of(context).colorScheme.secondary,
-              items: [
+              entries: [
                 for (final id in available)
-                  DropdownMenuItem<String>(value: id, child: Text(label(id))),
+                  AppDropdownEntry<String?>(value: id, label: label(id)),
               ],
               onChanged: (id) {
                 if (id != null) onAdd(id);
@@ -1383,20 +1388,24 @@ class _MoveWordingsEditor extends StatelessWidget {
             ),
           ),
           if (available.isNotEmpty)
-            DropdownButton<String>(
+            AppDropdownField<String?>(
               key: const ValueKey('dialect-add-move-wording'),
-              hint: Text(
-                l10n.dialectEditorAddMoveWording,
-                style: TextStyle(
+              compact: true,
+              // Every move that can be renamed, and the user's own figures: a
+              // long list that grows with the user's data, so typing narrows it.
+              filterable: true,
+              // A pick adds a row; the field goes back to its hint.
+              clearsAfterPick: true,
+              value: null,
+              decoration: InputDecoration(
+                hintText: l10n.dialectEditorAddMoveWording,
+                hintStyle: TextStyle(
                   color: Theme.of(context).colorScheme.secondary,
                 ),
               ),
-              value: null,
-              isExpanded: true,
-              iconEnabledColor: Theme.of(context).colorScheme.secondary,
-              items: [
+              entries: [
                 for (final id in available)
-                  DropdownMenuItem<String>(value: id, child: Text(label(id))),
+                  AppDropdownEntry<String?>(value: id, label: label(id)),
               ],
               onChanged: (id) {
                 if (id != null) onAdd(id);
@@ -1850,26 +1859,28 @@ class _DancerSubstitutionsEditor extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (available.isNotEmpty)
-            DropdownButton<String>(
+            AppDropdownField<String?>(
               key: const ValueKey('dialect-add-dancer'),
-              hint: Text(
-                l10n.dialectEditorAddDancerTerm,
-                style: TextStyle(
+              compact: true,
+              filterable: false,
+              // A pick adds a row; the field goes back to its hint.
+              clearsAfterPick: true,
+              value: null,
+              decoration: InputDecoration(
+                hintText: l10n.dialectEditorAddDancerTerm,
+                hintStyle: TextStyle(
                   color: Theme.of(context).colorScheme.secondary,
                 ),
               ),
-              value: null,
-              isExpanded: true,
-              iconEnabledColor: Theme.of(context).colorScheme.secondary,
-              items: [
+              entries: [
                 for (final token in available)
-                  DropdownMenuItem<String>(
+                  AppDropdownEntry<String?>(
                     value: token,
-                    child: Text(_dancerLabel(token)),
+                    label: _dancerLabel(token),
                   ),
               ],
-              onChanged: (token) {
-                if (token != null) onAdd(token);
+              onChanged: (id) {
+                if (id != null) onAdd(id);
               },
             ),
           for (final token in overridden)

@@ -1,4 +1,5 @@
 import 'package:compendium_core/compendium_core.dart';
+import 'package:compendium_app/src/widgets/app_dropdown_field.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -219,7 +220,7 @@ void main() {
     final dropdown = find.byKey(const ValueKey('general-undo-prompt-seconds'));
     await tester.ensureVisible(dropdown);
     expect(
-      tester.widget<DropdownButton<int>>(dropdown).value,
+      tester.widget<AppDropdownField<int>>(dropdown).initialValue,
       kUndoPromptDefaultSeconds,
     );
 
@@ -227,8 +228,8 @@ void main() {
     // order, spelled out so a change to the list is a visible test change.
     expect(
       tester
-          .widget<DropdownButton<int>>(dropdown)
-          .items!
+          .widget<AppDropdownField<int>>(dropdown)
+          .entries
           .map((item) => item.value)
           .toList(),
       [2, 5, 10, 15, kUndoPromptUntilDismissed],
@@ -248,7 +249,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-      tester.widget<DropdownButton<int>>(dropdown).value,
+      tester.widget<AppDropdownField<int>>(dropdown).initialValue,
       kUndoPromptUntilDismissed,
     );
     expect(

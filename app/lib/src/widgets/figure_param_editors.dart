@@ -344,48 +344,51 @@ class FigureParamEditor extends StatelessWidget {
 
     // Shown only when there is no selection: the unstated state, or a value
     // left as it is that must be replaced.
-    final hint = current != null
-        ? null
-        : needsChoice
+    final hintIfEmpty = needsChoice
         ? l10n.danceEditorParamChooseValue
         : admitsUnstated
         ? l10n.danceEditorParamNotStated
         : null;
+    final hint = current != null ? null : hintIfEmpty;
 
-    final dropdown = SizedBox(
-      width: 180,
-      child: AppDropdownField<String?>(
-        key: ValueKey(_key),
-        value: current,
-        // A long vocabulary (an unnarrowed set of dancers) can be typed.
-        filterable: selectable.length >= appDropdownFilterFrom,
-        decoration: InputDecoration(
-          labelText: figureParamKeyLabel(l10n, paramKey, moveId: moveId),
-          isDense: denseControls(context),
-          // The label stays above the field so the hint is always on view, as
-          // a value would be.
-          hintText: hint,
-          hintStyle: theme.textTheme.bodyMedium?.copyWith(
-            fontStyle: FontStyle.italic,
-            color: needsChoice
-                ? theme.colorScheme.error
-                : theme.colorScheme.onSurfaceVariant,
-          ),
-          floatingLabelBehavior: hint == null
-              ? null
-              : FloatingLabelBehavior.always,
+    // As wide as its longest choice (or its hint) needs at the current text
+    // size, so a value is never cut off, and no wider than the line: where
+    // the line is narrower (large text on a phone), it takes the whole line.
+    final dropdown = AppDropdownField<String?>(
+      key: ValueKey(_key),
+      fillWidth: false,
+      // Room for the hint even while a value hides it, so the field keeps one
+      // width whether a value is picked or cleared.
+      widthFits: [?hintIfEmpty],
+      value: current,
+      // A long vocabulary (an unnarrowed set of dancers) can be typed.
+      filterable: selectable.length >= appDropdownFilterFrom,
+      decoration: InputDecoration(
+        labelText: figureParamKeyLabel(l10n, paramKey, moveId: moveId),
+        isDense: denseControls(context),
+        // The label stays above the field so the hint is always on view, as
+        // a value would be.
+        hintText: hint,
+        hintStyle: theme.textTheme.bodyMedium?.copyWith(
+          fontStyle: FontStyle.italic,
+          color: needsChoice
+              ? theme.colorScheme.error
+              : theme.colorScheme.onSurfaceVariant,
         ),
-        entries: [
-          for (final choice in selectable)
-            AppDropdownEntry<String?>(
-              value: choice,
-              label: _choiceLabel(l10n, choice),
-            ),
-        ],
-        onChanged: (v) {
-          if (v != null) onChanged(v);
-        },
+        floatingLabelBehavior: hint == null
+            ? null
+            : FloatingLabelBehavior.always,
       ),
+      entries: [
+        for (final choice in selectable)
+          AppDropdownEntry<String?>(
+            value: choice,
+            label: _choiceLabel(l10n, choice),
+          ),
+      ],
+      onChanged: (v) {
+        if (v != null) onChanged(v);
+      },
     );
     if (!admitsUnstated) return dropdown;
 
@@ -398,8 +401,12 @@ class FigureParamEditor extends StatelessWidget {
     // `applyParamChange`, `param_change_rules.dart`).
     if (!spec.allowManualClear) return dropdown;
 
-    return Row(
-      mainAxisSize: MainAxisSize.min,
+    // A Wrap, not a Row: where the field and its clear button do not fit on
+    // one line (large text on a phone), the button moves under the field and
+    // the field keeps the whole line, rather than being squeezed until its
+    // value is cut off.
+    return Wrap(
+      crossAxisAlignment: WrapCrossAlignment.center,
       children: [
         dropdown,
         // Mirrors `_RotationStepper`'s clear affordance for this same

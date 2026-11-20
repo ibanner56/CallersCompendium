@@ -41,6 +41,7 @@ import '../../widgets/settings_dropdown_row.dart';
 import '../glossary/compound_editor_screen.dart';
 import 'default_import_tags_editor.dart';
 import 'settings_keys.dart';
+import '../../widgets/app_dropdown_field.dart';
 
 /// The Defaults settings section: owns all Display/Program/Dance-authoring
 /// default loads, saves, per-setting load-race guards, and text controllers.
@@ -894,9 +895,10 @@ class _DefaultsSectionState extends State<DefaultsSection> {
   Future<void> _onDefaultCollectionSortChanged(
     SortDefaultSetting<CollectionSort> value,
   ) async {
-    // `DropdownButton` also reports a tap on the item already selected; that
-    // is not a change, so it must not reset a chosen direction. Only once the
-    // stored value has loaded: before that, `value` is compared to a guess.
+    // Picking the item already selected is not a change, so it must not reset
+    // a chosen direction. The dropdown does not report such a pick, but the
+    // guard does not rely on it. Only once the stored value has loaded:
+    // before that, `value` is compared to a guess.
     if (_defaultCollectionSort != null && value == _defaultCollectionSort) {
       return;
     }
@@ -1867,22 +1869,21 @@ class _DefaultsView extends StatelessWidget {
                 : l10n.settingsDefaultsSortSubtitle,
           ),
           dropdownBuilder: (expanded) =>
-              DropdownButton<SortDefaultSetting<CollectionSort>>(
-                isExpanded: expanded,
+              AppDropdownField<SortDefaultSetting<CollectionSort>>(
+                compact: true,
+                fillWidth: expanded,
                 key: const ValueKey('defaults-collection-sort'),
                 value: defaultCollectionSort,
-                onChanged: (value) {
-                  if (value != null) onDefaultCollectionSortChanged(value);
-                },
-                items: [
+                onChanged: onDefaultCollectionSortChanged,
+                entries: [
                   for (final sort in _collectionSortOptions)
-                    DropdownMenuItem(
+                    AppDropdownEntry(
                       value: SortDefaultSetting.concrete(sort),
-                      child: Text(collectionSortLabel(l10n, sort)),
+                      label: collectionSortLabel(l10n, sort),
                     ),
-                  DropdownMenuItem(
+                  AppDropdownEntry(
                     value: SortDefaultSetting.lastUsed(CollectionSort.title),
-                    child: Text(l10n.settingsDefaultsSortLastUsed),
+                    label: l10n.settingsDefaultsSortLastUsed,
                   ),
                 ],
               ),
@@ -1903,22 +1904,21 @@ class _DefaultsView extends StatelessWidget {
                 : l10n.settingsDefaultsProgramSortSubtitle,
           ),
           dropdownBuilder: (expanded) =>
-              DropdownButton<SortDefaultSetting<ProgramSort>>(
-                isExpanded: expanded,
+              AppDropdownField<SortDefaultSetting<ProgramSort>>(
+                compact: true,
+                fillWidth: expanded,
                 key: const ValueKey('defaults-program-sort'),
                 value: defaultProgramSort,
-                onChanged: (value) {
-                  if (value != null) onDefaultProgramSortChanged(value);
-                },
-                items: [
+                onChanged: onDefaultProgramSortChanged,
+                entries: [
                   for (final sort in _programSortOptions)
-                    DropdownMenuItem(
+                    AppDropdownEntry(
                       value: SortDefaultSetting.concrete(sort),
-                      child: Text(programSortLabel(l10n, sort)),
+                      label: programSortLabel(l10n, sort),
                     ),
-                  DropdownMenuItem(
+                  AppDropdownEntry(
                     value: SortDefaultSetting.lastUsed(ProgramSort.title),
-                    child: Text(l10n.settingsDefaultsSortLastUsed),
+                    label: l10n.settingsDefaultsSortLastUsed,
                   ),
                 ],
               ),
@@ -2316,23 +2316,22 @@ class _DefaultsView extends StatelessWidget {
             SettingsDropdownRow(
               title: Text(l10n.settingsDefaultsFormTitle),
               subtitle: Text(l10n.settingsDefaultsFormSubtitle),
-              dropdownBuilder: (expanded) => DropdownButton<String>(
-                isExpanded: expanded,
+              dropdownBuilder: (expanded) => AppDropdownField<String>(
+                compact: true,
+                fillWidth: expanded,
                 key: const ValueKey('defaults-dance-form'),
                 value: defaultDanceForm,
-                onChanged: (value) {
-                  if (value != null) onDefaultDanceFormChanged(value);
-                },
-                items: [
+                onChanged: onDefaultDanceFormChanged,
+                entries: [
                   for (final form in DanceForm.values)
-                    DropdownMenuItem(
+                    AppDropdownEntry(
                       value: form.name,
-                      child: Text(danceFormLabel(l10n, form)),
+                      label: danceFormLabel(l10n, form),
                     ),
-                  DropdownMenuItem(
+                  AppDropdownEntry(
                     key: const ValueKey('defaults-dance-form-last-used'),
                     value: kDefaultDanceFormLastUsed,
-                    child: Text(l10n.settingsDefaultsFormLastUsed),
+                    label: l10n.settingsDefaultsFormLastUsed,
                   ),
                 ],
               ),
@@ -2340,17 +2339,16 @@ class _DefaultsView extends StatelessWidget {
             SettingsDropdownRow(
               title: Text(l10n.settingsDefaultsFormationTitle),
               subtitle: Text(l10n.settingsDefaultsFormationSubtitle),
-              dropdownBuilder: (expanded) => DropdownButton<FormationShape>(
-                isExpanded: expanded,
+              dropdownBuilder: (expanded) => AppDropdownField<FormationShape>(
+                compact: true,
+                fillWidth: expanded,
                 key: const ValueKey('defaults-dance-formation'),
                 value: defaultDanceFormationShape,
-                onChanged: (value) {
-                  if (value != null) onDefaultDanceFormationShapeChanged(value);
-                },
+                onChanged: onDefaultDanceFormationShapeChanged,
                 // Contra's shapes, as before ECD's were added. Defaults for
                 // each dance form come with the new-dance form setting
                 // (ADR-006 §12, S2).
-                items: [
+                entries: [
                   for (final shape in [
                     // A stored default outside the list (from a newer
                     // version, say) is still shown, so the field has its
@@ -2361,9 +2359,9 @@ class _DefaultsView extends StatelessWidget {
                       defaultDanceFormationShape,
                     ...contraFormationShapes,
                   ])
-                    DropdownMenuItem(
+                    AppDropdownEntry(
                       value: shape,
-                      child: Text(formationShapeLabel(l10n, shape)),
+                      label: formationShapeLabel(l10n, shape),
                     ),
                 ],
               ),
@@ -2371,18 +2369,17 @@ class _DefaultsView extends StatelessWidget {
             SettingsDropdownRow(
               title: Text(l10n.settingsDefaultsProgressionTitle),
               subtitle: Text(l10n.settingsDefaultsProgressionSubtitle),
-              dropdownBuilder: (expanded) => DropdownButton<Progression>(
-                isExpanded: expanded,
+              dropdownBuilder: (expanded) => AppDropdownField<Progression>(
+                compact: true,
+                fillWidth: expanded,
                 key: const ValueKey('defaults-dance-progression'),
                 value: defaultDanceProgression,
-                onChanged: (value) {
-                  if (value != null) onDefaultDanceProgressionChanged(value);
-                },
-                items: [
+                onChanged: onDefaultDanceProgressionChanged,
+                entries: [
                   for (final progression in Progression.values)
-                    DropdownMenuItem(
+                    AppDropdownEntry(
                       value: progression,
-                      child: Text(progressionLabel(l10n, progression)),
+                      label: progressionLabel(l10n, progression),
                     ),
                 ],
               ),

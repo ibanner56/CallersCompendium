@@ -31,6 +31,7 @@ import 'package:compendium_app/src/widgets/collection_search_controls.dart';
 import 'package:compendium_app/src/widgets/dance_list_tile.dart';
 import 'package:compendium_app/src/widgets/skeleton.dart';
 
+import 'support/finders.dart';
 import 'support/dropdown.dart';
 import 'support/dance_detail_actions.dart';
 import 'support/fab_clearance.dart';
@@ -2108,7 +2109,7 @@ void main() {
     await _tapVisible(tester, find.text('Add'));
     await _tapVisible(tester, find.text('Has figure'));
 
-    final moveField = find.byType(TextField).last;
+    final moveField = hasFigureMoveField();
     await tester.ensureVisible(moveField);
     await tester.enterText(moveField, 'petro');
     await tester.pumpAndSettle();
@@ -2337,7 +2338,7 @@ void main() {
       await _tapVisible(tester, find.byKey(const ValueKey('advanced-panel')));
       await _tapVisible(tester, find.text('Add'));
       await _tapVisible(tester, find.text('Has figure'));
-      final moveField = find.byType(TextField).last;
+      final moveField = hasFigureMoveField();
       await tester.ensureVisible(moveField);
       await tester.enterText(moveField, 'petro');
       await tester.pumpAndSettle();
@@ -2377,15 +2378,15 @@ void main() {
     await _tapVisible(tester, find.byKey(const ValueKey('advanced-panel')));
 
     // Root group only.
-    expect(find.byType(DropdownButton<GroupKind>), findsOneWidget);
+    expect(find.byType(AppDropdownField<GroupKind>), findsOneWidget);
 
     await _tapVisible(tester, find.text('Add'));
     await _tapVisible(tester, find.text('Condition group'));
-    expect(find.byType(DropdownButton<GroupKind>), findsNWidgets(2));
+    expect(find.byType(AppDropdownField<GroupKind>), findsNWidgets(2));
 
     // The nested group's remove (minus-circle) button.
     await _tapVisible(tester, find.byIcon(Icons.remove_circle_outline).last);
-    expect(find.byType(DropdownButton<GroupKind>), findsOneWidget);
+    expect(find.byType(AppDropdownField<GroupKind>), findsOneWidget);
   });
 
   testWidgets(
