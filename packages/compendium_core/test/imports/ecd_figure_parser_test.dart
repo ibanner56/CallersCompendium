@@ -112,7 +112,7 @@ void main() {
         'ecd_cast',
         {
           'who': ['ones'],
-          'where': 'down',
+          'direction': 'down',
           'destination': 'secondPlace',
         },
       ),
@@ -300,7 +300,7 @@ void main() {
           'ecd_cast',
           {
             'who': ['ones'],
-            'where': 'down',
+            'direction': 'down',
           },
         ],
         [
@@ -620,7 +620,7 @@ void main() {
 
     test('a preposition the movement does not show is not read as `whom`', () {
       for (final line in [
-        'cast to bottom',
+        '1s cast to 2s',
         '1s lead with 2s',
         '1s cast through 2s',
         '1s mad robin with 2s',
@@ -633,6 +633,114 @@ void main() {
       expect(_one('1s cast around 2s').params['whom'], 'twos');
       expect(_one('1s lead through 2s').params['whom'], 'twos');
       expect(_one('fall back with partner').params['whom'], 'partners');
+    });
+
+    test('a cast reads contra cast\'s shape (ADR-006 §9.4)', () {
+      Map<String, Object?> cast(String line) {
+        final f = _one(line);
+        expect(f.move, 'ecd_cast', reason: line);
+        return f.params;
+      }
+
+      // "Cast off" is down one place unless a count is stated.
+      expect(cast('1s cast off'), {
+        'who': ['ones'],
+        'direction': 'down',
+        'places': 1,
+      });
+      expect(cast('1s cast off two places'), {
+        'who': ['ones'],
+        'direction': 'down',
+        'places': 2,
+      });
+      expect(cast('1s cast up one place'), {
+        'who': ['ones'],
+        'direction': 'up',
+        'places': 1,
+      });
+      // A bare side is the shoulder turned over.
+      expect(cast('1s cast left'), {
+        'who': ['ones'],
+        'direction': 'left',
+      });
+      expect(cast('1s cast down to the bottom'), {
+        'who': ['ones'],
+        'direction': 'down',
+        'destination': 'bottom',
+      });
+      expect(cast('cast to top'), {'destination': 'top'});
+      // A way round is the shoulder: clockwise over the right.
+      expect(cast('1s cast clockwise'), {
+        'who': ['ones'],
+        'direction': 'right',
+      });
+      expect(cast('1s cast counterclockwise around 2s'), {
+        'who': ['ones'],
+        'direction': 'left',
+        'whom': 'twos',
+      });
+      // A role never implies a shoulder (§9.4).
+      expect(cast('robins cast back'), {
+        'who': ['role2s'],
+      });
+      expect(cast('1s cast to the top'), {
+        'who': ['ones'],
+        'destination': 'top',
+      });
+      // A cast off that says where it ends states no count.
+      expect(cast('1s cast off to the bottom'), {
+        'who': ['ones'],
+        'direction': 'down',
+        'destination': 'bottom',
+      });
+      expect(cast('1s cast off to 3rd place'), {
+        'who': ['ones'],
+        'direction': 'down',
+        'destination': 'thirdPlace',
+      });
+      // What a cast displays reads back in: `back` states nothing.
+      expect(cast('ones cast back'), {
+        'who': ['ones'],
+      });
+      expect(cast('ones cast back left'), {
+        'who': ['ones'],
+        'direction': 'left',
+      });
+      expect(cast('ones cast back around twos'), {
+        'who': ['ones'],
+        'whom': 'twos',
+      });
+      // Other movements still read `to top` as dancers.
+      expect(_one('1s set to top').params['whom'], 'top');
+      expect(_one('2s honour to bottom couple').move, 'ecd_honor');
+      // `the top` is no dancer phrase, so only a cast reads it.
+      expect(_one('1s set to the top').isCustom, isTrue);
+      expect(cast('1s cast'), {
+        'who': ['ones'],
+      });
+      // A way to travel is not a shoulder; a shoulder and a way up or down
+      // can't both be held; the ends of the set are a cast's alone.
+      for (final line in [
+        '1s cast to the left',
+        '1s cast down right',
+        '1s cast back down',
+        '1s cast left clockwise',
+        '1s cast around',
+        '1s cast to the bottom to 2nd place',
+        '1s lead down to the bottom',
+      ]) {
+        expect(_one(line).isCustom, isTrue, reason: line);
+      }
+    });
+
+    test('a hand cast is a gate by its own name (ADR-006 §9.4)', () {
+      final f = _one('1s hand cast 2s');
+      expect(f.move, 'ecd_hand_cast');
+      expect(f.params, {
+        'who': ['ones'],
+        'whom': 'twos',
+      });
+      expect(_one('hand cast').move, 'ecd_hand_cast');
     });
 
     test('a stated ring size with no fraction to hold it is not read', () {

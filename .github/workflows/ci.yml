@@ -397,11 +397,21 @@ jobs:
       # declarations, 40.7 KiB and 19.4 KiB of history that every reader of
       # those files paid for to reach a one-line constant; moving them to
       # docs/design/ is only safe if a later bump cannot quietly append its
-      # entry nowhere. See tools/ci/check_version_history.py.
+      # entry nowhere. The sync wire version and the ECD taxonomy version are
+      # logged and gated the same way. See tools/ci/check_version_history.py.
       - name: Guard version bumps append their design-doc history entry
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: python3 tools/ci/check_version_history.py "$BASE_SHA"
+      # Same base ref again, for the opposite mistake: a PR that bumps a
+      # versioned format when main already carries an unreleased vNext should
+      # have amended it. Compares the latest release tag, base and head, so it
+      # needs the tags this checkout's fetch-depth: 0 brings. See
+      # tools/ci/check_version_bump_policy.py.
+      - name: Guard version bumps do not stack on an unreleased vNext
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: python3 tools/ci/check_version_bump_policy.py "$BASE_SHA"
 
   # A PR that changes the Claude review workflow changes nothing else (unless
   # its whole change bumps the action's pin, which claude.yml may then match):
