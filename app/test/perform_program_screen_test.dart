@@ -3392,6 +3392,29 @@ void main() {
       );
     });
 
+    testWidgets('a dance in Recently deleted makes no mix', (tester) async {
+      final english = _dance(id: 'e', title: 'Hole in the Wall').copyWith(
+        form: DanceForm.ecd,
+        formation: const Formation(FormationShape.dupleMinor),
+        figures: [
+          Figure(move: 'ecd_siding', params: const {'beats': 8}),
+        ],
+        deletedAt: DateTime.utc(2026, 2),
+      );
+      final contra = _dance(id: 'c', title: 'Contra One');
+      final data = await _dataWith([contra]);
+      await _pumpProgram(
+        tester,
+        program: _program([
+          _slot(id: 's1', position: 0, danceId: 'e'),
+          _slot(id: 's2', position: 1, danceId: 'c'),
+        ]),
+        data: data,
+        danceOverrides: {english.id: english},
+      );
+      expect(find.textContaining('English (ECD) ·'), findsNothing);
+    });
+
     testWidgets('a program of one form names none', (tester) async {
       final data = await _dataWith([
         _dance(id: 'a', title: 'A'),

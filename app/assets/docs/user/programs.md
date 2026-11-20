@@ -30,8 +30,8 @@ Each program in the list shows its title, the types of its dances (such as
 both), event date, venue, dance count, and a status label (**Draft**,
 **Finalized**, or **Performed**); on the program's own page the types are the
 first line of its details, and the status is a plain line under the title.
-Every dance counts toward the types, alternates included, and so does a dance
-in **Recently deleted** until it is removed for good. When your programs have more than one mix of types, chips above
+Every dance counts toward the types, alternates included, but not a dance you
+have deleted. When your programs have more than one mix of types, chips above
 the list show only the programs of exactly that mix: **Contra** leaves out a
 program that also has English dances. The program you have open stays in the
 list whatever its types. Tap the chip again to show every program.

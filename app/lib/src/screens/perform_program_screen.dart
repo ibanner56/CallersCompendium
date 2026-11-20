@@ -367,10 +367,13 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
 
   /// Whether the program's dances are of more than one form, when each card
   /// names its dance's form, as the builder and summary rows do (ADR-006 S5).
+  /// A dance in Recently deleted counts for nothing, as in
+  /// `programSlotForms`.
   bool get _mixesForms =>
       {
         for (final slot in _program.slots)
-          if (_danceForSlot(slot) case final dance?) dance.form,
+          if (_danceForSlot(slot) case final dance? when !dance.isDeleted)
+            dance.form,
       }.length >
       1;
 

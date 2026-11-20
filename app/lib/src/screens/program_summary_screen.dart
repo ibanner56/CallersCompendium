@@ -1964,7 +1964,8 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
 
   /// Whether the program's dances are of more than one form, when each
   /// dance's row names its form (ADR-006 S5).
-  /// The same set as the type line at the top ([programSlotForms]).
+  /// The same set as the type line at the top ([programSlotForms]), so a
+  /// dance in Recently deleted counts for neither.
   bool get _mixesForms =>
       programSlotForms(
         _program?.slots ?? const <ProgramSlot>[],

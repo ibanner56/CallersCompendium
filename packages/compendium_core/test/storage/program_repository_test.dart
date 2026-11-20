@@ -49,8 +49,7 @@ void main() {
       updatedAt: DateTime.utc(2026),
     );
 
-    test('lists the forms of each program\'s dances, a deleted one '
-        'included', () async {
+    test('lists the forms of each program\'s live dances', () async {
       await dances.create(dance('c1', DanceForm.contra));
       await dances.create(dance('c2', DanceForm.contra));
       await dances.create(dance('e1', DanceForm.ecd));
@@ -84,7 +83,7 @@ void main() {
       await dances.softDelete('gone', at: DateTime.utc(2026, 2));
       expect(await repo.formsByProgram(), {
         'mixed': {DanceForm.contra, DanceForm.ecd},
-        'contra': {DanceForm.contra, DanceForm.ecd},
+        'contra': {DanceForm.contra},
       });
     });
   });

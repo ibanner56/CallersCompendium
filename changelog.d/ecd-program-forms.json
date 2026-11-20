@@ -9,7 +9,7 @@
   },
   "core": {
     "added": [
-      "ProgramRepository.formsByProgram lists the forms of each program's live dances, and watchFormsByProgram follows them as a dance changes form or is removed for good."
+      "ProgramRepository.formsByProgram lists the forms of each program's live dances, and watchFormsByProgram follows them as dances are deleted, restored or changed."
     ]
   }
 }

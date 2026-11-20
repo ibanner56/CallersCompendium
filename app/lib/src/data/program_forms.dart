@@ -20,17 +20,17 @@ String? programFormsLabel(AppLocalizations l10n, Set<DanceForm>? forms) {
 }
 
 /// The forms of the dances in [slots], resolved through [dancesById]: every
-/// slot with a dance, alternates and a dance in Recently deleted included, as
-/// [ProgramRepository.formsByProgram] and the builder's and Perform's
-/// mixed-form checks count them. A slot whose dance is not in [dancesById]
-/// counts for nothing.
+/// slot with a dance, alternates included, as the builder's, the summary's
+/// and Perform's mixed-form checks count them. A slot whose dance is not in
+/// [dancesById], or is in Recently deleted, counts for nothing, as in
+/// [ProgramRepository.formsByProgram].
 Set<DanceForm> programSlotForms(
   Iterable<ProgramSlot> slots,
   Map<String, Dance> dancesById,
 ) => {
   for (final slot in slots)
     if (slot.danceId case final id?)
-      if (dancesById[id] case final dance?) dance.form,
+      if (dancesById[id] case final dance? when !dance.isDeleted) dance.form,
 };
 
 /// Whether [forms] is the same set of forms as [selected]: the programs
