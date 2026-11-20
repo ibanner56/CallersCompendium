@@ -73,6 +73,7 @@ List<String> _titlesInOrder(WidgetTester tester) => tester
     .toList();
 
 void main() {
+  group('type filter (ADR-006)', _formFilterTests);
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
 
   testWidgets('compact import menu uses action labels and opens both sources', (
@@ -831,4 +832,80 @@ void main() {
       );
     });
   }
+}
+
+/// The type filter: a program shows the forms of its dances, and a chip per
+/// set of forms keeps the programs of exactly that set (ADR-006).
+void _formFilterTests() {
+  Dance dance(String id, DanceForm form) =>
+      Dance(id: id, title: id, form: form, createdAt: _now, updatedAt: _now);
+
+  testWidgets('filters programs by the forms of their dances', (tester) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(dance('c', DanceForm.contra));
+    await repos.dances.create(dance('e', DanceForm.ecd));
+    await repos.programs.create(
+      _program(
+        id: 'p-contra',
+        title: 'Contra night',
+        slots: [ProgramSlot(id: 's1', position: 0, danceId: 'c')],
+      ),
+    );
+    await repos.programs.create(
+      _program(
+        id: 'p-ecd',
+        title: 'English night',
+        slots: [ProgramSlot(id: 's2', position: 0, danceId: 'e')],
+      ),
+    );
+    await repos.programs.create(
+      _program(
+        id: 'p-mixed',
+        title: 'Mixed night',
+        slots: [
+          ProgramSlot(id: 's3', position: 0, danceId: 'c'),
+          ProgramSlot(id: 's4', position: 1, danceId: 'e'),
+        ],
+      ),
+    );
+    await repos.programs.create(_program(id: 'p-none', title: 'Empty'));
+    await _pump(tester, repos);
+
+    expect(find.byKey(const ValueKey('programs-form-filter')), findsOneWidget);
+    expect(
+      find.textContaining(RegExp(r'^English \(ECD\) · ')),
+      findsOneWidget,
+      reason: 'the English program row names its form',
+    );
+
+    await tester.tap(find.byKey(const ValueKey('programs-form-contra')));
+    await tester.pumpAndSettle();
+    expect(_titlesInOrder(tester), ['Contra night']);
+
+    await tester.tap(find.byKey(const ValueKey('programs-form-contra+ecd')));
+    await tester.pumpAndSettle();
+    expect(_titlesInOrder(tester), ['Mixed night']);
+
+    // Tapping the chosen chip again shows every program.
+    await tester.tap(find.byKey(const ValueKey('programs-form-contra+ecd')));
+    await tester.pumpAndSettle();
+    expect(_titlesInOrder(tester), hasLength(4));
+  });
+
+  testWidgets('offers no filter when every program has one set of forms', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(dance('c', DanceForm.contra));
+    await repos.programs.create(
+      _program(
+        id: 'p1',
+        title: 'One',
+        slots: [ProgramSlot(id: 's1', position: 0, danceId: 'c')],
+      ),
+    );
+    await repos.programs.create(_program(id: 'p2', title: 'Two'));
+    await _pump(tester, repos);
+    expect(find.byKey(const ValueKey('programs-form-filter')), findsNothing);
+  });
 }

@@ -1048,7 +1048,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // The left list tile starts at a single dance.
-      expect(find.text('1 dance'), findsOneWidget);
+      expect(find.text('Contra · 1 dance'), findsOneWidget);
 
       // Enter the Perform view from the summary pane (Perform-first, no edit
       // mode) and grow the program via the in-event "adjust" sheet.
@@ -1073,8 +1073,8 @@ void main() {
       // route) reflects the new count with no back-navigation or manual
       // reload. Before the fix the tile stayed "1 dance" until re-navigated,
       // because the in-pane mutation never bumped the shared list refresh.
-      expect(find.text('2 dances', skipOffstage: false), findsOneWidget);
-      expect(find.text('1 dance', skipOffstage: false), findsNothing);
+      expect(find.text('Contra · 2 dances', skipOffstage: false), findsOneWidget);
+      expect(find.text('Contra · 1 dance', skipOffstage: false), findsNothing);
     },
   );
 

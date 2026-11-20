@@ -181,7 +181,9 @@ class _CommandPaletteState extends State<CommandPalette> {
     final words = foldForTitleMatch(raw).split(RegExp(r'\s+'))
       ..removeWhere((w) => w.isEmpty);
     if (words.isEmpty) return false;
-    final labelWords = foldForTitleMatch(forms).split(RegExp(r'[\s·]+'));
+    final labelWords = foldForTitleMatch(
+      forms,
+    ).split(RegExp(r'[^\p{L}\p{N}]+', unicode: true));
     return words.every((w) => labelWords.any((l) => l.startsWith(w)));
   }
 

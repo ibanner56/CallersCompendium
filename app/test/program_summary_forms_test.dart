@@ -89,7 +89,34 @@ void main() {
       _dance('a', 'One', DanceForm.contra),
       _dance('b', 'Two', DanceForm.contra),
     ]);
-    expect(find.textContaining('Contra ·'), findsNothing);
+    // The slot rows name no form (the program's own forms line and its list
+    // row say "Contra" once for all of them).
+    expect(find.text('Contra · Improper'), findsNothing);
     expect(find.text('Improper'), findsNWidgets(2));
+  });
+
+  testWidgets('the program names its forms at the top and in the list '
+      '(ADR-006)', (tester) async {
+    await _pumpSummary(tester, [
+      _dance('e', 'Hole in the Wall', DanceForm.ecd),
+      _dance('c', 'Contra One', DanceForm.contra),
+    ]);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('program-summary-forms')),
+        matching: find.text('Contra · English (ECD)'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.textContaining(RegExp(r'^Contra · English \(ECD\) · ')),
+      findsOneWidget,
+      reason: 'the programs list row leads with the forms',
+    );
+  });
+
+  testWidgets('a program with no dances names no form', (tester) async {
+    await _pumpSummary(tester, const []);
+    expect(find.byKey(const ValueKey('program-summary-forms')), findsNothing);
   });
 }
