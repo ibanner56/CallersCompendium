@@ -2646,7 +2646,7 @@
   },
   "settingsAppearanceThemeHeader": "Theme",
   "@settingsAppearanceThemeHeader": {
-    "description": "Section header above the theme row in Appearance settings, and the title of the Theme screen that row opens."
+    "description": "Section header above the theme row in Appearance settings, the title of that row (the theme in use is shown under it), and the title of the Theme screen it opens."
   },
   "settingsAppearanceCustomThemesHeader": "Custom themes",
   "@settingsAppearanceCustomThemesHeader": {
@@ -2667,10 +2667,6 @@
   "appThemeGroupDark": "Dark",
   "@appThemeGroupDark": {
     "description": "Section heading above the \"Dark\" themes on the Theme screen (Settings > Appearance > Theme)."
-  },
-  "settingsAppearanceThemeSubtitle": "Browse and search the built-in themes, or make your own.",
-  "@settingsAppearanceThemeSubtitle": {
-    "description": "Subtitle of the Appearance row that opens the Theme screen. The row title is the name of the theme in use."
   },
   "themeScreenSearchHint": "Search themes…",
   "@themeScreenSearchHint": {

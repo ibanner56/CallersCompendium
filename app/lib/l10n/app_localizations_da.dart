@@ -2147,10 +2147,6 @@ class AppLocalizationsDa extends AppLocalizations {
   String get appThemeGroupDark => 'Mørk';
 
   @override
-  String get settingsAppearanceThemeSubtitle =>
-      'Gennemse og søg i de indbyggede temaer, eller lav dit eget.';
-
-  @override
   String get themeScreenSearchHint => 'Søg temaer…';
 
   @override

@@ -2132,10 +2132,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appThemeGroupDark => 'Dark';
 
   @override
-  String get settingsAppearanceThemeSubtitle =>
-      'Browse and search the built-in themes, or make your own.';
-
-  @override
   String get themeScreenSearchHint => 'Search themes…';
 
   @override

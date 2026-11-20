@@ -2156,10 +2156,6 @@ class AppLocalizationsNl extends AppLocalizations {
   String get appThemeGroupDark => 'Donker';
 
   @override
-  String get settingsAppearanceThemeSubtitle =>
-      'Blader door en zoek in de ingebouwde thema\'s, of maak je eigen thema.';
-
-  @override
   String get themeScreenSearchHint => 'Thema\'s zoeken…';
 
   @override

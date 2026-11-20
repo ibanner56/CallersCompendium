@@ -541,10 +541,11 @@ Appearance body with a **grouped swatch gallery**:
 
 **Its own screen, with search (issue #2228).** At 35 built-in themes the
 gallery outgrew the Appearance page: everything below it sat several screens
-down. Appearance now holds one **Theme** row naming the theme in use, which
-opens `ThemeScreen` (`screens/theme_screen.dart`), laid out like the Venues
-manager: a **Search themes…** box over the gallery, which keeps the sections and
-order above, with saved custom themes after them under their own heading (left
+down. Appearance now holds one **Theme** row, with the theme in use under its
+title (the maintainer's choice, so the row says what it opens). It opens
+`ThemeScreen` (`screens/theme_screen.dart`), laid out like the Venues manager:
+a **Search themes…** box over the gallery, which keeps the sections and order
+above, with saved custom themes after them under their own heading (left
 out while there are none), and a floating **+ Custom theme** button that starts
 a new one (§4B). A search drops the headings and shows just the matching cards
 in one run, in the same order. A theme is found by its name, its section, its

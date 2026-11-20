@@ -375,8 +375,8 @@ The **Appearance** section controls how the app looks.
 
 ### Theme
 
-The **Theme** row names the theme you're using; tap it to open the **Theme**
-screen. There the built-in themes are grouped under **System** (follows your
+The **Theme** row shows the theme you're using under its title; tap it to open
+the **Theme** screen. There the built-in themes are grouped under **System** (follows your
 device), **Default** (Light, Dark, Soft dark, then High contrast), **Light** and
 **Dark** — named color palettes, including editor-inspired schemes — with your
 saved custom themes under **Custom themes** after them. On a phone the built-in

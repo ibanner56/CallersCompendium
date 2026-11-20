@@ -91,8 +91,10 @@ class _AppearanceView extends StatelessWidget {
         ListTile(
           key: const ValueKey('appearance-theme'),
           leading: const Icon(Icons.color_lens_outlined),
-          title: Text(activeThemeName),
-          subtitle: Text(l10n.settingsAppearanceThemeSubtitle),
+          // A fixed title says what the row opens; the theme in use sits
+          // under it.
+          title: Text(l10n.settingsAppearanceThemeHeader),
+          subtitle: Text(activeThemeName),
           trailing: const Icon(Icons.chevron_right),
           onTap: () => Navigator.of(
             context,

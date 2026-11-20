@@ -1756,10 +1756,10 @@ void main() {
         initialTheme: AppThemeSelection.catppuccinMocha,
       );
       final row = find.byKey(const ValueKey('appearance-theme'));
-      expect(
-        find.descendant(of: row, matching: find.text('Catppuccin Mocha')),
-        findsOneWidget,
-      );
+      final tile = tester.widget<ListTile>(row);
+      // A fixed title says what the row opens; the theme in use sits under it.
+      expect((tile.title! as Text).data, 'Theme');
+      expect((tile.subtitle! as Text).data, 'Catppuccin Mocha');
       // The gallery itself is no longer inline in Appearance.
       expect(
         find.byKey(ValueKey('theme-${AppThemeSelection.light.name}')),
@@ -1775,8 +1775,8 @@ void main() {
       await ctx.customThemes.setActive(created.id);
       await tester.pumpAndSettle();
       expect(
-        find.descendant(of: row, matching: find.text('Barn Dance')),
-        findsOneWidget,
+        (tester.widget<ListTile>(row).subtitle! as Text).data,
+        'Barn Dance',
       );
 
       await _openThemeScreen(tester);

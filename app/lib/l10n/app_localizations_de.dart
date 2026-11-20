@@ -2160,10 +2160,6 @@ class AppLocalizationsDe extends AppLocalizations {
   String get appThemeGroupDark => 'Dunkel';
 
   @override
-  String get settingsAppearanceThemeSubtitle =>
-      'Durchsuchen Sie die integrierten Designs, oder erstellen Sie Ihr eigenes.';
-
-  @override
   String get themeScreenSearchHint => 'Designs suchen…';
 
   @override

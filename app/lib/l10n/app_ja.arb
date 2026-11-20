@@ -1996,10 +1996,6 @@
   "@appThemeGroupDark": {
     "x-sourceSha256": "60acc53f13a5d1bf115878c4a785e9a43e8286c4139a8402a6ac7d23966f9153"
   },
-  "settingsAppearanceThemeSubtitle": "組み込みテーマを閲覧・検索するか、独自のテーマを作成します。",
-  "@settingsAppearanceThemeSubtitle": {
-    "x-sourceSha256": "6e102ced6b1f3c2cab6df239972f96adfd56a9c942da014ae83b155fec203219"
-  },
   "themeScreenSearchHint": "テーマを検索…",
   "@themeScreenSearchHint": {
     "x-sourceSha256": "a13ac564360d6c1832ff8e64b878ec7c995ee7df6a44ff82aa0cd99b54623633"

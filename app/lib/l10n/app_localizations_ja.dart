@@ -2047,10 +2047,6 @@ class AppLocalizationsJa extends AppLocalizations {
   String get appThemeGroupDark => 'ダーク';
 
   @override
-  String get settingsAppearanceThemeSubtitle =>
-      '組み込みテーマを閲覧・検索するか、独自のテーマを作成します。';
-
-  @override
   String get themeScreenSearchHint => 'テーマを検索…';
 
   @override

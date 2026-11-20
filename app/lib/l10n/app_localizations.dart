@@ -3072,7 +3072,7 @@ abstract class AppLocalizations {
   /// **'Name'**
   String get settingsDialectNameLabel;
 
-  /// Section header above the theme row in Appearance settings, and the title of the Theme screen that row opens.
+  /// Section header above the theme row in Appearance settings, the title of that row (the theme in use is shown under it), and the title of the Theme screen it opens.
   ///
   /// In en, this message translates to:
   /// **'Theme'**
@@ -3107,12 +3107,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Dark'**
   String get appThemeGroupDark;
-
-  /// Subtitle of the Appearance row that opens the Theme screen. The row title is the name of the theme in use.
-  ///
-  /// In en, this message translates to:
-  /// **'Browse and search the built-in themes, or make your own.'**
-  String get settingsAppearanceThemeSubtitle;
 
   /// Hint in the search box at the top of the Theme screen. Themes can be found by name or by color and character words.
   ///
