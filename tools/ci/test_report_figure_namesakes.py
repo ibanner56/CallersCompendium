@@ -192,7 +192,10 @@ def main() -> int:
     except gate.Unavailable as error:
         check("blocks: an unresolvable interpolation is unavailable, never a silently dropped form", "nope" in str(error), str(error))
     for decl in ("const String _p = 'ecd_';", "const _p = 'ecd_';", 'const String _p = "ecd_";', "final String _p = 'ecd_';", "  static const String _p = 'ecd_';"):
-        got = [b.id for b in gate.blocks(decl + "\nMoveDef(id: '${_p}x', displayName: 'x')", "f.dart")]
+        try:
+            got = [b.id for b in gate.blocks(decl + "\nMoveDef(id: '${_p}x', displayName: 'x')", "f.dart")]
+        except gate.Unavailable:
+            got = ["unavailable"]
         check(f"blocks: the prefix constant may be written {decl!r}", got == ["ecd_x"], repr(got))
     check("blocks: an id that is not a string literal is skipped (documented)", gate.blocks("MoveDef(id: customMoveId, displayName: 'x')", "f.dart") == [])
     check("blocks: a constant in a comment is not read", gate.blocks("// const String _p = 'zz_';\nconst String _p = 'ecd_';\nMoveDef(id: '${_p}x')", "f.dart")[0].id == "ecd_x")
