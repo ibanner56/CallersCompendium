@@ -17,10 +17,12 @@ import 'package:flutter_test/flutter_test.dart' show addTearDown;
 /// converted screen, so the fix belongs here once rather than in each of them.
 ///
 /// The default executor runs the app's connection setup,
-/// [applyCompendiumSqliteSetup], so a typed-venue calling-history search finds
-/// its SQL function as it does in the app. Pass [executor] to wrap a
-/// non-default one (e.g. `NativeDatabase.memory()` with an interceptor); pass
-/// the same setup to it if the test searches by a typed venue.
+/// [applyCompendiumSqliteSetup], so a search finds its SQL functions as it
+/// does in the app: `cc_fold` for an All fields or Author search and a Meter
+/// or Key filter, `cc_venue_key` for a typed-venue calling-history search.
+/// Pass [executor] to wrap a non-default one (e.g. `NativeDatabase.memory()`
+/// with an interceptor); pass the same setup to it if the test runs any of
+/// those searches.
 ///
 /// Databases close automatically when the current test tears down. Set
 /// [closeOnTearDown] to false when the caller owns an explicit or early close.

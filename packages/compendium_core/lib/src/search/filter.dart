@@ -49,8 +49,10 @@ class NotFilter extends DanceFilter {
 }
 
 /// The local full-text scope. [omni] preserves the historical canonical
-/// cross-field search and adds a raw-title fallback; [title], [author], and
-/// [figure] restrict matching to one derived column.
+/// cross-field search and adds a raw-title fallback; [title] and [figure]
+/// restrict matching to one derived column each; [author] matches the
+/// `authors` column and the names of the dance's interpreters, accents
+/// folded.
 enum FullTextScope { omni, title, author, figure }
 
 /// Full-text search over the derived FTS5 indexes. [scope] defaults to
