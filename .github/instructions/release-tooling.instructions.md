@@ -3,6 +3,7 @@ applyTo:
   - "packaging/**"
   - "tools/release/**"
   - ".github/workflows/release.yml"
+  - ".github/workflows/test-build.yml"
   - ".github/workflows/pages-site.yml"
   - ".github/workflows/pages-sig-gate.yml"
   - ".github/ISSUE_TEMPLATE/**"
@@ -84,6 +85,12 @@ prevent on its own are in
   and stop offering updates silently.
 
 ## Changing the tooling
+
+`test-build.yml`'s `build` job is a byte-for-byte copy of `release.yml`'s.
+Change `release.yml`, then run
+`python3 tools/release/sync_test_build_workflow.py --write`; never edit the
+copy. `tools/release/test_sync_test_build_workflow.py` also fails if the test
+build stops entering every release environment or gains a publishing step.
 
 The supply-chain suites under `tools/release/` (SBOM, release metadata, notes,
 Pages publish, signature-file checks) run in `_checks.yml` as a PR gate, because

@@ -26,28 +26,30 @@ This is the operator runbook for cutting a desktop release. It documents the
 > per-platform signing table.
 
 <!-- section-index -->
-> **Section index.** This document is ~79 KB — read the section you
+> **Section index.** This document is ~117 KB — read the section you
 > need rather than the whole file. Line counts indicate size, not position;
 > follow the anchor. Keep this index current when you add or retitle a
 > section.
 
-- [What the pipeline produces](#what-the-pipeline-produces) — 55 lines
-- [Safety model](#safety-model) — 15 lines
-- [Cutting a release](#cutting-a-release) — 202 lines
+- [What the pipeline produces](#what-the-pipeline-produces) — 57 lines
+- [Safety model](#safety-model) — 29 lines
+- [Cutting a release](#cutting-a-release) — 268 lines
 - [Release cadence](#release-cadence) — 31 lines
-- [Deploying the Athenaeum server](#deploying-the-athenaeum-server) — 52 lines
-- [CHANGELOG-driven release notes](#changelog-driven-release-notes) — 48 lines
+- [Deploying the Athenaeum server](#deploying-the-athenaeum-server) — 64 lines
+- [CHANGELOG-driven release notes](#changelog-driven-release-notes) — 46 lines
 - [Software Bill of Materials (SBOM)](#software-bill-of-materials-sbom) — 93 lines
-- [Publishing the update manifest (GitHub Pages)](#publishing-the-update-manifest-github-pages) — 124 lines
-- [Signing the update manifest (Ed25519, issue #431)](#signing-the-update-manifest-ed25519-issue-431) — 96 lines
+- [Publishing the update manifest (GitHub Pages)](#publishing-the-update-manifest-github-pages) — 173 lines
+- [Signing the update manifest (Ed25519, issue #431)](#signing-the-update-manifest-ed25519-issue-431) — 141 lines
 - [Signing the published-collection catalog (Ed25519, issue #2161)](#signing-the-published-collection-catalog-ed25519-issue-2161) — 84 lines
 - [Landing page and user guides (GitHub Pages)](#landing-page-and-user-guides-github-pages) — 74 lines
-- [Dry run (no release created)](#dry-run-no-release-created) — 36 lines
+- [Dry run (no release created)](#dry-run-no-release-created) — 50 lines
+- [Test builds (signed, never released)](#test-builds-signed-never-released) — 74 lines
+- [Windows (Azure Trusted Signing)](#windows-azure-trusted-signing) — 74 lines
 - [macOS (Developer ID signed + notarized)](#macos-developer-id-signed--notarized) — 85 lines
-- [Android (signed APK)](#android-signed-apk) — 143 lines
-- [iOS (TestFlight via App Store Connect API)](#ios-testflight-via-app-store-connect-api) — 125 lines
-- [Packaging tooling notes](#packaging-tooling-notes) — 101 lines
-- [Pinned native dependencies](#pinned-native-dependencies) — 81 lines
+- [Android (signed APK)](#android-signed-apk) — 281 lines
+- [iOS (TestFlight via App Store Connect API)](#ios-testflight-via-app-store-connect-api) — 126 lines
+- [Packaging tooling notes](#packaging-tooling-notes) — 102 lines
+- [Pinned native dependencies](#pinned-native-dependencies) — 82 lines
 <!-- /section-index -->
 
 ## What the pipeline produces
@@ -131,6 +133,10 @@ and produces no Android artifact.
   elevated token.
 - The release is always created as a **DRAFT** — nothing is public until a
   maintainer clicks Publish.
+- The separate `test-build.yml` workflow builds and signs with a copy of this
+  `build` job behind the same four approvals, but has no write scope and no
+  publishing step at all; see
+  [Test builds (signed, never released)](#test-builds-signed-never-released).
 
 ## Cutting a release
 
@@ -475,7 +481,9 @@ allow exactly the tag rule `v*` (tag pushes) and the branch `main` (an
 [existing-tag recovery](#recovering-a-failed-existing-tag-run) is dispatched from
 `main`, so without it the recovery's deploy, mobile and manifest jobs are refused);
 no other branch can reach the key. Unlike the signing legs, a missing value
-fails the job rather than skipping it.
+fails the job rather than skipping it. A
+[test build](#test-builds-signed-never-released) also waits on this
+environment's reviewers, in a job that reads none of its secrets.
 
 | Kind | Name | Value |
 |------|------|-------|
@@ -1118,6 +1126,10 @@ packaged artifacts are uploaded as **workflow run artifacts** instead:
 gh workflow run release.yml
 ```
 
+To share a build rather than validate the pipeline, prefer a
+[test build](#test-builds-signed-never-released): the same signed packages,
+behind every release approval, bundled for download and kept for 30 days.
+
 > `workflow_dispatch` only works once `release.yml` is on the default branch.
 > To validate the workflow *before* it merges, push a throwaway bare beta tag
 > whose core matches the pubspec (e.g. `v0.1.0-beta`) — a tag push runs the
@@ -1149,6 +1161,80 @@ TestFlight build. Its SLSA predicate records the tagged source SHA and the
 `main` workflow SHA as separate resolved dependencies, rather than claiming the
 recovery workflow commit was the released source. Ordinary input-free
 dispatches remain build-only.
+
+## Test builds (signed, never released)
+
+To hand a build you have not finished testing to yourself or a teammate, run
+**Actions → Test build → Run workflow** on the branch to build, or:
+
+```sh
+gh workflow run test-build.yml --ref main
+```
+
+`.github/workflows/test-build.yml` packages the dispatched commit exactly as a
+release would, and releases nothing:
+
+- **Signed the same way.** Its `build` job is a byte-for-byte copy of
+  `release.yml`'s, between two marker comments, so every platform builds,
+  packages and signs as it does for a release (macOS Developer ID + notarization,
+  Windows Azure Trusted Signing, the Android upload keystore, the iOS App Store
+  archive), with the same secrets and the same `release-signing` environment.
+  Never edit the copy: edit `release.yml`, then run
+  `python3 tools/release/sync_test_build_workflow.py --write`.
+  `tools/release/test_sync_test_build_workflow.py` fails CI if the two differ.
+- **Approved the same way.** It enters all four release environments. Right
+  after resolving the version it waits on approval-only jobs for
+  `release-server`, `release-publication` and `release-manifest`. They use
+  `deployment: false`, so the environments' deployment history never shows a
+  server deploy or a store upload that did not happen. They check out nothing
+  and reference no secret. Then the reusable checks run on the same commit, and
+  the build waits for `release-signing`, as in a release. No artifact exists
+  until all four are approved. The same test fails if `release.yml` gains or
+  drops an environment that the test build does not match.
+- **Never released.** It has no tag, release or draft. It mints no attestations,
+  deploys no server, uploads nothing to TestFlight or Google Play, and generates,
+  signs or publishes no update manifest (it does not read
+  `UPDATE_SIGNING_KEY`). Its token is `contents: read` throughout, and
+  `workflow_dispatch` is its only trigger. The guard test fails if any of
+  `release.yml`'s publishing commands or a write scope appears in it.
+- **Branch rules still decide what can be built.** Each environment's
+  *Deployment branches and tags* rule applies. The `release-server` setup above
+  admits only `v*` tags and `main`, and the build job's `release-signing`
+  environment admits whatever its rule allows. To test-build another branch,
+  widen those rules deliberately: whoever can push to an admitted branch can ask
+  for its code to be signed (the approvals still stand between the request and
+  the signature). GitHub's documentation for `deployment: false` confirms that
+  required reviewers and wait timers still apply, but does not say whether
+  branch rules do. The `release-signing` build job creates a deployment as
+  usual, so its rule certainly binds.
+
+What a run produces, all on the run's page:
+
+- **`CallersCompendium-test-<version>-<commit>`**, kept 30 days: the desktop
+  packages, the signed Android APK (when Android signing is configured),
+  `SHA256SUMS`, and `TEST-BUILD.txt`, which names the commit, ref and run. This is
+  the one to share. Anyone who can read the repository can download it,
+  including with `gh run download <run-id> -n <artifact-name>`.
+- Each leg's own artifacts (`dist-*`, `android-aab`, `ios-ipa`, …), kept 7 days,
+  as in a release.
+
+Three things a test build is not:
+
+- **Not distinguishable by version.** It reports `app/pubspec.yaml`'s `X.Y.Z`,
+  carries the stable-tag Android `versionCode`, and its files have the release's
+  names, exactly like the dry run above. The in-app updater offers only strictly
+  newer versions, so it will not offer the `X.Y.Z` release, beta or stable, to
+  someone running the test build. They install that release by hand.
+- **Not installable on iOS.** The `.ipa` is App Store-signed and installs only
+  through TestFlight, which a test build never uploads to. The `.aab` is likewise
+  a Play upload input, not something a device installs.
+- **Not a dry run of publishing.** Release notes, `SHA256SUMS` generation by
+  `gen_release_metadata.py`, the SBOM, attestations and manifest signing run only
+  in `release.yml`.
+
+The input-free `release.yml` dispatch above still exists. It waits only on
+`release-signing` and keeps its artifacts for 7 days. Use the test build for
+anything you hand to someone else.
 
 ## Windows (Azure Trusted Signing)
 
@@ -1199,7 +1285,9 @@ What this means in practice:
   keys on the five `AZURE_*` repository variables being non-empty. It does not
   consult `is_release`. A manual `workflow_dispatch` dry run therefore also
   enters the environment and, with the variables set, signs the Windows
-  artifacts of whatever ref it was dispatched from. What contains this is the
+  artifacts of whatever ref it was dispatched from. So does every
+  [test build](#test-builds-signed-never-released), whose `build` job is a copy
+  of this one. What contains this is the
   environment's approval rule (and its deployment-branch rule, if one is set),
   not the workflow.
 
@@ -1214,7 +1302,8 @@ nor record their current values. When reviewing them, check that:
 - the service principal holds only the Artifact Signing Certificate Profile
   Signer role, scoped to the one signing account;
 - the environment has required reviewers, and that its deployment branch and
-  tag rule admits only the refs a release or a dry run is meant to run from;
+  tag rule admits only the refs a release, a dry run or a test build is meant
+  to run from;
 - the five `AZURE_*` variables are repository variables, not set on the
   `release-signing` environment: the `build` job would read an environment
   variable of the same name in preference, but `publish_draft` has no
@@ -1651,7 +1740,8 @@ input-free `workflow_dispatch` (so the sign path can be validated), but the
 `xcrun altool --upload-app` step runs in the `publish_mobile` job **only** for a real
 tag push (`github.event_name == 'push'` on a `refs/tags/v*` ref), after the
 `release-publication` protected environment is approved. A `workflow_dispatch` dry
-run therefore never uploads to TestFlight. An existing-tag recovery skips the
+run therefore never uploads to TestFlight, and neither does a
+[test build](#test-builds-signed-never-released), which has no upload step. An existing-tag recovery skips the
 entire iOS leg so it cannot duplicate an upload that succeeded before another
 platform failed. The upload makes the build available to **internal** TestFlight
 testers automatically; it does **not** submit to Beta App Review or the public
