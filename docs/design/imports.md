@@ -2323,8 +2323,13 @@ ECD dance.
   count. The meter comes from the editor in free-text entry and from the
   stored dance in Re-check (`FigureReparser`'s `meter` and
   `phraseStructure`). Only an English
-  dance's lines are read for bars; `1-4` in a contra line is untouched. One
-  line holding several ranges (`(5-8) X (9-12) Y`) is not split.
+  dance's lines are read for bars; `1-4` in a contra line is untouched. A
+  line that goes on to further ranges, each starting the bar after the last
+  ended (`(5-8) X (9-12) Y`), is counted from its first range's start to its
+  last range's end and kept as text, since it names several figures
+  (`EcdBarRange.several`); when all of them would come to more than 64
+  beats, the first range's count is kept (`EcdBarRange.firstBars`). A later
+  range that doesn't follow on is part of the words. The line is not split.
 - **Caller's Companion English dances** also take the ECD shape their contra
   shape names (`ecdFormationFromContra`: duple proper → duple minor, duple
   improper → duple minor, improper; triplet and quadruplet → three- and
@@ -2336,7 +2341,12 @@ ECD dance.
   (`(4,4)`) whose parts match the sequence's steps keeps each part on its
   step. An English dance takes `Dance.meter` and `musicalKey` from the Music
   field (`ccMusicMeterAndKey`: `Key: G, Meter: 3/2`, `Key Dm Meter 6/8`,
-  `Em 3/4`); a contra dance keeps Music as a note only. When a bar range is
+  `Em 3/4`); a contra dance keeps Music as a note only. A number after a
+  track, disc or page word, or one followed by `of` (`Track 3/4 of CD`), is
+  no meter unless its own word names it (`Meter 3/2 of Playford`), and an
+  opening `A` before a meter and a lower-case word or a kind of tune
+  (`A 3/2 hornpipe`, `A 3/2 Hornpipe`) is the article, not key A; such a text
+  may give its key as `in G`. When a bar range is
   counted with no stated meter, the dance gets the info issue
   `cc_bars_meter_unstated`.
 - **Is the file English?** A Caller's Companion library often types its

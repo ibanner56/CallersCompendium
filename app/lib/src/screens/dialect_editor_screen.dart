@@ -690,12 +690,14 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
   );
 
   /// The keys of the user's figures a dialect can name or word, while Custom
-  /// Figures is on (#1023): each one whose definition decodes, by name.
+  /// Figures is on (#1023): each one whose definition decodes and is for this
+  /// dialect's form, as the dance editor offers them, by name.
   List<String> _userFigureKeys() {
     final catalog = UserFiguresScope.shownCatalogOf(context);
     return [
       for (final view in catalog.figures)
-        if (view.definition != null) userFigureKeyFor(view.id),
+        if (view.definition?.form == widget.form.name)
+          userFigureKeyFor(view.id),
     ]..sort(
       (a, b) => _label(a).toLowerCase().compareTo(_label(b).toLowerCase()),
     );

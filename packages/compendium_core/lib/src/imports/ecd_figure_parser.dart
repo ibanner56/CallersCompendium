@@ -104,7 +104,9 @@ const int _maxSteps = kMaxSequenceFigures;
 /// from it over [beats] and over any count the words give: its bars times the
 /// beats in a bar of [meter] ([ecdBeatsPerBar], 2 when [meter] does not say).
 /// A line whose rest also states a count in beats ([ecdRestStatesBeats]) is
-/// kept as custom, so that count stays in its words. A line kept as custom
+/// kept as custom, so that count stays in its words, and so is one that goes
+/// on to further ranges (`(5-8) X (9-12) Y`), counted across all of them. A
+/// line kept as custom
 /// keeps its whole text, range included, and the count. A range whose count
 /// is over the beats range is not taken.
 Figure? parseEcdFigureLine(
@@ -140,7 +142,11 @@ Figure? parseEcdFigureLine(
   }
   if (scrubbed.isEmpty) return null;
   if (scrubbed.length > maxEcdLineLength) return fallback(scrubbed);
-  if (bars != null && ecdRestStatesBeats(bars.rest)) return fallback(scrubbed);
+  // A count in beats as well, or a second range (`(5-8) X (9-12) Y`, two
+  // figures), is kept in the words.
+  if (bars != null && (bars.several || ecdRestStatesBeats(bars.rest))) {
+    return fallback(scrubbed);
+  }
   try {
     final read = recognizeEcdLine(
       identical(lineText, rawText)

@@ -445,7 +445,12 @@ beats a bar holds: two in 2/2, 2/4, 6/8 or 6/4, three in 3/2, 3/4, 9/8 or
 When the Music field gives no meter the app counts two beats a bar and says so
 in the review. The bars are the count: a line that also gives a count in beats,
 such as `1-4 (6) circle left` or `(6) 1-4 circle left`, comes across as
-written, with the bars' count.
+written, with the bars' count. So does a line with several bar ranges, such
+as `(5-8) circle left (9-12) circle right`, counted across all of them (or
+by its first range, if all of them would come to more than 64 beats).
+A number after a word like Track, CD or Disc ("Track 3/4 of CD") isn't taken
+for a meter unless a word like Meter names it, and "A 3/2 hornpipe" gives the
+meter 3/2 but no key ("A 3/2 hornpipe in G" gives the key G).
 The dance's phrase structure is not changed to match its meter, so in a 3/2
 dance the A and B labels on the dance's page can fall in the wrong places
 until you set the phrase structure (for example 4*8*3).
@@ -878,7 +883,8 @@ moves up to take its place, as when you remove a dance in the program editor,
 and the same happens to an empty slot's alternate.
 
 Re-importing replaces that dance's figures, formation, and progression with the
-incoming version's (and its title and credit, if you ticked the box), so if you
+incoming version's, with the dance form they need (and its title and credit, if
+you ticked the box), so if you
 have edited them in your copy, look before you commit. The **Undo** on the summary reverses the
 whole batch import if it was not what you wanted (but not a dance you brought in
 with **Import and edit**).

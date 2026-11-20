@@ -8327,9 +8327,9 @@ class AppLocalizationsFr extends AppLocalizations {
       count,
       locale: localeName,
       other:
-          'La ré-importation remplace les figures, la formation et la progression de $count danses existantes. Leurs notes, étiquettes et remarques restent.',
+          'La ré-importation remplace les figures, la formation et la progression de $count danses existantes, et peut changer leur forme de danse. Leurs notes, étiquettes et remarques restent.',
       one:
-          'La ré-importation remplace les figures, la formation et la progression d’une danse existante. Sa note, ses étiquettes et ses notes restent.',
+          'La ré-importation remplace les figures, la formation et la progression d’une danse existante, et peut changer sa forme de danse. Sa note, ses étiquettes et ses notes restent.',
     );
     return '$_temp0';
   }
@@ -8514,12 +8514,12 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String importReviewEditReimportBody(String title) {
-    return 'L’importation pour modification remplace immédiatement les figures, la formation et la progression de « $title » dans votre collection. L’annulation de l’import groupé ne les restaurera pas.';
+    return 'L’importation pour modification remplace immédiatement les figures, la formation et la progression de « $title » dans votre collection, et peut changer sa forme de danse. L’annulation de l’import groupé ne les restaurera pas.';
   }
 
   @override
   String importReviewEditReimportTitleAndCreditBody(String title) {
-    return 'L’importation pour modification remplace immédiatement les figures, la formation, la progression, le titre et l’auteur de « $title » dans votre collection. L’annulation de l’import groupé ne les restaurera pas.';
+    return 'L’importation pour modification remplace immédiatement les figures, la formation, la progression, le titre et l’auteur de « $title » dans votre collection, et peut changer sa forme de danse. L’annulation de l’import groupé ne les restaurera pas.';
   }
 
   @override

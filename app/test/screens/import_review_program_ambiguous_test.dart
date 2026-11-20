@@ -276,7 +276,8 @@ void main() {
       expect(
         find.text(
           'Re-import replaces the figures, formation and progression of 1 '
-          'existing dance. Its rating, tags and notes stay.',
+          'existing dance, and can change its dance form. Its rating, tags and '
+          'notes stay.',
         ),
         findsOneWidget,
       );
