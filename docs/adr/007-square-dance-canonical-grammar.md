@@ -1,7 +1,8 @@
 # ADR-007: Square dance canonical call grammar
 
-- **Status**: Proposed (12 November 2026). For maintainer review before
-  anything is implemented.
+- **Status**: Proposed (12 November 2026; reworked 20 November 2026 for
+  traditional squares). For maintainer review before anything is
+  implemented.
 - **Roadmap item**: "ECD and Squares support" (Later milestones in
   [ROADMAP.md](../ROADMAP.md))
 - **Deciders**: Maintainers
@@ -10,21 +11,22 @@
 corrections to the registry in §7, and answers to the
 [open questions](#10-open-questions).
 
-In the template's terms: §2–§3 are the *context*, §5–§8 the proposed
+In the template's terms: §2–§4 are the *context*, §5–§8 the proposed
 *decision*, §5 the *rationale*, and §9–§11 the *consequences* and *revisit
 triggers*. Once accepted, the square taxonomy follows the versioning process in
 [figure-taxonomy.md](../design/figure-taxonomy.md), as the contra one does.
 
-Timing figures in §7 are reprinted with permission of CALLERLAB (§4.1).
+CALLERLAB timing figures in §2, §7 and Appendix A are reprinted with
+permission of CALLERLAB (§4.2).
 
 ---
 
 ## Contents
 
 1. [Summary](#1-summary)
-2. [Background: how square dance differs](#2-background-how-square-dance-differs)
+2. [Background: traditional squares](#2-background-traditional-squares)
 3. [Where the app stands today](#3-where-the-app-stands-today)
-4. [Sources and licensing](#4-sources-and-licensing)
+4. [Evidence and sources](#4-evidence-and-sources)
 5. [Design principles](#5-design-principles)
 6. [Shared vocabulary](#6-shared-vocabulary)
 7. [The call registry](#7-the-call-registry)
@@ -40,23 +42,22 @@ Timing figures in §7 are reprinted with permission of CALLERLAB (§4.1).
 ## 1. Summary
 
 Caller's Compendium stores contra figures as structured data: a canonical
-move plus named parameters. This ADR proposes the same for Modern Western
-Square Dance (MWSD), with a **separate taxonomy** that owns every call ID. A
-call such as Allemande Left or Dosado is defined in the square taxonomy on
-its own terms, even where contra has a figure with the same name. This
-follows the approach ADR-006 proposed for English Country Dance.
+move plus named parameters. This ADR proposes the same for **traditional
+square dances**, the phrased squares of the New England and contra
+community, with a **separate taxonomy** that owns every call ID. A call such
+as Allemande Left or Do-si-do is defined in the square taxonomy on its own
+terms, even where contra has a figure with the same name. This follows the
+approach ADR-006 proposed for English Country Dance.
 
 ### 1.1 Maintainer requirements
 
-The maintainer set these requirements in the planning conversation that led
-to this ADR (12 November 2026; quoted in the pull request that adds it). They
-are inputs to the design, not proposals:
+The maintainer set these requirements. They are inputs to the design, not
+proposals. Each is quoted in the pull request that adds this ADR.
+
+From the planning conversation, 12 November 2026:
 
 - The square taxonomy is **fully independent** of the contra taxonomy, as
   ADR-006 proposes for ECD, even where figures share a name.
-- **Mainstream and Plus** are the success criteria. Advanced and Challenge
-  are stretch goals, to be included if they turn out to be trivial once the
-  framework exists.
 - Calls carry **beat counts**.
 - Dance entry has a **toggle for free-form patter** that does not follow
   fixed phrasing.
@@ -66,57 +67,79 @@ are inputs to the design, not proposals:
   **reference only**. No code is ported or copied from it, so the project
   takes on no licensing or attribution obligation.
 
+From 20 November 2026: **"We expect the people using Compendium to be
+storing + calling traditional squares, not MWSD."** This replaces the first
+draft's success criteria, which were the CALLERLAB Mainstream and Plus
+programs with Advanced and Challenge as stretch goals. The first draft of
+this ADR was built around CALLERLAB club calling (Modern Western Square
+Dance, MWSD); this version is built around traditional squares (§2).
+
+Also on 20 November 2026 the maintainer chose **"Option A"**: traditional
+squares first, club calls as borrowed vocabulary, and a CALLERLAB program
+kept only as a glossary label (§5.2). The maintainer added: "I imagine if
+you look around online for sources of traditional squares choreography
+you'll find that some of the Plus/Advanced/Challenge calls still show up in
+trad squares or contra." §7.3 records that search.
+
 ### 1.2 The proposal in brief
 
 Everything below is proposed by this ADR's author for the maintainer to
-accept or change, except where §10 records the maintainer's answer.
+accept or change, except where §1.1 or §10 records the maintainer's
+decision.
 
 - **One taxonomy per dance form**, with square call IDs carrying an `sq_`
   prefix so they can never be mistaken for contra moves, including by older
   builds (§5.1; the maintainer accepted the prefix, Q5).
-- **Program membership is data that depends on the CALLERLAB edition**
-  (§5.2). CALLERLAB replaced its Basic, Mainstream and SSD programs with a
-  new Mainstream program on 1 September 2026, and moved several calls into a
-  new Plus. A call's ID never changes when its program does.
-- **Beats are stored on every call**, with defaults from CALLERLAB's
-  published timing (§5.3).
-- **Formations belong to calls, not to dances** (§5.4). The app does not
-  simulate dancer positions.
-- **Some calls take another call as an argument**, such as "(anything) and
-  Roll" and "Clover and (anything)". This needs a new structural construct
-  (§5.6), the largest new piece of model work in this ADR.
-- **A `freeForm` flag** implements the patter toggle (§8.1).
+- **Traditional squares are the design center** (§5.2; the maintainer chose
+  this as Option A, §1.1). The registry starts
+  from the calls traditional squares actually use, and adds the club calls
+  they borrow, including the few Plus and Advanced calls that traditional
+  squares and contras were found to use (§7.3). CALLERLAB programs are kept
+  only as a label in the glossary.
+- **Beats are stored on every call.** Defaults follow traditional
+  phrase-filling practice, and the check that matters is that each phrase
+  adds up, which needs a new per-phrase check (§5.3).
+- **Squares use the existing containers**, `meanwhile` above all, because
+  traditional figures often have two groups dancing at once (§5.6).
+- **A dance is a phrased figure, a break or free-form patter** (§8.1), with
+  contra-style phrase labels, a repeat order, and who becomes the new
+  partner.
 - **The glossary's dance-form selector** is built over `DanceForm` values
   (§8.3).
 
-Advanced is judged **moderate, not trivial** (§9), and Challenge **not
-cheap**.
+## 2. Background: traditional squares
 
-## 2. Background: how square dance differs
-
-Contra dances are fixed 64-beat sequences, repeated, and their figures name
-pairs of dancers (partners, neighbors, shadows). Square dance differs in four
+The squares callers will store in the app are traditional ones: figures
+written by contra and New England choreographers, danced to reels and jigs,
+and printed beside contras. They differ from club (MWSD) square dancing in
 ways that drive this design:
 
-1. **Calls are a shared, standardized vocabulary.** CALLERLAB publishes
-   definitions, timing, styling and standard applications for each program.
-   Callers expect a call's name to mean the CALLERLAB definition, and the
-   programs are cumulative: Plus dancers know all Mainstream calls.
-2. **Most calling is improvised.** In patter ("hash") calling, the caller
-   builds sequences on the fly and does not phrase them to the music. Only
-   singing calls are phrased: a fixed 64-beat figure danced four times,
-   between breaks.
-3. **Formations change constantly.** A square starts in a static square, but
-   between calls dancers may be in ocean waves, two-faced lines, columns,
-   diamonds, a thar, and so on. Whether a call is proper depends on the
-   formation it is called from.
-4. **Dancers are named by position and identity more than by relationship.**
-   Heads, sides, centers, ends, leaders, trailers, boys and girls, and
-   couple numbers are used much more than partner and corner.
+1. **A square is a fixed, phrased figure, repeated.** The figure is danced
+   several times through, usually twice with the heads leading and twice
+   with the sides, or four times with everyone active. Club calling is mostly
+   improvised patter, with phrasing only in singing calls.
+2. **Figures are labelled and timed like contras.** Sources print phrase
+   labels (A1, A2, B1, B2, and C1, C2 for longer figures) and a beat count
+   for each line. Most figures are 64 beats; some are 96.
+3. **Timing fills the phrase.** A forward and back is "always a full eight
+   beats in New England" (Parkes); CALLERLAB also gives 8, but 4 for lines
+   close together. Where the two differ, the traditional count is usually
+   longer: a ¾ circle of four is 8 (CALLERLAB 6), and a do-si-do or right
+   and left through between facing couples is 8 (CALLERLAB 6). It can be
+   shorter too: Lavender Moon dances a square through 2 in 4 (CALLERLAB 5).
+4. **Most figures change partners**, and the source says who the new
+   partner is: usually the corner.
+5. **The vocabulary overlaps contra.** Heys, gypsies (shoulder rounds), pull
+   bys, balances and single-file moves appear beside square terms. Club calls
+   (zoom, box the gnat, square through, even allemande thar) are borrowed
+   knowingly, sometimes with a note that they are club figures.
+6. **Sources describe; callers call.** Books print descriptions of the
+   figure with beat counts, not the words a caller says.
 
 ## 3. Where the app stands today
 
-These facts were checked against the code on 12 November 2026:
+These facts were checked against the code on 12 November 2026 and rechecked
+for this revision:
 
 - `DanceForm` already has a `square` value
   ([enums.dart](../../packages/compendium_core/lib/src/model/enums.dart)), and
@@ -151,41 +174,76 @@ These facts were checked against the code on 12 November 2026:
   set (`containerMoves` in
   [figure.dart](../../packages/compendium_core/lib/src/model/figure.dart)),
   with a maximum depth of two (`kMaxContainerDepth`).
+- Phrase labels are derived from `phraseStructure`: the empty default is
+  four 16-beat phrases labelled A1, A2, B1, B2, and `6*8*2` gives six
+  phrases labelled A1 to C2
+  ([phrase_structure.dart](../../packages/compendium_core/lib/src/model/phrase_structure.dart)).
 
-## 4. Sources and licensing
+## 4. Evidence and sources
 
-### 4.1 CALLERLAB documents
+### 4.1 Held squares (primary evidence)
 
-The registry in §7 is built from the CALLERLAB documents in the project's
-shared files. Appendix B lists them, and they cover:
+The design rests on 19 traditional squares with figure text that the
+maintainer's archive work has held back until square support exists. They
+were collected on 19 November 2026 into a brief with each source text
+verbatim, a line-by-line reading, and a call inventory. The brief is the
+maintainer's working material, not a published source; this ADR cites the
+dances, and every count below was checked against the verbatim text.
 
-- **Definitions** for Mainstream (rev. 29 March 2026), Plus (rev. 25 August
-  2026, and the superseded 20 August 2025 edition), Advanced (rev. 27 August
-  2026), C-1 (rev. 14 March 2026), C-2 (rev. 15 August 2026) and C-3A
-  (rev. 1 September 2024).
-- **Timing** for Mainstream and Plus (rev. 5 July 2026, effective 1
-  September 2026) and Advanced (rev. 12 June 2025).
-- **Standard Applications** for Basic (2022), Mainstream (2020) and Plus
-  (2021).
-- The **new Plus teaching order**, the Plus supplement guide, the Advanced
-  booklet and the 2011 Definition Guide.
+| Source | Squares with figures | Notes |
+| --- | ---: | --- |
+| Tony Parkes, *Son of Shadrack and Other Dances* (1993) | 11 | Book. Phrase labels and beats on every line. |
+| Michael Fuerst (comp.), *Midwest Folklore and other dances* (1995) | 3 | Book. Phrase labels; beats mostly unstated. |
+| Gene Hubert (ed.), *Dizzy Dances* vols 1–3 | 5 | Not from the books: callers' versions in workshop syllabi and American Country Dances On-Line. Weaker evidence. |
 
-The definition documents allow reprints and derivative works without royalty
-if their copyright notice appears, but say the information "shall not be
-changed nor revised in any derivation". The timing lists allow reproduction
-with the notice "Reprinted with permission of CALLERLAB." Because §7 of this
-document reproduces most of the Mainstream and Plus timing lists, it carries
-that notice at the top.
+Thirteen more held squares from *Dizzy Dances* have titles but no figures
+anywhere reachable, so they are not counted.
 
-**Proposed by this ADR's author:** the app ships CALLERLAB call names,
-program membership, formation names and timing numbers as data, and writes
-**every glossary definition in its own words**. No definition text, styling
-text or diagram is copied. Writing our own definitions keeps us clear of the
-"not changed" condition, and lets definitions use the app's role-neutral
-tokens. Whether the app's `THIRD_PARTY_NOTICES.md` also carries the CALLERLAB
-reprint line for the timing data is Q1.
+What the 19 show:
 
-### 4.2 Taminations
+- **Kinds.** Every one is a phrased figure repeated to reels or jigs. None
+  is a club patter sequence or a singing call.
+- **Length.** 14 of the 18 with a known length are 64 beats. Four are 96:
+  Masters' Quadrille, Southern Nights, Parallel Dried Alfalfa and Lavender
+  Moon.
+- **Repeat order.** Heads twice then sides twice (HHSS) in 8, heads and
+  sides alternating (HSHS) in 4, four times through with everyone active in
+  5. Southern Nights says only "Similar action for sides". Happy Hobo says
+  "Repeat for the sides. Repeat entire dance."; the brief tentatively records
+  HHSS, though the text reads more naturally as HSHS.
+- **Partners.** 13 change partners every time through, and the source names
+  the new partner (mostly the corner). 5 keep partners; 1 is unclear.
+- **Simultaneous actions.** 8 have two groups dancing different things at
+  once ("Four gents (acting as two facing couples) pass through", then "Gents
+  turn right in single file and go four steps while ladies pass through").
+  One (Interface Jig) also gives start offsets ("After 4 beats: Side ladies
+  chain").
+- **Labels.** Both books print contra-style phrase labels on every square.
+  The syllabus versions omit them.
+- **No book prints an intro, break or ending.** The syllabi describe the
+  routine around the figure ("Intro; figure as above; figure with the sides
+  leading; break; ..."), and one prints a break.
+
+### 4.2 CALLERLAB documents (secondary)
+
+The club calls that traditional squares borrow are defined by CALLERLAB. The
+CALLERLAB documents in the project's shared files (Appendix B) supply their
+names, their usual formations and their club timing. CALLERLAB restructured
+its programs on 1 September 2026: a new 50-call Mainstream replaced Basic,
+Mainstream and SSD.
+
+The definition documents allow reprints and derivative works if their
+copyright notice appears, but say the information "shall not be changed nor
+revised in any derivation". The timing lists allow reproduction with the
+notice "Reprinted with permission of CALLERLAB."
+
+**Proposed by this ADR's author:** the app ships call names, formation names
+and timing numbers as data, and writes **every glossary definition in its
+own words**. No definition text, styling text or diagram is copied from
+CALLERLAB or from any dance book. Whether the app's `THIRD_PARTY_NOTICES.md`
+carries the CALLERLAB reprint line for the timing data is Q1.
+
+### 4.3 Taminations
 
 Per the maintainer's requirement (§1.1), **no code, data files, animations,
 formation geometry or definition text from Taminations may be copied, ported
@@ -196,39 +254,42 @@ nothing was taken.
 
 ## 5. Design principles
 
-Each principle is a proposal by this ADR's author. None has been decided
-yet, except the `sq_` prefix in §5.1, which the maintainer accepted (Q5).
+Each principle is a proposal by this ADR's author, except where noted: the
+maintainer accepted the `sq_` prefix in §5.1 (Q5) and chose the direction of
+§5.2 (Option A, §1.1).
 
 ### 5.1 Squares own their call IDs, and the IDs carry a prefix
 
 The square taxonomy is a separate `Taxonomy(form: DanceForm.square)`. Every
 call in it has its own definition, defaults, display template and glossary
 text. Where a square call and a contra move share a concept, they share
-**parameter names** (`who`, `hand`, `fraction`, `beats`), as ADR-006 §5.1
-proposes for ECD. They never share a definition.
+**parameter names** (`who`, `hand`, `shoulder`, `beats`), as ADR-006 §5.1
+proposes for ECD. They never share a definition. Implementation may share
+rendering helpers; the data stays separate.
 
-Every square move ID starts with `sq_`: `sq_dosado`, `sq_swing`,
-`sq_square_thru`. At least nine of the proposed calls have the same name as a
-contra move or alias (`swing`, `allemande`, `circle`, `promenade`, `star`,
-`box_the_gnat`, `california_twirl`, `courtesy_turn`, `balance`, and contra's
-`see_saw` alias). With unprefixed IDs:
+Every square move ID starts with `sq_`: `sq_swing`, `sq_hey`,
+`sq_forward_and_back`. Traditional squares share even more names with
+contra than club squares do (swing, balance, circle, star, promenade, chain,
+hey, gypsy/shoulder round, pull by, box the gnat, california twirl). With
+unprefixed IDs:
 
 - **Older builds would misread square dances without any error.** A build
   from before this work that receives a square dance by sync, archive or
   share resolves every figure through `contraTaxonomy`, so `swing` and
   `circle` would render with their contra meaning and defaults. With a
-  prefix the old build sees an unknown move: the renderer shows the raw ID
-  and validation flags `unknown_move`. That is visible, not wrong.
+  prefix the old build shows the raw ID instead. That is visible, not wrong.
 - **Anything keyed by move ID would collide**: dialect move wordings,
-  shorthand tables, and editor display defaults. A contra wording for
-  `promenade` would reword the square call.
+  shorthand tables, and editor display defaults.
 - **The legacy square imports (§3) become detectable.** An unprefixed ID in
   a square dance is known to be a contra move from an earlier import.
 
-*Alternative rejected:* plain IDs, matching ADR-006's style, with the dance's
-form as the only discriminator. It lost on the three points above. If this
-is accepted, ADR-006 should probably adopt an `ecd_` prefix for the same
-reasons (§11).
+The archive's existing contra data shows the risk is real: "square through"
+already appears there as a contra move, mostly as a balance-interrupted
+square through 2 in 8 beats, which is not the club call.
+
+*Alternative rejected:* plain IDs with the dance's form as the only
+discriminator. It lost on the points above. If this is accepted, ADR-006
+should probably adopt an `ecd_` prefix for the same reasons (§11).
 
 **Resolving a taxonomy.** Code that needs a taxonomy takes it from the dance:
 
@@ -238,178 +299,139 @@ reasons (§11).
 - `ecd` → the contra taxonomy, as today, until ADR-006 ships.
 - `contra` → the contra taxonomy.
 
-### 5.2 Program membership depends on the edition, and is data
+### 5.2 Traditional squares first; club calls as borrowed vocabulary
 
-CALLERLAB's 2025 "Proposal" restructured the programs from 1 September 2026:
+*Decided by the maintainer on 20 November 2026 (Option A, §1.1). The details
+below are the author's.*
 
-- The **new Mainstream** program has 50 calls or call families and replaces
-  the old Basic, Mainstream and SSD programs.
-- The **new Plus** program has 50 entries, some of them from older lists.
-  Do Paso and See Saw were legacy Basic calls. The August 2026 Advanced
-  definitions record that Clover and (anything), Pair Off, Partner Hinge,
-  Partner Tag, Pass the Sea, the Quarter Thru family, Scoot and Dodge and
-  Triple Trade moved from A-1 to Plus.
-- Advanced timing published before the change (June 2025) still lists some
-  of those calls under A-1.
+The registry (§7) has two parts:
 
-Callers' existing dances and notes use both the old and new program names,
-so a call's program cannot be a fixed property of the call. Each square call
-carries a map from **edition** to **program**:
+- **The traditional core** (§7.1): the calls the held squares use, with
+  traditional defaults. Some have no CALLERLAB equivalent (hey for four,
+  gypsy, pull by, balance outside a wave).
+- **Borrowed club calls** (§7.2): CALLERLAB Mainstream calls, plus the Plus
+  and Advanced calls that traditional squares or contras are found to use
+  (§7.3): Circle to a Line (traditional "break to a line"), the Thar family,
+  Shoot the Star, Do Paso, See Saw, Pass the Sea, Trade the Wave, Dixie Style
+  to a Wave and Cross Trail Thru. Their meaning is CALLERLAB's, written in our
+  own words, except where a traditional meaning differs and is kept as a
+  variant.
 
-```text
-programs: { callerlab2026: plus, callerlabLegacy: a1 }
-```
+Each borrowed call carries its **CALLERLAB program as a glossary label**
+("Mainstream", "Plus"), so a caller can see that a call is a club call.
+Nothing is derived from it:
 
-- Editions: `callerlabLegacy` (the lists in force before 1 September 2026)
-  and `callerlab2026`. New editions are added as data.
-- Programs: `basic`, `mainstream`, `plus`, `a1`, `a2`, `c1`, `c2`, `c3a`.
-  `basic` appears only in the legacy edition.
-- **A program can depend on where the call starts.** Some calls move up a
-  program when danced from a less common start. Recycle from a wave is
-  Mainstream but from facing couples is A-2, and the Advanced definitions
-  also lift Plus restrictions on Explode and (anything), Coordinate and
-  Linear Cycle. These calls get an optional `from` parameter naming the
-  start (for Recycle: `wave` or `facingCouples`), and the program entry is
-  keyed by its value, using the same mechanism as beats (§5.3). When `from`
-  is `unspecified`, the lower program is assumed. `from` is stated by the
-  caller, never computed (§5.4).
-- A user setting chooses the edition the app shows, defaulting to
-  `callerlab2026` (Q2).
-- A dance's **required program** is derived, never stored: the highest
-  program among its calls under the chosen edition. It is separate from the
-  dance's user-defined difficulty level (ADR-005), which stays the caller's
-  own judgment.
+- There is **no derived "required program"** for a dance. On traditional
+  squares it would mislead: Parkes rates Circle Three Quarters
+  "Intermediate", yet "break to a line" would label it Plus, and the program
+  would say nothing about the heys and single-file moves that make other
+  figures hard.
+- Difficulty stays the caller's own level (ADR-005). Book ratings such as
+  "Fairly easy", "Intermediate" and "Difficult" map onto it.
+- Program membership is not versioned by CALLERLAB edition. The label is
+  the 2026 program.
 
-### 5.3 Beats are stored, with CALLERLAB timing as the default
+Everything the first draft built for club calling beyond Mainstream is out of
+scope: Plus, Advanced and Challenge calls that no traditional or contra
+source was found to use (§7.3), edition-versioned programs, and calls that
+take another call as an argument ("Clover and (anything)"). §11 lists them
+under revisit triggers.
 
-ADR-006 §5.5 keeps timing out of ECD movement parameters. Squares keep
-`beats` as a figure parameter, as contra does, because the maintainer
-requires beat counts (§1.1), CALLERLAB publishes a standard count for nearly
-every call through Advanced, and singing-call figures must fit 64 beats.
+### 5.3 Beats are stored, with traditional defaults
 
-- **Default beats** come from the CALLERLAB timing tables, which count from
-  the point of contact.
-- **Defaults can depend on more than one parameter.** Square Thru takes 2,
-  5, 7 or 8, or 10 beats for 1 to 4 hands. Circle takes 16, 12, 8 or 4 for a
-  full, three-quarter, half or quarter circle of eight, and half that for a
-  circle of four. `ParamBeats` must be extended to read several parameters.
-- **From a static square.** The Mainstream definitions' Squared Set
-  Convention says "Moving into the center adds 2 beats to the timing for the
-  move". Where the timing table gives its own static-square value, that value
-  wins: Pass Thru 4, Right and Left Thru 8, Flutterwheel 10 or 12. Square
-  Thru's entry says "SS odd numbers: add 2 to previous count". ⚠ This ADR
-  reads that as: only odd counts add 2 from a static square, so Heads Square
-  Thru 4 stays 10. The other reading, that every count adds 2, gives 12
-  (Q9). The maintainer is not sure it is exactly either, so this ADR
-  proposes a default of 10 with both 10 and 12 in `goodBeats`. The +2 applies only
-  to calls defined from facing dancers or facing couples, which is what the
-  Convention covers. The app cannot tell where
-  the dancers are (§5.4), so the adjustment is driven by an explicit
-  `fromStaticSquare` flag. For a `singingCall` or `break` the editor sets it
-  on the first call; for `patter` it starts off, because a module may begin
-  anywhere. The caller can set or clear it on any line.
-- **Ranges and "variable".** A range such as "4 to 6" sets `goodBeats` and
-  the lower value as the default. "Variable, at least 4" (Swing) sets a
-  default of 4 and no upper warning. As in contra, beat counts outside
-  `goodBeats` are warnings, never errors, and the caller can always override.
-- **Calls with no published timing** (all of Challenge, and concepts such as
-  As Couples) default to `unspecified` beats.
+Every call has a `beats` parameter, as in contra.
+
+- **Defaults follow traditional practice** where the held squares show it
+  (§7.1). For borrowed club calls with no traditional evidence, the default is
+  the CALLERLAB count (§7.2).
+- **The phrase totals are the main check.** Today the editor compares only the
+  dance's whole beat total with its phrase structure (`phrase_overflow`,
+  `phrase_underflow`) and warns when a `sequence` is longer than one phrase
+  (`sequence_exceeds_phrase`). Phase 1 adds a warning when the calls in one
+  phrase do not fill it. This ADR proposes it for squares; whether contra uses
+  it too is left to that phase's PR.
+- **`goodBeats` lists every plausible count**, traditional and club, so that a
+  traditional count is never flagged just for differing from a club count. A
+  count outside the list is a warning, never an error.
+- **Defaults can depend on parameters**, for example a circle's fraction and
+  size, a hand turn's turns, or whether a swing starts with a balance.
+  `ParamBeats` must be extended to read more than one parameter.
+- **Imported dances keep their stated beats.** Sources such as Parkes state a
+  count on every line, so defaults matter mostly for hand entry and for
+  sources that state none (Fuerst, mostly).
+
+The first draft's static-square adjustment (`fromStaticSquare`) is dropped.
+It encoded a CALLERLAB convention that traditional sources do not follow;
+they state the count they mean.
 
 ### 5.4 Formations describe calls, not dances
 
-Every square dance starts and ends in a squared set. So at dance level the
+Every square dance starts and ends in a squared set. At dance level the
 formation is simply a new `FormationShape.square`, and the importer stops
 using `other` + "Square".
 
-At call level each call in the registry records:
+For borrowed club calls, the registry records CALLERLAB's usual starting
+formations as glossary information. These are shipped data, not stored on
+figures. **The app does not track or simulate dancer positions.** It does
+not check that a figure resolves, and it does not warn that a call is
+improper from the previous call's formation. A position simulator is out of
+scope (§11).
 
-- `startFormations`: the usual formations the call is danced from. Like
-  CALLERLAB's own lists, they are **not restrictive** unless marked `only`.
-- `endFormation`: what the call produces from each start formation, where
-  that is fixed.
-- `rules`: which CALLERLAB conventions apply (Ocean Wave Rule, Facing
-  Couples Rule, Squared Set Convention).
+Whether a stored call should be able to record a formation or position the
+source *states* ("lines of four at the sides", "end facing the nearest side
+couple") is Q4.
 
-These are shipped taxonomy data, not stored on figures. The glossary shows
-them, and the editor may use them for **hints** (for example, "Spin the Top
-is usually called from an ocean wave"). **The app does not track or simulate
-dancer positions.** It does not check that a sequence resolves, and it does
-not warn that a call is improper from the previous call's formation. A
-position simulator is a large project of its own, and the area where copying
-from Taminations would be most tempting. It is out of scope (§11).
-
-Whether a stored call should also be able to record a formation the caller
-*states* ("from a zero box", "in normal lines") is Q4.
-
-### 5.5 Selectors name dancers the way callers do
+### 5.5 Selectors name dancers the way traditional sources do
 
 `who` is a single selector token, as in contra. ADR-006 §5.2 makes ECD's
-`who` a list because ECD figures often name two groups ("2s and 3s"). Square
-calls name one group, and CALLERLAB's identifiers already cover combined
-groups (`centerFour`, `heads`), so a single token is enough. §6.2 lists the
-square selectors. Two rules carry over from the existing taxonomy:
+`who` a list because ECD figures often name two groups ("2s and 3s"). The
+held squares name one group at a time, so a single token is enough. Two
+rules carry over from the existing taxonomy:
 
-- **Role-neutral storage.** Boys and girls are stored as `role1s` and
-  `role2s`, and shown in the caller's chosen terms by the dialect system.
-  Square callers often want "boys and girls" or "men and ladies" while
-  calling contra with "larks and robins", so the dialect needs role terms
-  per dance form (§11).
-- **Heads and sides mean the original heads and sides**, as CALLERLAB
-  defines them. "Those in the head position" is a separate selector.
+- **Role-neutral storage.** "Gents" and "ladies" (the books' words), or
+  "men" and "women", are stored as `role1s` and `role2s` and shown in the
+  caller's chosen terms by the dialect system. Square callers may want
+  "gents and ladies" while calling contra with "larks and robins", so the
+  dialect needs role terms per dance form (§11).
+- **Heads and sides mean the original heads and sides.** "At the head", for
+  whoever is in the head position now, is a separate selector.
 
-### 5.6 Calls that take a call
+Traditional sources also name dancers by history: "original corner", "the
+one you meet", "the one you face", "the one you swung", "person who started
+as partner". The fixed relationships set when the square forms get tokens
+(`originalCorners`, `originalPartners`, `originalOpposites`). So does the
+very common "the one you face / meet" (`facing`). Relations that depend on
+an earlier call ("the one you swung", "the one you just allemanded") stay as
+text in the line's note. §6.2 lists the selectors.
 
-Some calls are built around another call:
+### 5.6 Simultaneous and grouped actions use the existing containers
 
-- Mainstream: "Square Thru, on the third hand (anything)".
-- Plus: "(anything) and Roll", "(anything) and Spread", "Clover and
-  (anything)", "Explode and (anything)".
-- Advanced: "Cross Clover and (anything)", "Transfer and (anything)", "Any
-  Hand (anything)", and concepts such as "As Couples (anything)".
+The contra model's containers apply unchanged:
 
-These calls get a `call` parameter whose value is **one nested figure**,
-encoded with the same figure codec.
+- **`meanwhile`** for two or more groups dancing at the same time. The held
+  squares need it in 8 of 19 dances: gents star while ladies promenade,
+  ladies stand back to back while gents promenade single file, gents single
+  file while ladies pass through.
+- **`sequence`** for a short run that must stand as one side of a
+  `meanwhile`.
+- **`modifier`** where a source describes one action by another.
 
-This is a **new structural construct**, not a small extension. Today the
-only figures that nest other figures are the three containers, and every
-site that walks figures asks `isContainerMove`. A figure-valued parameter
-on an ordinary call must be taught to the codec, the archive and share
-sanitizer, validation, the renderer, the search and full-text indexer, the
-editor, and sync. Phase 2 (§9) carries that cost.
+Their limits (2–6 children for `meanwhile` and `modifier`, at most 4 in a
+`sequence`, two levels of nesting, and no container directly inside one of its
+own kind) are enough for every held square except one. Interface Jig overlaps
+three actions with stated start offsets ("After 4 beats", "12, of which 4 fall
+in A.1 and 8 fall in A.2"). Offsets are not modelled; such a figure is stored
+as `meanwhile` lines with the offsets in their notes (Q12).
 
-Rules proposed for it:
-
-- A call-taking call counts as one level toward the existing
-  `kMaxContainerDepth` of two. "As Couples (Swing Thru and Roll)" fits.
-  Deeper stacking, such as "As Couples (Clover and (Square Thru, on the third
-  hand Spin the Top))", does not, and stays a `custom` line with its text.
-- Display substitutes the nested call's rendering into the template, for
-  example `Clover and {call}`.
-- Beats: the call's default comes from a rule over the nested call's beats
-  ("the greater of 4 and the call", "2 plus the call"). Where CALLERLAB's
-  timing overlaps the two calls ("Transfer and (anything): 8, anything starts
-  on 5"), the default is the stated total plus whatever the nested call takes
-  beyond the overlap, and the caller can override it.
-
-Split Two is **not** a call-taking call. Its timing is "2 plus the next
-call", but the next call is an ordinary following line.
-
-*Alternatives rejected:*
-
-- Recording "Clover and Pass Thru" as a `sequence` of two figures loses the
-  fact that the two calls are danced together, with one timing.
-- The `modifier` container renders "X, Y-ing", which reads wrongly for
-  "Swing Thru and Roll".
-- One move per combination ("clover_and_pass_thru") cannot list every
-  combination.
+Optional lines ("the sides can swing as well", "everybody can swing") are
+stored as ordinary lines with a note, not as a new structure.
 
 ### 5.7 Parts of a call are not stored
 
-"Recycle" or "Spin the Top" is one line. The app does not break a call into
-its CALLERLAB parts or dance actions. As in ADR-006 §5.3, a parameter the
-source does not state is stored as `unspecified`, unless CALLERLAB defines
-the bare call's meaning (Square Thru means Square Thru 4, so `count`
-defaults to 4).
+"Right and left through" or "zoom" is one line. The app does not break a call
+into parts. As in ADR-006 §5.3, a parameter the source does not state is
+stored as `unspecified`, never filled with a usual value: Fuerst's bare
+"Circle left" keeps an unspecified fraction.
 
 ## 6. Shared vocabulary
 
@@ -417,353 +439,356 @@ defaults to 4).
 
 | Name | Meaning | Example values |
 | --- | --- | --- |
-| `who` | Who dances the call | `everyone`, `heads`, `centers`, `role2s` |
-| `hand` | The hand used, or a left-hand version of the call | `right`, `left` |
-| `fraction` | How far | `quarter`, `half`, `threeQuarters`, `full` |
-| `count` | A number of hands or parts | Square Thru 1–5, Eight Chain 1–8 |
+| `who` | Who dances the call | `everyone`, `heads`, `role2s`, `facing` |
+| `whom` | The other dancer, where the call names one | `corners`, `partners`, `originalCorners` |
+| `hand` | The hand used | `right`, `left` |
+| `shoulder` | The shoulder passed | `right`, `left` |
+| `turns` | How far a turn goes, in full turns | `0.5`, `0.75`, `1`, `1.5`, `2` |
+| `fraction` | How far around a circle, star or promenade | `quarter`, `half`, `threeQuarters`, `full` |
 | `direction` | A turning or travel direction | `left`, `right`, `in`, `out` |
-| `reverse` | The reverse version of the call | yes/no (Flutterwheel, Wheel Around) |
-| `variant` | A named family member | Run: `run`, `crossRun` |
+| `destination` | Where a promenade ends, as the source states it | `home`, `gentsPlace`, `ladiesPlace` |
+| `where` | Where a call is danced | `across`, `alongTheLine`, `inTheCenter`, `withTheSides` |
 | `size` | Dancers in a circle or star | `2`, `4`, `8` |
-| `around` | How many dancers to go around | `1`, `2` (Separate) |
-| `into` | Where a Separate ends | `line`, `middle` |
-| `fourLadies` | All four ladies chain | yes/no |
-| `fullAround` | The "full around" version | yes/no (Shoot the Star) |
-| `onHand` | The hand on which a nested call starts | `2`–`5` (Square Thru) |
-| `fromStaticSquare` | The call starts from a static square (§5.3) | yes/no |
-| `from` | The stated start, where it changes the program (§5.2) | `wave`, `facingCouples`, `line`, `columns` |
-| `call` | One nested call (§5.6) | a figure |
+| `count` | A number of hands | Square Through 1–5 |
+| `balance` | The call starts with a balance | yes/no (swing) |
+| `variant` | A named family member | Promenade: `couples`, `singleFile`, `outside` |
 | `beats` | Beats, as in contra (§5.3) | `0`–`64` |
+
+Parameters that only one call uses (`four`, `courtesy`, `around`, `into`,
+`fullTurn`, `reverse`, `fullAround`) and per-call values such as `balance`'s
+`where` (`inPlace`, `wave`, `ring`) are defined with the call in §7.
+
+An amount the source gives loosely ("once around and a little bit more",
+"just about 3/4") is stored as the nearest value with the source's words in
+the line's note.
 
 ### 6.2 Selectors
 
 - Everyone: `everyone`.
-- Identity in the square: `heads`, `sides`, `headPosition`, `sidePosition`,
-  `couple1` to `couple4`, `role1s` (boys), `role2s` (girls),
-  `headRole1s`, `headRole2s`, `sideRole1s`, `sideRole2s`.
-- Relationships: `partners`, `corners`, `opposites`, `rightHandRole2`,
-  `leftHandRole2` (CALLERLAB's "right-hand lady", rendered by dialect).
-- Position in the formation: `centers`, `ends`, `centerFour`,
-  `outsideFour`, `centerSix`, `outsideSix`, `veryCenters`, `veryEnds`,
-  `leaders`, `trailers`. Advanced adds `beaus` and `belles`.
+- Identity in the square: `heads`, `sides`, `headPosition` ("at the head"),
+  `sidePosition`, `couple1` to `couple4`, `role1s` (gents), `role2s`
+  (ladies), `headRole1s`, `headRole2s`, `sideRole1s`, `sideRole2s`.
+- Relationships: `partners`, `corners`, `opposites`, `rightHandRole2`
+  ("right-hand lady"), `leftHandRole2`, and the original ones,
+  `originalPartners`, `originalCorners`, `originalOpposites`.
+- Position: `facing` ("the one you face" or "meet"), `centers`, `ends`,
+  `centerFour`, `outsideFour`, `leaders`, `trailers`.
 - `unspecified`.
-
-### 6.3 Formation names
-
-The vocabulary for §5.4 follows CALLERLAB's formation names: squared set
-(static square), circle of eight, facing couples, facing dancers,
-back-to-back couples, tandem couples, right- and left-hand ocean waves,
-mini-waves and tidal waves, two-faced lines (right and left hand), facing
-lines, eight chain thru, trade by, columns, 1/4 tag and 3/4 tag, diamonds,
-thar and wrong-way thar, alamo ring, promenade, and right and left grand
-circle. Advanced adds the hourglass. The full list is fixed in the first
-implementation PR.
 
 ## 7. The call registry
 
-Timing below is reprinted with permission of CALLERLAB, from the timing
-tables in §4.1, as numbers only. "SS" means from a static square. IDs are
-shown without the `sq_` prefix (§5.1) to keep the tables readable. Each
-entry's ID, parameters and defaults are proposals. Entries marked ⚠ have a
-point for the reviewer.
+IDs are shown without the `sq_` prefix (§5.1) to keep the tables readable.
+Each entry's ID, parameters and defaults are proposals. Entries marked ⚠
+have a point for the reviewer.
 
-### 7.1 Mainstream (2026 edition)
+### 7.1 Traditional core
 
-| ID | Parameters | Default beats (timing) | Notes |
+Built from the call inventory of the 19 held squares (§4.1). "Seen" is the
+number of dances that use the call, then the beat counts seen on lines where
+it stands alone (number of lines in brackets).
+
+| ID | Parameters | Default beats | Seen | Notes |
+| --- | --- | --- | --- | --- |
+| `swing` | `who`, `whom`, `balance` | 8; 16 with a balance | 19 dances; 8 (14), 12 (3), 14 (1), 16 (3) | "Balance and swing" is one line, as the sources print it. |
+| `promenade` | `who`, `variant` (`couples`, `singleFile`, `outside`, `wrongWay`, `star`), `destination`, `fraction`, `direction` | 16 to a destination; ½: 8; ¾: 12 | 15; 16 (14), 8 (1) | Sources name a destination ("to the gent's place"), not a fraction. Single-file moves ("turn right in single file and go four steps") are `singleFile` with the source's words in the note. |
+| `hand_turn` | `who`, `whom`, `hand`, `turns` | once: 4–8 (default 8); 1½: 8; twice: 8 | 11; 4 (4), 6 (1), 8 (8) | "Allemande left/right" and "turn ... by the hand" are aliases (Q8). Every source line names the person. |
+| `circle` | `who`, `direction`, `fraction`, `size` | 8 dancers: full 16, ½ 8; 4 dancers: ½ 4, ¾ 8, full 8 | 10; 4 (2), 8 (6) | Parkes's ¾ circle of four is 8 (CALLERLAB 6). |
+| `forward_and_back` | `who` | 8 | 10; 8 (11) | "Always a full eight beats in New England" (Parkes). "Forward again and ..." is Q10. |
+| `pass_thru` | `who` | 4 | 9; 4 (4) | Spelled "through" in the books, "thru" in some syllabi; dialect handles spelling. |
+| `chain` | `who`, `where`, `fraction` (`half` across, `full` over and back), `four`, `courtesy` (`normal`, `powerTurn`) | 8; over and back 16 | 8; 8 (8), 16 (1) | "Ladies chain", "four ladies chain", "the same two ladies chain", "chain along the line". `powerTurn` is Fuerst's "power turn", a courtesy turn with an extra half. |
+| `star` | `who`, `hand`, `fraction`, `size` | 4 dancers: once 8, ¾ 6 | 8; 8 (9), 6 (1), 4 (1) | |
+| `balance` | `who`, `whom`, `where` (`inPlace`, `wave`, `ring`) | 4 | 7; 4 (6) | Standalone balances, including in waves and rings. Before a swing it is the swing's `balance` flag. |
+| `dosido` | `who`, `whom`, `turns`, `shoulder` | 8 | 7; 8 (5) | Includes 1½ and "once around and a little bit more" into a wave. "See saw" is an alias for `shoulder: left` (§7.2). |
+| `separate` | `who`, `around`, `into` (`line`, `middle`, `home`) | 8 | 5 | Variants in the sources: "squeeze in between the sides", "stop behind this one", "go between the sides back into the middle". |
+| `right_and_left_thru` | `who`, `where`, `fullTurn` | 8; with a full courtesy turn 12 | 4; 8 (3), 12 (1) | "With the sides", "the other way (across the other corner)". |
+| `lead` | `who`, `direction` | 4 | 3 | "Lead to the right" before a circle or split. |
+| `face` | `who`, `direction` | 0 | 3 | "Face the sides", "face to the right"; a facing change with no travel. |
+| `pass_by` | `who`, `whom`, `shoulder` | 2 | 2; 2 (3) | "Pass corner by right shoulder". |
+| `pull_by` | `who`, `whom`, `hand` | 2 | 2; 2 (1) | |
+| `hey` | `who`, `where` (`alongTheLine`, `inTheCenter`), `shoulder` (first pass) | 16 | 2; 16 (2) | Hey for four. |
+| `turn_alone` | `who` | 4 | 2; 4 (1) | An about-face on the spot (after Parkes's glossary). CALLERLAB's U-Turn Back and Backtrack are aliases. |
+| `shoulder_round` | `who`, `whom`, `shoulder`, `turns` | 8 | 1; none stated | "Gypsy" is an alias. ⚠ Default 8 is phrase-filling; the brief's reading of Hey 'Round the Corner gives 6 (Q11). |
+
+Single uses in the held squares that stay `custom` lines unless more
+evidence appears: "stand back to back", "cross the set", "move to the
+right-hand lady", "split the sides", and Shadrack's Square's "move up". "Pass
+partner, swing the next" is two lines, `pass_by` and `swing`.
+
+### 7.2 Borrowed club calls
+
+CALLERLAB Mainstream (2026) calls not already covered by §7.1, plus the Plus
+and Advanced calls that §7.3 found in traditional or contra sources. Default
+beats are CALLERLAB's (reprinted with permission of CALLERLAB; "SS" means from
+a static square). Where a held square gives a different traditional count,
+the notes show it and `goodBeats` includes it. The program column is the
+glossary label (§5.2).
+
+| ID | Parameters | Default beats | Program | Notes |
+| --- | --- | --- | --- | --- |
+| `bend_the_line` | `who` | line of 4: 4, of 8: 6 | Mainstream | |
+| `box_the_gnat` | `who` | 4 | Mainstream | Held squares: 4 (2 lines). |
+| `california_twirl` | `who` | 4 | Mainstream | |
+| `cast_off_three_quarters` | `who` | 6 | Mainstream | |
+| `centers_in` | none | 2 | Mainstream | |
+| `circulate` | `who`, `variant` | 4 | Mainstream | |
+| `courtesy_turn` | `who` | 4 | Mainstream | |
+| `dive_thru` | `who` | 6 | Mainstream | Diving couple 2, arching couple 6. |
+| `double_pass_thru` | `who` | 4 | Mainstream | |
+| `extend` | `who` | 2 | Mainstream | |
+| `ferris_wheel` | `who` | 6 | Mainstream | |
+| `first_couple_go` | `direction` | 6 | Mainstream | |
+| `flutterwheel` | `who`, `reverse` | 8; SS heads or sides 10, SS all 12 | Mainstream | |
+| `fold` | `who`, `variant` | fold 2, cross fold 4 | Mainstream | |
+| `grand_square` | none | 32 | Mainstream | |
+| `half_sashay` | `who`, `variant` (`halfSashay`, `rollaway`, `ladiesInMenSashay`) | 4 | Mainstream | |
+| `hinge` | `who`, `variant`, `hand` | single 2, couples 3 | Mainstream | |
+| `alamo_style` | none | 4 | Mainstream | |
+| `step_to_a_wave` | `who`, `hand` | 2 | Mainstream | Held squares form waves with no separate beats. |
+| `dosado_to_a_wave` | `who` | 6 | Mainstream | |
+| `pass_the_ocean` | `who` | 4 | Mainstream | |
+| `recycle` | `who` | 4 | Mainstream | |
+| `right_and_left_grand` | `variant` (`grand`, `weaveTheRing`, `wrongWayGrand`) | 10 | Mainstream | |
+| `run` | `who`, `variant`, `direction` | run 4, cross run 6 | Mainstream | |
+| `scoot_back` | `who` | 6 | Mainstream | |
+| `single_circle_to_a_wave` | `who` | 4 | Mainstream | |
+| `slide_thru` | `who` | 4 | Mainstream | |
+| `spin_the_top` | `who`, `hand` | 8 | Mainstream | |
+| `split_two` | `who` | 2 | Mainstream | |
+| `square_thru` | `who`, `hand`, `count` | 1: 2, 2: 5, 3: 7–8, 4: 10 | Mainstream | Held squares: square through 2 in 4 (Lavender Moon). `goodBeats` includes the traditional count. |
+| `star_thru` | `who` | 4 | Mainstream | |
+| `sweep_a_quarter` | `who` | two couples 2, four couples 4 | Mainstream | |
+| `swing_thru` | `who`, `hand` | 6 | Mainstream | |
+| `tag_the_line` | `who`, `fraction`, `direction` | full 6, ¾ 5, ½ 4, ¼ 3 | Mainstream | |
+| `touch_a_quarter` | `who`, `hand` | 2 | Mainstream | |
+| `trade` | `who`, `variant` | couples 6–8; named 3–4; partner 4 | Mainstream | |
+| `trade_by` | none | 4 | Mainstream | |
+| `veer` | `who`, `direction` | 2 | Mainstream | |
+| `wheel_and_deal` | `who` | 4 | Mainstream | |
+| `wheel_around` | `who`, `reverse` | 4 | Mainstream | |
+| `zoom` | `who` | 4 | Mainstream | Southern Nights dances three zooms in 16 beats and says so. |
+| `circle_to_a_line` | `who` | 8 | Plus | "Break to a line" is an alias; it is a basic move in traditional sources. |
+| `thar` | `variant` | ½ arm turn to thar: 2 | Plus | Seen only in a caller's break. |
+| `shoot_the_star` | `fullAround` | 4; full around 6 | Plus | Seen only in the same break. |
+| `do_paso` | none | 12 | Plus | The Caller's Box glossary places it in early western square breaks, and Caller's Box dances use it ([callersbox.md](../research/callersbox.md)). |
+| `pass_the_sea` | `who` | 6 | Plus | ⚠ Evidence is thin: an entry in the Caller's Box glossary index (§7.3). |
+| `trade_the_wave` | `who` | 6 | Plus | The contra taxonomy has it (v39), and The Caller's Box writes it. |
+| `dixie_style_to_a_wave` | `who` | 6; SS all 8 | Plus | Caller's Box dances use it ([callersbox.md](../research/callersbox.md)). |
+| `cross_trail_thru` | `who`, `variant` (`traditional`, `callerlab`) | 6 | Advanced | ⚠ The Caller's Box glossary says the traditional form (pass, then cross over toward the corner) came from 1950s squares and that CALLERLAB later redefined it. Contras by John Coffman use it, and the contra taxonomy has `cross_trails`. Default `traditional`; `goodBeats` lists a wide spread because no source gives a traditional count. |
+
+CALLERLAB Mainstream calls that §7.1 already covers (Swing, Promenade,
+Allemande and Arm Turns, Circle, Forward and Back, Pass Thru, Ladies Chain,
+Star, Balance, Dosado, Separate, Right and Left Thru, Lead Right, U-Turn Back,
+Backtrack) take their traditional entries, with the CALLERLAB name as an alias
+where it differs. The Plus call See Saw is the `dosido` alias noted in §7.1,
+with the label "Plus" on that alias in the glossary.
+
+### 7.3 Plus, Advanced and Challenge calls in traditional sources
+
+On 20 November 2026 the maintainer expected that some Plus, Advanced and
+Challenge calls "still show up in trad squares or contra". We checked the held
+squares, this repository's contra taxonomy and Caller's Box research notes,
+and these online sources (Appendix B): the Caller's Box glossary and two of
+its dances, Mary McNab Dart's *Contra Dance Choreography* (its own Appendix
+B), Colin Hume's notes on modern western squares, Wikipedia's contra
+choreography and traditional square articles, the dances of Cary Ravitz,
+Robert Luecking and John Coffman, Paul Balliet's glossary, and the "Honeycomb
+Contra Figures" page. Parts of some long pages could not be read in full, so a
+call missing below may still be used somewhere.
+
+| Call | Program | Where it was found | In the registry |
 | --- | --- | --- | --- |
-| `arm_turn` | `who`, `hand`, `fraction` | ½: 4, ¾: 4–6, full: 6–8 | |
-| `allemande` | `who`, `hand`, `fraction` | ½: 4–6, ¾: 6–8, full: 8 | "Allemande Left" and "Left Allemande" are aliases with `hand=left`. ⚠ Separate from `arm_turn` because callers treat it as a named call with a corner default (Q8). |
-| `bend_the_line` | `who` | line of 4: 4, line of 8: 6 | |
-| `box_the_gnat` | `who` | 4 | |
-| `california_twirl` | `who` | 4 | |
-| `cast_off_three_quarters` | `who` | 6 | |
-| `centers_in` | none | 2 | |
-| `circle` | `who`, `direction`, `fraction`, `size` | 8 dancers: full 16, ¾ 12, ½ 8, ¼ 4; 4 dancers: 8 / 6 / 4 / 2; 2 dancers: 7 / 5 / 4 / 2 | `size=2` is CALLERLAB's "single circle". |
-| `circulate` | `who`, `variant` (`couples`, `named`, `all8`, `singleFile`, `box`, `split`) | 4 | 2 when the circulate is a pass thru. |
-| `courtesy_turn` | `who` | 4 | |
-| `dive_thru` | `who` | diving couple: 2, arching couple: 6 | ⚠ Default 6, the time until both couples finish. |
-| `dosado` | `who` | SS across the set: 8; otherwise 6 | |
-| `double_pass_thru` | `who` | 4 | |
-| `extend` | `who` | 2 | |
-| `ferris_wheel` | `who` | 6 | |
-| `first_couple_go` | `direction` | 6 | "First couple go left, next go right"; `direction` is the first couple's. |
-| `flutterwheel` | `who`, `reverse` | facing couples: 8, SS heads or sides: 10, SS all: 12 | |
-| `fold` | `who`, `variant` (`fold`, `crossFold`) | 2 / 4 | |
-| `forward_and_back` | `who` | lines close together: 4, otherwise 8 | A CALLERLAB descriptive term with a timing entry. |
-| `grand_square` | none | 32 | |
-| `half_sashay` | `who`, `variant` (`halfSashay`, `rollaway`, `ladiesInMenSashay`) | 4 | |
-| `hinge` | `who`, `variant` (`single`, `couples`), `hand` | single: 2, couples: 3 | |
-| `ladies_chain` | `who`, `fraction` (`half`, `threeQuarters`), `fourLadies` | two ladies from facing couples: 6, SS: 8; four ladies from SS: 8, ¾: 10 | "Across" is stored as `half`. |
-| `chain_down_the_line` | none | 8 | |
-| `lead` | `who`, `direction` | 4 | Lead Right / Lead Left. |
-| `alamo_style` | none | 4 | Ocean Wave family. |
-| `balance` | `who` | 4 | Ocean Wave family. |
-| `step_to_a_wave` | `who`, `hand` | 2 | |
-| `dosado_to_a_wave` | `who` | 6 | |
-| `single_circle_to_a_wave` | `who` | 4 | |
-| `pass_the_ocean` | `who` | 4 | |
-| `pass_thru` | `who` | facing dancers: 2, SS heads or sides: 4 | |
-| `promenade` | `who`, `fraction`, `variant` (`couples`, `singleFile`, `star`, `wrongWay`) | couples or wrong way, SS: full 16, ¾ 12, ½ 8, ¼ 4; single file, 4 inside: 8; star: full 12, ¾ 9, ½ 6, ¼ 3, full with back out at home 16 | ⚠ "Promenade home" in a singing call is usually more than ¼; the default follows the stored fraction. |
-| `recycle` | `who`, `from` | 4 | From a wave. From facing couples it is A-2, 6 beats (§5.2). |
-| `right_and_left_grand` | `variant` (`grand`, `weaveTheRing`, `wrongWayGrand`) | 10 | |
-| `right_and_left_thru` | `who` | facing couples or ocean wave: 6, SS heads or sides: 8 | |
-| `run` | `who`, `variant` (`run`, `crossRun`), `direction` | 4 / 6 | |
-| `scoot_back` | `who` | 6 | |
-| `separate` | `who`, `around`, `into` | the table times "Pass Thru, Separate": around 1 to a line 8, around 2 10; into the middle 8 / 12 | ⚠ The default should probably subtract the Pass Thru's 2, since the Pass Thru is its own line. |
-| `slide_thru` | `who` | 4 | |
-| `spin_the_top` | `who`, `hand` | 8 | |
-| `split_two` | `who` | 2 | Timing is "2 plus the next call"; the next call is its own line (§5.6). |
-| `square_thru` | `who`, `hand`, `count`, `onHand`, `call` | 1: 2, 2: 5, 3: 7–8, 4: 10; SS odd counts add 2 | `count` defaults to 4. `onHand` and `call` are for "on the third hand (anything)" (§5.6). |
-| `star` | `who`, `hand`, `fraction`, `size` | 4 dancers: full 8, ¾ 6, ½ 4, ¼ 2; 8 dancers: 16 / 12 / 8 / 4 | |
-| `star_thru` | `who` | 4 | |
-| `sweep_a_quarter` | `who` | two couples: 2, four couples: 4 | |
-| `swing` | `who` | 4, no upper limit | "Variable, at least 4". |
-| `swing_thru` | `who`, `hand` | 6 | |
-| `tag_the_line` | `who`, `fraction`, `direction` | full 6, ¾ 5, ½ 4, ¼ 3 | |
-| `touch_a_quarter` | `who`, `hand` | 2 | |
-| `trade` | `who`, `variant` (`couples`, `named`, `partner`, `handTrade`) | couples: 6 from a two-faced line, 8 from a one-faced line; named, in a mini-wave: 3, in a couple: 4; partner: 4 | `handTrade` is CALLERLAB's Right/Left Hand Trade, with `hand`. |
-| `trade_by` | none | 4 | |
-| `turn_back` | `who`, `variant` (`uTurnBack`, `backtrack`) | 2 | |
-| `veer` | `who`, `direction` | 2 | |
-| `wheel_and_deal` | `who` | 4 | |
-| `wheel_around` | `who`, `reverse` | 4 | |
-| `zoom` | `who` | 4 | |
+| Circle to a Line | Plus | Held squares ("break to a line") | `circle_to_a_line` |
+| Allemande Thar, Shoot the Star | Plus | One held square's break | `thar`, `shoot_the_star` |
+| Do Paso | Plus | Caller's Box glossary, as an early western square break; Caller's Box dances ([callersbox.md](../research/callersbox.md)) | `do_paso` |
+| See Saw | Plus | Coffman contras (e.g. "Aback", a see saw ¾ into a wave in 8) | `dosido` alias |
+| Pass the Sea | Plus | Caller's Box glossary index only | `pass_the_sea` ⚠ |
+| Trade the Wave | Plus | Contra taxonomy (v39); The Caller's Box writes it | `trade_the_wave` |
+| Dixie Style to a Wave | Plus | Caller's Box dances | `dixie_style_to_a_wave` |
+| Cross Trail Thru | Advanced | Caller's Box glossary (1950s squares); about five Coffman contras | `cross_trail_thru` ⚠ |
 
-### 7.2 Plus (2026 edition)
+No Challenge call was found. These Plus and Advanced calls were looked for
+and not found in any source read: Teacup Chain, Relay the Deucey, Spin Chain
+Thru, Load the Boat, Dixie Grand, Fan the Top, Track Two, Peel Off, Ping
+Pong Circulate, Linear Cycle, Chase Right, Coordinate, Explode the Wave,
+Grand Swing Thru, Partner Tag, Partner Hinge, Quarter Thru, Turn Thru,
+Acey Deucey and the diamond calls. They stay out of scope (§5.2). Walk
+Around the Corner and Eight Chain Thru (both Plus) were not looked for and
+are worth checking. The contra taxonomy's `zig_zag` shares only its name
+with the Advanced call.
 
-Listed in CALLERLAB's suggested teaching order, with the four Quarter Thru
-entries (14a to 14d) in one row. Timing is the Plus table's.
-
-| ID | Parameters | Default beats | Notes |
-| --- | --- | --- | --- |
-| `acey_deucey` | none | 4 | |
-| `cloverleaf` | `who` | 8 active dancers: 8, 4 active: 6 | |
-| `ping_pong_circulate` | none | 6 | |
-| `turn_thru` | `who`, `hand` | 4 | |
-| `pass_to_the_center` | none | new centers: 2, new ends: 6 | ⚠ Default 6. |
-| `spin_chain_thru` | `who`, `hand` | ends: 3, centers: 16 | ⚠ Default 16. |
-| `scoot_and_dodge` | none | 8 | |
-| `pair_off` | `who` | 2, SS 4 | |
-| `teacup_chain` | `who` | 32 | |
-| `dixie_style_to_a_wave` | `who` | facing couples or tandems: 6, SS all: 8 | |
-| `walk_around_the_corner` | none | 8 | |
-| `see_saw` | `who` | 8 | |
-| `load_the_boat` | none | 12 | |
-| `quarter_thru` | `who`, `hand`, `variant` (`quarter`, `threeQuarter`, `grandQuarter`, `grandThreeQuarter`) | 6 / 8 / 6 / 8 | |
-| `walk_and_dodge` | `who` | 4 | |
-| `spin_chain_the_gears` | `hand` | 24 | |
-| `grand_swing_thru` | `hand` | 6 | |
-| `triple_scoot` | none | 6 | |
-| `track_two` | none | 8 | |
-| `and_roll` | `call` | 2 after the call | §5.6. |
-| `diamond_circulate` | none | 3 | |
-| `pass_the_sea` | `who` | 6 | |
-| `flip_the_diamond` | none | 3 | |
-| `follow_your_neighbor` | `who` | 6 | "And Spread" is `and_spread` around it. |
-| `cut_the_diamond` | none | 6 | |
-| `thar` | `variant` (`allemandeThar`, `allemandeLeftToThar`, `wrongWayThar`) | ½ arm turn to thar: 2; SS allemande left, forward two to thar: 12 | |
-| `slip_the_clutch` | none | 2 | |
-| `triple_trade` | none | 4 | |
-| `shoot_the_star` | `fullAround` | 4, full around: 6 | |
-| `peel_off` | `who` | 4 | |
-| `coordinate` | `from` | 8 | Advanced lifts a Plus restriction on the start (§5.2). |
-| `and_spread` | `call` | 2 after the call | §5.6. |
-| `fan_the_top` | `who` | 4 | |
-| `relay_the_deucey` | `hand` | 20 | |
-| `partner_tag` | `who` | 3 | |
-| `dixie_grand` | none | 6 | |
-| `explode_the_wave` | none | 6 | |
-| `crossfire` | none | 6 | |
-| `explode_and` | `call`, `from` | 2 plus the call | §5.6. From waves only at Plus; from lines it is A-1 (§5.2). |
-| `partner_hinge` | `who`, `hand` | 2 | |
-| `spin_chain_and_exchange_the_gears` | `hand` | 26 | |
-| `linear_cycle` | `from` | 8–10 | From waves only at Plus; Advanced lifts the restriction (§5.2). |
-| `peel_the_top` | none | 6 | |
-| `circle_to_a_line` | `who` | 8 | |
-| `chase_right` | `who` | 6 | |
-| `clover_and` | `call` | the greater of 4 and the call | §5.6. |
-| `trade_the_wave` | none | 6 | |
-| `eight_chain_thru` | `count` | eight hands: 20, four: 10; each odd part 2, each even part 3 | `count` 1–8. |
-| `all_eight_spin_the_top` | none | 10 | |
-| `do_paso` | none | 12 | |
-
-### 7.3 Advanced (A-1 and A-2), stretch
-
-The August 2026 Advanced definitions have 33 top-level table-of-contents
-entries for A-1 and 26 for A-2, several of them families. The Advanced timing
-table times nearly every call; concepts such as Any Hand and As Couples are
-marked "not timed". Beyond Mainstream and Plus, Advanced needs:
-
-- **Concepts that wrap a call:** "As Couples", "Any Hand", "All 4 Couples"
-  and "All 8", using the `call` parameter of §5.6.
-- **More call-taking calls:** "(anything) and Cross", "Cross Clover and
-  (anything)", and "Transfer and (anything)", whose timing overlaps the
-  nested call (§5.6).
-- **Programs that depend on the start** (§5.2): Recycle from facing
-  couples, and Explode and (anything), Coordinate and Linear Cycle from
-  starts that Plus does not allow, are Mainstream and Plus calls that become
-  Advanced. Their `from` values for Advanced are added then.
-- **A name clash:** A-2's "Swing" (in Slip / Slide / Swing / Slither, 3
-  beats) is a different call from the Mainstream Swing. It becomes a
-  `variant` of a `slip_slide_swing_slither` family, never `swing`.
-- **New selectors and formations:** beaus and belles (§6.2), and the
-  hourglass.
-
-The registry rows for A-1 and A-2 are written in the Advanced PR (§9), not
-here.
-
-### 7.4 Challenge (C-1 and above), deferred
-
-The C-1, C-2 and C-3A definitions give **no timing**, and much of each list is
-concepts and meta-calls that change other calls: Tandem, Siamese, Phantom,
-Concentric, Stretch, Magic, "(main call) But (anything)", "Substitute", and
-fractions of calls. Representing these faithfully needs a concept grammar
-(concepts that stack, replace parts of a call, or apply to imaginary
-dancers), and stacking would exceed the two-level depth of §5.6. That is a
-design of its own. §9 proposes a cheap first step and a later ADR.
+The same sources show Mainstream calls in contras (Box the Gnat, Star Thru,
+Square Thru, Flutterwheel, Circulate, Spin the Top, Swing Thru), which §7.2
+already covers. They also show traditional square calls outside CALLERLAB that
+no held square uses: Allemande X, Catch All Eight, Mountain-style Do-si-do,
+grand ladies and gents chains, Birdie in the Cage and other Southern figures.
+Those wait for a held square that uses them (§11).
 
 ## 8. Dance structure, entry, glossary and import
 
 ### 8.1 What a square dance record is
 
-A square dance in the app is one of three kinds, held in a new
-`squareKind` field (only meaningful when `form == square`):
+A square dance has one of three kinds, held in a new `squareKind` field
+(only meaningful when `form == square`):
 
 | Kind | What it holds | Phrasing |
 | --- | --- | --- |
-| `singingCall` | The 64-beat figure that is danced four times | Phrased: `phraseStructure` is `1*32*2`, one 64-beat phrase |
-| `break` | An opener, middle break or closer | Phrased: `1*32*2` by default |
-| `patter` | A patter sequence or module (get-in, get-out, zero, equivalent) | Free form by default |
+| `figure` | A phrased figure that is danced several times through | Phrased |
+| `break` | An intro, middle break or ending | Phrased by default |
+| `patter` | A free-form sequence or module | Free form by default |
 
-A new square dance gets the `phraseStructure` shown, not the empty default,
-which means the contra structure of four 16-beat phrases. With one 64-beat
-phrase the editor warns when the calls do not total 64 beats. Today every
-line of a one-phrase dance would be labelled "A1"; phase 1 hides section
-labels for square dances, since "A1" means nothing to a square caller.
+A singing call is a `figure` with a new `singing` flag; its song goes in
+the existing `tunes` field.
+
+**Phrasing.** A phrased square uses the existing `phraseStructure` and its
+labels, exactly as contra does. The empty default gives four 16-beat
+phrases labelled A1 to B2, which fits 14 of the held squares; `6*8*2` gives
+the 96-beat A1 to C2 that Parkes and Fuerst print. The editor shows the
+labels and, with the new per-phrase check (§5.3), warns when a phrase does
+not add up.
 
 **The free-form toggle** (maintainer requirement, §1.1). Every square dance
 has a `freeForm` flag that the editor shows as a toggle. It defaults on for
 `patter` and off for the other kinds, and the caller can change it. When it
-is on:
+is on, the editor does not derive section labels or check phrase lengths,
+shows only a total beat count, and keeps but ignores `phraseStructure`.
 
-- the editor does not derive section labels or check phrase lengths,
-- the dance shows only a total beat count,
-- `phraseStructure` is kept but ignored.
+**Repeat order.** A new optional field, `order`, records how the figure is
+repeated:
 
-**Singing-call details.**
+- `HHSS`: twice with the heads leading, twice with the sides;
+- `HSHS`: alternating;
+- `allFour`: four times through with everyone active;
+- `other`, with text;
+- `unstated`, the default.
 
-- The **heads/sides order** of the four figures (`HHSS`, `HSHS`, or other)
-  is a new optional field. Caller's Companion's `SubType` (for example
-  "Keeper, H S H S") already carries it.
-- **Keeper or mixer** uses the existing `mixer` flag, which the importer
-  already sets from the same `SubType`.
-- The **record or tune** uses the existing `tunes` field.
-- **Breaks are their own records** (`squareKind=break`), as the maintainer
-  decided (Q6). A singing call and its usual break are linked with the
-  existing `DanceLink`. The maintainer would also like the editor to put a
-  break into another dance, if that is doable. Phase 3 proposes doing this
-  by **copying** the break's calls into the other dance at the cursor, as
-  ordinary lines, so no new structure is needed. Later edits to the break
-  do not change the copy. A live reference that follows the break's edits
-  would be a new structural construct and is left for later.
+Caller's Companion's `SubType` (for example "Keeper, H S H S") already
+carries the order, and the importer can read it.
 
-`progression` is unused for squares, and contra-only formation choices do
-not appear in the square editor.
+**New partner.** Most traditional figures change partners, and the source
+says who the new partner is. A new optional field, `newPartner`, records
+it: `none`,
+`corner`, `rightHandRole2`, `opposite`, `other` (with text), or
+`unstated`. The existing `mixer` flag stays as the yes/no class that
+Caller's Companion's `SubType` already sets. The contra `progression` field
+is unused for squares.
+
+**Breaks.** Breaks are their own records (`squareKind=break`), as the
+maintainer decided (Q6). A figure and its usual break are linked with the
+existing `DanceLink`. The editor can copy a break's calls into another dance
+at the cursor, as ordinary lines, so no new structure is needed; later edits
+to the break do not change the copy. A live reference that follows the
+break's edits is left for later. The order of intro, figures, break and
+ending around a figure (which the syllabi describe and the books do not) goes
+in the dance's notes.
 
 ### 8.2 Entering calls
 
 The figure editor offers the square registry when the dance's form is
-`square`. Each line is one call, with its parameters and beats as in contra.
-Lines that the registry cannot express are `custom`, with free text and
-beats. Callers' text shorthand ("ST4", "RLT", "PT") gets a square shorthand
-table, kept separate from contra's.
+`square`. Each line is one call, with its parameters and beats, as in
+contra. Lines the registry cannot express are `custom`, with free text and
+beats. A square shorthand table, kept separate from contra's, is a typing
+aid only.
 
 ### 8.3 Glossary dance-form selector
 
 The glossary screen gains a **dance-form selector** (maintainer requirement,
-§1.1). It lists every `DanceForm` that has a shipped taxonomy, in
-`DanceForm` order. Today that is Contra and Square; ECD appears once its
-taxonomy ships. The selector is a segmented control while there are up to
-three forms, and a dropdown beyond that. It is never a two-way switch.
+§1.1). It lists every `DanceForm` that has a shipped taxonomy, in `DanceForm`
+order. After phase 1 that is Contra and Square; ECD appears once its taxonomy
+ships. The selector is a segmented control while there are up to three forms,
+and a dropdown beyond that. It is never a two-way switch.
 
 - The selected form is remembered as a new per-device setting, classified in
   the privacy registry in the same PR.
-- The square glossary groups calls by program under the chosen edition, and
-  shows each call's own-words definition, parameters, default timing and
-  usual formations.
+- The square glossary lists the traditional core first, then the borrowed
+  club calls with their CALLERLAB program label. Each entry shows its
+  own-words definition, parameters and default beats.
 - Figures of your own already carry a `form` (§3). The glossary shows only
   those for the selected form, and a new one takes the selected form.
 
 ### 8.4 Import and existing square dances
 
+Traditional sources describe figures in prose with beat counts in
+parentheses, as Parkes does ("Head couples forward and back (8 beats)") or
+with the count first, as American Country Dances On-Line does ("(4) H/S
+ladies cross the set"). The square line parser reads that prose, as the
+contra importers already read Caller's Box and ContraDB lines. It does not
+expect callers' shorthand.
+
+- **The held squares** (§4.1) are the first import target and the acceptance
+  set for phase 3: each should import with every line structured except the
+  single-use calls listed in §7.1.
 - **Caller's Compendium archives and shares** carry the new fields, with the
   same additive rules the figure codec already follows.
 - **Caller's Companion** is the only current source that marks dances as
-  square. From phase 3, its square dances are parsed with a square line
-  parser. Lines it cannot read stay `custom` with their text, as today.
-- **Dances already imported as square** hold contra moves or custom text
-  (§3). Most of their structured lines kept no source text, so the existing
+  square. From phase 3, its square dances are parsed with the square parser.
+- **The Caller's Box** may have some square dances: the maintainer believes it
+  does (Q7), and its notation supports that. Its glossary defines square
+  corners `C1`–`C3`, and a corpus count over a local mirror found 55 declined
+  grand right and left lines using `C1`–`C7` codes
+  ([callersbox.md](../research/callersbox.md)). A title search found none of
+  the held *Dizzy Dances* squares there, though it did find a *Dizzy Dances*
+  contra. So phase 3 starts with a search that confirms whether Caller's Box
+  has squares at all, how it marks them and how their figure lines read. Its
+  formation list includes "Grid Contra/Square"
+  ([callersbox.md](../research/callersbox.md)), but that may mean
+  grid-formation contras, so the search must not assume it is the marker.
+- **Dances already imported as square** hold contra moves or custom text (§3).
+  Most of their structured lines kept no source text, so the existing
   "re-parse custom figures" flow cannot help: it only touches import-gap
   custom lines. The plan:
   - **Phase 1** leaves them alone. Their unprefixed IDs resolve through the
     contra taxonomy (§5.1), so they display exactly as they do today.
-  - **Phase 3** adds a migration that the caller runs per dance or for all
-    of them. It maps contra moves whose meaning is clear (`swing`,
-    `circle`, `promenade`, `star`, `allemande`, `courtesy_turn`, ...) to the
-    square calls, re-reads custom lines with the square parser, and leaves
-    anything else as it is. The caller can also re-import from the original
+  - **Phase 3** adds a migration that the caller runs per dance or for all of
+    them. It maps contra moves whose meaning is clear (`swing`, `circle`,
+    `promenade`, `star`, `allemande`, `chain`, `hey`, `shoulder_round`, ...)
+    to the square calls, re-reads custom lines with the square parser, and
+    leaves anything else as it is. It also maps the contra selectors that
+    square imports may hold: since taxonomy v38 the maintainer's ruling
+    (#1975) maps Caller's Box `C1`, `C2` and `C3` to `firstCorners`,
+    `opposites` and `thirdCorners`, which become `corners`, `opposites`, and
+    `rightHandRole2` where the third corner is a gent's right-hand lady. §6.2
+    has no selector for a lady's third corner (her left-hand gent), so those
+    lines keep it in a note. The caller can also re-import from the original
     file, through the existing re-import flow.
-- **The Caller's Box** may have some square dances: the maintainer believes
-  it does (Q7). Its importer today treats every dance as contra. Phase 3
-  starts with a survey that confirms whether it has squares, how it marks
-  them and how their figure lines read, then routes those dances to the
-  square parser. Its formation list
-  includes "Grid Contra/Square" ([callersbox.md](../research/callersbox.md)),
-  but that may mean grid-formation contras rather than modern western
-  squares, so the survey must not assume it is the marker.
-- Other square sources (for example the output of Sd, or plain-text
-  sequences) can follow if callers ask for them.
 
 ## 9. Delivery phases
 
-1. **Framework and Mainstream.** Taxonomy resolution from the dance (§5.1),
-   the square taxonomy with the §7.1 registry and own-words definitions,
-   multi-parameter beats, edition data, `squareKind`, `freeForm`,
-   `FormationShape.square`, the glossary selector, and tests.
-2. **Plus.** The §7.2 registry, and the `call` parameter (§5.6) with all the
-   surfaces it touches.
-3. **Entry and import.** Square editor behavior, shorthand, inserting a
-   copy of a break (§8.1), the square parser for Caller's Companion and
-   The Caller's Box, and the migration of earlier square imports.
-4. **Advanced (stretch).** Judgment: **moderate, not trivial.** Phase 2
-   provides the main mechanism, but Advanced adds parameter-dependent
-   programs, overlapping timing, the Swing name clash and new formations
-   (§7.3), plus own-words definitions for about 60 entries. Recommendation:
-   decide after phase 2, when the cost of the call-taking construct is
-   known.
-5. **Challenge (deferred).** Judgment: **not cheap.** A cheap first step is
-   possible: list C-1 to C-3A calls in the glossary by name and program, and
-   let the editor record them with `unspecified` beats and free-text
-   arguments. A structured concept grammar needs a separate ADR.
+1. **Framework and traditional core.** Taxonomy resolution from the dance
+   (§5.1), the square taxonomy with the §7.1 registry and own-words
+   definitions, multi-parameter beats, `squareKind`, `freeForm`, the repeat
+   order and new-partner fields, the `singing` flag, `FormationShape.square`,
+   the per-phrase beat check (§5.3), role terms per dance form in the dialect
+   (§5.5), the glossary selector, and tests.
+2. **Borrowed club calls.** The §7.2 registry with CALLERLAB program labels,
+   including the Plus and Advanced calls found in §7.3.
+3. **Entry and import.** Square editor behavior, shorthand, copying a break
+   into another dance, the square prose parser, import of the held squares,
+   Caller's Companion squares, the Caller's Box search, and the migration of
+   earlier square imports.
+
+Out of scope, from the first draft: Plus, Advanced and Challenge calls that
+no traditional or contra source was found to use (§7.3), edition-versioned
+programs, a derived required program, and calls that take another call as an
+argument.
 
 ## 10. Open questions
 
 **Q1. CALLERLAB notice in the app.** Should `THIRD_PARTY_NOTICES.md` carry
-"Reprinted with permission of CALLERLAB" for the shipped timing data? It
-costs one line. *Recommendation: yes.*
+"Reprinted with permission of CALLERLAB" for the borrowed calls' timing
+data? It costs one line. *Recommendation: yes.*
 
-**Q2. Edition default.** Default to the 2026 edition, or ask the caller
-once? Should the setting sync between devices or stay per device?
-*Recommendation: default to 2026; sync it, since it is a preference about
-the caller's vocabulary.*
+**Q2.** *Withdrawn (20 November 2026).* It asked which CALLERLAB edition the
+app should default to. Program labels now use only the 2026 edition (§5.2).
 
-**Q3. Required program display.** Where should a dance's derived required
-program (§5.2) appear: on the dance card, in search filters, or both?
+**Q3.** *Withdrawn (20 November 2026).* It asked where a dance's derived
+required program should appear. There is no derived program for traditional
+squares (§5.2).
 
-**Q4. Formation checkpoints.** Should a call line be able to record a
-formation the caller states ("from a zero box", "normal lines"), as an
-optional, never-computed parameter? Useful for modules, but not needed for
-phase 1. *Recommendation: defer.*
+**Q4. Stated positions.** Should a call line be able to record a formation
+or position the source states ("end in lines of four at the sides", "end
+facing the nearest side couple"), as an optional, never-computed parameter?
+The held squares state these often. *Recommendation: defer; keep them in the
+line's note for now.*
 
 **Q5. ID prefix.** *Answered by the maintainer (15 November 2026): the
 `sq_` prefix is accepted.* Still open: should ADR-006 adopt `ecd_` to
@@ -775,144 +800,198 @@ another dance; it is acceptable if that is not doable.* §8.1 proposes a
 copy-in.
 
 **Q7. Import sources.** *The maintainer believes The Caller's Box has some
-squares (15 November 2026).* §8.4 adds it to phase 3, which first surveys
-Caller's Box to confirm it.
+squares (15 November 2026).* Its square-corner notation supports that
+(§8.4). §8.4 adds it to phase 3, which first searches Caller's Box to
+confirm it.
 
-**Q8. Allemande.** Keep `allemande` separate from `arm_turn` (§7.1), or make
-Allemande Left an alias of a left arm turn with the corner?
+**Q8. Allemande.** §7.1 proposes one `hand_turn` call, with "Allemande Left"
+and "Allemande Right" as aliases that pin the hand, in place of the first
+draft's separate `allemande` and `arm_turn`. Parkes writes "allemande left
+corner" and "turn partner by the left hand, once and a half" for the same
+kind of action, and every allemande line in the held squares names the
+person. Should a bare "allemande left" be read as the corner?
+*Recommendation: store `whom` as `unspecified`, as §5.7 requires, and have
+the glossary and display say that a bare allemande left usually means the
+corner.*
 
-**Q9. Square Thru from a static square.** Is Heads Square Thru 4 timed 10
-(only odd counts add 2, as §5.3 reads the table) or 12? The maintainer is
-not sure it is exactly one or the other (15 November 2026). *Proposed: the
-default stays 10, and `goodBeats` for an even count from a static square
-covers 10 to 12, so neither count raises a warning.*
+**Q9.** *Withdrawn by the author (20 November 2026).* It asked whether
+Heads Square Thru 4 from a static square takes 10 or 12 beats. §5.3 proposes
+dropping the static-square adjustment, so a source states the count it
+means. Q9 reopens if that proposal is rejected.
+
+**Q10. "Forward again and ...".** Several held squares write a half forward
+and back that flows into the next action ("Forward again and swing the
+opposite (8)", "Forward again and pass through"). Is that one line, the
+next call with a note, or a `sequence` of a forward and the next call?
+*Recommendation: the next call with a note, keeping the source's one beat
+count.*
+
+**Q11. Gypsy timing.** Should a gypsy (shoulder round) default to 8 beats,
+like the other phrase-filling calls, or to 6? No held square states it.
+
+**Q12. Start offsets.** Should a `meanwhile` side be able to start part-way
+through, as in Interface Jig? One held square needs it. *Recommendation: no,
+until more dances do; keep offsets in notes.*
 
 ## 11. Consequences and revisit triggers
 
-**Becomes easier:** callers can store, search and print singing calls and
-patter with the same structure contra has, and the glossary becomes a
-reference for squares. Adding ECD later is a taxonomy plus data, with no
-change to the glossary selector.
+**Becomes easier:** callers can store, search and print traditional squares
+with the same structure contra has: phrase labels, beat counts, simultaneous
+actions and the contra-like vocabulary these squares share. The glossary
+becomes a reference for squares. Adding ECD later is a taxonomy plus data,
+with no change to the glossary selector.
 
 **Becomes harder, or costs:**
 
+- **Per-phrase check.** The phrase check in §5.3 is new editor and
+  validation work, not something contra has today.
 - **Taxonomy resolution.** About 60 files name `contraTaxonomy` (§3). Each
   one that can see a non-contra dance must resolve the taxonomy from the
   dance. Phase 1 adds a test that fails if an `sq_` figure is ever validated
   or rendered with the contra taxonomy.
-- **The `call` parameter** (§5.6) is new structure that the codec,
-  sanitizer, validation, renderer, search indexing, editor and sync must all
-  handle, with the same depth and size limits as containers.
-- **Dialect per form.** Role terms (boys/girls versus larks/robins) need to
-  differ by dance form. The dialect system has one set today.
-- **Schema and privacy.** `squareKind`, `freeForm` and the heads/sides order
-  are new persisted fields, and the glossary form and CALLERLAB edition are
-  new settings. Each needs a privacy-registry classification in the PR that
-  adds it.
-- **Glossary text.** Own-words definitions for about 100 Mainstream and Plus
-  calls are real writing work, and need review by someone who calls squares.
-- **Two editions.** Program membership must be kept for both editions until
-  callers stop using the legacy names.
+- **Dialect per form.** Role terms (gents/ladies versus larks/robins) need
+  to differ by dance form. The dialect system has one set today.
+- **Schema and privacy.** `squareKind`, `singing`, `freeForm`, the repeat
+  order and the new partner are new persisted fields, and the glossary form
+  is a new setting. Each needs a privacy-registry classification in the PR
+  that adds it.
+- **Glossary text.** Own-words definitions for about 70 calls (19 in §7.1,
+  49 in §7.2, and aliases) are real writing work, and need review by someone
+  who calls traditional squares.
+- **Overlap with contra.** Many traditional square calls look like contra
+  moves. Keeping them separate (§1.1) means two definitions of a hey or a
+  gypsy that must not drift into contradicting each other where the dances
+  really are the same.
 - **ADR-006.** If the prefix in §5.1 is accepted, ADR-006 should be revised
   to match before ECD is built.
 
-**Explicitly out of scope:** simulating dancer positions, checking that a
-sequence resolves, animations, and any code, data or text from Taminations.
+**Explicitly out of scope:** club (MWSD) calling beyond the borrowed calls in
+§7.2, simulating dancer positions, checking that a figure resolves,
+animations, and any code, data or text from Taminations.
 
 **Revisit when:**
 
-- CALLERLAB publishes another program change (add an edition, §5.2).
-- Callers ask for resolution checking or formation tracking (§5.4, Q4).
-- Work on Challenge starts (§9 phase 5).
+- Callers ask to store club patter or singing calls beyond the borrowed
+  calls, which would bring back edition-versioned programs, the rest of Plus
+  and above, and calls that take a call.
+- A traditional or contra source turns up another Plus, Advanced or
+  Challenge call (§7.3).
+- Callers ask for stated positions or offsets (Q4, Q12).
+- More held squares surface with calls §7.1 does not cover.
 - The ECD taxonomy ships, to confirm the glossary selector needed no change.
 
 ---
 
 ## Appendix A: worked examples
 
-These encodings illustrate the storage rules. They were written for this ADR
-and have not been checked as choreography (that the sequence flows or
-resolves). Please correct them freely.
+The source lines below are short quotations of the cited dances. The
+encodings are this ADR's.
 
-### A.1 A singing-call figure
+### A.1 Circle Three Quarters (Tony Parkes)
 
 ```text
-Heads square thru four; dosado; swing thru; boys run; ferris wheel;
-centers square thru three; swing the corner; promenade.
+A.1. Head couples forward and circle left in the center, three quarters around (8 beats)
+     Heads swing opposite, moving out to gent's place (8)
+A.2. Head couples lead to the right and circle four; head gents break to a line of four (8)
+     Forward and back (8)
+B.1. With the couple across, circle four to the left, three quarters around (8)
+     Swing the corner (8)
+B.2. Promenade to the gent's place (16)
+Sequence: Twice for heads, twice for sides.
 ```
 
 ```text
-squareKind=singingCall  freeForm=false  order=HHSS  phraseStructure=1*32*2
+squareKind=figure  freeForm=false  phraseStructure=""  order=HHSS  newPartner=corner
 
-sq_square_thru    who=heads  hand=right  count=4  fromStaticSquare=yes  beats=10
-sq_dosado         who=everyone  beats=6
-sq_swing_thru     who=everyone  hand=right  beats=6
-sq_run            who=role1s  variant=run  beats=4
-sq_ferris_wheel   who=everyone  beats=6
-sq_square_thru    who=centers  hand=right  count=3  beats=8
-sq_swing          who=corners  beats=8
-sq_promenade      who=everyone  fraction=full  variant=couples  beats=16
+A1  sq_circle            who=heads  direction=left  fraction=threeQuarters  size=4  beats=8
+    sq_swing             who=heads  whom=opposites  beats=8
+A2  sq_circle_to_a_line  who=heads  beats=8
+    sq_forward_and_back  who=everyone  beats=8
+B1  sq_circle            who=everyone  direction=left  fraction=threeQuarters  size=4  beats=8
+    sq_swing             who=everyone  whom=corners  beats=8
+B2  sq_promenade         who=everyone  variant=couples  destination=gentsPlace  beats=16
 ```
 
-- The first Square Thru is from a static square, but under §5.3's reading
-  an even count adds nothing, so it stays 10 (Q9).
-- Square Thru 3 is timed "7 or 8". Its default is 7; the caller set 8.
-- The swing is set to 8, above its minimum of 4. The figure totals 64 beats.
-  With the swing left at 4 the editor would warn that it is 4 beats short.
+- The A1 circle's "forward" and the A2 "lead to the right and circle four"
+  are kept in the lines' notes. "Break to a line" is the alias that reads as
+  `circle_to_a_line`.
+- The phrases total 16 each, so the per-phrase check (§5.3) gives no
+  warning.
+- Parkes gives a ¾ circle of four 8 beats. Under CALLERLAB's 6 this would
+  have warned; under §5.3 it is the default.
 
-### A.2 A patter get-out
-
-```text
-From a zero box: swing thru, boys run, bend the line, slide thru,
-left allemande.
-```
+### A.2 Synchromesh Square (Tony Parkes), B1
 
 ```text
-squareKind=patter  freeForm=true  (fromStaticSquare=no on every line)
-
-sq_swing_thru     who=everyone  hand=right  beats=6
-sq_run            who=role1s  variant=run  beats=4
-sq_bend_the_line  who=everyone  beats=4
-sq_slide_thru     who=everyone  beats=4
-sq_allemande      who=corners  hand=left  fraction=unspecified  beats=8
-```
-
-Free form is on, so the dance shows a total of 26 beats and no section
-labels. "From a zero box" stays in the dance's notes unless Q4 adds
-formation checkpoints.
-
-### A.3 A Plus call that takes a call
-
-```text
-Clover and Pass Thru
+B.1. Four gents (acting as two facing couples) pass through (4)
+     Gents turn right in single file and go four steps while ladies pass through (4)
+     Swing the one you meet (original corner) (8)
 ```
 
 ```text
-sq_clover_and  call=( sq_pass_thru who=centers beats=2 )  beats=4
+B1  sq_pass_thru   who=role1s  beats=4
+    meanwhile  beats=4
+      sq_promenade  who=role1s  variant=singleFile  direction=right  note="go four steps"
+      sq_pass_thru  who=role2s
+    sq_swing       who=everyone  whom=facing  note="original corner"  beats=8
 ```
 
-The default is the greater of 4 and the nested call's beats, so 4.
+The `meanwhile` holds the one shared beat count. "The one you meet" is the
+`facing` selector, and the source's "(original corner)" stays in the note,
+because it describes who that dancer is rather than how the dancers find
+them.
+
+### A.3 A 96-beat figure
+
+Masters' Quadrille (Parkes) runs A.1 to C.2: `phraseStructure=6*8*2` gives
+the same six labels, and the per-phrase check (§5.3) checks each 16-beat
+phrase. Parkes notes
+that the figure suits 48-measure tunes and otherwise runs against the music
+on purpose; that goes in the dance's notes.
 
 ## Appendix B: sources
 
-CALLERLAB documents, held in the project's shared files:
+Traditional squares (primary evidence, §4.1):
+
+- Tony Parkes, *Son of Shadrack and Other Dances*, Hands Four Books, 1993.
+- Michael Fuerst (comp.), *Midwest Folklore and other dances*, 1995.
+- Gene Hubert (ed.), *Dizzy Dances* vols 1–3, 1983, 1992 and 1990, through
+  Ralph Page Legacy Weekend syllabi and American Country Dances On-Line.
+
+CALLERLAB documents, held in the project's shared files (secondary, §4.2):
 
 - Mainstream Dance Program Definitions, revised 29 March 2026.
 - Mainstream Timing, revised 5 July 2026, effective 1 September 2026.
 - Standard Mainstream Applications, revised May 2020.
 - Standard Basic Applications, revised August 2022.
 - Definition Guide for Basic/Mainstream, 7 February 2011.
-- Plus Definitions, revised 25 August 2026, and the earlier edition revised
-  20 August 2025.
-- Plus Timing, revised 5 July 2026, effective 1 September 2026.
-- (New) Plus Program Suggested Teaching Order, effective 1 September 2026.
-- Plus Standard Applications, revised 22 February 2021.
-- Plus Supplement Guide.
-- Advanced Definitions, 27 August 2026; Advanced Timing (A-1 and A-2),
-  revised 12 June 2025; Advanced Dancing booklet.
-- Basic Challenge (C-1) Definitions, 14 March 2026; C-2 Definitions, 15
-  August 2026; C-3A Definitions, 1 September 2024.
+- Plus Definitions, revised 25 August 2026; Plus Timing, revised 5 July
+  2026; (New) Plus Program Suggested Teaching Order, effective 1 September
+  2026.
+- Advanced Definitions, revised 27 August 2026; Advanced Timing, revised 12
+  June 2025.
 
-Reference named by the maintainer, under §4.2's rules: Taminations,
+Online sources for the §7.3 search (read 20 November 2026):
+
+- The Caller's Box glossary,
+  <https://www.ibiblio.org/contradance/thecallersbox/Glossary.htm>, and
+  Seth Tepfer's "Spin the Top Contra" and its variant (dances 2110 and 2111).
+- Mary McNab Dart, *Contra Dance Choreography*, Appendix B,
+  <https://store.cdss.org/elibrary/dart/appendix_b.htm>.
+- Colin Hume, "Modern Western Square Dance", <https://colinhume.com/dtmwsd.htm>.
+- Wikipedia, "Contra dance choreography",
+  <https://en.wikipedia.org/wiki/Contra_dance_choreography>, and
+  "Traditional square dance",
+  <https://en.wikipedia.org/wiki/Traditional_square_dance>.
+- Paul Balliet, contra glossary (from *Twirling Dervish Returns*),
+  <https://sites.google.com/site/contradancesbypaulballiet/contra-dances-by-paul-balliet/glossary>.
+- Cary Ravitz, contra choreography notes, <https://www.dance.ravitz.us/>.
+- Robert Luecking, collected dances,
+  <https://luecking.hosted.uark.edu/LueckingDances.pdf>.
+- John Coffman, contra dances,
+  <https://sites.google.com/site/capecontradance/cape-girardeau-mo-contra-dance/contra-dances-by-john-coffman>.
+- "Honeycomb Contra Figures", <https://upadouble.info/honeycombContra/>.
+
+Reference named by the maintainer, under §4.3's rules: Taminations,
 <https://github.com/bradchristie/taminations-flutter>. It was not consulted
 for this draft, and nothing in it is taken from Taminations.
