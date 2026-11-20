@@ -36,6 +36,7 @@ class ProgramSlotListEditor extends StatefulWidget {
     required this.danceTitles,
     required this.formationFor,
     required this.mixerFor,
+    this.formFor,
     required this.onReorder,
     required this.onSlotChanged,
     required this.onPromoteAlternate,
@@ -86,6 +87,12 @@ class ProgramSlotListEditor extends StatefulWidget {
   /// [formationFor] to resolve the mixer-aware row accent (issue #732) and to
   /// append the mixer term to the subtitle when true.
   final bool Function(String danceId) mixerFor;
+
+  /// Resolves a slot's `danceId` to its dance form, or null when the dance is
+  /// unavailable. A program has no form of its own; when its dances are of
+  /// more than one form, each dance row names its form as the first part of
+  /// its subtitle (ADR-006 §12.2, S5). `null` names no form.
+  final DanceForm? Function(String danceId)? formFor;
 
   /// Reorder from [oldIndex] to [newIndex] using [ReorderableListView]'s
   /// `onReorderItem` semantics (newIndex is the post-removal insertion index).
@@ -262,6 +269,15 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
     // break: the same numbers as the set list, its text and its PDF, so the
     // builder's "5" is the band's "5." (GIG-10).
     final danceNumbers = Program.danceNumbersForSlots(slots);
+    // Each dance's form, named only when the program mixes forms.
+    final forms = [
+      for (final slot in slots)
+        switch (slot.danceId) {
+          final id? => widget.formFor?.call(id),
+          null => null,
+        },
+    ];
+    final mixesForms = forms.nonNulls.toSet().length > 1;
     // Below the compact width each row keeps only its drag handle and "…"
     // menu, folding View details, move up/down and cut into the menu: at 360dp
     // the full row left the title 8dp and overflowed an alternate row by 24dp.
@@ -292,6 +308,7 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
               canonicalizeDiscouragedTerms: widget.canonicalizeDiscouragedTerms,
               formation: _slotFormation(slots[i]),
               mixer: _slotMixer(slots[i]),
+              form: mixesForms ? forms[i] : null,
               ordinal: danceNumbers[i],
               isDanceSlot: slots[i].danceId != null,
               isTombstone: _isTombstone(slots[i]),
@@ -455,6 +472,7 @@ class _SlotTile extends StatelessWidget {
     required this.canonicalizeDiscouragedTerms,
     required this.formation,
     required this.mixer,
+    this.form,
     required this.ordinal,
     required this.isDanceSlot,
     required this.isTombstone,
@@ -495,6 +513,9 @@ class _SlotTile extends StatelessWidget {
   /// slots and unavailable dances. Used with [formation] to resolve the
   /// mixer-aware accent and to append the mixer term to the subtitle.
   final bool mixer;
+
+  /// The dance's form, named first in the subtitle; `null` names none.
+  final DanceForm? form;
 
   /// The 1-based dance number ([Program.danceNumbersForSlots]), or `null` for
   /// an alternate (grouped under its primary, and marked "ALT") or the break
@@ -557,6 +578,7 @@ class _SlotTile extends StatelessWidget {
         : null;
 
     final subtitleParts = <String>[
+      if (form != null) danceFormLabel(l10n, form!),
       if (formation != null)
         formationDisplayLabel(
           l10n,

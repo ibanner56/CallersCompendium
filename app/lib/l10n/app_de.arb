@@ -7786,6 +7786,10 @@
   "@importIssueUnmappedProgression": {
     "x-sourceSha256": "bf5c9c7e01441d77b244f2143ddb4265dcef50ce141739fb57d062a139cdba86"
   },
+  "importIssueBarsMeterUnstated": "Dieser Tanz zählt in Takten, nennt aber keine Taktart, daher wurde jeder Takt als 2 Schläge gezählt. Prüfen Sie die Zählungen.",
+  "@importIssueBarsMeterUnstated": {
+    "x-sourceSha256": "c5a034e9d32006995c2a5565b567e500f8eaac762943f9fde54b3e9554d145d9"
+  },
   "importIssueUnmappedType": "Ein Tanztyp wurde nicht erkannt; als Contra importiert und in den Notizen erhalten.",
   "@importIssueUnmappedType": {
     "x-sourceSha256": "845eca2d00487b37f677dfd37b12132d108d17c2ad7805c7945b02388a64d06e"
@@ -8149,6 +8153,22 @@
   "importReviewEditError": "Dieser Tanz konnte nicht zum Bearbeiten importiert werden. Versuche es erneut.",
   "@importReviewEditError": {
     "x-sourceSha256": "7e1d4579e7a51a4ee4e115621ccd1456c04f4eb568dd4caf23ad9a1fb3b22375"
+  },
+  "importUsrEnglishTitle": "Sind das englische Country Dances?",
+  "@importUsrEnglishTitle": {
+    "x-sourceSha256": "4ccb8d548911fe8a939c5c7baf01eb8662cb28fe120d64ae579dcdeb47928c7e"
+  },
+  "importUsrEnglishBody": "Caller's Companion führt englische Country Dances oft als Contra. Enthält diese Datei englische Tänze, werden sie mit englischen Figuren, Aufstellungen und Taktzählungen gelesen. Square Dances bleiben Square Dances.",
+  "@importUsrEnglishBody": {
+    "x-sourceSha256": "e0d3b4c20184559722ab1fb3b63da0d68f20136edc897b8a1a73276599da3759"
+  },
+  "importUsrEnglishNo": "Nein, nach Typ lesen",
+  "@importUsrEnglishNo": {
+    "x-sourceSha256": "c44b8d516e433e14a6b5ebfbce6e750d783c4be7f4583147f57d6bb385d94f8a"
+  },
+  "importUsrEnglishYes": "Ja, englische Tänze",
+  "@importUsrEnglishYes": {
+    "x-sourceSha256": "d21224b725e3d4039cfc4bec567fc5f11540f8333c508851236ca8c6fc2f0ac4"
   },
   "importReviewEditOverwriteTitle": "Vorhandenen Tanz jetzt ersetzen?",
   "@importReviewEditOverwriteTitle": {

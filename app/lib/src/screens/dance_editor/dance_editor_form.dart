@@ -238,6 +238,7 @@ class DanceEditorForm extends StatelessWidget {
         shorthands: shorthandMappings,
         dialect: dialect,
         formationShape: controller.formationShape,
+        meter: _meterForBars,
       );
       if (figures.isEmpty ||
           (!_isPlainShorthandClause(clause) &&
@@ -527,6 +528,7 @@ class DanceEditorForm extends StatelessWidget {
                     dialect: dialect,
                     mixer: controller.mixer,
                     formationShape: controller.formationShape,
+                    meterOf: () => _meterForBars,
                     moveParamDefaults: moveParamDefaults,
                     onChanged: controller.onFiguresChanged,
                     onAdd: controller.addFigure,
@@ -699,12 +701,20 @@ class DanceEditorForm extends StatelessWidget {
     );
   }
 
+  /// The meter a typed bar range counts by: the Meter field's, or with none
+  /// the phrase structure's beats per bar, as the bar timing does.
+  String get _meterForBars => ecdMeterForBars(
+    controller.meterController.text,
+    controller.phraseStructure,
+  );
+
   /// [child] timed in bars where the dance is ([BarTimingScope.beatsPerBarFor]):
   /// an English dance whose tune has one meter throughout.
   Widget _withBarTiming(Widget child) {
     final beatsPerBar = BarTimingScope.beatsPerBarFor(
       controller.form,
       controller.phraseStructure,
+      meter: controller.meterController.text,
     );
     return beatsPerBar == null
         ? child

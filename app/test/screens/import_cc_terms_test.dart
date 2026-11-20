@@ -16,6 +16,7 @@ import 'package:flutter_test/flutter_test.dart';
 import '../support/fmp_fixture_builder.dart';
 import '../support/l10n_harness.dart';
 import '../support/test_repositories.dart';
+import '../support/usr_english_question.dart';
 
 /// A Caller's Companion file's own glossary terms, offered after its import
 /// (#1023, maintainer decision 7, and the maintainer's calls of 2026-10-16).
@@ -500,6 +501,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('import-continue')));
       await tester.pumpAndSettle();
+      await answerUsrEnglishQuestion(tester);
       await tester.tap(find.byKey(const ValueKey('import-commit-button')));
       await tester.pumpAndSettle();
       // Done closes the review screen before the terms are offered (#1819).

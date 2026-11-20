@@ -251,8 +251,22 @@ class CallersCompanionUsrImporter {
   /// every other source). The returned batch is committed with [commit]. The
   /// programs are built from the archive at commit time, so planning is
   /// dance-only — mirroring the pipeline.
-  Future<ImportBatchResult> plan(Uint8List bytes) =>
-      _pipeline.plan(_adapter, ImportRequest(options: {'bytes': bytes}));
+  ///
+  /// [englishDances] reads the file's dances as English country dances
+  /// ([CallersCompanionUsrAdapter.englishDancesOption]): the person's answer
+  /// to the import's once-per-file question (ADR-006 W6, part 3).
+  Future<ImportBatchResult> plan(
+    Uint8List bytes, {
+    bool englishDances = false,
+  }) => _pipeline.plan(
+    _adapter,
+    ImportRequest(
+      options: {
+        'bytes': bytes,
+        if (englishDances) CallersCompanionUsrAdapter.englishDancesOption: true,
+      },
+    ),
+  );
 
   /// Commits a planned dance [batch] and then the programs from [archive].
   ///

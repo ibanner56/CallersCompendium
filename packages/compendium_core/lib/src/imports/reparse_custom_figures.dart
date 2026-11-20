@@ -1,8 +1,10 @@
 import '../model/enums.dart';
 import '../model/figure.dart';
+import '../model/phrase_structure.dart';
 import '../storage/figure_reparse.dart';
 import '../taxonomy/taxonomy.dart';
 import 'beat_implied_balance.dart';
+import 'ecd_bars.dart';
 import 'ecd_figure_parser.dart';
 import 'figure_front_end_fan_out.dart';
 import 'free_text_entry.dart';
@@ -41,18 +43,31 @@ const int maxReparseTextLength = 2000;
 ///   never-fails), so a malformed line degrades to custom rather than crashing.
 /// - When nothing changes the input list is returned unchanged (identity
 ///   preserved) so repository callers can cheaply skip the write.
+///
+/// An English line's leading bar range counts by [meter], or, with no meter
+/// stated, by [phraseStructure]'s beats per bar ([ecdMeterForBars]).
 FigureReparseOutcome reparseImportGapFigures(
   List<Figure> figures, {
   Taxonomy? taxonomy,
+  String? meter,
+  PhraseStructure? phraseStructure,
 }) {
+  if (phraseStructure != null) {
+    meter = ecdMeterForBars(meter, phraseStructure);
+  }
   List<Figure>? rewritten;
   var upgraded = 0;
 
   for (var i = 0; i < figures.length; i++) {
     final figure = figures[i];
     final result = figure.isContainer
-        ? _tryUpgradeContainer(figure, taxonomy, containerDepth: 1)
-        : _tryUpgradeLeaf(figure, taxonomy);
+        ? _tryUpgradeContainer(
+            figure,
+            taxonomy,
+            containerDepth: 1,
+            meter: meter,
+          )
+        : _tryUpgradeLeaf(figure, taxonomy, meter: meter);
     final replacement = result?.figure;
     if (replacement == null) continue;
     rewritten ??= List<Figure>.of(figures);
@@ -85,6 +100,7 @@ FigureReparseOutcome reparseImportGapFigures(
   Figure figure,
   Taxonomy? taxonomy, {
   required int containerDepth,
+  String? meter,
 }) {
   if (!figure.isContainer) return null;
   final children = figure.subFigures;
@@ -97,11 +113,13 @@ FigureReparseOutcome reparseImportGapFigures(
             child,
             taxonomy,
             containerDepth: containerDepth + 1,
+            meter: meter,
           )
         : _tryUpgradeLeaf(
             child,
             taxonomy,
             allowContainerReplacement: containerDepth < kMaxContainerDepth,
+            meter: meter,
           );
     final replacement = result?.figure;
     if (replacement == null ||
@@ -140,8 +158,9 @@ bool _isLegalContainerChild(Figure parent, Figure child) {
   Figure figure,
   Taxonomy? taxonomy, {
   bool allowContainerReplacement = true,
+  String? meter,
 }) {
-  final replacement = _tryUpgrade(figure, taxonomy);
+  final replacement = _tryUpgrade(figure, taxonomy, meter: meter);
   if (replacement == null ||
       (!allowContainerReplacement && replacement.isContainer)) {
     return null;
@@ -151,7 +170,7 @@ bool _isLegalContainerChild(Figure parent, Figure child) {
 
 /// Returns a structured replacement for [figure] if it is an import-gap custom
 /// whose stored text now parses to a structured move, else `null` (leave as-is).
-Figure? _tryUpgrade(Figure figure, Taxonomy? taxonomy) {
+Figure? _tryUpgrade(Figure figure, Taxonomy? taxonomy, {String? meter}) {
   if (!figure.isCustom || figure.customOrigin != CustomOrigin.importGap) {
     return null;
   }
@@ -177,12 +196,13 @@ Figure? _tryUpgrade(Figure figure, Taxonomy? taxonomy) {
   // An English dance's line is read by the ECD grammar, never into a contra
   // move (ADR-006 §5.1, W6). It does not see the dance's formation, so a
   // ring's fraction ("circle half way") stays a note rather than a guessed
-  // count of places.
+  // count of places. A leading bar range counts in bars of [meter].
   if (taxonomy?.form == DanceForm.ecd) {
     final read = parseEcdFigureLine(
       line.text,
       beats: line.beats,
       progression: figure.progression,
+      meter: meter,
     );
     if (read == null || read.isCustom) return null;
     return read.copyWith(

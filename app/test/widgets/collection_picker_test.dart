@@ -457,6 +457,32 @@ void main() {
     expect(find.text('Plain'), findsNothing);
   });
 
+  // ADR-006 §12.2, S5: a program has no form of its own, so the picker that
+  // fills it can narrow to one form.
+  testWidgets('the Type facet narrows the picker list to one dance form', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'a', title: 'A Contra'));
+    await repos.dances.create(
+      _dance(id: 'b', title: 'An English').copyWith(form: DanceForm.ecd),
+    );
+
+    await _pumpPicker(tester, repos, onAddDance: (_) {});
+    await tester.pumpAndSettle();
+    expect(find.text('A Contra'), findsOneWidget);
+    expect(find.text('An English'), findsOneWidget);
+
+    await _tapVisible(
+      tester,
+      find.byKey(const ValueKey('picker-filters-panel')),
+    );
+    await _tapVisible(tester, find.byKey(const ValueKey('form-ecd')));
+
+    expect(find.text('A Contra'), findsNothing);
+    expect(find.text('An English'), findsOneWidget);
+  });
+
   // Issue #1393: the header count omitted Level, Mixed level, Mixer and
   // Minimum rating, so a collapsed panel read "Filters" while filtering.
   for (final facet in <(String, Dance Function(String), String)>[

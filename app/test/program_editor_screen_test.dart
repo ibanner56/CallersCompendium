@@ -79,11 +79,14 @@ Future<void> _pumpBuilder(
   PdfLayouter? pdfLayouter,
   Size size = const Size(1200, 2000),
   Dialect? activeDialect,
+  DialectsByForm? dialects,
 }) async {
   await tester.binding.setSurfaceSize(size);
   addTearDown(() => tester.binding.setSurfaceSize(null));
   final notifier = ValueNotifier<Dialect>(activeDialect ?? Dialect.larksRobins);
   addTearDown(notifier.dispose);
+  final byForm = dialects == null ? null : ValueNotifier(dialects);
+  if (byForm != null) addTearDown(byForm.dispose);
   final autoCommitNotifier = ValueNotifier<bool>(autoCommit);
   addTearDown(autoCommitNotifier.dispose);
   final markAllSetsStatusNotifier = ValueNotifier<bool>(markAllSetsStatus);
@@ -94,9 +97,10 @@ Future<void> _pumpBuilder(
       supportedLocales: testSupportedLocales,
       builder: (context, child) => RepositoriesScope(
         repositories: repos,
-        child: ActiveDialectScope(
-          notifier: notifier,
-          child: ProgramAutoCommitScope(
+        child: _dialectScope(
+          notifier,
+          byForm,
+          ProgramAutoCommitScope(
             notifier: autoCommitNotifier,
             child: MarkAllSetsStatusScope(
               notifier: markAllSetsStatusNotifier,
@@ -118,6 +122,16 @@ Future<void> _pumpBuilder(
   );
   await tester.pumpAndSettle();
 }
+
+/// One dialect for every form from [notifier], or each form's own from
+/// [byForm] when given.
+Widget _dialectScope(
+  ValueNotifier<Dialect> notifier,
+  ValueNotifier<DialectsByForm>? byForm,
+  Widget child,
+) => byForm == null
+    ? ActiveDialectScope(notifier: notifier, child: child)
+    : ActiveDialectScope.byForm(dialects: byForm, child: child);
 
 /// Opens the collapsed Tier 2 metadata drawer when a test needs its fields.
 /// Repeated calls are safe, which keeps tests focused on their actual action.
@@ -4570,6 +4584,191 @@ void main() {
 
     final after = (await repos.programs.getById('p1'))!.updatedAt;
     expect(after.isAfter(before), isTrue);
+  });
+
+  testWidgets('a program that mixes forms shows each dance in its own '
+      'form\'s dialect (ADR-006 S3, S5)', (tester) async {
+    final repos = openTestRepositories();
+    const detail = Formation(
+      FormationShape.dupleImproper,
+      detail: 'role1s face out',
+    );
+    await repos.dances.create(
+      _dance(
+        id: 'd1',
+        title: 'Contra Dance',
+        figures: [Figure(move: 'balance')],
+      ).copyWith(formation: detail),
+    );
+    await repos.dances.create(
+      _dance(
+        id: 'd2',
+        title: 'English Dance',
+        figures: [Figure(move: 'ecd_honor')],
+      ).copyWith(form: DanceForm.ecd, formation: detail),
+    );
+    await repos.programs.create(
+      _program(
+        id: 'p1',
+        title: 'Mixed night',
+        slots: [
+          ProgramSlot(id: 's1', position: 0, danceId: 'd1'),
+          ProgramSlot(id: 's2', position: 1, danceId: 'd2'),
+        ],
+      ),
+    );
+    final english = Dialect.canonical.copyWith(
+      name: 'English test',
+      moves: {'ecd_honor': 'bow and curtsey'},
+    );
+    await _pumpBuilder(
+      tester,
+      repos,
+      programId: 'p1',
+      dialects: DialectsByForm({
+        DanceForm.contra: Dialect.larksRobins,
+        DanceForm.ecd: english,
+      }),
+    );
+    final renderer = FigureRenderer(shippedTaxonomies.anyForm);
+    final contraDetail = renderer.renderFreeText(
+      'role1s face out',
+      Dialect.larksRobins,
+    );
+    final englishDetail = renderer.renderFreeText('role1s face out', english);
+    // A control: the two dialects word the detail differently.
+    expect(contraDetail, isNot(englishDetail));
+
+    // Build tab: each dance names its form, since the forms are mixed.
+    Finder slot(String id, String text) => find.descendant(
+      of: find.byKey(ValueKey('slot-$id')),
+      matching: find.textContaining(text),
+    );
+    expect(slot('s1', 'Contra · '), findsOneWidget);
+    expect(slot('s2', 'English (ECD) · '), findsOneWidget);
+    expect(slot('s1', contraDetail), findsOneWidget);
+    expect(slot('s2', englishDetail), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('program-matrix-tab')));
+    await tester.pumpAndSettle();
+    final table = find.byKey(const ValueKey('program-matrix-table'));
+    // The English figure's column is named in the English dialect.
+    expect(
+      find.descendant(of: table, matching: find.text('bow and curtsey')),
+      findsOneWidget,
+    );
+    // Each row's formation detail is in its own dance's dialect.
+    expect(
+      find.descendant(of: table, matching: find.textContaining(contraDetail)),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: table, matching: find.textContaining(englishDetail)),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('a contra figure shared by squares reads in the squares\' '
+      'dialect when only squares use it, and in contra\'s when forms mix '
+      '(ADR-006 S5)', (tester) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(
+      _dance(
+        id: 'sq',
+        title: 'Square Dance',
+        figures: [
+          Figure(move: 'balance'),
+          Figure(move: 'swing'),
+        ],
+      ).copyWith(form: DanceForm.square),
+    );
+    await repos.dances.create(
+      _dance(
+        id: 'co',
+        title: 'Contra Dance',
+        figures: [Figure(move: 'swing')],
+      ),
+    );
+    await repos.programs.create(
+      _program(
+        id: 'p1',
+        title: 'Squares and a contra',
+        slots: [
+          ProgramSlot(id: 's1', position: 0, danceId: 'sq'),
+          ProgramSlot(id: 's2', position: 1, danceId: 'co'),
+        ],
+      ),
+    );
+    final square = Dialect.canonical.copyWith(
+      name: 'Square test',
+      moves: {'balance': 'square balance', 'swing': 'square swing'},
+    );
+    await _pumpBuilder(
+      tester,
+      repos,
+      programId: 'p1',
+      dialects: DialectsByForm({
+        DanceForm.contra: Dialect.canonical,
+        DanceForm.square: square,
+      }),
+    );
+    await tester.tap(find.byKey(const ValueKey('program-matrix-tab')));
+    await tester.pumpAndSettle();
+    final table = find.byKey(const ValueKey('program-matrix-table'));
+    Finder header(String text) =>
+        find.descendant(of: table, matching: find.textContaining(text));
+
+    // Only the square dance balances: its column reads in the squares'
+    // dialect.
+    expect(header('square balance'), findsOneWidget);
+    // Both dances swing: the shared column reads in contra's.
+    expect(header('swing'), findsWidgets);
+    expect(header('square swing'), findsNothing);
+  });
+
+  testWidgets('a column no dance uses reads in a one-form program\'s '
+      'dialect (ADR-006 S5)', (tester) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(
+      _dance(
+        id: 'sq',
+        title: 'Square Dance',
+        figures: [
+          Figure(move: 'swing', params: const {'who': 'partners'}),
+        ],
+      ).copyWith(form: DanceForm.square),
+    );
+    await repos.programs.create(
+      _program(
+        id: 'p1',
+        title: 'Squares',
+        slots: [ProgramSlot(id: 's1', position: 0, danceId: 'sq')],
+      ),
+    );
+    final square = Dialect.canonical.copyWith(
+      name: 'Square test',
+      moves: {'swing': 'twirl'},
+    );
+    await _pumpBuilder(
+      tester,
+      repos,
+      programId: 'p1',
+      dialects: DialectsByForm({
+        DanceForm.contra: Dialect.canonical,
+        DanceForm.square: square,
+      }),
+    );
+    await tester.tap(find.byKey(const ValueKey('program-matrix-tab')));
+    await tester.pumpAndSettle();
+    final table = find.byKey(const ValueKey('program-matrix-table'));
+    Finder header(String text) =>
+        find.descendant(of: table, matching: find.textContaining(text));
+
+    // The partner swing the dance uses and the baseline neighbor swing it
+    // doesn't both read in the squares' dialect.
+    expect(header('partner twirl'), findsOneWidget);
+    expect(header('neighbor twirl'), findsOneWidget);
+    expect(header('swing'), findsNothing);
   });
 
   testWidgets('Matrix tab renders the programming matrix from draft slots', (

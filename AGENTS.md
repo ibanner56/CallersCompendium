@@ -103,9 +103,8 @@ the build.
 
 The axis most often got wrong is the **subject**: venue contacts and
 choreographers never touch this app and cannot consent to a transfer they do not
-know about. Record **why** in the entry's `note` whenever the call is not
-self-evident — a classification with no stated reason is indistinguishable from
-a guess.
+know about. Record **why** in the entry's `note`; a test fails without one on
+every core entry that is not `shareable`, is about a person, or is third-party.
 
 How to choose each axis, and what separates `deviceLocal` from `deviceScoped`,
 is in `.github/instructions/privacy-registry.instructions.md`, which loads

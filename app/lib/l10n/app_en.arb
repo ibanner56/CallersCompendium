@@ -4227,7 +4227,12 @@
   },
   "settingsProgramVenueCallCountOption": "{count, plural, =0{Don't show} =1{1 venue} other{{count} venues}}",
   "@settingsProgramVenueCallCountOption": {
-    "description": "Dropdown option for the number of repeated venues shown in calling history."
+    "description": "Dropdown option for the number of repeated venues shown in calling history.",
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
   },
   "settingsGeneralCapitalizeFiguresTitle": "Capitalize figures",
   "@settingsGeneralCapitalizeFiguresTitle": {
@@ -7202,9 +7207,12 @@
     "description": "Title of the bottom sheet for picking a dance to add to the program."
   },
   "commonClose": "Close",
-  "viewDetails": "View details",
   "@commonClose": {
     "description": "Generic Close button/tooltip label."
+  },
+  "viewDetails": "View details",
+  "@viewDetails": {
+    "description": "Label for the action that opens a dance's details: the tooltip on details buttons in the program editor and the collection picker, and the title of the matching menu item."
   },
   "programsNoDateSet": "No date set",
   "@programsNoDateSet": {
@@ -10311,6 +10319,10 @@
   "@importIssueUnmappedProgression": {
     "description": "Import note: a progression string wasn't recognized and defaulted to single progression."
   },
+  "importIssueBarsMeterUnstated": "This dance counts in bars but states no meter, so each bar was counted as 2 beats. Check its counts.",
+  "@importIssueBarsMeterUnstated": {
+    "description": "Import note: an English dance's figure lines count in bars (\"1-4 partners set\"), but its music states no meter, so bars were counted as 2 beats each."
+  },
   "importIssueUnmappedType": "A dance type wasn't recognized; imported as a contra and preserved in the notes.",
   "@importIssueUnmappedType": {
     "description": "Import note: a dance-type string wasn't recognized; the dance was imported as a contra with the original value kept in the notes."
@@ -10847,6 +10859,22 @@
   "@importReviewEditError": {
     "description": "Snackbar shown when committing a single record so it can be edited fails."
   },
+  "importUsrEnglishTitle": "Are these English country dances?",
+  "@importUsrEnglishTitle": {
+    "description": "Title of the question asked once per Caller's Companion .USR file before it is read: whether its dances are English country dances."
+  },
+  "importUsrEnglishBody": "Caller's Companion often lists English country dances as Contra. If this file holds English dances, they're read with English figures, formations and bar counts. Square dances stay squares.",
+  "@importUsrEnglishBody": {
+    "description": "Body of the English-dances question for a Caller's Companion .USR file. 'Contra' is the Type value the other app shows."
+  },
+  "importUsrEnglishNo": "No, read their types",
+  "@importUsrEnglishNo": {
+    "description": "Answer: the file's dances are read by the Type each one has in the file."
+  },
+  "importUsrEnglishYes": "Yes, English dances",
+  "@importUsrEnglishYes": {
+    "description": "Answer: every dance in the file except squares is read as an English country dance."
+  },
   "importReviewEditOverwriteTitle": "Replace the existing dance now?",
   "@importReviewEditOverwriteTitle": {
     "description": "Title of the confirmation shown when Import and edit is pressed on a row set to Same dance (replace), because the matched dance is replaced immediately. A row set to Re-import uses importReviewEditReimportTitle."
@@ -11084,7 +11112,9 @@
   "@danceEditorWordingOverridePreview": {
     "description": "Live preview of the rendered per-dance figure wording override.",
     "placeholders": {
-      "text": {}
+      "text": {
+        "type": "Object"
+      }
     }
   },
   "danceEditorSnippetDivergenceTitle": "Update your saved snippet?",
@@ -12400,11 +12430,24 @@
   },
   "danceEditorModifierGroupLabel": "{count, plural, other{Modifier ({count} figures)}}",
   "@danceEditorModifierGroupLabel": {
-    "description": "Visible heading for a modifier group's expanded editor."
+    "description": "Visible heading for a modifier group's expanded editor.",
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
   },
   "danceEditorModifierGroupSemantic": "Modifier group, {count, plural, =1{1 figure} other{{count} figures}}, {beats, plural, =1{1 beat} other{{beats} beats}}.",
   "@danceEditorModifierGroupSemantic": {
-    "description": "Accessibility label for a modifier group."
+    "description": "Accessibility label for a modifier group. Placeholders stay declared beats, then count: that order is the generated method's parameter order, and its caller passes them positionally.",
+    "placeholders": {
+      "beats": {
+        "type": "num"
+      },
+      "count": {
+        "type": "num"
+      }
+    }
   },
   "danceEditorAddModifierChild": "Add modifier",
   "@danceEditorAddModifierChild": {

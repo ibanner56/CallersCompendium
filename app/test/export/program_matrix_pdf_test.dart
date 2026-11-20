@@ -209,20 +209,20 @@ void main() {
             dance('d2', 'B', [swing()]),
           ]);
 
-          final seen = <Formation>[];
+          final seen = <MatrixRow>[];
           final bytes = await buildProgramMatrixPdf(
             matrix,
             taxonomy: contraTaxonomy,
             dialect: Dialect.canonical,
             programTitle: 'Formation program',
-            formatFormation: (formation) {
-              seen.add(formation);
+            formatFormation: (row) {
+              seen.add(row);
               return 'X';
             },
           );
 
           expect(bytes, isNotEmpty);
-          expect(seen, matrix.rows.map((r) => r.formation).toList());
+          expect(seen, matrix.rows);
         },
       );
     });

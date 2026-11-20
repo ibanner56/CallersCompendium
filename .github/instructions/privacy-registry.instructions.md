@@ -65,9 +65,14 @@ Device Sync. Strip it in the share bundle builders
 share mode the import-side re-encodes also use, and say so in the note
 (`programs.pay_minor_units`, `dances.rating`).
 
-Record **why** in the entry's `note` whenever the call is not self-evident, and
-say who decided it if it was contested. A classification with no stated reason is
-indistinguishable from a guess.
+Record **why** in the entry's `note`, and say who decided it if it was
+contested. `data_classification_note_test.dart` requires a non-empty note on
+every entry that is not `shareable`, every `shareable` entry whose subject is not
+`none`, and every third-party entry, with no exemption for the last, in the three
+`compendium_core` registries (the server's own registry is not covered). The one
+exemption is the shared note-free `_preference` classification
+(`preferenceSettingKeys`, derived with `identical`, so an equal inline entry is
+exempt too); give a setting a note rather than widening it.
 
 ## Do not narrow a ratchet to silence a false positive
 

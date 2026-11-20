@@ -927,12 +927,28 @@ void main() {
       },
     );
 
-    test('non-pair hey ricochet subject remains verbatim in the note', () {
-      const suffix = '- partners ricochet first time';
+    test('a hey no pair inverts calls the other dancers others', () {
+      // The renderer's own wording for a non-pair hey: no pair inverts
+      // `partners`, so the dancers who are not partners are "others".
       final f = _parse(
-        'partners start a full hey - rights in center, lefts on ends $suffix',
+        'partners start a full hey - rights on ends, lefts in center - '
+        'partners ricochet first time, others ricochet second time',
+      );
+      expect(f.params['pass1'], 'partners');
+      expect(f.params['rico1'], isTrue);
+      expect(f.params['rico4'], isTrue);
+      expect(f.note, isNull);
+    });
+
+    test('a ricochet subject that is neither pass remains in the note', () {
+      // `pass2` is never displayed, so a pair named only by its ricochet
+      // cannot be placed.
+      const suffix = '- role1s ricochet first time';
+      final f = _parse(
+        'partners start a full hey - rights on ends, lefts in center $suffix',
       );
       expect(f.params['rico1'], isNot(true));
+      expect(f.params['rico2'], isNot(true));
       expect(f.note, suffix);
     });
   });

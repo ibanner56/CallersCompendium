@@ -14,6 +14,7 @@ import '../model/enums.dart';
 import '../model/figure.dart';
 import '../storage/figure_reparse.dart';
 import '../model/formation.dart';
+import '../model/phrase_structure.dart';
 import '../taxonomy/contra_taxonomy.dart';
 import '../taxonomy/ecd_taxonomy.dart';
 import '../taxonomy/taxonomy_registry.dart';
@@ -64,7 +65,8 @@ class EcdMigration {
 ///   not read in full, when its words mean something else in ECD, or when
 ///   the reading would drop or change a value it stores;
 /// - an import-gap custom line is re-read by the ECD parser
-///   ([reparseImportGapFigures] with ECD's taxonomy);
+///   ([reparseImportGapFigures] with ECD's taxonomy), a bar range counted by
+///   [meter], or [phraseStructure] when it states none;
 /// - the shape becomes the ECD shape it names ([ecdFormationFromContra]).
 ///
 /// In a twin, only a value the contra figure *stores* is carried, never a contra
@@ -77,6 +79,8 @@ class EcdMigration {
 EcdMigration migrateEcdDance({
   required List<Figure> figures,
   required Formation formation,
+  String? meter,
+  PhraseStructure? phraseStructure,
 }) {
   var converted = 0;
   List<Figure>? rewritten;
@@ -89,9 +93,12 @@ EcdMigration migrateEcdDance({
     rewritten[i] = result.figure;
     converted += result.count;
   }
+  // A line's bar range counts by the dance's meter, as in Re-check.
   final reread = reparseImportGapFigures(
     rewritten ?? figures,
     taxonomy: shippedTaxonomies.forForm(DanceForm.ecd),
+    meter: meter,
+    phraseStructure: phraseStructure,
   );
   return EcdMigration(
     figures: reread.figures,
@@ -542,9 +549,16 @@ Figure? ecdTwinOfContraMove(Figure figure) {
 /// `DanceRepository.previewEcdMigration` and `migrateEcdDances`.
 EcdDanceMigrationResult migrateEcdDanceForStorage(
   List<Figure> figures,
-  Formation formation,
-) {
-  final out = migrateEcdDance(figures: figures, formation: formation);
+  Formation formation, {
+  String? meter,
+  PhraseStructure? phraseStructure,
+}) {
+  final out = migrateEcdDance(
+    figures: figures,
+    formation: formation,
+    meter: meter,
+    phraseStructure: phraseStructure,
+  );
   return EcdDanceMigrationResult(
     figures: out.figures,
     formation: out.formation,

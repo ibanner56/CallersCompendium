@@ -72,6 +72,7 @@ class FigureListEditor extends StatefulWidget {
     this.dialect,
     this.mixer = false,
     this.formationShape,
+    this.meterOf,
     this.moveParamDefaults,
     this.freeTextEntry = false,
     this.onAddFreeText,
@@ -117,6 +118,12 @@ class FigureListEditor extends StatefulWidget {
   /// from (an English "circle half way" is two places in a duple minor,
   /// three in a triple minor; ADR-006 §7.3). Null where there is no dance.
   final FormationShape? formationShape;
+
+  /// The dance's tune meter as it stands now ("3/2"), which free-text entry
+  /// counts an English line's bar range by (`1-4 partners set` is 8 beats in
+  /// 2/2, 12 in 3/2). Read when a line is entered, so an edit to the meter
+  /// field counts at once. Null where there is no dance.
+  final String Function()? meterOf;
 
   /// Dialect used for lingo-line styling (discouraged + role terms).
   /// Defaults to [Dialect.larksRobins] when `null` (has the standard
@@ -793,6 +800,7 @@ class _FigureListEditorState extends State<FigureListEditor>
       shorthands: widget.shorthandMappings,
       dialect: _dialect,
       formationShape: widget.formationShape,
+      meter: widget.meterOf?.call(),
     );
     if (figures.isEmpty) return 0;
     final acceptedCount = onAddFreeText(figures);
@@ -864,6 +872,7 @@ class _FigureListEditorState extends State<FigureListEditor>
       shorthands: widget.shorthandMappings,
       dialect: _dialect,
       formationShape: widget.formationShape,
+      meter: widget.meterOf?.call(),
     );
     if (figures.isEmpty) return false;
     final acceptedCount = onReplace(draft, figures);

@@ -13,6 +13,7 @@ import 'package:flutter_test/flutter_test.dart';
 import '../support/fmp_fixture_builder.dart';
 import '../support/l10n_harness.dart';
 import '../support/test_repositories.dart';
+import '../support/usr_english_question.dart';
 
 /// A `.USR` with one dance and two parseable Insert Call buttons (own generic
 /// contra phrasing; column names copied from the real schema), plus any
@@ -110,6 +111,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('import-continue')));
     await tester.pumpAndSettle();
+    await answerUsrEnglishQuestion(tester);
     await tester.tap(find.byKey(const ValueKey('import-commit-button')));
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('import-result-dialog')), findsOneWidget);
