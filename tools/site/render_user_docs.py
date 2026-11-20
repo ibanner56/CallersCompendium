@@ -68,6 +68,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from markdown_to_html import (  # noqa: E402
     escape_attr,
     escape_text,
+    iter_images,
     render,
 )
 
@@ -562,16 +563,7 @@ def render_guides(user_docs: Path = USER_DOCS) -> list[Guide]:
         image_dir = user_docs / "images"
 
         def image_resolver(href: str, *, source_doc: str = doc) -> Optional[str]:
-            if not href or href.startswith(("/", "\\", "#")):
-                return None
-            candidate = (user_docs / source_doc).parent / href
-            try:
-                relative = candidate.resolve().relative_to(image_dir.resolve())
-            except ValueError:
-                return None
-            if not (image_dir / relative).is_file():
-                return None
-            return f"images/{relative.as_posix()}"
+            return _resolve_image(user_docs, image_dir, source_doc, href)
 
         result = render(
             source,
@@ -595,6 +587,22 @@ def render_guides(user_docs: Path = USER_DOCS) -> list[Guide]:
             )
         )
     return guides
+
+
+def _resolve_image(
+    user_docs: Path, image_dir: Path, source_doc: str, href: str
+) -> Optional[str]:
+    """The published path for an image ``href``, or None if it cannot ship."""
+    if not href or href.startswith(("/", "\\", "#")):
+        return None
+    candidate = (user_docs / source_doc).parent / href
+    try:
+        relative = candidate.resolve().relative_to(image_dir.resolve())
+    except ValueError:
+        return None
+    if not (image_dir / relative).is_file():
+        return None
+    return f"images/{relative.as_posix()}"
 
 
 def check_anchors(guides: list[Guide]) -> list[str]:
@@ -646,6 +654,107 @@ def check_links(guides: list[Guide]) -> list[str]:
                     f"docs/user/{guide.doc}: link {ref.href} has no matching "
                     f"heading (no #{ref.fragment} in {ref.target_page})"
                 )
+    return errors
+
+
+# Images that are purely decorative, as ``(guide file, destination as authored)``.
+# Only these may have empty alt text (docs/user/style-guide.md, "Alt-text
+# policy"). It starts empty on purpose: today every image carries alt text, and an
+# exemption is a decision to add by name, with the image in the same change.
+DECORATIVE_IMAGES: frozenset[tuple[str, str]] = frozenset()
+
+# Alt text that says nothing a screen-reader user could use.
+_GENERIC_ALT = frozenset(
+    {"image", "images", "img", "picture", "photo", "graphic", "screenshot", "screen shot"}
+)
+
+
+def _is_generic_alt(alt: str, dest: str) -> bool:
+    """Whether ``alt`` is just the file name or a bare placeholder word."""
+    text = alt.strip().lower().rstrip(".:!")
+    name = dest.replace("\\", "/").rsplit("/", 1)[-1].lower()
+    stem = name.rsplit(".", 1)[0]
+    return text in _GENERIC_ALT or text in {dest.lower(), name, stem}
+
+
+def check_images(
+    user_docs: Path = USER_DOCS,
+    decorative: frozenset[tuple[str, str]] = DECORATIVE_IMAGES,
+) -> list[str]:
+    """Every image outside fenced code needs real alt text and a real file.
+
+    ``docs/user/style-guide.md`` says every image **must** have alt text; nothing
+    enforced it, and a missing image file only turned the picture into a text
+    caption instead of failing. This reads every ``docs/user/*.md``, published or
+    not (the style guide is the unpublished one), because the policy is about the
+    docs, not the site. Examples inside fenced code (the style guide's own) are
+    not images and are skipped: the scan uses the renderer's own fence, comment,
+    escape and code-span rules. It reports the guide and line of each problem:
+
+    * empty alt text, unless ``(guide, destination)`` is in ``decorative``;
+    * alt text that is the file name or a bare "image"/"screenshot";
+    * a destination that does not resolve to a file under ``docs/user/images/``;
+    * a ``decorative`` entry whose image is gone or now has alt text;
+    * the line scan and the renderer disagreeing on how many images a guide has
+      (an image spanning lines), which would hide some from this check.
+    """
+    image_dir = user_docs / "images"
+    errors: list[str] = []
+    seen: dict[tuple[str, str], str] = {}
+    for path in sorted(user_docs.glob("*.md"), key=lambda p: p.name):
+        doc = path.name
+        source = path.read_text(encoding="utf-8")
+        images = iter_images(source)
+        calls: list[tuple[str, bool]] = []
+
+        def resolver(href: str, *, source_doc: str = doc) -> Optional[str]:
+            resolved = _resolve_image(user_docs, image_dir, source_doc, href)
+            calls.append((href, resolved is not None))
+            return resolved
+
+        render(source, image_resolver=resolver)
+        if len(images) != len(calls):
+            errors.append(
+                f"docs/user/{doc}: found {len(images)} image(s) by line but the "
+                f"renderer resolved {len(calls)}; an image that spans lines hides "
+                "some from the alt-text check. Put each image on one line."
+            )
+        unresolved = {href for href, ok in calls if not ok}
+        for image in images:
+            where = f"docs/user/{doc}:{image.line}"
+            key = (doc, image.dest)
+            seen[key] = image.alt
+            if image.dest in unresolved:
+                errors.append(
+                    f"{where}: image {image.dest} does not resolve to a file "
+                    "under docs/user/images/ (a missing file ships as a text "
+                    "caption, not an image)."
+                )
+            if not image.alt:
+                if key not in decorative:
+                    errors.append(
+                        f"{where}: image {image.dest} has no alt text. Describe "
+                        "what it shows, or, if it is purely decorative, add "
+                        f"({doc!r}, {image.dest!r}) to DECORATIVE_IMAGES in "
+                        "tools/site/render_user_docs.py."
+                    )
+            elif _is_generic_alt(image.alt, image.dest):
+                errors.append(
+                    f"{where}: image {image.dest} has alt text {image.alt!r}, "
+                    "which is its file name or a bare placeholder; describe "
+                    "what the image shows."
+                )
+    for doc, dest in sorted(decorative):
+        if (doc, dest) not in seen:
+            errors.append(
+                f"DECORATIVE_IMAGES lists ({doc!r}, {dest!r}) but docs/user/{doc} "
+                "has no such image; remove the stale exemption."
+            )
+        elif seen[(doc, dest)]:
+            errors.append(
+                f"DECORATIVE_IMAGES lists ({doc!r}, {dest!r}) but that image now "
+                "has alt text; remove the exemption."
+            )
     return errors
 
 
@@ -854,18 +963,23 @@ def main(argv: list[str] | None = None) -> int:
             guides = build_site(out)
             errors = (
                 check_guides(guides)
+                + check_images()
                 + check_site_links(out, guides)
                 + check_repo_urls(out)
             )
             if errors:
                 report(errors)
                 return 1
-            print(f"OK: {len(guides)} user guides render with all links resolving.")
+            print(
+                f"OK: {len(guides)} user guides render with all links resolving "
+                "and every image has alt text."
+            )
             return 0
 
     guides = build_site(args.out)
     errors = (
         check_guides(guides)
+        + check_images()
         + check_site_links(args.out, guides)
         + check_repo_urls(args.out)
     )

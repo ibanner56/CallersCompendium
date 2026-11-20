@@ -835,6 +835,70 @@ def _parse_list(lines: list[str], start: int, ctx: _Context) -> tuple[str, int]:
 # ---------------------------------------------------------------------------
 
 
+@dataclass(frozen=True)
+class ImageRef:
+    """An image the renderer would try to resolve, and where it was written."""
+
+    line: int  # 1-based line in the source Markdown
+    alt: str  # exactly what the renderer would emit as the alt text
+    dest: str  # the destination as authored
+
+
+def iter_images(markdown: str) -> list[ImageRef]:
+    """Every ``![alt](dest)`` the renderer would resolve, with its source line.
+
+    Built from the renderer's own pieces so the two cannot disagree about what
+    an image is: it drops HTML comments with :func:`_strip_html_comments` (which
+    keeps line numbers), skips fenced code with the same fence patterns,
+    honours the same backslash escapes and code spans, and parses each image
+    with :func:`_link_at`. The alt text is :func:`_plain_text` of the label,
+    stripped, which is what ``_inline`` puts in the ``alt`` attribute.
+
+    It reads one line at a time, so an image whose label or destination spans
+    lines is invisible to it; the renderer, which joins a paragraph first, still
+    sees it. Callers that need the two to agree should compare counts.
+    """
+    normalized = markdown.replace("\r\n", "\n").replace("\r", "\n")
+    lines = _strip_html_comments(normalized.split("\n"))
+    found: list[ImageRef] = []
+    fence_char: Optional[str] = None
+    fence_len = 0
+    for number, line in enumerate(lines, start=1):
+        if fence_char is not None:
+            close = _FENCE_CLOSE_RE.match(line)
+            if close and close.group(1)[0] == fence_char and len(close.group(1)) >= fence_len:
+                fence_char = None
+            continue
+        fence = _FENCE_RE.match(line)
+        if fence:
+            fence_char = fence.group(1)[0]
+            fence_len = len(fence.group(1))
+            continue
+        i = 0
+        length = len(line)
+        while i < length:
+            char = line[i]
+            if char == "\\" and i + 1 < length and line[i + 1] in _ESCAPABLE:
+                i += 2
+                continue
+            if char == "`":
+                code = _code_span_at(line, i)
+                if code is not None:
+                    i = code[1]
+                    continue
+            if char == "!" and i + 1 < length and line[i + 1] == "[":
+                parsed = _link_at(line, i + 1)
+                if parsed is not None:
+                    label, dest, _title, end = parsed
+                    found.append(
+                        ImageRef(line=number, alt=_plain_text(label).strip(), dest=dest)
+                    )
+                    i = end
+                    continue
+            i += 1
+    return found
+
+
 def render(
     markdown: str,
     *,

@@ -603,6 +603,162 @@ def test_real_pages_are_well_formed_html() -> None:
 
 
 # ---------------------------------------------------------------------------
+# Image alt text (docs/user/style-guide.md, "Alt-text policy")
+# ---------------------------------------------------------------------------
+
+
+def _pics(root: Path, body: str, *, images: tuple[str, ...] = ("a.png", "new.png")) -> Path:
+    """A docs tree whose ``pics.md`` is ``body``, with real files for ``images``."""
+    user = _make_docs(root)
+    (user / "pics.md").write_text(body, encoding="utf-8")
+    pictures = user / "images"
+    pictures.mkdir()
+    for name in images:
+        (pictures / name).write_bytes(b"\x89PNG\r\n\x1a\n")
+    return user
+
+
+def _image_errors(body: str, **kwargs) -> list[str]:
+    decorative = kwargs.pop("decorative", frozenset())
+    with tempfile.TemporaryDirectory() as tmp:
+        user = _pics(Path(tmp), body, **kwargs)
+        return rud.check_images(user, decorative=decorative)
+
+
+def test_the_real_corpus_has_alt_text_on_every_image_and_every_file_exists() -> None:
+    assert rud.check_images() == []
+
+
+def test_the_real_corpus_scan_matches_the_renderer_and_skips_fenced_examples() -> None:
+    # The style guide's two example images sit inside fenced code and point at
+    # files that do not exist; a checker that did not skip fences fails on them.
+    source = (rud.USER_DOCS / "style-guide.md").read_text(encoding="utf-8")
+    assert "```markdown" in source and "![" in source
+    assert rud.iter_images(source) == []
+    # And the line scan agrees with the renderer on every real guide (check_images
+    # reports any disagreement), so the two cannot drift apart unnoticed.
+    assert not [e for e in rud.check_images() if "by line but the renderer" in e]
+
+
+def test_decorative_images_start_empty() -> None:
+    assert rud.DECORATIVE_IMAGES == frozenset()
+
+
+def test_an_image_with_no_alt_text_names_the_guide_and_line() -> None:
+    errors = _image_errors("# Pics\n\nIntro.\n\n![](images/new.png)\n")
+    assert len(errors) == 1, errors
+    assert errors[0].startswith("docs/user/pics.md:5: "), errors
+    assert "has no alt text" in errors[0] and "images/new.png" in errors[0]
+
+
+def test_the_same_image_inside_a_fence_is_not_an_image() -> None:
+    for fence in ("```", "~~~", "````"):
+        body = f"# Pics\n\n{fence}markdown\n![](images/new.png)\n{fence}\n"
+        assert _image_errors(body) == [], fence
+
+
+def test_images_in_code_spans_comments_and_escapes_are_not_images() -> None:
+    body = (
+        "# Pics\n\n"
+        "A code span: `![](images/new.png)` here.\n\n"
+        "<!-- ![](images/new.png) -->\n\n"
+        "An escape: \\![x](images/new.png)\n"
+    )
+    assert _image_errors(body) == []
+
+
+def test_a_fence_closes_so_an_image_after_it_is_checked() -> None:
+    body = "# Pics\n\n```\n![](images/new.png)\n```\n\n![](images/a.png)\n"
+    errors = _image_errors(body)
+    assert len(errors) == 1 and ":7: " in errors[0], errors
+
+
+def test_images_in_lists_quotes_tables_and_links_are_found_on_their_own_line() -> None:
+    body = (
+        "# Pics\n\n"
+        "- item ![](images/a.png)\n"
+        "> quoted ![](images/a.png)\n\n"
+        "| h |\n| --- |\n| ![](images/a.png) |\n\n"
+        "[![](images/a.png)](https://example.com)\n"
+    )
+    lines = sorted(int(e.split(":")[1]) for e in _image_errors(body))
+    assert lines == [3, 4, 8, 10], lines
+
+
+def test_alt_text_that_is_a_file_name_or_a_placeholder_is_flagged() -> None:
+    for alt in ("image", "Image", "screenshot", "Screenshot.", "new.png", "new", "images/new.png", "NEW.PNG"):
+        errors = _image_errors(f"# Pics\n\n![{alt}](images/new.png)\n")
+        assert len(errors) == 1 and "file name or a bare placeholder" in errors[0], (alt, errors)
+
+
+def test_real_alt_text_passes_even_if_it_mentions_the_word_screenshot() -> None:
+    body = "# Pics\n\n![A screenshot of the Collection screen with three dances](images/new.png)\n"
+    assert _image_errors(body) == []
+
+
+def test_alt_text_is_what_the_renderer_would_emit() -> None:
+    # Emphasis and code in the label are reduced to plain text, as in the HTML.
+    refs = rud.iter_images("![**bold** and `code` alt](x.png \"a title\")")
+    assert [(r.line, r.alt, r.dest) for r in refs] == [(1, "bold and code alt", "x.png")]
+
+
+def test_a_missing_image_file_is_flagged_not_silently_a_caption() -> None:
+    errors = _image_errors("# Pics\n\n![A real description](images/nope.png)\n")
+    assert len(errors) == 1 and ":3: " in errors[0], errors
+    assert "does not resolve" in errors[0] and "images/nope.png" in errors[0]
+
+
+def test_an_external_or_out_of_tree_image_is_flagged() -> None:
+    for dest in ("https://example.com/x.png", "../design/ux.md", "/abs/x.png"):
+        errors = _image_errors(f"# Pics\n\n![A description]({dest})\n")
+        assert any("does not resolve" in e for e in errors), (dest, errors)
+
+
+def test_a_decorative_image_is_allowed_only_by_name() -> None:
+    body = "# Pics\n\n![](images/new.png)\n"
+    assert _image_errors(body, decorative=frozenset({("pics.md", "images/new.png")})) == []
+    other_doc = _image_errors(body, decorative=frozenset({("other.md", "images/new.png")}))
+    assert any("has no alt text" in e for e in other_doc), other_doc
+    other_image = _image_errors(body, decorative=frozenset({("pics.md", "images/a.png")}))
+    assert any("has no alt text" in e for e in other_image), other_image
+
+
+def test_the_no_alt_text_message_tells_you_how_to_mark_one_decorative() -> None:
+    (message,) = _image_errors("# Pics\n\n![](images/new.png)\n")
+    assert "DECORATIVE_IMAGES" in message and "'pics.md'" in message
+
+
+def test_a_stale_decorative_entry_is_flagged() -> None:
+    errors = _image_errors(
+        "# Pics\n\nNo images.\n",
+        decorative=frozenset({("pics.md", "images/gone.png")}),
+    )
+    assert len(errors) == 1 and "stale exemption" in errors[0], errors
+
+
+def test_a_decorative_entry_for_an_image_that_now_has_alt_text_is_flagged() -> None:
+    errors = _image_errors(
+        "# Pics\n\n![Now described in words](images/new.png)\n",
+        decorative=frozenset({("pics.md", "images/new.png")}),
+    )
+    assert len(errors) == 1 and "now has alt text" in errors[0], errors
+
+
+def test_an_image_spanning_lines_is_reported_not_silently_missed() -> None:
+    body = "# Pics\n\n![a description\nacross lines](images/new.png)\n"
+    errors = _image_errors(body)
+    assert len(errors) == 1 and "found 0 image(s) by line but the renderer resolved 1" in errors[0], errors
+
+
+def test_every_guide_is_scanned_including_the_unpublished_one() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        user = _pics(Path(tmp), "# Pics\n")
+        (user / "style-guide.md").write_text("# Style\n\n![](images/new.png)\n", encoding="utf-8")
+        errors = rud.check_images(user)
+    assert len(errors) == 1 and errors[0].startswith("docs/user/style-guide.md:3: "), errors
+
+
+# ---------------------------------------------------------------------------
 # Site staging
 # ---------------------------------------------------------------------------
 
