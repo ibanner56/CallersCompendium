@@ -36,7 +36,7 @@ def check(name: str, condition: bool, detail: str = "") -> None:
 
 
 def paths(text: str) -> list[tuple[int, str]]:
-    return gate.citations(text)
+    return gate.citations(text, "docs/dev/x.md")
 
 
 CITE_TABLE = [
@@ -51,6 +51,17 @@ CITE_TABLE = [
     ("~~~\ntools/ci/check_a.py\n~~~", [(2, "tools/ci/check_a.py")], "tilde fence"),
     ("```\n~~~\ntools/ci/check_a.py\n```\ntools/ci/check_b.py", [(3, "tools/ci/check_a.py")], "a tilde inside a backtick fence does not close it"),
     ("`tools/ci/check_a.py.bak`", [], "no trailing extension continuation"),
+    ("see `python3 a\nb` then `tools/ci/check_x.py`", [(2, "tools/ci/check_x.py")], "a span wrapped across lines does not shift the next one"),
+    ("a `tools/ci/check_a.py` wrapped\n`python3 --x\ntools/ci/check_b.py`", [(1, "tools/ci/check_a.py"), (3, "tools/ci/check_b.py")], "a wrapped span reports the path's own line"),
+    ("``tools/ci/check_a.py``", [(1, "tools/ci/check_a.py")], "double-backtick span"),
+    ("`` `tools/ci/check_a.py` ``", [(1, "tools/ci/check_a.py")], "double-backtick span around a single-backtick span"),
+    ("````\nfoo\n```\n````\nprose tools/ci/check_x.py here", [], "a shorter fence does not close a longer one"),
+    ("```\ntools/ci/check_a.py\n```sh\ntools/ci/check_b.py\n```\nprose tools/ci/check_c.py", [(2, "tools/ci/check_a.py"), (4, "tools/ci/check_b.py")], "an info-string line inside a fence is content, not a closer"),
+    ("- item\n    ```sh\n    tools/ci/check_a.py\n    ```\nprose tools/ci/check_b.py", [(3, "tools/ci/check_a.py")], "an indented, list-nested fence is read"),
+    ("```\ntools/ci/check_a.py\ntools/ci/check_b.py", [(2, "tools/ci/check_a.py"), (3, "tools/ci/check_b.py")], "an unclosed fence runs to the end"),
+    ("[`x`](../../tools/ci/check_a.py) and [y](../../tools/release/r.sh#L3)", [(1, "tools/ci/check_a.py"), (1, "tools/release/r.sh")], "link targets resolve against docs/dev/x.md"),
+    ("[x](https://example.com/tools/ci/check_a.py) [y](../../../tools/ci/check_b.py) [z](tools/ci/check_c.py)", [], "urls, targets that leave the repo, and targets that resolve outside tools/ are not citations"),
+    ("---\napplyTo:\n  - \"tools/ci/check_a.py\"\n---\nbody tools/ci/check_b.py", [(3, "tools/ci/check_a.py")], "quoted paths in front matter are read"),
     ("see `tools/ci/check_a.py`.", [(1, "tools/ci/check_a.py")], "a sentence-ending period is not a continuation"),
 ]
 
@@ -94,8 +105,11 @@ def main() -> int:
         ])
         doc = "`tools/ci/check_ok.py` is fine\n`tools/ci/check_gone.py` is not\n`tools/ci/check_untested.py` has no test\n`tools/release/rel.py` neither\n"
         # Exemptions are cited, so only the real findings remain.
-        exempt_docs = "`tools/publish_collections.py` and `check_l10n_drift.py` in a table\n"
-        found = gate.check(root, {"docs/dev/a.md": doc, "docs/dev/b.md": exempt_docs})
+        EX = {
+            "docs/dev/releasing.md": "`tools/publish_collections.py` is in the other repository\n",
+            "docs/dev/README.md": "| CI | `tools/ci/` (`check_l10n_drift.py`, a thin wrapper, has none) |\n",
+        }
+        found = gate.check(root, {"docs/dev/a.md": doc, **EX})
         joined = "\n".join(found)
         check("missing path is named with document and line", "docs/dev/a.md:2: cites tools/ci/check_gone.py, which does not exist" in joined, joined)
         check("untested check_ is named", "docs/dev/a.md:3: cites tools/ci/check_untested.py, which has no sibling test (tools/ci/test_check_untested.py)" in joined, joined)
@@ -107,21 +121,29 @@ def main() -> int:
         # An exemption waives only its own rule: l10n_drift is owed no test, but must exist;
         # publish_collections may be absent, but must not be exempt from anything else.
         by_path = "`tools/ci/check_l10n_drift.py` cited by its full path\n"
-        check("exempt-untested: cited by full path, present, no test: silent", gate.check(root, {"docs/dev/c.md": by_path, "docs/dev/b.md": exempt_docs}) == [])
+        check("exempt-untested: cited by full path, present, no test: silent", gate.check(root, {"docs/dev/c.md": by_path, **EX}) == [])
         (root / "tools/ci/check_l10n_drift.py").unlink()
-        gone = "\n".join(gate.check(root, {"docs/dev/c.md": by_path, "docs/dev/b.md": exempt_docs}))
+        gone = "\n".join(gate.check(root, {"docs/dev/c.md": by_path, **EX}))
         check("exempt-untested still has to exist", "docs/dev/c.md:1: cites tools/ci/check_l10n_drift.py, which does not exist" in gone, gone)
+        basename_only = "\n".join(gate.check(root, {**EX}))
+        check("exempt-untested must exist even when cited only by file name", "check_l10n_drift.py (test) does not exist" in basename_only, basename_only)
         build(root, ["tools/ci/check_l10n_drift.py"])
 
-        stale = gate.check(root, {"docs/dev/a.md": "`tools/ci/check_ok.py`\n"})
-        check("an exemption cited nowhere is stale", sum("EXEMPT entry" in f and "cited by no document" in f for f in stale) == 2, "\n".join(stale))
+        stale = gate.check(root, {"docs/dev/a.md": "`tools/ci/check_ok.py`\n", "docs/dev/releasing.md": "nothing\n", "docs/dev/README.md": "nothing\n"})
+        check("an exemption its justifying document no longer cites is stale", sum("is cited no longer by" in f for f in stale) == 2, "\n".join(stale))
+        elsewhere = gate.check(root, {"docs/dev/releasing.md": "nothing\n", "docs/dev/README.md": "nothing\n", "docs/dev/other.md": "`tools/publish_collections.py` `check_l10n_drift.py`\n"})
+        check("a mention in some other document does not keep an exemption alive", sum("is cited no longer by" in f for f in elsewhere) == 2, "\n".join(elsewhere))
+        notread = "\n".join(gate.check(root, {"docs/dev/a.md": "x\n"}))
+        check("an exemption whose justifying document was not read is an error", notread.count("which was not read") == 2, notread)
+        bak = gate.check(root, {"docs/dev/releasing.md": "`tools/publish_collections.py`\n", "docs/dev/README.md": "`check_l10n_drift.py.bak`\n"})
+        check("a lookalike file name does not keep an exemption alive", any("check_l10n_drift.py" in f and "cited no longer" in f for f in bak), "\n".join(bak))
 
         gen = "<!-- generated-by: x -->\n`tools/ci/check_gone.py`\n"
-        check("a generated document is not read", not any("check_gone" in f for f in gate.check(root, {"docs/dev/g.md": gen, "docs/dev/b.md": exempt_docs})))
+        check("a generated document is not read", not any("check_gone" in f for f in gate.check(root, {"docs/dev/g.md": gen, **EX})))
 
         # An exemption that stopped being true must be dropped.
         build(root, ["tools/publish_collections.py", "tools/ci/test_check_l10n_drift.py"])
-        late = "\n".join(gate.check(root, {"docs/dev/b.md": exempt_docs}))
+        late = "\n".join(gate.check(root, {**EX}))
         check("exempt-missing that now exists is flagged", "tools/publish_collections.py now exists" in late, late)
         check("exempt-untested that now has a test is flagged", "tools/ci/check_l10n_drift.py now has a test" in late, late)
 
@@ -132,7 +154,8 @@ def main() -> int:
         build(root, ["tools/ci/check_ok.py", "tools/ci/test_check_ok.py", "tools/publish_collections.py", "tools/ci/check_l10n_drift.py"])
         (root / "docs/dev").mkdir(parents=True)
         (root / "docs/dev/a.md").write_text("`tools/ci/check_ok.py`\n", encoding="utf-8")
-        (root / "docs/dev/ex.md").write_text("`tools/publish_collections.py` `check_l10n_drift.py`\n", encoding="utf-8")
+        (root / "docs/dev/releasing.md").write_text("`tools/publish_collections.py`\n", encoding="utf-8")
+        (root / "docs/dev/README.md").write_text("`tools/ci/` (`check_l10n_drift.py`, a thin wrapper)\n", encoding="utf-8")
         run = lambda: subprocess.run([sys.executable, str(SCRIPT), str(root)], capture_output=True, text=True)
         (root / "tools/publish_collections.py").unlink()  # it lives in another repository
         res = run()
@@ -155,7 +178,7 @@ def main() -> int:
     res = subprocess.run([sys.executable, str(SCRIPT)], capture_output=True, text=True, cwd=REPO)
     check("control: the repository passes", res.returncode == 0, res.stdout + res.stderr)
     total = sum(len(gate.citations((REPO / n).read_text(encoding="utf-8"))) for n in gate.scoped_files(REPO) if (REPO / n).is_file())
-    check("control: the repository has many citations (a scan that reads nothing would pass too)", total >= 50, str(total))
+    check("control: the repository has many citations (a scan that reads nothing would pass too)", total >= 100, str(total))
 
     if FAILURES:
         print(f"\n{len(FAILURES)} check(s) failed")
