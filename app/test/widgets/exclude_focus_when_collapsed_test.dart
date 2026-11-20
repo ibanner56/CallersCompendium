@@ -78,7 +78,10 @@ void main() {
     // onto the node. Built under a collapsed tile that is false. The wrapper
     // must build the field again when the tile opens, or the field stays
     // unfocusable and typing in it does nothing (the Program builder's dialect
-    // picker did exactly that).
+    // picker did exactly that). The first build does not see the exclusion (the
+    // field's node is not yet attached), so the field is rebuilt while
+    // collapsed, as a real screen does when it loads or its state changes.
+    late void Function() rebuildWhileCollapsed;
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
@@ -88,18 +91,23 @@ void main() {
               title: const Text('More details'),
               maintainState: true,
               children: [
-                ExcludeFocusWhenCollapsed(
-                  controller: controller,
-                  builder: (_) => AppDropdownField<int>(
-                    key: const ValueKey('picker'),
-                    value: 1,
-                    filterable: true,
-                    onChanged: (_) {},
-                    entries: const [
-                      AppDropdownEntry(value: 1, label: 'One'),
-                      AppDropdownEntry(value: 2, label: 'Two'),
-                    ],
-                  ),
+                StatefulBuilder(
+                  builder: (context, setState) {
+                    rebuildWhileCollapsed = () => setState(() {});
+                    return ExcludeFocusWhenCollapsed(
+                      controller: controller,
+                      builder: (_) => AppDropdownField<int>(
+                        key: const ValueKey('picker'),
+                        value: 1,
+                        filterable: true,
+                        onChanged: (_) {},
+                        entries: const [
+                          AppDropdownEntry(value: 1, label: 'One'),
+                          AppDropdownEntry(value: 2, label: 'Two'),
+                        ],
+                      ),
+                    );
+                  },
                 ),
               ],
             ),
@@ -107,6 +115,8 @@ void main() {
         ),
       ),
     );
+    rebuildWhileCollapsed();
+    await tester.pump();
     controller.expand();
     await tester.pumpAndSettle();
 
