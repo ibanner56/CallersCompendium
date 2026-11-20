@@ -75,6 +75,8 @@ Future<ValueNotifier<Set<String>>> _pump(
       hasCallingHistory: has,
       authors: has ? [Choreographer(id: 'a1', name: 'Folk Process')] : const [],
       tunes: has ? const ['Dmaj'] : const [],
+      meters: has ? const ['6/8'] : const [],
+      musicalKeys: has ? const ['D minor'] : const [],
       tags: has ? [Tag(id: 't1', name: 'Beginner')] : const [],
       citedSources: has
           ? [PublishedSource(id: 's1', title: 'Zesty Contras')]

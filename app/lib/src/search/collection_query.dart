@@ -244,6 +244,15 @@ class FacetSelections {
     return true;
   }
 
+  /// Meter facet: the meters picked, as the Meter section offers them
+  /// ([CollectionData.meters]). OR-ed within the facet; each is a whole-value
+  /// match that ignores case and accents ([MeterFilter]).
+  final Set<String> meters = {};
+
+  /// Key facet: the keys picked, as the Key section offers them, matched as
+  /// [meters] are ([MusicalKeyFilter]).
+  final Set<String> musicalKeys = {};
+
   /// Selected `choice` custom-field values, keyed by field id → chosen values
   /// (OR-within a field).
   final Map<String, Set<String>> choiceValues = {};
@@ -278,6 +287,8 @@ class FacetSelections {
       !untagged &&
       sourceIds.isEmpty &&
       tunes.isEmpty &&
+      meters.isEmpty &&
+      musicalKeys.isEmpty &&
       choiceValues.values.every((s) => s.isEmpty) &&
       booleanValues.isEmpty &&
       textValues.values.every((s) => !s.isEffective) &&
@@ -310,6 +321,8 @@ class FacetSelections {
       (untagged ? 1 : 0) +
       sourceIds.length +
       tunes.length +
+      meters.length +
+      musicalKeys.length +
       choiceValues.values.fold<int>(0, (a, s) => a + s.length) +
       booleanValues.length +
       textValues.values.where((s) => s.isEffective).length +
@@ -332,6 +345,8 @@ class FacetSelections {
     untagged = false;
     sourceIds.clear();
     tunes.clear();
+    meters.clear();
+    musicalKeys.clear();
     choiceValues.clear();
     booleanValues.clear();
     textValues.clear();
@@ -370,6 +385,10 @@ class FacetSelections {
         return authorIds.isNotEmpty;
       case CollectionFacetIds.tunes:
         return tunes.isNotEmpty;
+      case CollectionFacetIds.meter:
+        return meters.isNotEmpty;
+      case CollectionFacetIds.musicalKey:
+        return musicalKeys.isNotEmpty;
       case CollectionFacetIds.tags:
         return tagIds.isNotEmpty;
       case CollectionFacetIds.source:
@@ -415,6 +434,10 @@ class FacetSelections {
           authorIds.clear();
         case CollectionFacetIds.tunes:
           tunes.clear();
+        case CollectionFacetIds.meter:
+          meters.clear();
+        case CollectionFacetIds.musicalKey:
+          musicalKeys.clear();
         case CollectionFacetIds.tags:
           tagIds.clear();
           tagsMatchAll = true;
@@ -598,6 +621,8 @@ DanceFilter buildCollectionFilter({
   for (final tune in facets.tunes) {
     branches.add(TunesFilter(tune));
   }
+  addOr([for (final m in facets.meters) MeterFilter(m)]);
+  addOr([for (final k in facets.musicalKeys) MusicalKeyFilter(k)]);
 
   final defsById = {for (final d in defs) d.id: d};
   facets.choiceValues.forEach((fieldId, values) {

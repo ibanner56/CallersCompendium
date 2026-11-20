@@ -2208,6 +2208,8 @@ class _DefaultsView extends StatelessWidget {
               (CollectionFacetIds.callStatus, l10n.collectionFacetCallStatus),
               (CollectionFacetIds.author, l10n.collectionFacetAuthor),
               (CollectionFacetIds.tunes, l10n.collectionFacetTunes),
+              (CollectionFacetIds.meter, l10n.collectionFacetMeter),
+              (CollectionFacetIds.musicalKey, l10n.collectionFacetMusicalKey),
               (CollectionFacetIds.tags, l10n.collectionFacetTags),
               (CollectionFacetIds.source, l10n.collectionFacetSource),
             ];

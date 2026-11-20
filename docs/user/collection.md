@@ -174,9 +174,9 @@ sources, custom field values, hooks and notes, and at each dance's meter, key
 and the people who interpreted it, and finds each word exactly as you typed
 it: `3/2`, `D minor` or `Sharp` each find the dances that have them. A word of
 one or two letters must start a word, so `D` finds the key "D minor" but `in`
-does not. A letter with an accent in a meter, key or interpreter's name must be
-typed as it was entered, capital included. **Author** looks only at the people
-who wrote a dance, not those who interpreted it. It skips yes/no fields, which you find with their filter, and
+does not. Accents and capitals don't matter in a meter, key or interpreter's
+name: `emile` finds Émile. **Author** looks at the people who wrote a dance and
+the people who interpreted it. All fields skips yes/no fields, which you find with their filter, and
 any custom field with **Searchable** turned off (see
 [Make your own fields](#make-your-own-fields)).
 
@@ -261,6 +261,10 @@ the **Filters** panel. It lets you narrow by:
   [Filter by calling history](#filter-by-calling-history) below
 - **Author**
 - **Tunes** — see [Filter by tunes](#filter-by-tunes) below
+- **Meter** and **Key** — the meters and keys your dances have, such as *6/8*
+  or *D minor*. A chip finds the dances whose whole meter or key is that
+  value, ignoring capitals and accents, so *6/8* does not find *6/8 and 9/8*.
+  Each appears once at least one dance has a meter or a key.
 - **Tags** — including **Untagged**, for dances that have no tags yet
 - **Source** — the book or collection a dance was published in
 - your own [custom fields](./glossary.md#custom-field) — the choice, yes/no,

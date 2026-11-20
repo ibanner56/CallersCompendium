@@ -5937,6 +5937,14 @@
   "@collectionFacetTagsMatchAnyTooltip": {
     "description": "Tooltip for the 'Any tag' segment of the Tags filter's match choice."
   },
+  "collectionFacetMeter": "Meter",
+  "@collectionFacetMeter": {
+    "description": "Filter section heading for the meter facet: the time signature a dance's tune is in, such as 6/8 or 3/2."
+  },
+  "collectionFacetMusicalKey": "Key",
+  "@collectionFacetMusicalKey": {
+    "description": "Filter section heading for the musical key facet: the key a dance's tune is in, such as D minor."
+  },
   "collectionFacetSource": "Source",
   "@collectionFacetSource": {
     "description": "Filter section heading for the cited-source facet."

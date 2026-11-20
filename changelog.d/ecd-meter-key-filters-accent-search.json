@@ -1,0 +1,22 @@
+{
+  "id": "ecd-meter-key-filters-accent-search",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "The Collection's filters have Meter and Key sections that offer the meters and keys your dances have, such as 6/8 or D minor."
+    ],
+    "changed": [
+      "Searching a meter, a key or an interpreter's name ignores accents and capitals: emile finds Émile.",
+      "Searching in Author also finds the people who interpreted a dance."
+    ]
+  },
+  "core": {
+    "added": [
+      "MeterFilter and MusicalKeyFilter match a dance's whole meter or key, folded for case and accents.",
+      "applyCompendiumSqliteSetup registers a cc_fold SQL function that folds case and accents for search."
+    ],
+    "changed": [
+      "The meter, key and interpreter matches of an All fields search, and the Author scope's new interpreter match, compare folded values."
+    ]
+  }
+}

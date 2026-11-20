@@ -4765,6 +4765,12 @@ class AppLocalizationsFr extends AppLocalizations {
       'Afficher les danses qui ont au moins un des tags choisis';
 
   @override
+  String get collectionFacetMeter => 'Mesure';
+
+  @override
+  String get collectionFacetMusicalKey => 'Tonalité';
+
+  @override
   String get collectionFacetSource => 'Source';
 
   @override

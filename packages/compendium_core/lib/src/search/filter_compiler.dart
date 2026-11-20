@@ -8,6 +8,7 @@ import '../taxonomy/user_figure_use.dart';
 import 'filter.dart';
 import 'fts_query.dart';
 import 'search_enrichment.dart';
+import 'search_fold.dart';
 import 'search_sort.dart';
 import '../storage/calling_history_scope.dart';
 
@@ -360,6 +361,10 @@ class FilterCompiler {
             "WHERE j.type <> 'text') THEN 0 "
             'ELSE EXISTS (SELECT 1 FROM json_each(dances.tunes_json) j '
             "WHERE j.value LIKE '%' || ? || '%' ESCAPE '\\') END";
+      case MeterFilter(:final meter):
+        return _musicValueMatch('meter', meter, binds);
+      case MusicalKeyFilter(:final musicalKey):
+        return _musicValueMatch('musical_key', musicalKey, binds);
       case TagFilter(:final tagId):
         // Joined to `tags` since schema v25 (#898). Tags have no referential
         // guard, so this is the one of these three where a tombstone with live
@@ -676,7 +681,9 @@ class FilterCompiler {
       case FullTextScope.title:
         return columnMatch('title', rawTextQuery);
       case FullTextScope.author:
-        return columnMatch('authors', rawTextQuery);
+        // The people who interpreted the dance count as its authors here.
+        final authors = columnMatch('authors', rawTextQuery);
+        return '($authors OR ${_interpreterMatch(raw, isPrefix, binds)})';
       case FullTextScope.figure:
         return columnMatch('figures_text', canonicalQuery);
       case FullTextScope.omni:
@@ -719,31 +726,22 @@ class FilterCompiler {
   /// value, where a word starts after a space, `/`, `-` or `(` ([_wordStarts];
   /// "D" finds "D minor", "8" and "3/" find "6/8" and "3/2", "in" does not
   /// find "D minor"), close to what the token-prefix index does; a longer word
-  /// may sit anywhere in it. `LIKE` folds ASCII case only, so a letter
-  /// outside ASCII ("É") must be typed as stored, capital included.
+  /// may sit anywhere in it. Both sides are folded by [searchFoldSqlFunction]
+  /// (lowercased, accents removed), so "emile" finds "Émile" and "Émile"
+  /// finds "Emile", as the text index's `remove_diacritics` does.
   String _musicAndInterpreterMatch(
     String raw,
     bool prefix,
     List<Object?> binds,
   ) {
+    final pattern = _foldedLikePattern(raw, prefix);
     // A word with no letter or digit (or no word at all) would make a
     // pattern that matches every value; it names no meter, key or person.
-    if (!_letterOrDigit.hasMatch(raw)) return '0';
-    // Not lowercased: `LIKE` folds ASCII case itself, and lowering "É" to
-    // "é" would stop it matching the stored "É". A short word has the same
-    // separators made spaces as the value it must start a word of, then
-    // trimmed, so "/8" starts a word as "8" does.
-    final word = raw.trim();
-    final pattern = prefix
-        ? '% ${escapeLikePattern(word.replaceAll(_wordSeparators, ' ').trim())}%'
-        : '%${escapeLikePattern(word)}%';
-    String value(String column) => prefix ? _wordStarts(column) : column;
+    if (pattern == null) return '0';
+    String value(String column) => _foldedValue(column, prefix);
     binds
       ..add(pattern)
-      ..add(pattern)
       ..add(pattern);
-    // Joined to `choreographers` with `deleted_at IS NULL`, as the author
-    // leaf is, so a deleted interpreter matches nothing.
     // Two `id IN` subqueries, like the text-index branches beside them, so
     // SQLite evaluates each once per word and probes its result, rather than
     // testing every dance against each branch. Measured with
@@ -754,10 +752,79 @@ class FilterCompiler {
     return "(id IN (SELECT id FROM dances WHERE (meter <> '' OR "
         "musical_key <> '') AND (${value('meter')} LIKE ? ESCAPE '\\' "
         "OR ${value('musical_key')} LIKE ? ESCAPE '\\')) "
-        'OR id IN (SELECT di.dance_id FROM dance_interpreters di '
+        'OR ${_interpreterMatch(raw, prefix, binds)})';
+  }
+
+  /// One word of a search ([raw], as typed) against the names of the people
+  /// who interpreted a dance, matched as [_musicAndInterpreterMatch] matches
+  /// a meter. All fields and the Author scope both read it, so an Author
+  /// search finds a dance by the person who interpreted it as well as by the
+  /// person who wrote it.
+  String _interpreterMatch(String raw, bool prefix, List<Object?> binds) {
+    final pattern = _foldedLikePattern(raw, prefix);
+    if (pattern == null) return '0';
+    binds.add(pattern);
+    // Joined to `choreographers` with `deleted_at IS NULL`, as the author
+    // leaf is, so a deleted interpreter matches nothing.
+    return 'id IN (SELECT di.dance_id FROM dance_interpreters di '
         'JOIN choreographers c ON c.id = di.choreographer_id '
         'WHERE c.deleted_at IS NULL '
-        "AND ${value('c.name')} LIKE ? ESCAPE '\\'))";
+        "AND ${_foldedValue('c.name', prefix)} LIKE ? ESCAPE '\\')";
+  }
+
+  /// The `LIKE` pattern for one typed word against a folded value
+  /// ([_foldedValue]), or `null` when the word has no letter or digit.
+  ///
+  /// The word is folded the way the value is ([foldForSearch]). A short word
+  /// ([prefix]) has the same separators made spaces as the value it must
+  /// start a word of, then trimmed, so "/8" starts a word as "8" does.
+  static String? _foldedLikePattern(String raw, bool prefix) {
+    if (!_letterOrDigit.hasMatch(raw)) return null;
+    final word = foldForSearch(raw.trim());
+    return prefix
+        ? '% ${escapeLikePattern(word.replaceAll(_wordSeparators, ' ').trim())}%'
+        : '%${escapeLikePattern(word)}%';
+  }
+
+  /// [column] folded by [_folded], with its word starts marked
+  /// ([_wordStarts]) when [prefix].
+  static String _foldedValue(String column, bool prefix) {
+    final folded = '(${_folded(column)})';
+    return prefix ? _wordStarts(folded) : folded;
+  }
+
+  /// [column] folded as [foldForSearch] folds it, for a `LIKE`.
+  ///
+  /// An ASCII value (as many bytes as characters) is left as stored: `LIKE`
+  /// already ignores ASCII case, and the pattern is folded. Only any other
+  /// value calls [searchFoldSqlFunction], a Dart callback per row: called for
+  /// every row, it took an All fields search over 20,000 dances that all have
+  /// a meter from 8.9 ms to 36 ms (`benchmark/search_benchmark.dart`).
+  static String _folded(String column) =>
+      'CASE WHEN ${_isAscii(column)} THEN $column '
+      'ELSE $searchFoldSqlFunction($column) END';
+
+  /// Whether [column] holds only ASCII: as many bytes as characters.
+  static String _isAscii(String column) =>
+      'length($column) = length(CAST($column AS BLOB))';
+
+  /// A whole-value match of [column] (the meter or the key) against [value],
+  /// with both sides trimmed and folded ([searchFoldSqlFunction]). A blank
+  /// value matches nothing: it is not a meter or key the filter offers.
+  static String _musicValueMatch(
+    String column,
+    String value,
+    List<Object?> binds,
+  ) {
+    final folded = foldForSearch(value.trim());
+    if (folded.isEmpty) return '0';
+    binds.add(folded);
+    // `=` is case-sensitive, so an ASCII value is lowered here, and trimmed
+    // of the ASCII whitespace Dart's `trim` removes (tab to carriage return,
+    // and space), as the Meter and Key facets trim what they offer.
+    return "($column <> '' AND (CASE WHEN ${_isAscii(column)} "
+        'THEN lower(trim($column, char(9, 10, 11, 12, 13, 32))) '
+        'ELSE $searchFoldSqlFunction($column) END) = ?)';
   }
 
   String _customField(CustomFieldFilter f, List<Object?> binds) {

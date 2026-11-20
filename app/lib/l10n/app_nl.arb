@@ -4692,6 +4692,14 @@
   "@collectionFacetTagsMatchAnyTooltip": {
     "x-sourceSha256": "8a4c10a619b2a7a86fd1bb6352b0672ca97b842c2a8cbe193709faa8b36160d1"
   },
+  "collectionFacetMeter": "Maatsoort",
+  "@collectionFacetMeter": {
+    "x-sourceSha256": "2293b30e539a68427851a623737eb92b4dd7ecdc432f67e62dc2f550dd33a907"
+  },
+  "collectionFacetMusicalKey": "Toonsoort",
+  "@collectionFacetMusicalKey": {
+    "x-sourceSha256": "99a52df3ff3d499488e2fa28150c4106a2cb5e928891a830a9aa3922b2d32160"
+  },
   "collectionFacetSource": "Bron",
   "@collectionFacetSource": {
     "x-sourceSha256": "0e570ca6fabe24f94e52c1833f3ffd25567022beb826fa16891f3322051bc221"

@@ -58,6 +58,14 @@ final builtInFacetSelections =
         select: (f) => f.addTune('Dmaj'),
         held: (f) => f.tunes.isNotEmpty,
       ),
+      CollectionFacetIds.meter: (
+        select: (f) => f.meters.add('6/8'),
+        held: (f) => f.meters.isNotEmpty,
+      ),
+      CollectionFacetIds.musicalKey: (
+        select: (f) => f.musicalKeys.add('D minor'),
+        held: (f) => f.musicalKeys.isNotEmpty,
+      ),
       CollectionFacetIds.tags: (
         select: (f) => f.tagIds.add('t1'),
         held: (f) => f.tagIds.isNotEmpty,

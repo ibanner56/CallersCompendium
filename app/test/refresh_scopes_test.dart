@@ -262,7 +262,9 @@ void main() {
       // and the naive response is to re-search on each one.
       final counter = _SearchCounter();
       final db = openWidgetTestDatabase(
-        executor: NativeDatabase.memory().interceptWith(counter),
+        executor: NativeDatabase.memory(
+          setup: applyCompendiumSqliteSetup,
+        ).interceptWith(counter),
       );
       final repos = CompendiumRepositories(db, contraTaxonomy);
       await repos.dances.create(dance(id: 'd1', title: 'Alpha'));
@@ -302,7 +304,9 @@ void main() {
   ) async {
     final counter = _SearchCounter();
     final db = openWidgetTestDatabase(
-      executor: NativeDatabase.memory().interceptWith(counter),
+      executor: NativeDatabase.memory(
+        setup: applyCompendiumSqliteSetup,
+      ).interceptWith(counter),
     );
     final repos = CompendiumRepositories(db, contraTaxonomy);
     // ignore: unused_result
@@ -406,7 +410,9 @@ void main() {
       // widen: a number that only ever goes up stops testing anything.
       final counter = _SnapshotLoadCounter();
       final db = openWidgetTestDatabase(
-        executor: NativeDatabase.memory().interceptWith(counter),
+        executor: NativeDatabase.memory(
+          setup: applyCompendiumSqliteSetup,
+        ).interceptWith(counter),
       );
       final repos = CompendiumRepositories(db, contraTaxonomy);
       await repos.dances.create(dance(id: 'd1', title: 'Alpha'));
