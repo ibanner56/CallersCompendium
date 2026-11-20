@@ -567,7 +567,11 @@ CcDanceMapping mapCallersCompanionDance(
   final barBeats = ecdBeatsPerBar(meter);
   var countedBarsUnstated = false;
   final figures = <Figure>[];
+  // Each section's label and the beats its figures count, from which an
+  // English dance's named phrases are found ([ecdPhraseStructureFor]).
+  final sectionBeats = <EcdSectionBeats>[];
   for (final section in record.body) {
+    final firstFigure = figures.length;
     for (final rawLine in section.lines) {
       final line = rawLine.trim();
       if (line.isEmpty) continue;
@@ -634,6 +638,23 @@ CcDanceMapping mapCallersCompanionDance(
       lineCache?.remember(line, allocated);
       figures.addAll(allocated);
     }
+    final beats = figures
+        .skip(firstFigure)
+        .fold(0, (sum, figure) => sum + figure.beats);
+    sectionBeats.add((
+      label: section.label,
+      beats: beats,
+      // The figures count every count the lines state, and no more: a count
+      // lost in a line kept as text, or a figure's default count where its
+      // line states none, leaves the section's bars unknown.
+      counted:
+          form == DanceForm.ecd &&
+          beats ==
+              section.lines.fold(
+                0,
+                (sum, line) => sum + ecdStatedBeats(line, barBeats.beatsPerBar),
+              ),
+    ));
   }
 
   final dance = Dance(
@@ -661,6 +682,13 @@ CcDanceMapping mapCallersCompanionDance(
     revisedOn: revisedOn,
     meter: meter,
     musicalKey: music.key,
+    phraseStructure: form == DanceForm.ecd
+        ? ecdPhraseStructureFor(
+            sectionBeats,
+            beatsPerBar: barBeats.beatsPerBar,
+            meterStated: barBeats.stated,
+          )
+        : '',
     createdAt: now,
     updatedAt: now,
   );

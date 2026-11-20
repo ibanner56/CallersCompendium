@@ -24,6 +24,9 @@ const _sites = <String, List<(String, String)>>{
     ("const ValueKey('form-field')", 'false'),
     ("const ValueKey('formation-field')", 'false'),
   ],
+  'lib/src/screens/dance_editor/named_phrases_editor.dart': [
+    (r"ValueKey('named-phrase-$index-name')", 'false'),
+  ],
   'lib/src/screens/dance_editor/editor_fields.dart': [
     (r"ValueKey('$fieldKey-field')", 'false'),
     ("const ValueKey('level-field')", 'true'),

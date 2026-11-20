@@ -8274,6 +8274,54 @@
   "@danceEditorPhraseStructureHint": {
     "x-sourceSha256": "78ca5e99c98fa6e6357b8a18866b14978b0be6de237b2a451d6b5e79baece580"
   },
+  "danceEditorPhrasesNameThem": "Nommer les phrases",
+  "@danceEditorPhrasesNameThem": {
+    "x-sourceSha256": "d09f719d944fd94ff7815b23a4f7cf72a782f3596a3d77a73835bbc6d518199a"
+  },
+  "danceEditorPhrasesTitle": "Phrases",
+  "@danceEditorPhrasesTitle": {
+    "x-sourceSha256": "076bcf6aae77baad87996fdcdd36b513bb44458288adb5cf5d1b4827c4d40fb9"
+  },
+  "danceEditorPhrasesHelp": "Nommez chaque partie de l’air A, B ou C, indiquez ses mesures et si elle est jouée une ou deux fois. Une phrase jouée deux fois est notée A1 et A2.",
+  "@danceEditorPhrasesHelp": {
+    "x-sourceSha256": "edebc10c51273964bc9a05c909981b77787dce7a2b475a83725c526777f92c91"
+  },
+  "danceEditorPhrasesAdd": "Ajouter une phrase",
+  "@danceEditorPhrasesAdd": {
+    "x-sourceSha256": "523c6e63a15b0cd78bb315d87053f141d1ae58f5ecb7c344ff3892e50a9d9833"
+  },
+  "danceEditorPhrasesInvalid": "Donnez à chaque phrase de 1 à {max} mesures. D’ici là, la danse garde ses dernières phrases valides, et Enregistrer enregistre celles-ci.",
+  "@danceEditorPhrasesInvalid": {
+    "x-sourceSha256": "a3cba7054af95cf515f04202ae1426f98e82977fb78851c6ea4b2ed8ee4f6a53"
+  },
+  "danceEditorPhraseBarsLabel": "Mesures de {name}",
+  "@danceEditorPhraseBarsLabel": {
+    "x-sourceSha256": "867eafda3925542d6e1dee91eeba53b090b91f8132e4ef22cab59adb238263a0"
+  },
+  "danceEditorPhraseBarsRange": "1 à {max}",
+  "@danceEditorPhraseBarsRange": {
+    "x-sourceSha256": "bfa7cdf134bbeb548cd4f923b76b40b9d9f16882792d502e0657e9e611bcdbf5"
+  },
+  "danceEditorPhraseNameLabel": "Nom de la phrase",
+  "@danceEditorPhraseNameLabel": {
+    "x-sourceSha256": "b9645f94bbfb4f46cd498465674211193279e8e327933257762532f1cb63f94f"
+  },
+  "danceEditorPhrasePlaysLabel": "Combien de fois {name} est jouée",
+  "@danceEditorPhrasePlaysLabel": {
+    "x-sourceSha256": "cc29c564312c93c0890dc1d19312f3cf71290094ce87a35fbd7e6be261bd4ad1"
+  },
+  "danceEditorPhrasePlaysOnce": "Une fois",
+  "@danceEditorPhrasePlaysOnce": {
+    "x-sourceSha256": "d88f6d8372f4d54ecfa210948ad8f8fccf83984881e298b673c8f1a941e2aa33"
+  },
+  "danceEditorPhrasePlaysTwice": "Deux fois",
+  "@danceEditorPhrasePlaysTwice": {
+    "x-sourceSha256": "cc1b4c8daad22e40cc6165404b7896376212193223579da8ad41b8d10ae64b44"
+  },
+  "danceEditorPhraseRemove": "Retirer la phrase {name}",
+  "@danceEditorPhraseRemove": {
+    "x-sourceSha256": "ac53653b0502a2963db64c69011dbd463efc6e80b1d2020418209439d3e33e52"
+  },
   "danceEditorFiguresSection": "Figures",
   "@danceEditorFiguresSection": {
     "x-sourceSha256": "f2f410e7009e9a31dcc7c971e662285f4071150ef1e211f76e838efb35082d1e"
@@ -8697,6 +8745,10 @@
   "validationPhraseInvalid": "Cette structure de phrase n'est pas valide.",
   "@validationPhraseInvalid": {
     "x-sourceSha256": "92d3acedb87ed98d680de3f4a8a54a8ad246bf74ccca87209f3e77773e2aa664"
+  },
+  "validationPhraseNamedEnglishOnly": "Les noms de phrase (A:, B:, C:) sont réservés aux danses anglaises.",
+  "@validationPhraseNamedEnglishOnly": {
+    "x-sourceSha256": "b5f2d8332302489d86c74c678cda475666341fa2fe1ddac3da1322d7b85759c0"
   },
   "validationOrphanedAlt": "L'alternative à la position {position} n'a pas d'emplacement principal précédent.",
   "@validationOrphanedAlt": {

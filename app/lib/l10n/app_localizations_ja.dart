@@ -8149,6 +8149,53 @@ class AppLocalizationsJa extends AppLocalizations {
       '空白 = 標準のA1 A2 B1 B2；それ以外は例: 6*8*2';
 
   @override
+  String get danceEditorPhrasesNameThem => 'フレーズに名前を付ける';
+
+  @override
+  String get danceEditorPhrasesTitle => 'フレーズ';
+
+  @override
+  String get danceEditorPhrasesHelp =>
+      '曲の各部分にA、B、Cの名前を付け、小節数と、1回演奏するか2回演奏するかを指定します。2回演奏するフレーズはA1、A2と表示されます。';
+
+  @override
+  String get danceEditorPhrasesAdd => 'フレーズを追加';
+
+  @override
+  String danceEditorPhrasesInvalid(int max) {
+    return '各フレーズの小節数を1から$maxで入力してください。それまでは最後の有効なフレーズが保たれ、保存するとそれが保存されます。';
+  }
+
+  @override
+  String danceEditorPhraseBarsLabel(String name) {
+    return '$nameの小節';
+  }
+
+  @override
+  String danceEditorPhraseBarsRange(int max) {
+    return '1〜$max';
+  }
+
+  @override
+  String get danceEditorPhraseNameLabel => 'フレーズ名';
+
+  @override
+  String danceEditorPhrasePlaysLabel(String name) {
+    return '$nameの演奏回数';
+  }
+
+  @override
+  String get danceEditorPhrasePlaysOnce => '1回';
+
+  @override
+  String get danceEditorPhrasePlaysTwice => '2回';
+
+  @override
+  String danceEditorPhraseRemove(String name) {
+    return 'フレーズ$nameを削除';
+  }
+
+  @override
   String get danceEditorFiguresSection => 'フィギュア';
 
   @override
@@ -8535,6 +8582,10 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get validationPhraseInvalid => 'そのフレーズ構造は無効です。';
+
+  @override
+  String get validationPhraseNamedEnglishOnly =>
+      'フレーズ名（A:、B:、C:）はイングリッシュダンス専用です。';
 
   @override
   String validationOrphanedAlt(int position) {

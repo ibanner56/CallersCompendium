@@ -395,6 +395,161 @@ void main() {
       body: [CcBodySection(lines: lines)],
     );
 
+    group('phrase structure', () {
+      List<String> labels(Dance dance) => [
+        for (final f in dance.sectionedFigures) f.label,
+      ];
+
+      Dance sectioned(String? music, Map<String, List<String>> sections) =>
+          mapCallersCompanionDance(
+            CcDanceRecord(
+              name: 'Phrased',
+              type: 'Contra',
+              music: music,
+              fromUsrColumns: true,
+              body: [
+                for (final MapEntry(:key, :value) in sections.entries)
+                  CcBodySection(label: key, lines: value),
+              ],
+            ),
+            englishDances: true,
+          ).dance;
+
+      test('sections A1 A2 B1 counted in full name the phrases', () {
+        final dance = sectioned('Key: G, Meter: 3/4', {
+          'A1': ['(1-4) circle left'],
+          'A2': ['(1-4) circle right'],
+          'B1': ['(1-4) circle left', '(5-8) circle right'],
+        });
+        expect(dance.phraseStructure.raw, 'A:2*4*3 + B:1*8*3');
+        expect(dance.phraseStructure.labels, ['A1', 'A2', 'B']);
+        expect(labels(dance), ['A1', 'A2', 'B', 'B']);
+        expect(dance.validate(), isEmpty);
+      });
+
+      test('A, B and C played once each', () {
+        final dance = sectioned('2/2', {
+          'A1': ['(8) circle left'],
+          'B1': ['(8) circle right'],
+          'C1': ['(8) circle left', '(8) circle right'],
+        });
+        expect(dance.phraseStructure.raw, 'A:1*4*2 + B:1*4*2 + C:1*8*2');
+        expect(dance.phraseStructure.labels, ['A', 'B', 'C']);
+        expect(labels(dance), ['A', 'B', 'C', 'C']);
+        expect(dance.validate(), isEmpty);
+      });
+
+      test('A1 A2 B1 B2 of 8 bars each stays the unnamed structure', () {
+        final sections = {
+          for (final label in ['A1', 'A2', 'B1', 'B2'])
+            label: ['(1-4) circle left', '(5-8) circle right'],
+        };
+        expect(sectioned('2/2', sections).phraseStructure.raw, '');
+        expect(sectioned('3/2', sections).phraseStructure.raw, '4*8*3');
+        // Of 4 bars each, they are named.
+        expect(
+          sectioned('2/2', {
+            for (final label in ['A1', 'A2', 'B1', 'B2'])
+              label: ['(1-4) circle left'],
+          }).phraseStructure.raw,
+          'A:2*4*2 + B:2*4*2',
+        );
+      });
+
+      test('a section that counts no bars names no phrases', () {
+        // Named A:2*8*2 + B:1*8*2, the B figures would be labeled A2.
+        final dance = sectioned('2/2', {
+          'A1': ['(1-8) circle left'],
+          'A2': ['Repeat to places.'],
+          'B1': ['(1-8) circle right'],
+        });
+        expect(dance.phraseStructure.raw, '');
+      });
+
+      test('a count lost in a line kept as text names no phrases; the meter '
+          'still sets the beats in a bar', () {
+        final dance = sectioned('Key G Meter 3/4', {
+          'A1': ['(12) circle left', '(12) circle right'],
+          'A2': ['(12) circle left', '(12) circle right'],
+          // Two counts in one line read as text keep only the first.
+          'B1': ['(3) something only this caller says (3) and more'],
+        });
+        expect(dance.phraseStructure.raw, '4*8*3');
+      });
+
+      test('unlabeled or unusual sections name no phrases', () {
+        for (final sections in [
+          {
+            'A1': ['(8) circle left'],
+            'D1': ['(8) circle right'],
+          },
+          {
+            'A1': ['(8) circle left'],
+            'B2': ['(8) circle right'],
+          },
+          {
+            'A1': ['(8) circle left'],
+            'A2': ['(8) circle left'],
+            'A3': ['(8) circle left'],
+          },
+          {
+            'A1': ['(8) circle left'],
+            'A2': ['(16) circle right'],
+          },
+        ]) {
+          expect(
+            sectioned('2/2', sections).phraseStructure.raw,
+            '',
+            reason: '$sections',
+          );
+        }
+        final unlabeled = mapCallersCompanionDance(
+          record(music: '6/8', lines: const ['(8) circle left']),
+          englishDances: true,
+        ).dance;
+        expect(unlabeled.phraseStructure.raw, '');
+      });
+
+      test('with no named phrases, a meter of other than two beats a bar '
+          'sets the structure\'s beats', () {
+        for (final (music, raw) in [
+          ('3/2', '4*8*3'),
+          ('9/8', '4*8*3'),
+          ('4/4', '4*8*4'),
+          ('2/2', ''),
+          ('6/8', ''),
+          (null, ''),
+        ]) {
+          final dance = mapCallersCompanionDance(
+            record(music: music, lines: const ['circle left']),
+            englishDances: true,
+          ).dance;
+          expect(dance.phraseStructure.raw, raw, reason: music);
+        }
+      });
+
+      test('a contra dance keeps the standard structure', () {
+        final dance = mapCallersCompanionDance(record(music: '3/2')).dance;
+        expect(dance.form, DanceForm.contra);
+        expect(dance.phraseStructure.raw, '');
+      });
+    });
+
+    test('ecdStatedBeats adds up every count a line states', () {
+      for (final (line, beats) in [
+        ('(8) circle left', 8),
+        ('(4,4) set and turn single', 8),
+        ('(1-4) circle left (5-8) circle right', 16),
+        ('1-2 set 3-4 turn single', 8),
+        ('(3) change (3) change', 6),
+        ('circle left', 0),
+        ('circle left in 3/4-time', 0),
+        ('hey for 3', 0),
+      ]) {
+        expect(ecdStatedBeats(line, 2), beats, reason: line);
+      }
+    });
+
     test('a file of English dances reads a Contra-typed dance as English, '
         'a square as a square', () {
       final english = mapCallersCompanionDance(

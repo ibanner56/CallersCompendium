@@ -8555,6 +8555,53 @@ class AppLocalizationsNl extends AppLocalizations {
       'Leeg = standaard A1 A2 B1 B2; anders bijv. 6*8*2';
 
   @override
+  String get danceEditorPhrasesNameThem => 'Frasen benoemen';
+
+  @override
+  String get danceEditorPhrasesTitle => 'Frasen';
+
+  @override
+  String get danceEditorPhrasesHelp =>
+      'Benoem elk deel van de melodie A, B of C, geef het aantal maten en kies of het één of twee keer gespeeld wordt. Een frase die twee keer gespeeld wordt, heet A1 en A2.';
+
+  @override
+  String get danceEditorPhrasesAdd => 'Frase toevoegen';
+
+  @override
+  String danceEditorPhrasesInvalid(int max) {
+    return 'Geef elke frase 1 tot $max maten. Tot dan houdt de dans zijn laatste geldige frasen, en Opslaan slaat die op.';
+  }
+
+  @override
+  String danceEditorPhraseBarsLabel(String name) {
+    return 'Maten in $name';
+  }
+
+  @override
+  String danceEditorPhraseBarsRange(int max) {
+    return '1 tot $max';
+  }
+
+  @override
+  String get danceEditorPhraseNameLabel => 'Naam van de frase';
+
+  @override
+  String danceEditorPhrasePlaysLabel(String name) {
+    return 'Hoe vaak $name speelt';
+  }
+
+  @override
+  String get danceEditorPhrasePlaysOnce => 'Eén keer';
+
+  @override
+  String get danceEditorPhrasePlaysTwice => 'Twee keer';
+
+  @override
+  String danceEditorPhraseRemove(String name) {
+    return 'Frase $name verwijderen';
+  }
+
+  @override
   String get danceEditorFiguresSection => 'Figuren';
 
   @override
@@ -8955,6 +9002,10 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get validationPhraseInvalid => 'Die fraseopbouw is ongeldig.';
+
+  @override
+  String get validationPhraseNamedEnglishOnly =>
+      'Frasenamen (A:, B:, C:) zijn alleen voor Engelse dansen.';
 
   @override
   String validationOrphanedAlt(int position) {

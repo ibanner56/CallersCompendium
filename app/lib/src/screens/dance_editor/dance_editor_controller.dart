@@ -223,6 +223,13 @@ class DanceEditorController extends ChangeNotifier {
   /// screen's shortcut `Focus(autofocus: true)`, which claims focus on the
   /// spinner frame).
   final FocusNode titleFocusNode = FocusNode(debugLabel: 'dance-title');
+
+  /// The phrase-structure field's focus. An English dance's named structure
+  /// hides the field, but not while the caller is typing in it, so a
+  /// structure that becomes named mid-entry (`A:2*8*2`, before `+ B:…`) can
+  /// still be finished; leaving the field then hides it.
+  late final FocusNode phraseFocusNode = FocusNode(debugLabel: 'dance-phrase')
+    ..addListener(_notify);
   final LingoTextEditingController hookController;
   final LingoTextEditingController notesController;
 
@@ -684,6 +691,18 @@ class DanceEditorController extends ChangeNotifier {
     }
   }
 
+  /// Named phrases are for English dances only (Hudson, 20 November 2026):
+  /// in any other form the phrases keep their lengths and lose their names,
+  /// so they are labeled A1 A2 B1 B2 again. Undo brings the names back.
+  void _fitPhrasesToForm() {
+    if (offersNamedPhrases) return;
+    final structure = typedPhraseStructure;
+    if (structure == null || !structure.isNamed) return;
+    phraseController.text = structure.components
+        .map((c) => '${c.phraseCount}*${c.bars}*${c.beatsPerBar}')
+        .join(' + ');
+  }
+
   /// Shows the dance in its form's dialect, after [_form] changed.
   void _followForm() => _showInDialect(_targetDialect);
 
@@ -929,6 +948,8 @@ class DanceEditorController extends ChangeNotifier {
         );
         // Empty ⇒ leave the historical standard 4×16 (blank controller).
         if (raw.isNotEmpty) phraseController.text = raw;
+        // A default with named phrases names them in English dances only.
+        _fitPhrasesToForm();
       } catch (_) {
         // diagnostics: silent — phrase structure default read failed; falls back to hardcoded standard.
       }
@@ -1792,6 +1813,7 @@ class DanceEditorController extends ChangeNotifier {
     _form = value;
     _followForm();
     _fitSequenceTimingToForm(figureDrafts);
+    _fitPhrasesToForm();
     recomputeWarnings();
     pushUndoNow();
     scheduleAutosave();
@@ -2544,6 +2566,74 @@ class DanceEditorController extends ChangeNotifier {
     scheduleAutosave();
   }
 
+  /// Whether the editor offers named phrases (A, B, C): English dances only
+  /// (Hudson, 20 November 2026).
+  bool get offersNamedPhrases => _form == DanceForm.ecd;
+
+  /// The phrase structure as the field now reads, or null while it holds
+  /// text that does not parse.
+  PhraseStructure? get typedPhraseStructure {
+    try {
+      return PhraseStructure.parse(phraseController.text);
+    } on FormatException {
+      // diagnostics: silent — the field's own validator shows why.
+      return null;
+    }
+  }
+
+  /// The beats in a bar the Meter states, or null when it states none.
+  int? get statedBeatsPerBar {
+    final perBar = ecdBeatsPerBar(meterController.text);
+    return perBar.stated ? perBar.beatsPerBar : null;
+  }
+
+  /// Sets the phrase structure text, as the named phrases write it. A
+  /// [typed] change (a bar count, or the meter) is debounced into one undo
+  /// step with the typing around it; any other is its own undo step.
+  void setPhraseStructureText(String raw, {bool typed = true}) {
+    if (phraseController.text == raw) return;
+    phraseController.text = raw;
+    if (typed) {
+      onPhraseChanged();
+      return;
+    }
+    recomputeWarnings();
+    pushUndoNow();
+    _notify();
+    scheduleAutosave();
+  }
+
+  /// The Meter field changed. Named phrases count their bars by it (Hudson,
+  /// 19 November 2026: "the meter is the rule"), so a meter that states its
+  /// beats in a bar rewrites them in each named phrase, keeping its bars.
+  void onMeterChanged() {
+    final perBar = statedBeatsPerBar;
+    final phrases = typedPhraseStructure?.namedPhrases;
+    if (offersNamedPhrases &&
+        perBar != null &&
+        phrases != null &&
+        phrases.any((p) => p.beatsPerBar != perBar)) {
+      try {
+        setPhraseStructureText(
+          PhraseStructure.named([
+            for (final p in phrases)
+              NamedPhrase(
+                name: p.name,
+                plays: p.plays,
+                bars: p.bars,
+                beatsPerBar: perBar,
+              ),
+          ]).raw,
+        );
+        return;
+      } on FormatException {
+        // diagnostics: silent — the bars in this meter are past the bounds;
+        // the structure keeps its old beats and the meter its text.
+      }
+    }
+    onTextEdited();
+  }
+
   /// The phrase-structure field changed.
   void onPhraseChanged() {
     recomputeWarnings();
@@ -2569,6 +2659,7 @@ class DanceEditorController extends ChangeNotifier {
     _autosaveTimer?.cancel();
     titleController.dispose();
     titleFocusNode.dispose();
+    phraseFocusNode.dispose();
     hookController.dispose();
     notesController.dispose();
     walkthroughController.dispose();

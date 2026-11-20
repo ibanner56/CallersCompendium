@@ -8503,6 +8503,53 @@ class AppLocalizationsDa extends AppLocalizations {
       'Tom = standard A1 A2 B1 B2; ellers f.eks. 6*8*2';
 
   @override
+  String get danceEditorPhrasesNameThem => 'Navngiv fraserne';
+
+  @override
+  String get danceEditorPhrasesTitle => 'Fraser';
+
+  @override
+  String get danceEditorPhrasesHelp =>
+      'Navngiv hver del af melodien A, B eller C, angiv dens takter, og vælg om den spilles én eller to gange. En frase, der spilles to gange, får betegnelserne A1 og A2.';
+
+  @override
+  String get danceEditorPhrasesAdd => 'Tilføj frase';
+
+  @override
+  String danceEditorPhrasesInvalid(int max) {
+    return 'Giv hver frase fra 1 til $max takter. Indtil da beholder dansen sine sidste gyldige fraser, og Gem gemmer dem.';
+  }
+
+  @override
+  String danceEditorPhraseBarsLabel(String name) {
+    return 'Takter i $name';
+  }
+
+  @override
+  String danceEditorPhraseBarsRange(int max) {
+    return '1 til $max';
+  }
+
+  @override
+  String get danceEditorPhraseNameLabel => 'Frasens navn';
+
+  @override
+  String danceEditorPhrasePlaysLabel(String name) {
+    return 'Hvor tit $name spilles';
+  }
+
+  @override
+  String get danceEditorPhrasePlaysOnce => 'Én gang';
+
+  @override
+  String get danceEditorPhrasePlaysTwice => 'To gange';
+
+  @override
+  String danceEditorPhraseRemove(String name) {
+    return 'Fjern frase $name';
+  }
+
+  @override
   String get danceEditorFiguresSection => 'Figurer';
 
   @override
@@ -8899,6 +8946,10 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get validationPhraseInvalid => 'Den frastruktur er ugyldig.';
+
+  @override
+  String get validationPhraseNamedEnglishOnly =>
+      'Frasenavne (A:, B:, C:) er kun til engelske danse.';
 
   @override
   String validationOrphanedAlt(int position) {

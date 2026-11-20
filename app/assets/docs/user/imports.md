@@ -451,9 +451,15 @@ by its first range, if all of them would come to more than 64 beats).
 A number after a word like Track, CD or Disc ("Track 3/4 of CD") isn't taken
 for a meter unless a word like Meter names it, and "A 3/2 hornpipe" gives the
 meter 3/2 but no key ("A 3/2 hornpipe in G" gives the key G).
-The dance's phrase structure is not changed to match its meter, so in a 3/2
-dance the A and B labels on the dance's page can fall in the wrong places
-until you set the phrase structure (for example 4*8*3).
+When the dance's sections are labeled A, B and C (`A1 A2 B1`, `A1 B1 C1`)
+and every line in them is counted, the dance comes across with those
+phrases named, each with the bars its lines add up to: A1 and A2 of 4 bars
+and a B1 of 8 become A played twice and B played once (see **Phrases** in
+[Writing and editing dances](./authoring.md)). A section that counts no bars,
+such as an A2 that only says "Repeat to places", names no phrases. Otherwise
+an English dance whose meter gives other than two beats a bar, such as 3/2
+or 4/4, gets four 8-bar phrases of that many beats, so its A and B labels
+fall in the right places.
 
 The app also reads Caller's Companion's abbreviations and wording. "Circle L",
 "pass R shoulder" and "alle R 1.5" keep their direction, shoulder and hand;

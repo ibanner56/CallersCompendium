@@ -8,8 +8,9 @@ import 'advanced_query_builder.dart' show MoveTypeAheadField;
 import 'move_autocomplete.dart' show moveLabelWithForm;
 
 /// A Caller's Box-style "search by phrase" panel
-/// (https://www.ibiblio.org/contradance/thecallersbox/). For each phrase of the
-/// dance (the standard four — A1, A2, B1, B2 — via [sectionLabels]) the caller
+/// (https://www.ibiblio.org/contradance/thecallersbox/). For each phrase in
+/// [sectionLabels] (the standard A1, A2, B1, B2, plus any label an English
+/// dance's named phrases give, from `sectionLabelsFor`) the caller
 /// lists figures that MUST occur in that phrase ("figures match") and figures
 /// that must NOT ("but do not match").
 ///
@@ -39,10 +40,13 @@ class ByPhrasePanel extends StatelessWidget {
   /// canonical move ids either way.
   final Dialect? dialect;
 
-  /// Caller's Box-style caption for the [index]-th phrase, e.g.
-  /// "first phrase (usually A1)". Ordinals beyond the fourth fall back to
-  /// "phrase N".
-  static String captionFor(AppLocalizations l10n, int index, String label) {
+  /// Caller's Box-style caption for a standard phrase, by its place in the
+  /// standard A1 A2 B1 B2, e.g. "first phrase (usually A1)". Any other label,
+  /// such as an English dance's named `A` or `C1`, is captioned by itself,
+  /// because its place differs from dance to dance.
+  static String captionFor(AppLocalizations l10n, String label) {
+    final index = PhraseStructure.standard.labels.indexOf(label);
+    if (index < 0) return label;
     final ordinal = switch (index) {
       0 => l10n.collectionByPhraseOrdinalFirst,
       1 => l10n.collectionByPhraseOrdinalSecond,
@@ -59,11 +63,11 @@ class ByPhrasePanel extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        for (final (index, label) in sectionLabels.indexed)
+        for (final label in sectionLabels)
           _PhraseRow(
             key: ValueKey('by-phrase-$label'),
             label: label,
-            caption: captionFor(l10n, index, label),
+            caption: captionFor(l10n, label),
             selections: selections,
             taxonomy: taxonomy,
             dialect: dialect,

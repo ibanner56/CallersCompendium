@@ -12568,6 +12568,78 @@ abstract class AppLocalizations {
   /// **'Blank = standard A1 A2 B1 B2; else e.g. 6*8*2'**
   String get danceEditorPhraseStructureHint;
 
+  /// Button in an English dance's editor that starts naming the tune's phrases A, B and C, each with its bars and whether it plays once or twice. It starts from the dance's current phrase structure.
+  ///
+  /// In en, this message translates to:
+  /// **'Name the phrases'**
+  String get danceEditorPhrasesNameThem;
+
+  /// Heading above an English dance's named phrases (A, B, C), one row each.
+  ///
+  /// In en, this message translates to:
+  /// **'Phrases'**
+  String get danceEditorPhrasesTitle;
+
+  /// Help under the Phrases heading in an English dance's editor. A, B, C, A1 and A2 are phrase labels of English country dance music and stay as written.
+  ///
+  /// In en, this message translates to:
+  /// **'Name each part of the tune A, B or C, give its bars, and say whether it plays once or twice. A phrase played twice is labeled A1 and A2.'**
+  String get danceEditorPhrasesHelp;
+
+  /// Button that adds a named phrase (the next unused of A, B, C) to an English dance's phrases. Hidden when all three are used.
+  ///
+  /// In en, this message translates to:
+  /// **'Add phrase'**
+  String get danceEditorPhrasesAdd;
+
+  /// Error under an English dance's named phrases when a bar count is empty, zero or above {max}, or the phrases are too long. The phrase structure is kept as it was until it is fixed, and Save saves that kept structure.
+  ///
+  /// In en, this message translates to:
+  /// **'Give each phrase from 1 to {max} bars. Until then the dance keeps its last valid phrases, and Save saves those.'**
+  String danceEditorPhrasesInvalid(int max);
+
+  /// Label of the number field for how many bars of music one named phrase of an English dance has. The name is A, B or C, a phrase label of English country dance music.
+  ///
+  /// In en, this message translates to:
+  /// **'Bars in {name}'**
+  String danceEditorPhraseBarsLabel(String name);
+
+  /// Short error under one named phrase's Bars field in an English dance when its bar count is empty, zero or too large: the bars it may have.
+  ///
+  /// In en, this message translates to:
+  /// **'1 to {max}'**
+  String danceEditorPhraseBarsRange(int max);
+
+  /// Label of the dropdown that picks one named phrase's name (A, B or C) in an English dance's phrases.
+  ///
+  /// In en, this message translates to:
+  /// **'Phrase name'**
+  String get danceEditorPhraseNameLabel;
+
+  /// Screen-reader label of the Once/Twice choice for one named phrase of an English dance's tune. The name is A, B or C.
+  ///
+  /// In en, this message translates to:
+  /// **'How often {name} plays'**
+  String danceEditorPhrasePlaysLabel(String name);
+
+  /// Choice for a named phrase of an English dance's tune: it plays once (labeled A).
+  ///
+  /// In en, this message translates to:
+  /// **'Once'**
+  String get danceEditorPhrasePlaysOnce;
+
+  /// Choice for a named phrase of an English dance's tune: it plays twice, its repeat straight after it (labeled A1 and A2).
+  ///
+  /// In en, this message translates to:
+  /// **'Twice'**
+  String get danceEditorPhrasePlaysTwice;
+
+  /// Tooltip of the button that removes one named phrase from an English dance's phrases. The name is A, B or C.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove phrase {name}'**
+  String danceEditorPhraseRemove(String name);
+
   /// Section heading for the editable figure list in the dance editor.
   ///
   /// In en, this message translates to:
@@ -13220,6 +13292,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'That phrase structure isn\'t valid.'**
   String get validationPhraseInvalid;
+
+  /// Field error under the dance editor's phrase-structure input when a dance that isn't an English country dance is given named phrases such as A:2*8*2. A:, B: and C: are written as typed.
+  ///
+  /// In en, this message translates to:
+  /// **'Phrase names (A:, B:, C:) are for English dances only.'**
+  String get validationPhraseNamedEnglishOnly;
 
   /// Program-editor warning: an alternate program slot appears with no primary slot before it. {position} is the slot's 1-based position.
   ///

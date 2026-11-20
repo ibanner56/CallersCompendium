@@ -197,7 +197,8 @@ read at arm's length in dim light, one-handed, while you're on the floor.
 How a dance's [beats](#beats) are grouped — the familiar A1 A2 B1 B2 of most
 contras, or something else. The app assumes the standard structure unless you
 write your own in the dance editor, and it uses whatever you set to tell you
-whether a dance's beats add up.
+whether a dance's beats add up. An English dance's phrases can be named A, B
+and C, each with its own bars and played once or twice.
 
 ## Program
 

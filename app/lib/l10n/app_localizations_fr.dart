@@ -8606,6 +8606,53 @@ class AppLocalizationsFr extends AppLocalizations {
       'Vide = standard A1 A2 B1 B2 ; sinon ex. 6*8*2';
 
   @override
+  String get danceEditorPhrasesNameThem => 'Nommer les phrases';
+
+  @override
+  String get danceEditorPhrasesTitle => 'Phrases';
+
+  @override
+  String get danceEditorPhrasesHelp =>
+      'Nommez chaque partie de l’air A, B ou C, indiquez ses mesures et si elle est jouée une ou deux fois. Une phrase jouée deux fois est notée A1 et A2.';
+
+  @override
+  String get danceEditorPhrasesAdd => 'Ajouter une phrase';
+
+  @override
+  String danceEditorPhrasesInvalid(int max) {
+    return 'Donnez à chaque phrase de 1 à $max mesures. D’ici là, la danse garde ses dernières phrases valides, et Enregistrer enregistre celles-ci.';
+  }
+
+  @override
+  String danceEditorPhraseBarsLabel(String name) {
+    return 'Mesures de $name';
+  }
+
+  @override
+  String danceEditorPhraseBarsRange(int max) {
+    return '1 à $max';
+  }
+
+  @override
+  String get danceEditorPhraseNameLabel => 'Nom de la phrase';
+
+  @override
+  String danceEditorPhrasePlaysLabel(String name) {
+    return 'Combien de fois $name est jouée';
+  }
+
+  @override
+  String get danceEditorPhrasePlaysOnce => 'Une fois';
+
+  @override
+  String get danceEditorPhrasePlaysTwice => 'Deux fois';
+
+  @override
+  String danceEditorPhraseRemove(String name) {
+    return 'Retirer la phrase $name';
+  }
+
+  @override
   String get danceEditorFiguresSection => 'Figures';
 
   @override
@@ -9011,6 +9058,10 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get validationPhraseInvalid =>
       'Cette structure de phrase n\'est pas valide.';
+
+  @override
+  String get validationPhraseNamedEnglishOnly =>
+      'Les noms de phrase (A:, B:, C:) sont réservés aux danses anglaises.';
 
   @override
   String validationOrphanedAlt(int position) {
