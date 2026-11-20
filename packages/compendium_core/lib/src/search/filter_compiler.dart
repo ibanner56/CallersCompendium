@@ -100,10 +100,13 @@ String _figureLikePattern(String text, {required bool prefix}) {
   return prefix ? '% $escaped%' : '%$escaped%';
 }
 
+/// The characters after which [_wordStarts] starts a word.
+final _wordSeparators = RegExp(r'[/(-]');
+
 /// [column] with a space before it and before each word inside it, where a
-/// word starts after a space, `/`, `-` or `(`, so a `LIKE '% x%'` pattern
-/// ([_figureLikePattern] with `prefix`) matches the start of any word, as the
-/// token-prefix index does.
+/// word starts after a space, `/`, `-` or `(` ([_wordSeparators]), so a
+/// `LIKE '% x%'` pattern matches the start of any word. Close to the
+/// token-prefix index, which splits on every punctuation mark.
 String _wordStarts(String column) =>
     "(' ' || replace(replace(replace($column, '/', ' '), '-', ' '), "
     "'(', ' '))";
@@ -247,7 +250,8 @@ class FilterCompiler {
     }
     // The meter, key and interpreters are not in the text index
     // ([_musicAndInterpreterMatch]); a dance found only by them has no bm25
-    // score, so it ranks after every scored match (bm25 is never above 0).
+    // score and takes 0, the worst a score can be (bm25 is never above 0):
+    // last in the default direction, first when it is flipped.
     branches.add(
       'SELECT id, 0 FROM dances WHERE deleted_at IS NULL AND '
       '${_musicAndInterpreterMatch(filter.query.trim(), true, binds)}',
@@ -705,16 +709,18 @@ class FilterCompiler {
   }
 
   /// One word of an All fields search ([raw], as typed) against the dance's
-  /// meter, its key and the names of the people who interpreted it (ADR-006
-  /// §9.2, F3: "meter and key MUST be searchable"). These are read from the
-  /// dance's own row and its live interpreters, not from the text index, so
-  /// they need no index rebuild and follow a rename at once.
+  /// meter, its key and the names of the people who interpreted it, in a
+  /// dance of any form (ADR-006 §9.2, F3: "meter and key MUST be
+  /// searchable"). These are read from the dance's own row and its live
+  /// interpreters, not from the text index, so they need no index rebuild and
+  /// follow a rename at once.
   ///
-  /// A word matches as the index would match it: one or two characters
-  /// ([prefix]) must start a word of the value ("D" finds "D minor", "8"
-  /// finds "6/8", "in" does not find "D minor"); a longer word may sit
-  /// anywhere in it. `LIKE` folds ASCII case only, so unlike the text index
-  /// an accent must be typed as stored.
+  /// A word of one or two characters ([prefix]) must start a word of the
+  /// value, where a word starts after a space, `/`, `-` or `(` ([_wordStarts];
+  /// "D" finds "D minor", "8" and "3/" find "6/8" and "3/2", "in" does not
+  /// find "D minor"), close to what the token-prefix index does; a longer word
+  /// may sit anywhere in it. `LIKE` folds ASCII case only, so a letter
+  /// outside ASCII ("É") must be typed as stored, capital included.
   String _musicAndInterpreterMatch(
     String raw,
     bool prefix,
@@ -723,7 +729,13 @@ class FilterCompiler {
     // A word with no letter or digit (or no word at all) would make a
     // pattern that matches every value; it names no meter, key or person.
     if (!_letterOrDigit.hasMatch(raw)) return '0';
-    final pattern = _figureLikePattern(raw, prefix: prefix);
+    // Not lowercased: `LIKE` folds ASCII case itself, and lowering "É" to
+    // "é" would stop it matching the stored "É". A short word has the same
+    // separators made spaces as the value it must start a word of.
+    final word = raw.trim();
+    final pattern = prefix
+        ? '% ${escapeLikePattern(word.replaceAll(_wordSeparators, ' '))}%'
+        : '%${escapeLikePattern(word)}%';
     String value(String column) => prefix ? _wordStarts(column) : column;
     binds
       ..add(pattern)
@@ -734,7 +746,8 @@ class FilterCompiler {
     // Two `id IN` subqueries, like the text-index branches beside them, so
     // SQLite evaluates each once per word and probes its result, rather than
     // testing every dance against each branch. Measured with
-    // `benchmark/search_benchmark.dart` (20,000 dances), a bare search took
+    // `benchmark/search_benchmark.dart` (20,000 dances, none with a meter),
+    // a bare search took
     // 0.47 ms before this match, 5.7 ms with the branches tested per row and
     // 2.5 ms in this shape.
     return "(id IN (SELECT id FROM dances WHERE (meter <> '' OR "

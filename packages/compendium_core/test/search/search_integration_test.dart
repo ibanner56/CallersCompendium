@@ -3577,9 +3577,11 @@ FROM seq
     'All fields finds the meter, key and interpreters (ADR-006 F3, §9.2)',
     () {
       Future<void> seed() async {
+        // ignore: unused_result
         await choreographers.upsert(
           Choreographer(id: 'sharp', name: 'Cecil Sharp'),
         );
+        // ignore: unused_result
         await choreographers.upsert(
           Choreographer(id: 'playford', name: 'John Playford'),
         );
@@ -3631,6 +3633,33 @@ FROM seq
         expect(await dances.search(const FullTextFilter('in')), ['hole']);
         expect(await dances.search(const FullTextFilter('nor')), ['hole']);
         expect(await dances.search(const FullTextFilter('no')), isEmpty);
+      });
+
+      test('a capital outside ASCII matches as stored', () async {
+        await seed();
+        // ignore: unused_result
+        await choreographers.upsert(
+          Choreographer(id: 'emile', name: 'Émile Dupont'),
+        );
+        await dances.create(
+          _dance(
+            id: 'emile-dance',
+            title: 'Interpreted',
+            form: DanceForm.ecd,
+          ).copyWith(interpreterIds: ['emile']),
+        );
+        expect(await dances.search(const FullTextFilter('Émile')), [
+          'emile-dance',
+        ]);
+        expect(await dances.search(const FullTextFilter('Ém')), [
+          'emile-dance',
+        ]);
+      });
+
+      test('a meter is found while it is typed', () async {
+        await seed();
+        expect(await dances.search(const FullTextFilter('3/')), ['hole']);
+        expect(await dances.search(const FullTextFilter('6/')), ['other']);
       });
 
       test('a word of punctuation alone matches no meter', () async {

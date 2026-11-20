@@ -4,7 +4,7 @@ import 'package:test/test.dart';
 /// The three `LIKE` binds an All fields word adds for the meter, the key
 /// and the interpreters' names (`_musicAndInterpreterMatch`).
 List<String> _music(String word, {bool prefix = false}) {
-  final p = prefix ? '% ${word.toLowerCase()}%' : '%${word.toLowerCase()}%';
+  final p = prefix ? '% $word%' : '%$word%';
   return [p, p, p];
 }
 
