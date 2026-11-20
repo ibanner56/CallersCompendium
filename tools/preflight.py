@@ -228,6 +228,11 @@ STEPS: tuple[Step, ...] = (
         (py("tools/ci/test_report_comment_weight.py"),),
     ),
     Step(
+        "core-changelog-advisory",
+        "the core-changelog advisory's own logic (the report itself is PR-only)",
+        (py("tools/ci/test_report_missing_core_changelog.py"),),
+    ),
+    Step(
         "app-version",
         "the app release-version format and kAppVersion match app/pubspec.yaml",
         (
