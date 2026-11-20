@@ -438,6 +438,8 @@ void main() {
         ('A 6/8 Trad.', '6/8', 'A', 8),
         ('A 6/8 Jig in G', '6/8', 'G', 8),
         ('A 2/2 reel in A', '2/2', 'A', 8),
+        ('A 3/2 Hornpipe in G Minor', '3/2', 'G Minor', 12),
+        ('G Minor, 6/8', '6/8', 'G Minor', 8),
         ('Meter 3/2 of Playford', '3/2', '', 12),
         ('Am 3/2 hornpipe', '3/2', 'Am', 12),
         ('Key: A, a 3/2 hornpipe', '3/2', 'A', 12),

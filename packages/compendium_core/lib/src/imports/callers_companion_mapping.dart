@@ -1112,13 +1112,14 @@ final RegExp _ccArticle = RegExp(
   r'Mazurka|Schottische)\b)',
 );
 
-/// A key: its note, then `m`, `minor` or `major` when it says (`E minor`).
+/// A key: its note, then `m`, `minor` or `major` when it says (`E minor`,
+/// `G Minor`).
 ///
 /// The key patterns bound each run of spaces, as the meter's do: two
 /// unbounded runs side by side backtrack over every split of a long run of
 /// spaces in a Music text, which has no length cap.
 const String _ccKey =
-    r'([A-G](?:b|#|♭|♯)?(?:\s{0,3}(?:minor|major)\b|m(?![A-Za-z]))?)';
+    r'([A-G](?:b|#|♭|♯)?(?:\s{0,3}(?:[Mm]inor|[Mm]ajor)\b|m(?![A-Za-z]))?)';
 final RegExp _ccKeyWord = RegExp(
   '\\bkey\\s{0,3}:?\\s{0,3}$_ccKey(?![A-Za-z])',
   caseSensitive: false,
