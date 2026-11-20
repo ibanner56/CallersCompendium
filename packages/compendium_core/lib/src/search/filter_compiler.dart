@@ -361,6 +361,10 @@ class FilterCompiler {
             "WHERE j.type <> 'text') THEN 0 "
             'ELSE EXISTS (SELECT 1 FROM json_each(dances.tunes_json) j '
             "WHERE j.value LIKE '%' || ? || '%' ESCAPE '\\') END";
+      case MeterFilter(:final meter):
+        return _musicValueMatch('meter', meter, binds);
+      case MusicalKeyFilter(:final musicalKey):
+        return _musicValueMatch('musical_key', musicalKey, binds);
       case TagFilter(:final tagId):
         // Joined to `tags` since schema v25 (#898). Tags have no referential
         // guard, so this is the one of these three where a tombstone with live
@@ -787,6 +791,20 @@ class FilterCompiler {
   static String _foldedValue(String column, bool prefix) {
     final folded = '$searchFoldSqlFunction($column)';
     return prefix ? _wordStarts(folded) : folded;
+  }
+
+  /// A whole-value match of [column] (the meter or the key) against [value],
+  /// with both sides trimmed and folded ([searchFoldSqlFunction]). A blank
+  /// value matches nothing: it is not a meter or key the filter offers.
+  static String _musicValueMatch(
+    String column,
+    String value,
+    List<Object?> binds,
+  ) {
+    final folded = foldForSearch(value.trim());
+    if (folded.isEmpty) return '0';
+    binds.add(folded);
+    return "($column <> '' AND $searchFoldSqlFunction(trim($column)) = ?)";
   }
 
   String _customField(CustomFieldFilter f, List<Object?> binds) {

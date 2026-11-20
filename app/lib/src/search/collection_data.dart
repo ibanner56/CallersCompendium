@@ -36,6 +36,8 @@ class CollectionData {
     required this.tags,
     required this.citedSources,
     required this.tunes,
+    required this.meters,
+    required this.musicalKeys,
     required this.forms,
     required this.formations,
     required this.progressions,
@@ -83,6 +85,8 @@ class CollectionData {
         tags: tags,
         citedSources: citedSources,
         tunes: tunes,
+        meters: meters,
+        musicalKeys: musicalKeys,
         forms: forms,
         formations: formations,
         progressions: progressions,
@@ -156,6 +160,15 @@ class CollectionData {
   /// (the first spelling met), since the facet matches ignoring case. Tune
   /// lists that could not be decoded contribute nothing.
   final List<String> tunes;
+
+  /// Distinct meters across the collection, for the Meter facet: trimmed, one
+  /// per value that differs only in case or accents (the first spelling met,
+  /// as for [tunes]), sorted by that folded value. Blank meters add nothing.
+  final List<String> meters;
+
+  /// Distinct keys across the collection, for the Key facet, gathered as
+  /// [meters] are.
+  final List<String> musicalKeys;
 
   final List<DanceForm> forms;
   final List<FormationShape> formations;
@@ -470,6 +483,9 @@ class CollectionData {
     final tuneList = tuneByFold.values.toList()
       ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
 
+    final meterList = distinctFolded(dances.map((d) => d.meter));
+    final keyList = distinctFolded(dances.map((d) => d.musicalKey));
+
     final searchable = defs.where((d) => d.searchable).toList();
 
     return CollectionData(
@@ -499,6 +515,8 @@ class CollectionData {
       tags: tagList,
       citedSources: citedSources,
       tunes: tuneList,
+      meters: meterList,
+      musicalKeys: keyList,
       forms: forms,
       formations: formations,
       progressions: progressions,
@@ -550,6 +568,20 @@ class CollectionData {
           callCounts[dance.id] ?? const DanceCallCounts(all: 0, performed: 0),
     );
   }
+}
+
+/// [values] trimmed, without blanks, one per folded value ([foldForSearch]:
+/// case and accents ignored, the first spelling met kept), sorted by that
+/// folded value. The Meter and Key facets offer these, and match each one the
+/// same folded way ([MeterFilter], [MusicalKeyFilter]).
+List<String> distinctFolded(Iterable<String> values) {
+  final byFold = <String, String>{};
+  for (final v in values) {
+    final value = v.trim();
+    if (value.isNotEmpty) byFold.putIfAbsent(foldForSearch(value), () => value);
+  }
+  final folds = byFold.keys.toList()..sort();
+  return [for (final f in folds) byFold[f]!];
 }
 
 /// The phrase labels the "By phrase" search offers for [dances]: the standard

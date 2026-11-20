@@ -4744,6 +4744,12 @@ class AppLocalizationsDe extends AppLocalizations {
       'Tänze anzeigen, die mindestens eines der gewählten Tags haben';
 
   @override
+  String get collectionFacetMeter => 'Taktart';
+
+  @override
+  String get collectionFacetMusicalKey => 'Tonart';
+
+  @override
   String get collectionFacetSource => 'Quelle';
 
   @override

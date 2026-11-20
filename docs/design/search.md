@@ -273,6 +273,8 @@ sealed DanceFilter
   SourceFilter(String query)                 // substring match on cited source title/author
   SourceIdFilter(String sourceId)            // identity match on cited source id
   TunesFilter(String query)                  // substring over the dance's tunes (dances.tunes_json), #1420
+  MeterFilter(String meter)                  // whole meter, trimmed, case and accents folded (ADR-006 F3)
+  MusicalKeyFilter(String musicalKey)        // whole key, matched as MeterFilter matches a meter
   FormFilter(DanceForm form)                 // roadmap "Type": contra | ecd | square
   FormationFilter(FormationShape shape)      // shape only; free-text detail via FullTextFilter
   ProgressionFilter(Progression progression)
@@ -374,6 +376,7 @@ compiles to the literal `1` (TRUE); `OrFilter([])` to `0` (FALSE); the outer
 | `SourceFilter(q)` | `id IN (SELECT ds.dance_id FROM dance_sources ds JOIN published_sources ps ON ps.id = ds.source_id WHERE ps.title LIKE '%' \|\| ? \|\| '%' ESCAPE '\' OR ps.author LIKE '%' \|\| ? \|\| '%' ESCAPE '\')` (2 binds) |
 | `SourceIdFilter(sid)` | `id IN (SELECT dance_id FROM dance_sources WHERE source_id = ?)` |
 | `TunesFilter(q)` | `CASE WHEN NOT json_valid(dances.tunes_json) THEN 0 WHEN json_type(dances.tunes_json) <> 'array' THEN 0 WHEN EXISTS (… json_each(dances.tunes_json) j WHERE j.type <> 'text') THEN 0 ELSE EXISTS (… json_each(dances.tunes_json) j WHERE j.value LIKE '%' \|\| ? \|\| '%' ESCAPE '\') END` (1 bind, LIKE-escaped). The `CASE` is load-bearing: `json_each` over malformed text raises for the whole query, and `AND` operand order is not guaranteed, so an undecodable list (`UnreadableTunes`) must be excluded by an *ordered* guard. Case folding is SQLite's `LIKE` (ASCII only). |
+| `MeterFilter(m)` / `MusicalKeyFilter(k)` | `(meter <> '' AND cc_fold(trim(meter)) = ?)` (and the same over `musical_key`), 1 bind: the trimmed value folded by `foldForSearch`. A blank value compiles to `0`. |
 | `TagFilter(tid)` | `id IN (SELECT dt.dance_id FROM dance_tags dt JOIN tags t ON t.id = dt.tag_id WHERE dt.tag_id = ? AND t.deleted_at IS NULL)` — a soft-deleted tag matches nothing, though its `dance_tags` rows survive the tombstone |
 | `UntaggedFilter()` | `id NOT IN (SELECT dt.dance_id FROM dance_tags dt JOIN tags t ON t.id = dt.tag_id WHERE t.deleted_at IS NULL)` — no binds; a dance whose only tag is soft-deleted counts as untagged. `NOT IN` is NULL-safe because `dance_tags.dance_id` is `NOT NULL` (part of the primary key) |
 | `FormFilter(f)` | `form = ?` (enum `.name`, e.g. `'contra'`) |
@@ -836,9 +839,16 @@ are ([dialect.md](dialect.md) "Canonicalization on input"):
   starts after a space, `/`, `-` or `(` ("D" finds "D minor", "8", "6/" and
   "/8" find "6/8"; a separator the word starts or ends with is dropped), close to what the prefix index does (it splits on every
   punctuation mark); a longer one may sit anywhere. A word with no letter or
-  digit matches none of them. `LIKE` folds ASCII case only, so a letter
-  outside ASCII ("É") must be typed as stored, capital included. The Title,
-  Author and Figure scopes do not read them: an interpreter is not an author.
+  digit matches none of them. Both sides are folded by the `cc_fold` SQL
+  function (`searchFoldSqlFunction`, registered per connection by
+  `applyCompendiumSqliteSetup`: lowercased, combining marks removed, as
+  `foldForTitleMatch` does), so "emile" finds "Émile" and the reverse, as the
+  text index's `remove_diacritics` does. A connection opened without that
+  setup fails these searches with "no such function". The Author scope reads
+  the interpreters' names the same way (`_interpreterMatch`) beside the
+  `authors` column, so it finds a dance by who wrote it or who interpreted it
+  (Hudson, 2026-11-20); it does not read the meter or key. The Title and
+  Figure scopes read none of them.
   Best match adds them as one more branch with a score of 0, the worst a
   `bm25` score can be: a dance found only by its meter, key or interpreter
   ranks after every dance the text index scored, and before them when the
@@ -874,6 +884,7 @@ tree. This section specifies the mapping; the widget shipped as
 | One-tap facet: Progression | `ProgressionFilter(progression)` |
 | One-tap facet: Author | `AuthorFilter(choreographerId)` |
 | One-tap facet: Tunes | `TunesFilter(query)` per entered value, **AND-ed within the facet** (a dance must match every value), unlike the OR-within facets (Tags follows its **All tags / Any tag** choice, below); each leaf is a case-insensitive substring over the dance's tune list and never matches a dance whose stored `tunes_json` is undecodable (#1420) |
+| One-tap facet: Meter, Key | `MeterFilter(meter)` / `MusicalKeyFilter(key)` per chip, OR-ed within each facet. A chip is one of the collection's distinct values (`distinctFolded`: trimmed, one spelling per value folded by `foldForSearch`); the leaf matches `cc_fold(trim(column)) = ?` with the folded value bound, and never a blank meter or key. A picked value no dance still has stays as a chip so it can be removed (ADR-006 F3) |
 | One-tap facet: Tag(s) | `TagFilter(tagId)` per selected tag, combined by the facet's **All tags / Any tag** choice (`FacetSelections.tagsMatchAll`, Q7): AND-ed by default, OR-ed under **Any tag**. The choice shows once two tags are selected; selecting a second tag resets it to **All tags**, and later tags keep it. The facet's **Untagged** chip (issue #1422) is always an OR alternative: `OrFilter([AndFilter(tags), UntaggedFilter()])` under **All tags**, one flat OR group under **Any tag**. Without Untagged, all-of tags are flattened into the top-level AND. The chip shows exactly when the Tags section does |
 | One-tap facet: Status | `StatusFilter(status)` |
 | One-tap facet: Level | `LevelFilter(level)` — multiple levels OR-ed |

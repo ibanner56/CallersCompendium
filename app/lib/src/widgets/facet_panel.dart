@@ -38,6 +38,8 @@ class FacetPanel extends StatelessWidget {
     required this.tags,
     required this.citedSources,
     required this.tunes,
+    this.meters = const [],
+    this.musicalKeys = const [],
     required this.choiceFields,
     required this.booleanFields,
     required this.textFields,
@@ -80,6 +82,14 @@ class FacetPanel extends StatelessWidget {
   /// field is free text, so an entered value must stay visible (and removable)
   /// even if the dance that supplied the suggestion has since changed.
   final List<String> tunes;
+
+  /// Distinct meters in the collection, offered as chips by the Meter facet.
+  /// Empty hides the section unless a meter is already picked.
+  final List<String> meters;
+
+  /// Distinct keys in the collection, offered as chips by the Key facet, as
+  /// [meters] are by the Meter facet.
+  final List<String> musicalKeys;
 
   final List<CustomFieldDef> choiceFields;
   final List<CustomFieldDef> booleanFields;
@@ -344,6 +354,58 @@ class FacetPanel extends StatelessWidget {
         ),
       );
     }
+
+    // Meter and Key (ADR-006 §9.2, F3): the values the collection has, as
+    // chips. A picked value whose last dance changed it stays as a chip, so a
+    // filter that is narrowing the list can still be removed.
+    void addMusicSection({
+      required String id,
+      required String label,
+      required List<String> offered,
+      required Set<String> picked,
+      required IconData icon,
+    }) {
+      final offeredFolds = {for (final v in offered) foldForSearch(v)};
+      final values = [
+        ...offered,
+        for (final v in picked)
+          if (!offeredFolds.contains(foldForSearch(v))) v,
+      ];
+      if (values.isEmpty || !shown(id)) return;
+      sections.add(
+        _FacetSection(
+          key: ValueKey('facet-row-$id'),
+          label: label,
+          sectionId: id,
+          activeCount: picked.length,
+          chips: [
+            for (final v in values)
+              _chip(
+                key: '$id-$v',
+                label: v,
+                icon: icon,
+                selected: picked.contains(v),
+                onSelected: (sel) => toggle(picked, v, sel),
+              ),
+          ],
+        ),
+      );
+    }
+
+    addMusicSection(
+      id: CollectionFacetIds.meter,
+      label: l10n.collectionFacetMeter,
+      offered: meters,
+      picked: facets.meters,
+      icon: Icons.av_timer_outlined,
+    );
+    addMusicSection(
+      id: CollectionFacetIds.musicalKey,
+      label: l10n.collectionFacetMusicalKey,
+      offered: musicalKeys,
+      picked: facets.musicalKeys,
+      icon: Icons.music_note_outlined,
+    );
 
     if (tags.isNotEmpty && shown(CollectionFacetIds.tags)) {
       sections.add(

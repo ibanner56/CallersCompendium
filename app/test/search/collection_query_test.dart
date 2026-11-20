@@ -1,4 +1,5 @@
 import 'package:compendium_app/src/data/collection_facets_scope.dart';
+import 'package:compendium_app/src/search/collection_data.dart';
 import 'package:compendium_app/src/search/collection_query.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -1066,6 +1067,56 @@ void main() {
       final facets = FacetSelections()..tagsMatchAll = false;
       expect(facets.isEmpty, isTrue);
       expect(facets.activeCount, 0);
+    });
+  });
+
+  group('Meter and Key facets (ADR-006 F3)', () {
+    DanceFilter build(FacetSelections facets) =>
+        buildCollectionFilter(ftsText: '', facets: facets, defs: const []);
+
+    test('picked meters are OR-ed, picked keys too, and the two AND-ed', () {
+      final facets = FacetSelections()
+        ..meters.addAll(['6/8', '9/8'])
+        ..musicalKeys.add('D minor');
+      final filter = build(facets) as AndFilter;
+      expect(filter.children, hasLength(2));
+      final meters = filter.children.first as OrFilter;
+      expect(meters.children.map((f) => (f as MeterFilter).meter), [
+        '6/8',
+        '9/8',
+      ]);
+      expect((filter.children.last as MusicalKeyFilter).musicalKey, 'D minor');
+      expect(facets.activeCount, 3);
+      expect(facets.isEmpty, isFalse);
+    });
+
+    test('clearing a facet drops only its picks', () {
+      final facets = FacetSelections()
+        ..meters.add('6/8')
+        ..musicalKeys.add('G');
+      expect(facets.clearFacets({CollectionFacetIds.meter}), isTrue);
+      expect(facets.meters, isEmpty);
+      expect(facets.musicalKeys, ['G']);
+      facets.clear();
+      expect(facets.isEmpty, isTrue);
+    });
+  });
+
+  group('distinctFolded', () {
+    test('trims, drops blanks, keeps one spelling per folded value', () {
+      expect(
+        distinctFolded([
+          ' 6/8',
+          'D minor',
+          '',
+          '  ',
+          'd minor',
+          'Ré',
+          're',
+          '3/2',
+        ]),
+        ['3/2', '6/8', 'D minor', 'Ré'],
+      );
     });
   });
 

@@ -22,6 +22,8 @@ Future<void> _pump(
   List<PublishedSource> citedSources = const [],
   List<Choreographer> authors = const [],
   List<String> tunes = const [],
+  List<String> meters = const [],
+  List<String> musicalKeys = const [],
   List<Tag> tags = const [],
   bool hasMixedLevel = false,
   bool hasMixer = false,
@@ -62,6 +64,8 @@ Future<void> _pump(
               tags: tags,
               citedSources: citedSources,
               tunes: tunes,
+              meters: meters,
+              musicalKeys: musicalKeys,
               choiceFields: choiceFields,
               booleanFields: const [],
               textFields: textFields,
@@ -584,6 +588,49 @@ void main() {
     // Both fields' chips are reachable (distinct keys, not colliding sections).
     expect(find.byKey(const ValueKey('cf-a-north')), findsOneWidget);
     expect(find.byKey(const ValueKey('cf-b-east')), findsOneWidget);
+  });
+
+  testWidgets('meter and key chips pick the values the collection has', (
+    tester,
+  ) async {
+    final facets = FacetSelections();
+    var changes = 0;
+    await _pump(
+      tester,
+      facets,
+      meters: ['3/2', '6/8'],
+      musicalKeys: ['D minor'],
+      onChanged: () => changes++,
+    );
+    expect(find.text('Meter'), findsOneWidget);
+    expect(find.text('Key'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('meter-6/8')));
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('musical-key-D minor')));
+    await tester.pump();
+    expect(facets.meters, {'6/8'});
+    expect(facets.musicalKeys, {'D minor'});
+    expect(changes, 2);
+
+    await tester.tap(find.byKey(const ValueKey('meter-6/8')));
+    await tester.pump();
+    expect(facets.meters, isEmpty);
+  });
+
+  testWidgets('a picked meter the collection no longer has stays a chip', (
+    tester,
+  ) async {
+    final facets = FacetSelections()..meters.add('9/8');
+    await _pump(tester, facets, onChanged: () {});
+    // No dance offers a meter, yet the pick is narrowing the list, so it
+    // must still be shown to be removed.
+    final chip = find.byKey(const ValueKey('meter-9/8'));
+    expect(chip, findsOneWidget);
+    await tester.tap(chip);
+    await tester.pump();
+    expect(facets.meters, isEmpty);
+    expect(find.text('Key'), findsNothing);
   });
 
   testWidgets('source section is hidden when nothing is cited', (tester) async {

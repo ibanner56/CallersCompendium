@@ -4667,6 +4667,12 @@ class AppLocalizationsEn extends AppLocalizations {
       'Show dances that have at least one selected tag';
 
   @override
+  String get collectionFacetMeter => 'Meter';
+
+  @override
+  String get collectionFacetMusicalKey => 'Key';
+
+  @override
   String get collectionFacetSource => 'Source';
 
   @override

@@ -3733,6 +3733,40 @@ FROM seq
         expect(await author('minor'), isEmpty);
       });
 
+      test('the Meter and Key filters match a whole value, folded', () async {
+        await seed();
+        await dances.create(
+          _dance(
+            id: 'spaced',
+            title: 'Spaced',
+            form: DanceForm.ecd,
+          ).copyWith(meter: ' 6/8 ', musicalKey: 'Ré mineur'),
+        );
+        await dances.create(
+          _dance(
+            id: 'two-meters',
+            title: 'Two meters',
+            form: DanceForm.ecd,
+          ).copyWith(meter: '6/8 and 9/8'),
+        );
+        expect(await dances.search(const MeterFilter('6/8')), [
+          'other',
+          'spaced',
+        ]);
+        expect(await dances.search(const MeterFilter('3/2')), ['hole']);
+        expect(await dances.search(const MeterFilter('3')), isEmpty);
+        expect(await dances.search(const MeterFilter('  ')), isEmpty);
+        expect(await dances.search(const MusicalKeyFilter('d MINOR')), [
+          'hole',
+        ]);
+        expect(await dances.search(const MusicalKeyFilter('re mineur')), [
+          'spaced',
+        ]);
+        expect(await dances.search(const MusicalKeyFilter('D')), isEmpty);
+        // A dance with no meter is never matched, whatever is asked.
+        expect(await dances.search(const MeterFilter('')), isEmpty);
+      });
+
       test('relevance finds a key and ranks it after scored matches', () async {
         await seed();
         await dances.create(_dance(id: 'g-title', title: 'G Whiz'));

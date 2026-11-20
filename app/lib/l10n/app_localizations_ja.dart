@@ -4477,6 +4477,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get collectionFacetTagsMatchAnyTooltip => '選択したタグのうち少なくとも1つを持つダンスを表示';
 
   @override
+  String get collectionFacetMeter => '拍子';
+
+  @override
+  String get collectionFacetMusicalKey => '調';
+
+  @override
   String get collectionFacetSource => 'ソース';
 
   @override

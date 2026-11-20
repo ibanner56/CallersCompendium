@@ -32,6 +32,26 @@ void main() {
     return sql.substring(start, end);
   }
 
+  group('Meter and Key leaves (ADR-006 F3)', () {
+    test('compile to a folded whole-value match', () {
+      final meter = compiler.compile(const MeterFilter(' Ré 6/8 '));
+      expect(meter.sql, contains("(meter <> '' AND cc_fold(trim(meter)) = ?)"));
+      expect(meter.binds, ['re 6/8']);
+      final key = compiler.compile(const MusicalKeyFilter('D minor'));
+      expect(
+        key.sql,
+        contains("(musical_key <> '' AND cc_fold(trim(musical_key)) = ?)"),
+      );
+      expect(key.binds, ['d minor']);
+    });
+
+    test('a blank value matches nothing', () {
+      final c = compiler.compile(const MeterFilter('  '));
+      expect(c.sql, contains('AND (0)'));
+      expect(c.binds, isEmpty);
+    });
+  });
+
   group('outer shape', () {
     test('wraps predicate with deleted_at guard and default title sort', () {
       final c = compiler.compile(const FormFilter(DanceForm.contra));

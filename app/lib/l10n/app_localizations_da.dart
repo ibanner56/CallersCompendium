@@ -4701,6 +4701,12 @@ class AppLocalizationsDa extends AppLocalizations {
       'Vis danse, der har mindst ét af de valgte tags';
 
   @override
+  String get collectionFacetMeter => 'Taktart';
+
+  @override
+  String get collectionFacetMusicalKey => 'Toneart';
+
+  @override
   String get collectionFacetSource => 'Kilde';
 
   @override

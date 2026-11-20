@@ -4729,6 +4729,12 @@ class AppLocalizationsNl extends AppLocalizations {
       'Dansen tonen die minstens één van de gekozen tags hebben';
 
   @override
+  String get collectionFacetMeter => 'Meter';
+
+  @override
+  String get collectionFacetMusicalKey => 'Key';
+
+  @override
   String get collectionFacetSource => 'Bron';
 
   @override

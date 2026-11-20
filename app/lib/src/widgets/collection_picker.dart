@@ -1126,6 +1126,8 @@ class _CollectionPickerState extends State<CollectionPicker> {
       tags: data.tags,
       citedSources: data.citedSources,
       tunes: data.tunes,
+      meters: data.meters,
+      musicalKeys: data.musicalKeys,
       choiceFields: data.choiceFields,
       booleanFields: data.booleanFields,
       textFields: data.textFields,

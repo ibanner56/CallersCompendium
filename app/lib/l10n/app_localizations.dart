@@ -7160,6 +7160,18 @@ abstract class AppLocalizations {
   /// **'Show dances that have at least one selected tag'**
   String get collectionFacetTagsMatchAnyTooltip;
 
+  /// Filter section heading for the meter facet: the time signature a dance's tune is in, such as 6/8 or 3/2.
+  ///
+  /// In en, this message translates to:
+  /// **'Meter'**
+  String get collectionFacetMeter;
+
+  /// Filter section heading for the musical key facet: the key a dance's tune is in, such as D minor.
+  ///
+  /// In en, this message translates to:
+  /// **'Key'**
+  String get collectionFacetMusicalKey;
+
   /// Filter section heading for the cited-source facet.
   ///
   /// In en, this message translates to:
