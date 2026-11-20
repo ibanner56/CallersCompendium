@@ -23,6 +23,21 @@ const _preference = DataClassification(
   egress: EgressClass.shareable,
 );
 
+/// Settings keys whose classification is the shared [_preference] one.
+///
+/// [_preference] carries no `note`: whose preference it is, and that it travels,
+/// are the same on every key it covers. The note rule in
+/// `data_classification_note_test.dart` exempts exactly these keys. Derived with
+/// `identical`, the way `syncBookkeepingTables` is; Dart canonicalises const
+/// values, so an entry written inline with the same fields and no note is the
+/// same object and is exempt too, which is intended (the same classification has
+/// the same reason). A setting leaves the exemption by being given a note or any
+/// different field, and never needs the exemption otherwise.
+final Set<String> preferenceSettingKeys = {
+  for (final entry in settingsClassifications.entries)
+    if (identical(entry.value, _preference)) entry.key,
+};
+
 /// State belonging to this installation rather than to the user. Never
 /// transmitted, because it is meaningless or actively wrong elsewhere — not
 /// because it is sensitive.
