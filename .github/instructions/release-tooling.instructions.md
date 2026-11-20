@@ -50,9 +50,13 @@ prevent on its own are in
   Bump it if and only if pending fragments contain `core` entries, and get the
   new number by **asking the maintainer**,
   showing them the current one. Nothing resolves that `version:` at build time
-  (the app takes the core by workspace `path:`), so no gate and no build failure
-  will tell you it is wrong; it is a record, and a bump invented to look tidy is
-  a false one. Unlike the app's shared `## [X.Y.Z]` section, each core bump gets
+  (the app takes the core by workspace `path:`), so no build failure will tell
+  you it is wrong. The compiler checks the two halves of the rule: a pubspec
+  version with no section in the core CHANGELOG and no pending `core` entry
+  fails `--check` (so in PR CI) and `--write`, and `--write` refuses pending
+  core entries whose `--core-version` is not the pubspec's. It cannot judge the
+  number itself; it is a record, and a bump invented to look tidy is a false
+  one. Unlike the app's shared `## [X.Y.Z]` section, each core bump gets
   its own new heading.
 - **A core fragment entry never replaces an app one.** The release-notes
   generator reads `app/CHANGELOG.md` only. If a `packages/compendium_core`

@@ -189,7 +189,8 @@ and produces no Android artifact.
    ```
 
    If no fragment has a `core` object, do not touch the core pubspec or core
-   CHANGELOG. If core entries exist, ask the maintainer for a new core version,
+   CHANGELOG; the compiler fails a core pubspec version that has no section in
+   the core CHANGELOG while no core entry is pending. If core entries exist, ask the maintainer for a new core version,
    showing the current value for context:
 
    ```sh
