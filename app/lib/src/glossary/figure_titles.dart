@@ -19,6 +19,12 @@ List<DanceForm> get glossaryForms => [
 /// no figures of its own ([glossaryTaxonomy]).
 DanceForm glossaryFormFor(DanceForm form) => glossaryTaxonomy(form).form;
 
+/// The form whose dialect shows the walkthrough snippet stored under
+/// [signature] (a figure signature, `moveId(...)`): its figure's form
+/// (ADR-006 W5). Settings and a sync conflict on the snippets both use it.
+DanceForm walkthroughSnippetForm(String signature) =>
+    shippedTaxonomies.formOfMoveId(signature.split('(').first);
+
 final Map<DanceForm, FigureRenderer> _renderers = {};
 
 /// A renderer for the Glossary's figures of [form].

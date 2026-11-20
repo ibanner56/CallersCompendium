@@ -175,6 +175,7 @@ Future<CompendiumRepositories> _pump(
   WidgetTester tester, {
   Size size = const Size(400, 900),
   Future<void> Function(CompendiumRepositories repos)? seed,
+  DialectsByForm? dialects,
 }) async {
   final repos = openTestRepositories();
   final figures = UserFiguresController(repos.userGlossary);
@@ -195,10 +196,16 @@ Future<CompendiumRepositories> _pump(
     MaterialApp(
       localizationsDelegates: testLocalizationsDelegates,
       supportedLocales: testSupportedLocales,
-      builder: (context, child) => RepositoriesScope(
-        repositories: repos,
-        child: UserFiguresScope(controller: figures, child: child!),
-      ),
+      builder: (context, child) {
+        final scoped = RepositoriesScope(
+          repositories: repos,
+          child: UserFiguresScope(controller: figures, child: child!),
+        );
+        if (dialects == null) return scoped;
+        final notifier = ValueNotifier(dialects);
+        addTearDown(notifier.dispose);
+        return ActiveDialectScope.byForm(dialects: notifier, child: scoped);
+      },
       home: Builder(
         builder: (context) => Scaffold(
           body: Center(
@@ -227,20 +234,22 @@ Future<void> _open(WidgetTester tester) async {
 /// Queues a tie on the user's notes on each of [figureIds] (#709).
 Future<void> _queueNoteTie(
   CompendiumRepositories repos,
-  List<String> figureIds,
-) async {
+  List<String> figureIds, {
+  String mine = 'Mine.',
+  String theirs = 'Theirs.',
+}) async {
   final storage = CompendiumSyncStorage(repos);
   final local = <SyncRecordAddress, SyncMergeCandidate?>{};
   final peer = <SyncRecordAddress, SyncMergeCandidate?>{};
   for (final id in figureIds) {
-    await repos.figureNotes.set(id, 'Mine.', at: _tie);
+    await repos.figureNotes.set(id, mine, at: _tie);
     final address = (kind: SyncRecordKind.figureNote, recordId: id);
     final candidate = (await storage.snapshot()).local[address]!;
     local[address] = candidate;
     peer[address] = SyncMergeCandidate.fromBlob(
       syncRecordBlobForEntity(
         SyncRecordKind.figureNote,
-        FigureNote(figureId: id, notes: 'Theirs.'),
+        FigureNote(figureId: id, notes: theirs),
         updatedAt: candidate.updatedAt,
         existenceAt: candidate.existenceAt,
       )!,
@@ -322,7 +331,11 @@ void main() {
     final dialects = ValueNotifier(
       DialectsByForm({
         DanceForm.contra: Dialect.larksRobins,
-        DanceForm.ecd: Dialect(name: 'Mine', moves: const {'ecd_set': 'step'}),
+        DanceForm.ecd: Dialect(
+          name: 'Mine',
+          roles: Dialect.leadsFollows.roles,
+          moves: const {'ecd_set': 'step'},
+        ),
       }),
     );
     addTearDown(dialects.dispose);
@@ -347,10 +360,17 @@ void main() {
         ),
       ),
     );
-    await tester.runAsync(() => _queueNoteTie(repos, ['ecd_set']));
+    await tester.runAsync(
+      () => _queueNoteTie(repos, ['ecd_set'], mine: 'role1s set.'),
+    );
     await _open(tester);
 
     expect(find.text('Your notes on step'), findsOneWidget);
+    // The note reads in the English dialect in the choice and in the
+    // comparison; contra's would say "larks".
+    expect(find.text('leads set.'), findsOneWidget);
+    expect(find.text('This device: leads set.'), findsOneWidget);
+    expect(find.textContaining('lark'), findsNothing);
   });
 
   testWidgets('a long note is clipped in the choice, and shown whole in '
@@ -667,6 +687,45 @@ void main() {
       expect(find.text('Only on the other device'), findsOneWidget);
       expect(find.text('nbs'), findsOneWidget);
       expect(find.text('1 more is the same on both'), findsOneWidget);
+    });
+
+    testWidgets("a snippet conflict shows each snippet in its figure's form's "
+        'dialect (ADR-006 W5)', (tester) async {
+      final ecd = figureSnippetSignature(
+        Figure(move: 'ecd_set'),
+        shippedTaxonomies.forForm(DanceForm.ecd),
+      )!;
+      final contra = figureSnippetSignature(
+        Figure(move: 'balance'),
+        contraTaxonomy,
+      )!;
+      final repos = await _pump(
+        tester,
+        size: const Size(900, 1400),
+        dialects: DialectsByForm({
+          DanceForm.contra: Dialect.larksRobins,
+          DanceForm.ecd: Dialect.leadsFollows,
+        }),
+      );
+      Map<String, Object?> library(String text) =>
+          WalkthroughSnippetLibrary({ecd: text, contra: text}).toJson();
+      await tester.runAsync(
+        () => _queueTie(repos, [
+          (
+            'walkthrough_snippets',
+            library('role1s go.'),
+            library('role2s go.'),
+          ),
+        ]),
+      );
+      await _open(tester);
+
+      // The English figure's snippet reads in the English dialect, the contra
+      // figure's in contra's: the control that the two dialects differ.
+      expect(find.textContaining('leads go.'), findsWidgets);
+      expect(find.textContaining('follows go.'), findsWidgets);
+      expect(find.textContaining('larks go.'), findsWidgets);
+      expect(find.textContaining('robins go.'), findsWidgets);
     });
 
     testWidgets('a shorthand for a new figure reads as the line it inserts, '

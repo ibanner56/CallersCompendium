@@ -96,7 +96,8 @@ typedef _FigureLine = ({
 /// Contra's active dialect, or the app default with no scope. What a
 /// conflict that is not about one dance or one built-in figure reads in: the
 /// user's own figures, shorthands and settings are still contra's (ADR-006
-/// implementation plan, W7).
+/// implementation plan, W7). A walkthrough snippet reads in its figure's
+/// form's ([walkthroughSnippetForm]).
 Dialect _contraDialect(BuildContext context) =>
     _formDialect(context, DanceForm.contra);
 
@@ -710,8 +711,12 @@ class SyncConflictComparison extends StatelessWidget {
     final value = entry.value;
     switch (group.recordId) {
       case 'walkthrough_snippets':
+        // In the dialect of the snippet's figure's form, as Settings shows it.
         return value is String
-            ? _renderer.renderFreeText(value, dialect)
+            ? _renderer.renderFreeText(
+                value,
+                _formDialect(context, walkthroughSnippetForm(entry.key)),
+              )
             : l10n.syncConflictValueNotSet;
       case 'shorthand_mappings':
         final figures = value is Map ? value['figures'] : null;
@@ -1189,6 +1194,11 @@ class SyncConflictComparison extends StatelessWidget {
       return shownDialectName(value);
     }
     if (value is String) {
+      // A note on a built-in figure reads as the Glossary and the choice
+      // above show it: in the dialect of the figure's form.
+      if (group.kind == SyncRecordKind.figureNote && key == 'notes') {
+        return syncConflictFigureNoteText(context, group.recordId, value);
+      }
       return _renderer.renderFreeText(value, _bodyDialect(context, body));
     }
     return syncSettingValueText(l10n, value);

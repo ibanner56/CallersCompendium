@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
 import '../data/active_dialect_scope.dart';
 import '../data/walkthrough_snippet_library_scope.dart';
+import '../glossary/figure_titles.dart';
 import '../theme/app_motion.dart';
 import '../theme/app_spacing.dart';
 import '../utils/confirm_delete.dart';
@@ -27,9 +28,8 @@ class WalkthroughSnippetsScreen extends StatelessWidget {
     final controller = WalkthroughSnippetLibraryScope.of(context);
     final dialects = ActiveDialectScope.of(context);
     // Each snippet is shown in the dialect of its figure's form (ADR-006 W5).
-    Dialect dialectOf(String signature) => dialects.forForm(
-      shippedTaxonomies.formOfMoveId(signature.split('(').first),
-    );
+    Dialect dialectOf(String signature) =>
+        dialects.forForm(walkthroughSnippetForm(signature));
     final renderer = FigureRenderer(shippedTaxonomies.anyForm);
     final l10n = AppLocalizations.of(context);
 

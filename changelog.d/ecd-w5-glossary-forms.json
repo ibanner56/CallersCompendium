@@ -7,8 +7,8 @@
     ],
     "changed": [
       "Editing an English dialect previews English figures, not contra ones.",
-      "Walkthrough snippets in Settings are each shown in the dialect of their figure's dance type.",
-      "A sync conflict on your note on an English figure names the figure and shows the note in your English dialect."
+      "Walkthrough snippets in Settings, and in a sync conflict on them, are each shown in the dialect of their figure's dance type.",
+      "A sync conflict on your note on an English figure names the figure and shows both versions of the note in your English dialect."
     ]
   },
   "core": {
