@@ -209,6 +209,21 @@ void main() {
   }
 
   group('import (end-to-end from .USR bytes)', () {
+    test('plans the file as English dances only when asked', () async {
+      final asContra = await importer.plan(_ccUsrBytes());
+      final asEnglish = await importer.plan(_ccUsrBytes(), englishDances: true);
+      expect(asContra.records, isNotEmpty);
+      expect(
+        asContra.records.map((r) => r.draft.dance.form),
+        everyElement(DanceForm.contra),
+      );
+      expect(asEnglish.records, hasLength(asContra.records.length));
+      expect(
+        asEnglish.records.map((r) => r.draft.dance.form),
+        everyElement(DanceForm.ecd),
+      );
+    });
+
     test('decodes the file exactly once', () async {
       var reads = 0;
       final counting = CallersCompanionUsrImporter(

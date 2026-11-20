@@ -7623,6 +7623,10 @@ class AppLocalizationsJa extends AppLocalizations {
       'プログレッションを認識できませんでした。既定でシングルにしました。';
 
   @override
+  String get importIssueBarsMeterUnstated =>
+      'このダンスは小節で数えていますが拍子の記載がないため、1小節を2拍として数えました。カウントを確認してください。';
+
+  @override
   String get importIssueUnmappedType =>
       'ダンスの種類を認識できませんでした。コントラとしてインポートし、ノートに保持しました。';
 
@@ -8025,6 +8029,19 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get importReviewEditError => '編集するためにそのダンスを取り込めませんでした。もう一度お試しください。';
+
+  @override
+  String get importUsrEnglishTitle => 'これらはイングリッシュ・カントリーダンスですか？';
+
+  @override
+  String get importUsrEnglishBody =>
+      'Caller\'s Companion ではイングリッシュ・カントリーダンスが Contra として登録されていることがよくあります。このファイルにイングリッシュのダンスが入っている場合は、イングリッシュのフィギュア、フォーメーション、小節数で読み込みます。スクエアダンスはスクエアのままです。';
+
+  @override
+  String get importUsrEnglishNo => 'いいえ、種類どおりに読む';
+
+  @override
+  String get importUsrEnglishYes => 'はい、イングリッシュ';
 
   @override
   String get importReviewEditOverwriteTitle => '既存のダンスを今すぐ置き換えますか？';
