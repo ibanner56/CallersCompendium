@@ -474,9 +474,9 @@ they state the count they mean.
 
 ### 5.4 Formations describe calls, not dances
 
-Every square dance starts and ends in a squared set. At dance level the
-formation is the existing `FormationShape.square` (§3), and the Caller's
-Companion importer stops using `other` + "Square".
+Every held square starts and ends in a squared set. At dance level the
+formation is normally `FormationShape.square` (§8.1 lists the others), and
+the Caller's Companion importer stops using `other` + "Square".
 
 For borrowed club calls, the registry records CALLERLAB's usual starting
 formations as glossary information. These are shipped data, not stored on
@@ -799,14 +799,29 @@ do not change (ECD's `omittedDanceDefaults`). If the ECD schema and archive
 versions are still unreleased when these fields land, they are amended
 rather than bumped, as the version-bump gate (#2276) requires.
 
-**Formation.** Square dances are offered `FormationShape.square` through a
-square shape list, as ECD has `ecdFormationShapes` (this ADR author's
-proposal). The value already exists and the archive already stamps
-non-contra shapes, so no new enum value or wire gate is needed. But
-ADR-006 added the value for ECD (F2), and the maintainer's answer that the
-new shapes are "ECD only" (ADR-006 §9.1 point 2) was about contra, not
-squares, so using it for square dances needs the maintainer's acceptance
-(Q13).
+**Formation.** Square dances use `FormationShape.square`, which ADR-006
+added for ECD (F2); the maintainer agreed on 20 November 2026 (Q13). A
+square shape list, as ECD has `ecdFormationShapes`, offers three shapes
+(this ADR author's call, which the maintainer left to this research):
+
+- `square`, the default for a new square dance. All 19 held squares start
+  and end in a four-couple square (§4.1, §5.4).
+- `circle`, for Southern (Appalachian) dances in the big circle or big set
+  formation, such as the Kentucky running set (Appendix B), which share
+  many square calls. None of the held squares uses it, but the value
+  already exists, so offering it costs nothing.
+- `other`, with detail text, for anything else, such as hexagon squares,
+  a six-couple variant (Appendix B).
+
+Every other contra and ECD shape is left out, because no held square or
+§7.3 source dances a square in it. *Alternative rejected:* offering
+contra's whole list, as the code does today (§3), which would show
+longways and becket shapes that no square uses. `grid` is deferred: The
+Caller's Box lists "Grid Contra/Square" (§8.4), and the phase 3 search will
+show whether that marks squares. The values already exist and the archive
+already stamps non-contra shapes, so no new enum value or wire gate is
+needed. The comments in `formation.dart` that call `square` and `circle`
+ECD shapes change with the list.
 
 **Breaks.** Breaks are their own records (`squareKind=break`), as the
 maintainer decided (Q6). A figure and its usual break are linked with the
@@ -935,7 +950,7 @@ rather than adding a second one.
    glossary's list of figures of your own, the custom-figure, user-figure,
    compound and shorthand screens) to the registry, the square taxonomy with
    the §7.1 registry, multi-parameter beats, a program label on calls and
-   aliases, offering `FormationShape.square` to square dances (§8.1), the new
+   aliases, a square shape list (`square`, `circle`, `other`; §8.1), the new
    dance fields (§8.1), the per-phrase beat check (§5.3), turning the ECD-only
    editor checks that squares need into checks by form (§3), opening the
    sequence span to squares (Q10), a placeholder figure per form, square
@@ -1027,9 +1042,11 @@ like the other phrase-filling calls, or to 6? No held square states it.
 through, as in Interface Jig? One held square needs it. *Recommendation: no,
 until more dances do; keep offsets in notes.*
 
-**Q13. Square formation.** ADR-006 added `FormationShape.square` "for ECD
-only" (F2). May square dances use it too (§8.1)? *Recommendation: yes; it
-is the same four-couple set, and the value needs no new wire gate.*
+**Q13. Square formation.** *Answered by the maintainer (20 November 2026):
+"Yes, and they likely will not use any/many other formations. Your research
+can likely inform the answer to that better than I can."* Square dances use
+`FormationShape.square`; §8.1 gives the other shapes this ADR's author
+chose from that research.
 
 ## 11. Consequences and revisit triggers
 
@@ -1241,6 +1258,13 @@ Online sources for the §7.3 search (read 20 November 2026):
 - John Coffman, contra dances,
   <https://sites.google.com/site/capecontradance/cape-girardeau-mo-contra-dance/contra-dances-by-john-coffman>.
 - "Honeycomb Contra Figures", <https://upadouble.info/honeycombContra/>.
+
+Other square formations (§8.1, read 20 November 2026):
+
+- CDSS, "The Old-Time Kentucky Running Set",
+  <https://cdss.org/resources/audience/callers/the-old-time-kentucky-running-set>.
+- Ceder.net, "Hexagon Squares",
+  <https://ceder.net/articles/cache/hexagon.html>.
 
 Reference named by the maintainer, under §4.3's rules: Taminations,
 <https://github.com/bradchristie/taminations-flutter>. It was not consulted
