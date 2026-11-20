@@ -242,6 +242,11 @@ STEPS: tuple[Step, ...] = (
         (py("tools/ci/test_report_missing_core_changelog.py"),),
     ),
     Step(
+        "figure-namesakes-advisory",
+        "the figure-namesake advisory's own logic (the report itself is PR-only)",
+        (py("tools/ci/test_report_figure_namesakes.py"),),
+    ),
+    Step(
         "app-version",
         "the app release-version format and kAppVersion match app/pubspec.yaml",
         (

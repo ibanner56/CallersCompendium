@@ -117,6 +117,9 @@ jobs:
       # logic is exercised here. See tools/ci/report_missing_core_changelog.py.
       - name: Test the core-changelog advisory report
         run: python3 tools/ci/test_report_missing_core_changelog.py
+      # PR-only in ci.yml as well, for the same reason. See tools/ci/report_figure_namesakes.py.
+      - name: Test the figure-namesake advisory report
+        run: python3 tools/ci/test_report_figure_namesakes.py
       # Ratchet: no `debugPrint` may reach a release build unguarded. Debug
       # output here carries file paths, import URLs and user dance content, so
       # an unguarded call is an information leak — issue #617, cleaned up in
