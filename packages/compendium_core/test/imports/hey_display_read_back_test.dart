@@ -1,10 +1,12 @@
 import 'package:compendium_core/compendium_core.dart';
+import 'package:compendium_core/testing.dart';
 import 'package:test/test.dart';
 
 /// The heys read back from the app's own display wording (#2121). The
 /// round-trip ratchet covers each value alone; these pin the clauses it reads
 /// and the lines that must still stay text.
 void main() {
+  final renderer = FigureRenderer(contraTaxonomy);
   Figure only(String line) {
     final figures = parseFreeTextFigureEntry(line);
     expect(figures, hasLength(1), reason: line);
@@ -43,6 +45,52 @@ void main() {
       expect(second.params['meetTarget'], 'partners');
       expect(second.note, isNull);
     });
+  });
+
+  test('every dancer that starts a hey keeps its ricochets on read-back', () {
+    // The renderer names the other pair by [invertPairDancerSet], falling back
+    // to "others" for a dancer no pair inverts (`partners`, `neighbors`, a
+    // single dancer, `threes` …), so the reader has to accept the same. Every
+    // combination of the ricochets a length can reach, so a clause that stops
+    // the next one from reading is caught too.
+    const reachable = {
+      'lessThanHalf': [1],
+      'half': [1, 2],
+      'betweenHalfAndFull': [1, 2, 3],
+      'full': [1, 2, 3, 4],
+    };
+    final failures = <String>[];
+    for (final dialect in Dialect.presets) {
+      for (final pass1 in ParamVocab.dancerSets) {
+        for (final MapEntry(key: length, value: slots) in reachable.entries) {
+          for (var mask = 1; mask < 1 << slots.length; mask++) {
+            final figure = testFigure(
+              move: 'hey',
+              params: {
+                'pass1': pass1,
+                'length': length,
+                for (var b = 0; b < slots.length; b++)
+                  if (mask & (1 << b) != 0) 'rico${slots[b]}': true,
+              },
+            );
+            final text = renderer.renderSummary(figure, dialect);
+            final read = parseFreeTextFigureEntry(text, dialect: dialect);
+            if (read.length != 1 ||
+                read.single.params['pass1'] != pass1 ||
+                read.single.note != null ||
+                renderer.renderSummary(read.single, dialect) != text) {
+              failures.add('${dialect.name}: $text');
+            }
+          }
+        }
+      }
+    }
+    expect(
+      failures,
+      isEmpty,
+      reason:
+          '${failures.length} lines lost a ricochet:\n${failures.join('\n')}',
+    );
   });
 
   test('an until clause naming a pair the hey cannot meet stays a note', () {
