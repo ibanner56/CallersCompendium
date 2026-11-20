@@ -5150,6 +5150,20 @@ class AppLocalizationsNl extends AppLocalizations {
   String get programsMoreActions => 'Meer acties';
 
   @override
+  String get programsFormMatchOnly => 'Alleen';
+
+  @override
+  String get programsFormMatchOnlyTooltip =>
+      'Programma\'s met alleen de gekozen soorten';
+
+  @override
+  String get programsFormMatchIncludes => 'Bevat';
+
+  @override
+  String get programsFormMatchIncludesTooltip =>
+      'Programma\'s die de gekozen soorten bevatten';
+
+  @override
   String get danceSectionFigures => 'Figuren';
 
   @override

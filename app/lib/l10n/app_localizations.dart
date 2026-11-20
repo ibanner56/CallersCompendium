@@ -7856,6 +7856,30 @@ abstract class AppLocalizations {
   /// **'More actions'**
   String get programsMoreActions;
 
+  /// Programs list type filter: segment that keeps only programs whose dances are of exactly the chosen type(s), e.g. Contra leaves out a program that also has English dances. Keep very short; it sits beside the type chips.
+  ///
+  /// In en, this message translates to:
+  /// **'Only'**
+  String get programsFormMatchOnly;
+
+  /// Tooltip for the programsFormMatchOnly segment of the programs list type filter.
+  ///
+  /// In en, this message translates to:
+  /// **'Programs of only the chosen types'**
+  String get programsFormMatchOnlyTooltip;
+
+  /// Programs list type filter: segment that keeps every program that has at least the chosen type(s), e.g. Contra also lists a program with both contra and English dances. Keep very short; it sits beside the type chips.
+  ///
+  /// In en, this message translates to:
+  /// **'Includes'**
+  String get programsFormMatchIncludes;
+
+  /// Tooltip for the programsFormMatchIncludes segment of the programs list type filter.
+  ///
+  /// In en, this message translates to:
+  /// **'Programs that include the chosen types'**
+  String get programsFormMatchIncludesTooltip;
+
   /// Heading of the figures section on the dance detail screen.
   ///
   /// In en, this message translates to:

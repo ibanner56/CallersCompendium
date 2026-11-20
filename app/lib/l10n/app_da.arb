@@ -5156,6 +5156,22 @@
   "@programsMoreActions": {
     "x-sourceSha256": "f8d46c2570e70736d62beb6e2e8df321d7cb4842a2b894f2025c47b31871d9f1"
   },
+  "programsFormMatchOnly": "Kun",
+  "@programsFormMatchOnly": {
+    "x-sourceSha256": "879d8fb64f88733ec7c776cb56114b1a8422433e4e976367ce8602c1907ca3e5"
+  },
+  "programsFormMatchOnlyTooltip": "Programmer med kun de valgte typer",
+  "@programsFormMatchOnlyTooltip": {
+    "x-sourceSha256": "b11e6e69f55ec34c4964998071c30458d2f4900180384531647e7ca9e7412cad"
+  },
+  "programsFormMatchIncludes": "Indeholder",
+  "@programsFormMatchIncludes": {
+    "x-sourceSha256": "df498282bede20a9dfff2ee882b7bd646bc7769513fc97e596f1649f123b949c"
+  },
+  "programsFormMatchIncludesTooltip": "Programmer, der indeholder de valgte typer",
+  "@programsFormMatchIncludesTooltip": {
+    "x-sourceSha256": "3e3a56e616ff7b2c8b5355d5cd707081af988c75e3e71caaf1c30d5494f0a482"
+  },
   "danceSectionFigures": "Figurer",
   "@danceSectionFigures": {
     "x-sourceSha256": "f2f410e7009e9a31dcc7c971e662285f4071150ef1e211f76e838efb35082d1e"

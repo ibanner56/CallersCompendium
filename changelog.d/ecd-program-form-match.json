@@ -1,0 +1,9 @@
+{
+  "id": "ecd-program-form-match",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "An Only / Includes switch beside the programs list's type chips: Includes lists every program that has the chosen types, so Contra also shows programs with both contra and English dances."
+    ]
+  }
+}

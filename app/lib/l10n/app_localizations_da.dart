@@ -5123,6 +5123,20 @@ class AppLocalizationsDa extends AppLocalizations {
   String get programsMoreActions => 'Flere handlinger';
 
   @override
+  String get programsFormMatchOnly => 'Kun';
+
+  @override
+  String get programsFormMatchOnlyTooltip =>
+      'Programmer med kun de valgte typer';
+
+  @override
+  String get programsFormMatchIncludes => 'Indeholder';
+
+  @override
+  String get programsFormMatchIncludesTooltip =>
+      'Programmer, der indeholder de valgte typer';
+
+  @override
   String get danceSectionFigures => 'Figurer';
 
   @override

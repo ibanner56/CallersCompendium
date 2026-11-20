@@ -145,10 +145,15 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
   Map<String, Set<DanceForm>> _formsById = const {};
   StreamSubscription<Map<String, Set<DanceForm>>>? _formsSub;
 
-  /// The type filter: only programs whose dances are of exactly these forms
-  /// ([sameForms]), and the open program whatever its forms. Null shows every
-  /// program. Dropped once no listed program matches it. Not saved.
+  /// The type filter: only programs whose dances are of these forms, compared
+  /// as [_formMatch] says ([formsMatch]), and the open program whatever its
+  /// forms. Null shows every program. Dropped once it is no longer one of the
+  /// chips. Not saved.
   Set<DanceForm>? _formFilter;
+
+  /// Whether the type filter keeps programs of only the chosen forms or every
+  /// program that includes them. Not saved, like the filter.
+  FormMatch _formMatch = FormMatch.only;
   Object? _loadError;
   ProgramSort _sort = ProgramSort.title;
   SortDirection _sortDir = ProgramSort.title.defaultDirection;
@@ -181,7 +186,7 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
     _closeHiddenSelection();
   }
 
-  /// Clears [_formFilter] once no listed program matches it, so it can't
+  /// Clears [_formFilter] once it is no longer one of the chips, so it can't
   /// come back on its own when a later program does. Call within setState.
   void _dropStaleFormFilter() {
     if (_activeFormFilter == null) _formFilter = null;
@@ -489,7 +494,7 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
       for (final program in _unfilteredPrograms)
         if (filter == null ||
             program.id == open ||
-            sameForms(_formsById[program.id], filter))
+            formsMatch(_formsById[program.id], filter, _formMatch))
           program,
     ];
   }
@@ -550,7 +555,27 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
           child: Wrap(
             spacing: AppSpacing.xs,
             runSpacing: AppSpacing.xxs,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
+              SegmentedButton<FormMatch>(
+                key: const ValueKey('programs-form-match'),
+                segments: [
+                  ButtonSegment(
+                    value: FormMatch.only,
+                    label: Text(l10n.programsFormMatchOnly),
+                    tooltip: l10n.programsFormMatchOnlyTooltip,
+                  ),
+                  ButtonSegment(
+                    value: FormMatch.includes,
+                    label: Text(l10n.programsFormMatchIncludes),
+                    tooltip: l10n.programsFormMatchIncludesTooltip,
+                  ),
+                ],
+                selected: {_formMatch},
+                showSelectedIcon: false,
+                onSelectionChanged: (selection) =>
+                    setState(() => _formMatch = selection.single),
+              ),
               for (final forms in choices)
                 FilterChip(
                   key: ValueKey(

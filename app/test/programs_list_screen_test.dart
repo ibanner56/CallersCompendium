@@ -939,6 +939,44 @@ void _formFilterTests() {
     );
   }
 
+  testWidgets('Includes lists every program that has the chosen forms', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await seed(repos);
+    await repos.programs.create(_program(id: 'p-none', title: 'Empty'));
+    await _pump(tester, repos);
+    final match = find.byKey(const ValueKey('programs-form-match'));
+    expect(match, findsOneWidget);
+
+    // Only is the default: Contra leaves out the mixed program.
+    await tester.tap(find.byKey(const ValueKey('programs-form-contra')));
+    await tester.pumpAndSettle();
+    expect(_titlesInOrder(tester), ['Contra night']);
+
+    // Includes keeps the chosen chip and widens it to the mixed program.
+    await tester.tap(
+      find.descendant(of: match, matching: find.text('Includes')),
+    );
+    await tester.pumpAndSettle();
+    expect(_titlesInOrder(tester), ['Contra night', 'Mixed night']);
+
+    await tester.tap(find.byKey(const ValueKey('programs-form-ecd')));
+    await tester.pumpAndSettle();
+    expect(_titlesInOrder(tester), ['English night', 'Mixed night']);
+
+    await tester.tap(find.byKey(const ValueKey('programs-form-contra+ecd')));
+    await tester.pumpAndSettle();
+    expect(_titlesInOrder(tester), ['Mixed night']);
+
+    // Back to Only, with English chosen: the mixed program drops out.
+    await tester.tap(find.byKey(const ValueKey('programs-form-ecd')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.descendant(of: match, matching: find.text('Only')));
+    await tester.pumpAndSettle();
+    expect(_titlesInOrder(tester), ['English night']);
+  });
+
   testWidgets('a deleted dance stops counting at once', (tester) async {
     final repos = openTestRepositories();
     await seed(repos);

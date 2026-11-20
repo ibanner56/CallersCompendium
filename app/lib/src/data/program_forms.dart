@@ -40,3 +40,21 @@ bool sameForms(Set<DanceForm>? forms, Set<DanceForm> selected) =>
     forms != null &&
     forms.length == selected.length &&
     forms.containsAll(selected);
+
+/// How the programs list's type filter compares a program's forms with the
+/// chosen chip's: [only] keeps a program of exactly those forms, so "Contra"
+/// leaves out a program that also has English dances; [includes] keeps a
+/// program that has at least those forms, so "Contra" lists every program
+/// with a contra dance.
+enum FormMatch { only, includes }
+
+/// Whether a program of [forms] passes the type filter [selected] under
+/// [match]. A program with no dances ([forms] null) passes neither.
+bool formsMatch(
+  Set<DanceForm>? forms,
+  Set<DanceForm> selected,
+  FormMatch match,
+) => switch (match) {
+  FormMatch.only => sameForms(forms, selected),
+  FormMatch.includes => forms != null && forms.containsAll(selected),
+};
