@@ -235,6 +235,9 @@ jobs:
       # See tools/ci/check_version_bump_policy.py.
       - name: Test the version-bump policy gate
         run: python3 tools/ci/test_check_version_bump_policy.py
+      # The gate itself is PR-only (release-pr-title.yml, which needs the title).
+      - name: Test the release-PR title gate
+        run: python3 tools/ci/test_check_release_pr_title.py
       - name: Test the CHANGELOG promotion gate
         run: python3 tools/ci/test_check_changelog_promoted.py
       # The structure gate itself runs in changelog-structure.yml, because

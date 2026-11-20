@@ -315,8 +315,11 @@ and produces no Android artifact.
    tagged from `main`, never from the release branch. Use
    `docs(release): prepare vX.Y.Z` for a stable release or
    `docs(release): prepare vX.Y.Z-beta` for a beta release as both the
-   release-preparation commit subject and pull request title; the merged #937
-   precedent used `docs(release): prepare v0.1.0-beta.7`. Never use
+   release-preparation commit subject and pull request title, with X.Y.Z equal to
+   `app/pubspec.yaml`'s version (`docs(release): prepare v0.10.0-beta` for the
+   `v0.10.0-beta` tag); when the PR changes the pubspec version, CI checks the PR title, not the
+   commit subjects (a stable promotion of an existing beta changes no version, so
+   its title is not checked). Never use
    `chore(release)` unless a maintainer explicitly overrides the convention.
    This applies even when preparation changes version literals, issue-template
    metadata, or generated changelogs. This repo squash-merges, so what you want
