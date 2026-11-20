@@ -422,10 +422,11 @@ Here is how to read it:
 
 - **Dances are rows; moves are columns.** In a program that mixes types of
   dance, each move's column is named in the dialect of its type, and each
-  dance's formation details are in the dialect of that dance's type. Square
-  dances share contra's figures for now, so a figure only square dances use is
-  named in the square dialect, and one that contra and square dances share is
-  named in the contra dialect.
+  dance's formation details are in the dialect of that dance's type. A contra
+  figure can appear in a dance of another type too (square dances share
+  contra's figures for now): when only one type's dances use it, its column is
+  named in that type's dialect, and when dances of several types share it, in
+  the contra dialect.
 - **Large text.** The rows and the header strip grow with your system text
   size, so dance titles and move names stay readable. A title or move name that
   still does not fit ends in an ellipsis; **press and hold** it to read it in
