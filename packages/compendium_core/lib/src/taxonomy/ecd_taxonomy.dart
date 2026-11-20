@@ -5,8 +5,8 @@ import 'taxonomy.dart';
 
 /// Version of the English Country Dance taxonomy (ADR-006). Like
 /// [contraTaxonomyVersion], a documentary marker that nothing reads at
-/// runtime, logged under "Taxonomy version history" in
-/// `docs/design/figure-taxonomy.md`. Version 1 is the registry ADR-006 §7
+/// runtime, logged under "ECD taxonomy versions" (inside "Taxonomy version
+/// history") in `docs/design/figure-taxonomy.md`. Version 1 is the registry ADR-006 §7
 /// accepted.
 const int ecdTaxonomyVersion = 1;
 
@@ -66,8 +66,14 @@ const List<String> ecdSelectors = [
 
 /// The stated endpoints an ECD movement can carry in `destination` (ADR-006
 /// §6.4), in camelCase (§6.1), then [ParamVocab.unspecified]. A figure that
-/// states none stores none, which reads the same as the sentinel.
+/// states none stores none, which reads the same as the sentinel. A cast
+/// can also end at the `top` or `bottom` of the set (§9.4).
 const List<String> ecdDestinations = [
+  ..._statedDestinations,
+  ParamVocab.unspecified,
+];
+
+const List<String> _statedDestinations = [
   'place',
   'firstPlace',
   'secondPlace',
@@ -82,7 +88,6 @@ const List<String> ecdDestinations = [
   'diagonalsPlace',
   'allImproper',
   'allProper',
-  ParamVocab.unspecified,
 ];
 
 const _u = ParamVocab.unspecified;
@@ -137,6 +142,14 @@ const _destination = ParamSpec(
   ParamKind.choice,
   defaultValue: _u,
   choices: ecdDestinations,
+);
+// A cast also ends at the top or the bottom of the set, as contra's `cast`
+// does ("cast down to bottom"): the maintainer's decision of 2026-11-19.
+// `cast_test.dart` pins that the two lists agree.
+const _castDestination = ParamSpec(
+  ParamKind.choice,
+  defaultValue: _u,
+  choices: [..._statedDestinations, 'top', 'bottom', _u],
 );
 const _no = ParamSpec(ParamKind.flag, defaultValue: false);
 
@@ -953,16 +966,24 @@ final Taxonomy ecdTaxonomy = Taxonomy(
     MoveDef(
       id: '${_p}cast',
       displayName: 'cast',
+      // One parameter shape with contra's `cast` (v40, #770), so a
+      // contra-imported English dance re-reads one to one (F5): the
+      // maintainer's decision of 2026-11-19 (§7.5, §9.4).
       params: {
         'who': _who,
-        'where': _where(['off', 'up', 'down', 'around']),
-        'direction': _side,
+        // `left`/`right` is the shoulder turned over, not a side of the set:
+        // clockwise is over the right shoulder, counterclockwise the left.
+        'direction': _where(['left', 'right', 'up', 'down']),
+        // "Cast off" is `down`, one place, unless a number is stated.
+        'places': _places,
         'whom': _whom,
-        'destination': _destination,
+        'destination': _castDestination,
         'beats': _beats(4),
       },
+      // `{direction}` is always worded: "back" when unstated, "back left",
+      // "back right", "up" or "down" (`ecdSlotWords`).
       renderTemplate:
-          '{who} {move} [{where}] [{direction}] [around {whom}] '
+          '{who} {move} {direction} [{places}] [around {whom}] '
           '[{destination}]',
       searchKeywords: const ['cast off', 'cast up', 'cast down'],
     ),
@@ -1016,6 +1037,16 @@ final Taxonomy ecdTaxonomy = Taxonomy(
       targetMove: '${_p}box_the_gnat',
       pinnedParams: {'hand': 'left'},
       inversePairId: '${_p}box_the_gnat',
+    ),
+    // A hand cast is a gate, pinning nothing (the maintainer's decision of
+    // 2026-11-19, §9.4), as contra's `hand_cast` is. Listed as a move of
+    // its own, so search can name it and a dialect's name for gate never
+    // renames it.
+    MoveAlias(
+      id: '${_p}hand_cast',
+      displayName: 'hand cast',
+      targetMove: '${_p}gate',
+      listedAsMove: true,
     ),
   ],
 );

@@ -351,6 +351,20 @@ def test_docs_bundle_and_changelog_gates_run_on_markdown_only_diffs() -> None:
         changelog_changed=True,
     )
     expect(
+        # The core version bump is checked against the core changelog and the
+        # pending fragments (check_core_version_recorded), so a PR that changes
+        # only this file has to start the changelog gate. It is not Markdown, so
+        # it also runs the ordinary suites a pubspec change always has.
+        "core package pubspec.yaml starts the changelog gate",
+        (b"packages/compendium_core/pubspec.yaml",),
+        validation_changed=True,
+        core_tests_changed=True,
+        app_tests_changed=True,
+        server_tests_changed=True,
+        builds_changed=True,
+        changelog_changed=True,
+    )
+    expect(
         "a changelog.d fragment",
         (b"changelog.d/1234.added.json",),
         validation_changed=True,

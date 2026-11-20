@@ -54,7 +54,8 @@ searchKeywords: [allemande, almond]
   contra's taxonomy directly, until they gain a form of their own.
 - **English Country Dance has its own taxonomy** (`ecdTaxonomy`,
   `ecd_taxonomy.dart`): the 52 movements of ADR-006 §7, each stored under an
-  `ecd_` ID, and one alias (`ecd_swat_the_flea`). Its `who` is a
+  `ecd_` ID, and two aliases (`ecd_swat_the_flea`, and `ecd_hand_cast`,
+  which is listed as a move of its own). Its `who` is a
   [`dancerList`](#parameter-types), and every value a source can leave out
   defaults to `unspecified` (ADR-006 §5.3); the editor's suggestions
   (`everyone`, a set to the right, a right turn single, forward) are
@@ -2264,11 +2265,10 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
       role-implied hand, which goes unsaid.
     - `destination` holds ECD's destination tokens plus `top` and `bottom`.
       The maintainer decided this shape and ECD's `ecd_cast` be one, so
-      ADR-006 F5 maps one to the other. **It is not one yet:** `ecd_cast`
-      still has `where` (off/up/down/around) and a `direction` that is a
-      side, and the ECD taxonomy's session owns that change.
-      `cast_test.dart` records `ecd_cast`'s current params, so the change
-      shows up there, and pins that contra's destinations hold every ECD one.
+      ADR-006 F5 maps one to the other. ECD's taxonomy v1 took it before
+      release (ADR-006 §9.4); `cast_test.dart` pins that the two agree on
+      param names and on `direction` and `destination` choices, and that
+      contra's destinations hold every ECD one.
   - **`hand_cast`**, an alias of `gate` pinning nothing: the maintainer's
     ruling, on The Caller's Box glossary calling each "very similar" to the
     other. It is listed as a move (`listedAsMove`), for the reasons
@@ -2338,9 +2338,15 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
 `ecdTaxonomyVersion` (`ecd_taxonomy.dart`) is the same kind of documentary
 marker for the English Country Dance taxonomy, logged here.
 
+**Every bump appends an entry here, in the same PR.**
+`tools/ci/check_version_history.py` fails a PR that moves the constant without
+a `- vN` entry under this heading; a contra entry above it does not count. A
+change added to a version that has not shipped yet amends that version's entry
+instead, which the gate cannot see.
+
 - v1: ADR-006 §7's registry: 52 movements under `ecd_` IDs, the
-    `ecd_swat_the_flea` alias, `ParamKind.dancerList` for `who`, and the
-    §6.3 template notation. Migration: no stored figure changes. A dance
+    `ecd_swat_the_flea` and `ecd_hand_cast` aliases, `ParamKind.dancerList`
+    for `who`, and the §6.3 template notation. Migration: no stored figure changes. A dance
     that already held `ecd_` IDs (from a newer peer or an archive) was
     indexed while they were unknown, so a one-time canonical/FTS rebuild runs,
     guarded by `ecdTaxonomyCanonicalRebuildDoneKey` and listed in
@@ -2351,6 +2357,18 @@ marker for the English Country Dance taxonomy, logged here.
     `{?flag}` like a `{param}`, and a `dancerList` as its tokens sorted and
     joined by `+`. No contra key changes, so the signature version stays 2,
     and `migrateFigureSnippetSignature` leaves `ecd_` keys as they are.
+    **Amended before release (2026-11-19): cast.** By the maintainer's
+    decision, `ecd_cast` takes the parameter shape of contra's `cast` (v40,
+    #770; ADR-006 §9.4): `where` (off/up/down/around) is gone; `direction` is
+    `left`/`right`/`up`/`down`/`unspecified`, where `left` and `right` are
+    the shoulder turned over, not a side of the set; `places` is new
+    (`unspecified` by default, "cast off" is `down` with 1); `whom` holds
+    "cast around"; `destination` adds `top` and `bottom` for cast alone. An
+    unstated direction reads "cast back", and a stated shoulder is always
+    shown; no shoulder is assumed from a role. `ecd_hand_cast` is a new alias
+    of `ecd_gate` that pins nothing, with `listedAsMove`, as contra's
+    `hand_cast` is. v1 had not shipped in a release tag, so it was amended in
+    place rather than bumped (CONTRIBUTING.md "Versioned formats").
 
 ## Open questions (to resolve during implementation, with user input)
 

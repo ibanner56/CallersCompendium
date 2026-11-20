@@ -88,7 +88,7 @@ Four version numbers mark formats other installs depend on:
 | --- | --- | --- |
 | `kCompendiumSchemaVersion` | `packages/compendium_core/lib/src/storage/database.dart` | [Database schema migrations](#database-schema-migrations) |
 | `contraTaxonomyVersion` | `packages/compendium_core/lib/src/taxonomy/contra_taxonomy.dart` | [Taxonomy version history](docs/design/figure-taxonomy.md#taxonomy-version-history) |
-| `syncWireVersion` | `packages/compendium_core/lib/src/sync/sync_codec.dart` | [sync-spec §7.2](docs/design/sync-spec.md#72-allow-list-validation), "An unreleased `v`" |
+| `syncWireVersion` | `packages/compendium_core/lib/src/sync/sync_codec.dart` | [sync-spec §7.2](docs/design/sync-spec.md#72-allow-list-validation), "An unreleased `v`"; [Wire version history](docs/design/sync-spec.md#wire-version-history) |
 | `ecdTaxonomyVersion` | `packages/compendium_core/lib/src/taxonomy/ecd_taxonomy.dart` | [ECD taxonomy versions](docs/design/figure-taxonomy.md#ecd-taxonomy-versions) |
 
 A version is only worth a number once something outside `main` carries it.

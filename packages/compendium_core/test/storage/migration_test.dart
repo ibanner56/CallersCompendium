@@ -871,7 +871,7 @@ void main() {
                 move: 'ecd_cast',
                 params: {
                   'who': ['ones'],
-                  'where': 'down',
+                  'direction': 'down',
                   'beats': 8,
                 },
               ),

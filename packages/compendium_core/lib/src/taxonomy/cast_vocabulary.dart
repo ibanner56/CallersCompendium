@@ -7,8 +7,8 @@ import 'param_types.dart';
 /// The maintainer decided (2026-11-19) that contra's `cast` and ECD's
 /// `ecd_cast` share one parameter shape, so that ADR-006 F5 can re-read a
 /// contra-imported ECD dance one to one. This file is the contra side of that
-/// shape. ECD's side is owned by the ECD taxonomy and had not yet taken it when
-/// this was written; `cast_test.dart` records where it stands.
+/// shape; ECD's `ecd_cast` takes the same (ADR-006 §9.4), and
+/// `cast_test.dart` pins that the two agree.
 
 /// Which way a cast turns or travels. `left` and `right` are the SHOULDER the
 /// dancer turns over, not a side of the set: The Caller's Box's "cast

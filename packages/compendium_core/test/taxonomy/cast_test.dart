@@ -104,22 +104,16 @@ void main() {
       expect(castDestinations, containsAll(['top', 'bottom']));
     });
 
-    test('ECD has not yet taken the shared shape', () {
+    test('ECD cast takes the shared shape', () {
       // The maintainer decided contra's `cast` and ECD's `ecd_cast` share one
-      // shape; the ECD side is the ECD taxonomy's to change. This records
-      // where it stands, so the change shows up here: when `ecd_cast` takes
-      // the shape, replace this with a test that the two moves' param names,
-      // `direction` choices and `destination` choices agree.
+      // shape (ADR-006 §9.4), so F5 re-reads a contra-imported English dance
+      // one to one: the same param names, `direction` choices and
+      // `destination` choices. Only `who` differs in kind, as it does for
+      // every ECD movement (a list, ADR-006 §5.2).
       final ecd = contraOrEcd('ecd_cast')!;
-      expect(ecd.params.keys.toSet(), {
-        'who',
-        'where',
-        'direction',
-        'whom',
-        'destination',
-        'beats',
-      });
-      expect(contraTaxonomy.resolve('cast')!.params.keys.toSet(), {
+      final contra = contraTaxonomy.resolve('cast')!;
+      expect(ecd.params.keys.toSet(), contra.params.keys.toSet());
+      expect(contra.params.keys.toSet(), {
         'who',
         'direction',
         'places',
@@ -127,6 +121,25 @@ void main() {
         'destination',
         'beats',
       });
+      for (final name in ['direction', 'destination']) {
+        expect(
+          ecd.params[name]!.choices,
+          contra.params[name]!.choices,
+          reason: name,
+        );
+        expect(ecd.params[name]!.kind, contra.params[name]!.kind);
+      }
+      expect(ecd.params['places']!.kind, contra.params['places']!.kind);
+      expect(ecd.params['beats']!.defaultValue, 4);
+      expect(contra.params['beats']!.defaultValue, 4);
+    });
+
+    test('ECD hand cast is a listed alias of ECD gate, as in contra', () {
+      final ecd = ecdTaxonomy.aliases['ecd_hand_cast']!;
+      final contra = contraTaxonomy.aliases['hand_cast']!;
+      expect(ecd.targetMove, 'ecd_gate');
+      expect(ecd.pinnedParams, contra.pinnedParams);
+      expect(ecd.listedAsMove, contra.listedAsMove);
     });
 
     test('hand cast is an alias of gate that pins nothing', () {

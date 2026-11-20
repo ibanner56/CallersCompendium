@@ -1877,8 +1877,13 @@ class FigureRenderer {
     final def = taxonomy.resolve(moveId);
     if (def == null) return null;
     // An alias with its own dialect name starts from the line it shows, its
-    // name alone (`long lines`), not its target's.
-    if (_listedAsMove(moveId)) return '{move}';
+    // name alone (`long lines`), not its target's. One that pins nothing
+    // (`hand cast`) shows every slot its target does, so it starts from the
+    // target's template, where `{move}` is its own name.
+    if (_listedAsMove(moveId) &&
+        (taxonomy.aliases[moveId]?.pinnedParams.isNotEmpty ?? true)) {
+      return '{move}';
+    }
     final canonicalMoveId = def.id;
     final seed = _moveWordingSeedTemplates[canonicalMoveId];
     if (seed != null) return seed;

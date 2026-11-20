@@ -104,6 +104,7 @@ CHANGELOG_PATH_PREFIXES = (b"changelog.d/",)
 CHANGELOG_EXACT_PATHS = {
     b"app/CHANGELOG.md",
     b"packages/compendium_core/CHANGELOG.md",
+    b"packages/compendium_core/pubspec.yaml",
     b"tools/release/compile_changelog_fragments.py",
     b"tools/release/test_compile_changelog_fragments.py",
     b"tools/ci/check_changelog_structure.py",
