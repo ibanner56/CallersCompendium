@@ -10,10 +10,13 @@
 //     In the ordinary window a repeat is the page wrapping round unless its loop
 //     is only a few controls (under 5): a long form is built lazily, and its
 //     wrap lands on the first control still built, not the first stop, so a
-//     larger trap there cannot be told from a wrap. So each long screen is
-//     walked again in a window tall enough to build all of it ("whole form
-//     built"), where nothing is lazy, the wrap must return to the very first
-//     stop, and a trap of any size fails. Shift+Tab, pressed as often, visits
+//     larger trap there cannot be told from a wrap. So each lazily built screen
+//     is walked again in a window tall enough to build all of it ("whole form
+//     built"), where nothing is lazy: the wrap must return to the first stop,
+//     and every control that can take focus on the page must be a stop, so a
+//     loop of any size fails, including one that contains the first stop. That
+//     covers what is built: the Program builder's Matrix tab (a second page of a
+//     horizontal view) is not walked at all. Shift+Tab, pressed as often, visits
 //     nearly as many distinct stops as Tab did (it is not compared stop for
 //     stop: see the note where it is checked).
 //  2. Reachable: every tappable, enabled semantics node on screen is covered by
