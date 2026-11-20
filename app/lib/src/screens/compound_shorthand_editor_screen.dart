@@ -57,7 +57,9 @@ class CompoundShorthandEditorScreen extends StatefulWidget {
 
 class _CompoundShorthandEditorScreenState
     extends State<CompoundShorthandEditorScreen> {
-  static final FigureRenderer _renderer = FigureRenderer(shippedTaxonomies.anyForm);
+  static final FigureRenderer _renderer = FigureRenderer(
+    shippedTaxonomies.anyForm,
+  );
 
   late final String _initialToken =
       widget.initial?.token ?? widget.initialUserFigure?.token ?? '';
@@ -116,7 +118,10 @@ class _CompoundShorthandEditorScreenState
           [
             for (final entry in entries)
               if (entry.kind == UserGlossaryEntryKind.compound)
-                if (decodeCompoundDefinition(entry.payload, shippedTaxonomies.anyForm)
+                if (decodeCompoundDefinition(
+                      entry.payload,
+                      shippedTaxonomies.anyForm,
+                    )
                     case final definition?)
                   (entry: entry, definition: definition),
           ]..sort(
@@ -219,7 +224,11 @@ class _CompoundShorthandEditorScreenState
         ..addAll(
           picked == null
               ? const {}
-              : previewArguments(picked.definition, shippedTaxonomies.anyForm) ?? const {},
+              : previewArguments(
+                      picked.definition,
+                      shippedTaxonomies.anyForm,
+                    ) ??
+                    const {},
         );
       _figureError = null;
     });
@@ -250,7 +259,11 @@ class _CompoundShorthandEditorScreenState
     }
     if (picked == null) {
       error = l10n.compoundShorthandEditorNoFigure;
-    } else if (expandCompound(picked.definition, _args, shippedTaxonomies.anyForm) ==
+    } else if (expandCompound(
+          picked.definition,
+          _args,
+          shippedTaxonomies.anyForm,
+        ) ==
         null) {
       error = l10n.compoundShorthandEditorInvalidValues;
     }
@@ -494,7 +507,10 @@ class _CompoundShorthandEditorScreenState
                     child: Text(
                       l10n.danceEditorCompoundExpandsTo(
                         expanded.length,
-                        CompoundDefinition.beatsOf(expanded, shippedTaxonomies.anyForm),
+                        CompoundDefinition.beatsOf(
+                          expanded,
+                          shippedTaxonomies.anyForm,
+                        ),
                       ),
                       key: const ValueKey('compound-shorthand-expands'),
                       style: theme.textTheme.bodySmall,

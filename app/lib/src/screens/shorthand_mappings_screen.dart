@@ -297,7 +297,9 @@ class _CompoundShorthandsSection extends StatefulWidget {
 
 class _CompoundShorthandsSectionState
     extends State<_CompoundShorthandsSection> {
-  static final FigureRenderer _renderer = FigureRenderer(shippedTaxonomies.anyForm);
+  static final FigureRenderer _renderer = FigureRenderer(
+    shippedTaxonomies.anyForm,
+  );
 
   CompendiumRepositories? _repos;
   StreamSubscription<List<UserGlossaryEntry>>? _sub;
@@ -604,7 +606,10 @@ class _CompoundShorthandsSectionState
       text: shorthand.figureName,
       beats: shorthand.beats,
     );
-    final renderer = FigureRenderer(shippedTaxonomies.anyForm, userFigures: userFigures);
+    final renderer = FigureRenderer(
+      shippedTaxonomies.anyForm,
+      userFigures: userFigures,
+    );
     final usable = renderer.renderUserFigureCanonical(use) != null;
     final shadowed = figureTokens.contains(shorthand.normalizedToken);
     // A compound shorthand with the same token is resolved first, so it wins
