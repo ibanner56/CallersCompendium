@@ -385,7 +385,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsDeveloperResetFailed =>
-      'データベースをリセットできませんでした。データは変更されていません。このデバイスが同期ストアに接続されていた場合、すでにストアから切断されています。';
+      'データベースをリセットできませんでした。このデバイスが同期ストアに接続されていた場合、すでにストアから切断されています。';
 
   @override
   String get settingsExperimentalPlaceholder => '開発中の新機能がここに表示される場合があります。';
@@ -441,7 +441,7 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get importCcTermsSkip => '今はしない';
+  String get importCcTermsSkip => 'スキップ';
 
   @override
   String importCcTermsConfirm(int count) {
@@ -3730,7 +3730,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get crashFallbackBody =>
-      '予期しないエラーが発生しました。詳細はデバイスの外に出ないローカル診断ログ（設定 ▸ 診断）に保存されました。前の画面に戻って、もう一度お試しください。';
+      'アプリのこの部分で予期しないエラーが発生しました。詳細はデバイスの外に出ないローカル診断ログ（設定 ▸ 診断）に保存されました。前の画面に戻って、もう一度お試しください。';
 
   @override
   String get crashFallbackCopied => 'コピーしました';
@@ -5299,6 +5299,10 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get programsLoadError => 'プログラムを読み込めませんでした。何も変更されていません。もう一度お試しください。';
+
+  @override
+  String get programsUndoRecoveryFailed =>
+      '元に戻したあと、プログラムを再読み込みできませんでした。前の画面に戻って開き直すと、現在の状態を確認できます。';
 
   @override
   String get programsDeletedDanceFallback => '（削除済みダンス）';
@@ -7733,7 +7737,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get importReviewUsrSubtitle =>
-      'Caller\'s Companion .USRファイルを選択して、ダンスとプログラム履歴を移行してください。確認して承認するまでコレクションには何も追加されません。';
+      'Caller\'s Companion .USRファイルを選択して、ダンスとプログラム履歴を移行してください。確認して承認するまでライブラリには何も追加されません。';
 
   @override
   String get importReviewChooseUsr => '.USRファイルを選択…';
@@ -9728,7 +9732,7 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get importShorthandSeedSkip => '今はしない';
+  String get importShorthandSeedSkip => 'スキップ';
 
   @override
   String importShorthandSeedConfirm(int count) {
@@ -9775,7 +9779,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get importUserFiguresUseTheirs => '相手のものを使う';
 
   @override
-  String get importUserFiguresSkip => '今はしない';
+  String get importUserFiguresSkip => 'スキップ';
 
   @override
   String importUserFiguresConfirm(int count) {
@@ -10318,7 +10322,8 @@ class AppLocalizationsJa extends AppLocalizations {
   String get recentlyDeletedTitle => '最近削除したアイテム';
 
   @override
-  String get recentlyDeletedLoadError => '最近削除したアイテムを読み込めませんでした。何も削除されていません。';
+  String get recentlyDeletedLoadError =>
+      '最近削除したアイテムを読み込めませんでした。何も削除されていません。もう一度お試しください。';
 
   @override
   String get recentlyDeletedDeleteTitle => '完全に削除しますか？';
@@ -10607,6 +10612,10 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get danceReimportSourceFailed =>
       'その出典からダンスを読み込めませんでした。ダンスは変更されていません。もう一度お試しください。';
+
+  @override
+  String get danceReimportApplyFailed =>
+      'そのソースからダンスを更新できませんでした。ダンスは変更されていません。もう一度お試しください。';
 
   @override
   String get danceReimported => '振り付けを更新しました。';

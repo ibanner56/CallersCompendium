@@ -401,7 +401,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsDeveloperResetFailed =>
-      'De database kon niet worden gereset, dus je gegevens zijn ongewijzigd. Als dit apparaat met een synchronisatieopslag was verbonden, heeft het die al verlaten.';
+      'De database kon niet worden gereset. Als dit apparaat met een synchronisatieopslag was verbonden, heeft het die al verlaten.';
 
   @override
   String get settingsExperimentalPlaceholder =>
@@ -462,7 +462,7 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
-  String get importCcTermsSkip => 'Niet nu';
+  String get importCcTermsSkip => 'Overslaan';
 
   @override
   String importCcTermsConfirm(int count) {
@@ -1887,7 +1887,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsAboutFontFrauncesSubtitle =>
-      'SIL Open Font License 1.1 · © The Fraunces Project Authors — display & koppen';
+      'SIL Open Font License 1.1 · © The Fraunces Project Authors — display en koppen';
 
   @override
   String get settingsAboutFontAtkinsonSubtitle =>
@@ -3952,7 +3952,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get crashFallbackBody =>
-      'Er is een onverwachte fout opgetreden. De details zijn bewaard in een lokaal diagnoselog (Instellingen ▸ Diagnostics) dat je apparaat nooit verlaat. Ga terug en probeer het opnieuw.';
+      'Dit onderdeel van de app heeft een onverwachte fout gehad. De details zijn bewaard in een lokaal diagnoselog (Instellingen ▸ Diagnostics) dat je apparaat nooit verlaat. Ga terug en probeer het opnieuw.';
 
   @override
   String get crashFallbackCopied => 'Gekopieerd';
@@ -5580,6 +5580,10 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get programsLoadError =>
       'Het programma kon niet worden geladen. Er is niets gewijzigd. Probeer het opnieuw.';
+
+  @override
+  String get programsUndoRecoveryFailed =>
+      'Het programma kon na het ongedaan maken niet opnieuw worden geladen. Ga terug en open het opnieuw om de huidige staat te zien.';
 
   @override
   String get programsDeletedDanceFallback => '(verwijderde dans)';
@@ -8112,7 +8116,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get importReviewUsrSubtitle =>
-      'Kies het Caller\'s Companion .USR-bestand om de dansen en programmageschiedenis te migreren. Er wordt niets aan je collectie toegevoegd totdat je controleert en bevestigt.';
+      'Kies het Caller\'s Companion .USR-bestand om de dansen en programmageschiedenis te migreren. Er wordt niets aan je bibliotheek toegevoegd totdat je controleert en bevestigt.';
 
   @override
   String get importReviewChooseUsr => 'Kies .USR-bestand…';
@@ -10189,7 +10193,7 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
-  String get importShorthandSeedSkip => 'Niet nu';
+  String get importShorthandSeedSkip => 'Overslaan';
 
   @override
   String importShorthandSeedConfirm(int count) {
@@ -10237,7 +10241,7 @@ class AppLocalizationsNl extends AppLocalizations {
   String get importUserFiguresUseTheirs => 'Hun versie gebruiken';
 
   @override
-  String get importUserFiguresSkip => 'Niet nu';
+  String get importUserFiguresSkip => 'Overslaan';
 
   @override
   String importUserFiguresConfirm(int count) {
@@ -10824,7 +10828,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get recentlyDeletedLoadError =>
-      'Je onlangs verwijderde items konden niet worden geladen. Er is niets verwijderd.';
+      'Je onlangs verwijderde items konden niet worden geladen. Er is niets verwijderd. Probeer het opnieuw.';
 
   @override
   String get recentlyDeletedDeleteTitle => 'Permanent verwijderen?';
@@ -11121,6 +11125,10 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get danceReimportSourceFailed =>
       'Er kon geen dans van die bron worden geladen. Je dans is niet gewijzigd. Probeer het opnieuw.';
+
+  @override
+  String get danceReimportApplyFailed =>
+      'De dans kon niet vanuit die bron worden bijgewerkt. Je dans is niet gewijzigd. Probeer het opnieuw.';
 
   @override
   String get danceReimported => 'Choreografie bijgewerkt.';

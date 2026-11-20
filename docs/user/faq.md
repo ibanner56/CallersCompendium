@@ -130,7 +130,7 @@ input.
 ### How do I share a single dance or a program?
 
 Open the dance or program and use its share/export options — you can share as
-text or export a PDF. A program also offers **Share (program + dances)**, which
+text or export a PDF. A program also offers **Share program and dances**, which
 bundles the set list together with every dance it uses into one file — dances and
 all, not just a list of titles. On a Mac, iPhone, iPad, Android device, or a Windows
 computer where the app was installed with the installer, the recipient can

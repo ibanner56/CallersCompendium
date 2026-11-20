@@ -294,7 +294,7 @@ can't be opened
 ### Open a shared program someone sent you
 
 If another caller shares a **program bundle** with you — the
-**Share (program + dances)** file described in
+**Share program and dances** file described in
 [Share, print & export](./sharing.md#share-a-program-with-its-dances) — you can
 often open the file directly:
 
@@ -371,7 +371,7 @@ what to add to your Glossary:
 
 A figure whose name is already taken here is added all the same, and your
 Glossary marks it **Rename needed**. A dance whose new figure you don't add
-shows the line it was shared with. **Not now** adds nothing. The **Undo** after the
+shows the line it was shared with. **Skip** adds nothing. The **Undo** after the
 import also takes back what you added or replaced here. With Custom Figures
 off, nothing is offered, and the dances show each figure as the line it was
 shared with.
@@ -557,7 +557,7 @@ open the app.
 
 An English country dance imported before the app knew English figures, or
 converted from the **ECD** tag above, still holds the contra moves it was
-read with. Those still show correctly, but **Settings → General → Import →
+read with. Those still show correctly, but **Settings ▸ General ▸ Import ▸
 Convert English dances** can turn them into English figures, so they read in your
 English dialect and can be edited with English options.
 
@@ -600,7 +600,7 @@ The **Seed figure shorthands** screen lists the buttons the app could read as
 figures and what each one would expand to. Buttons whose text does not read as a
 figure are left out, and a note at the top says how many. Every button listed starts ticked, so untick
 the ones you do not want and choose the confirm button, which counts what you
-kept (**Seed 3 shorthands**), or choose **Not now** to move on. Nothing is added
+kept (**Seed 3 shorthands**), or choose **Skip** to move on. Nothing is added
 until you confirm.
 
 Where a button offers two versions, you pick **Primary** or **Alternate**. And if
@@ -645,7 +645,7 @@ there becomes the definition.
 The confirm button counts what is ticked (**Add 2 terms**). Afterwards, **Undo**
 on the message takes the terms back out. A term that doesn't fit because your
 Glossary is full is left out, and the same message says how many. Choose
-**Not now** to add none.
+**Skip** to add none.
 
 ## Move your whole library: backup and restore
 

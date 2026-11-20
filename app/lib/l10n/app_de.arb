@@ -392,9 +392,9 @@
   "@settingsDeveloperResetLeaveFailed": {
     "x-sourceSha256": "db5e241a2a578eb79dc76c5839f985b6a5799932232800d0eb837e7d4ae045f0"
   },
-  "settingsDeveloperResetFailed": "Die Datenbank konnte nicht zurückgesetzt werden, deine Daten sind unverändert. Falls dieses Gerät mit einem Synchronisierungsspeicher verbunden war, hat es ihn bereits verlassen.",
+  "settingsDeveloperResetFailed": "Die Datenbank konnte nicht zurückgesetzt werden. Falls dieses Gerät mit einem Synchronisierungsspeicher verbunden war, hat es ihn bereits verlassen.",
   "@settingsDeveloperResetFailed": {
-    "x-sourceSha256": "25cfd9546ea2367a176db8fb69ffb245b40333f915912b9ced3c4a7ef320daee"
+    "x-sourceSha256": "f0602a7cdb8ca8396835cd8ff109e8eb51daa7153c763c8cc76a43bc9da06f89"
   },
   "settingsExperimentalPlaceholder": "Neue Funktionen können hier erscheinen, während sie sich noch in Entwicklung befinden.",
   "@settingsExperimentalPlaceholder": {
@@ -456,9 +456,9 @@
   "@importCcTermsEditLabel": {
     "x-sourceSha256": "2313fe21ea84567f451e913cae39bd4ef9775a83458b23f3f440c2108e5363a1"
   },
-  "importCcTermsSkip": "Nicht jetzt",
+  "importCcTermsSkip": "Überspringen",
   "@importCcTermsSkip": {
-    "x-sourceSha256": "a0e63d7c7125d29af84d6919af5550529be77c327324940c98c4b2cb13a99c8c"
+    "x-sourceSha256": "28d03596d24eeb4eab2d6fe21ca1cb95be7cb1fa6f92933db05e2cc4f4cdfa06"
   },
   "importCcTermsConfirm": "{count, plural, =0{Begriffe hinzufügen} =1{1 Begriff hinzufügen} other{{count} Begriffe hinzufügen}}",
   "@importCcTermsConfirm": {
@@ -3940,9 +3940,9 @@
   "@crashFallbackTitle": {
     "x-sourceSha256": "8f57c66fd319b8791131188ba4d99ec2acfbfa4c163fa2619b636df3550dd244"
   },
-  "crashFallbackBody": "Es ist ein unerwarteter Fehler aufgetreten. Die Details wurden in einem lokalen Diagnoseprotokoll (Einstellungen ▸ Diagnose) gespeichert, das dein Gerät nie verlässt. Geh zurück und versuche es erneut.",
+  "crashFallbackBody": "In diesem Teil der App ist ein unerwarteter Fehler aufgetreten. Die Details wurden in einem lokalen Diagnoseprotokoll (Einstellungen ▸ Diagnose) gespeichert, das dein Gerät nie verlässt. Geh zurück und versuche es erneut.",
   "@crashFallbackBody": {
-    "x-sourceSha256": "6c53dc029662a2083a380bae756921ec803ab1c8acd83229f996605feaad01f9"
+    "x-sourceSha256": "cd6f68c73b3c2787820f5718ad32da5f46fb8cbc3a2118cabd52661160020182"
   },
   "crashFallbackCopied": "Kopiert",
   "@crashFallbackCopied": {
@@ -5567,6 +5567,10 @@
   "programsLoadError": "Das Programm konnte nicht geladen werden. Es wurde nichts geändert. Versuche es erneut.",
   "@programsLoadError": {
     "x-sourceSha256": "4d2ddb362aef662580306423eff49b826dd37976f965de6744df9dc79e8ef8c5"
+  },
+  "programsUndoRecoveryFailed": "Das Programm konnte nach dem Rückgängigmachen nicht neu geladen werden. Geh zurück und öffne es erneut, um den aktuellen Stand zu sehen.",
+  "@programsUndoRecoveryFailed": {
+    "x-sourceSha256": "0cb87b457584e2f1ebfd249c1a6d58299dfd8d69e1dfecd324bcd1cca4ea180c"
   },
   "programsDeletedDanceFallback": "(gelöschter Tanz)",
   "@programsDeletedDanceFallback": {
@@ -7470,7 +7474,7 @@
   "@archiveIntakeRejectedNoContent": {
     "x-sourceSha256": "c432135d1a1811b4f51d8ad2f995526eff018b8005496c8d5fb7a2c57faa411b"
   },
-  "archiveIntakeRejectedBackup": "Diese Datei ist eine Sicherung, keine Freigabedatei. Um sie auf dieses Gerät zu bringen, öffne Einstellungen › Allgemein und wähle „Aus einer Sicherung wiederherstellen“.",
+  "archiveIntakeRejectedBackup": "Diese Datei ist eine Sicherung, keine Freigabedatei. Um sie auf dieses Gerät zu bringen, öffne Einstellungen ▸ Allgemein und wähle „Aus einer Sicherung wiederherstellen“.",
   "@archiveIntakeRejectedBackup": {
     "x-sourceSha256": "0d7bc0f42d7695adf334fc8ad493453fd1c325ab09e4a77016dcb57552e6dd27"
   },
@@ -7902,9 +7906,9 @@
   "@importRecordErrorCommit": {
     "x-sourceSha256": "60668200dcc7374b6a3b506d112a429c796e2610c4b02e9de48c19d7fc54b784"
   },
-  "importReviewUsrSubtitle": "Wählen Sie die Caller's Companion .USR-Datei aus, um deren Tänze und Programmverlauf zu migrieren. Ihrer Sammlung wird nichts hinzugefügt, bis Sie überprüfen und bestätigen.",
+  "importReviewUsrSubtitle": "Wähle die Caller's Companion .USR-Datei aus, um deren Tänze und Programmverlauf zu migrieren. Deiner Bibliothek wird nichts hinzugefügt, bis du alles geprüft und bestätigt hast.",
   "@importReviewUsrSubtitle": {
-    "x-sourceSha256": "086b7a6c5e68706478fda975d16c4e133e4dd71c2eac9d6d26e81dfd4def907b"
+    "x-sourceSha256": "5d392a0ddcaee9fcd70b9c835e83b6e02ddb01f3a511f698d8147d2d75aa467e"
   },
   "importReviewChooseUsr": ".USR-Datei auswählen…",
   "@importReviewChooseUsr": {
@@ -9798,9 +9802,9 @@
   "@importShorthandSeedConflictNote": {
     "x-sourceSha256": "5d691515f5819d5c2fa5c170b4186fd8efa8a5b6ab094d4915b07926aa7d6e41"
   },
-  "importShorthandSeedSkip": "Nicht jetzt",
+  "importShorthandSeedSkip": "Überspringen",
   "@importShorthandSeedSkip": {
-    "x-sourceSha256": "a0e63d7c7125d29af84d6919af5550529be77c327324940c98c4b2cb13a99c8c"
+    "x-sourceSha256": "28d03596d24eeb4eab2d6fe21ca1cb95be7cb1fa6f92933db05e2cc4f4cdfa06"
   },
   "importShorthandSeedConfirm": "{count, plural, =0{Abkürzungen anlegen} =1{1 Abkürzung anlegen} other{{count} Abkürzungen anlegen}}",
   "@importShorthandSeedConfirm": {
@@ -9846,9 +9850,9 @@
   "@importUserFiguresUseTheirs": {
     "x-sourceSha256": "352c427214d201c262fdab4e83afb826b3b9d1ff0dcaf79d0f2a13b92398a108"
   },
-  "importUserFiguresSkip": "Nicht jetzt",
+  "importUserFiguresSkip": "Überspringen",
   "@importUserFiguresSkip": {
-    "x-sourceSha256": "a0e63d7c7125d29af84d6919af5550529be77c327324940c98c4b2cb13a99c8c"
+    "x-sourceSha256": "28d03596d24eeb4eab2d6fe21ca1cb95be7cb1fa6f92933db05e2cc4f4cdfa06"
   },
   "importUserFiguresConfirm": "{count, plural, =0{Fertig} =1{1 Änderung übernehmen} other{{count} Änderungen übernehmen}}",
   "@importUserFiguresConfirm": {
@@ -10022,7 +10026,7 @@
   "@ecdMigrationNothingSnack": {
     "x-sourceSha256": "927c132a0a923e4b2a5d79a46f3510b2b3a357d280cd9ffbc6ec628ff83b6057"
   },
-  "ecdMigrationFailed": "Die Tänze konnten nicht umgewandelt werden. Es wurde nichts geändert. Bitte versuchen Sie es erneut.",
+  "ecdMigrationFailed": "Die Tänze konnten nicht umgewandelt werden. Es wurde nichts geändert. Versuche es erneut.",
   "@ecdMigrationFailed": {
     "x-sourceSha256": "c643cad7db69d3a4a5d7ac7f6f08556d3881bd3101b69ca7185850ec263c4b38"
   },
@@ -10334,9 +10338,9 @@
   "@recentlyDeletedTitle": {
     "x-sourceSha256": "90a0c00f7933cf773642af6df3532772ec03f3cda84545f9fd9e1e34a4ab5c1a"
   },
-  "recentlyDeletedLoadError": "Zuletzt gelöschte Elemente konnten nicht geladen werden. Es wurde nichts entfernt.",
+  "recentlyDeletedLoadError": "Deine zuletzt gelöschten Elemente konnten nicht geladen werden. Es wurde nichts entfernt. Versuche es erneut.",
   "@recentlyDeletedLoadError": {
-    "x-sourceSha256": "ea6e275b5e21d8947fdae93ceeecdb8aff53e0bd9512e5682e67bcadf5a8316a"
+    "x-sourceSha256": "b5d4fab9123b668a0c3db174031ae9061586fafc2de6f28cafc24c6efa9c2141"
   },
   "recentlyDeletedDeleteTitle": "Dauerhaft löschen?",
   "@recentlyDeletedDeleteTitle": {
@@ -10653,6 +10657,10 @@
   "danceReimportSourceFailed": "Ein Tanz konnte aus dieser Quelle nicht geladen werden. Dein Tanz wurde nicht geändert. Versuche es erneut.",
   "@danceReimportSourceFailed": {
     "x-sourceSha256": "f8f79fe2bfedba0d85ba260f945b6d6de428aeea69dd663d9ea70c4723f71223"
+  },
+  "danceReimportApplyFailed": "Der Tanz konnte aus dieser Quelle nicht aktualisiert werden. Dein Tanz wurde nicht geändert. Versuche es erneut.",
+  "@danceReimportApplyFailed": {
+    "x-sourceSha256": "5b5d2e020d986ed35fb163a356bf17ece0303b8db30fce303a007adbb4d3c36a"
   },
   "danceReimported": "Choreografie aktualisiert.",
   "@danceReimported": {

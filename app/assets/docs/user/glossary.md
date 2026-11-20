@@ -41,7 +41,7 @@ against what the dance's [phrase structure](#phrase-structure) expects.
 ## Bundle
 
 A single file holding a [program](#program) together with every [dance](#dance)
-it uses, and its [venue](#venue) — made with **Share (program + dances)**, and
+it uses, and its [venue](#venue) — made with **Share program and dances**, and
 saved as a `.ccshare` file (or a [JSON file](#json-file) with the same content).
 Handing someone a bundle gives them the whole evening, not just a list of titles.
 Opening one takes you to the [import](#import) review screen, so nothing is added

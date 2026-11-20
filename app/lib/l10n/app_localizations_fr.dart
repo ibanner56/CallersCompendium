@@ -409,7 +409,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsDeveloperResetFailed =>
-      'Impossible de réinitialiser la base de données ; vos données sont inchangées. Si cet appareil était connecté à un espace de synchronisation, il l’a déjà quitté.';
+      'Impossible de réinitialiser la base de données. Si cet appareil était connecté à un espace de synchronisation, il l’a déjà quitté.';
 
   @override
   String get settingsExperimentalPlaceholder =>
@@ -470,7 +470,7 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get importCcTermsSkip => 'Pas maintenant';
+  String get importCcTermsSkip => 'Ignorer';
 
   @override
   String importCcTermsConfirm(int count) {
@@ -3982,7 +3982,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get crashFallbackBody =>
-      'Une erreur inattendue s’est produite. Les détails ont été enregistrés dans un journal de diagnostic local (Réglages ▸ Diagnostics) qui ne quitte jamais votre appareil. Revenez en arrière et réessayez.';
+      'Cette partie de l’application a rencontré une erreur inattendue. Les détails ont été enregistrés dans un journal de diagnostic local (Réglages ▸ Diagnostics) qui ne quitte jamais votre appareil. Revenez en arrière et réessayez.';
 
   @override
   String get crashFallbackCopied => 'Copié';
@@ -5617,6 +5617,10 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get programsLoadError =>
       'Impossible de charger le programme. Rien n’a été modifié. Réessayez.';
+
+  @override
+  String get programsUndoRecoveryFailed =>
+      'Impossible de recharger le programme après cette annulation. Revenez en arrière et rouvrez-le pour voir son état actuel.';
 
   @override
   String get programsDeletedDanceFallback => '(danse supprimée)';
@@ -8162,7 +8166,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get importReviewUsrSubtitle =>
-      'Choisissez le fichier .USR de Caller\'s Companion pour migrer ses danses et son historique de programme. Rien n’est ajouté à votre collection tant que vous n’avez pas passé en revue et confirmé.';
+      'Choisissez le fichier .USR de Caller\'s Companion pour migrer ses danses et son historique de programme. Rien n’est ajouté à votre bibliothèque tant que vous n’avez pas passé en revue et confirmé.';
 
   @override
   String get importReviewChooseUsr => 'Choisir un fichier .USR…';
@@ -10251,7 +10255,7 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get importShorthandSeedSkip => 'Pas maintenant';
+  String get importShorthandSeedSkip => 'Ignorer';
 
   @override
   String importShorthandSeedConfirm(int count) {
@@ -10299,7 +10303,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get importUserFiguresUseTheirs => 'Prendre la leur';
 
   @override
-  String get importUserFiguresSkip => 'Pas maintenant';
+  String get importUserFiguresSkip => 'Ignorer';
 
   @override
   String importUserFiguresConfirm(int count) {
@@ -10608,7 +10612,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get ecdMigrationFailed =>
-      'Impossible de convertir les danses. Rien n’a été modifié. Veuillez réessayer.';
+      'Impossible de convertir les danses. Rien n’a été modifié. Réessayez.';
 
   @override
   String get ecdMigrationEmptyTitle => 'Rien à convertir';
@@ -10889,7 +10893,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get recentlyDeletedLoadError =>
-      'Impossible de charger vos éléments récemment supprimés. Rien n’a été retiré.';
+      'Impossible de charger vos éléments récemment supprimés. Rien n’a été retiré. Réessayez.';
 
   @override
   String get recentlyDeletedDeleteTitle => 'Supprimer définitivement ?';
@@ -11187,6 +11191,10 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get danceReimportSourceFailed =>
       'Impossible de charger une danse depuis cette source. Votre danse n’a pas été modifiée. Réessayez.';
+
+  @override
+  String get danceReimportApplyFailed =>
+      'Impossible de mettre à jour la danse depuis cette source. Votre danse n’a pas été modifiée. Réessayez.';
 
   @override
   String get danceReimported => 'Chorégraphie mise à jour.';

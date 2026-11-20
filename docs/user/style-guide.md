@@ -90,7 +90,8 @@ on that definition rather than the top of the page.
 - **matrix** — the figures-by-dances grid inside a program.
 - **Perform mode** — the large-print, stage-ready calling view. This is its
   only name: not "Perform view", "program Perform" or "individual Perform". The
-  nav label is **Perform**; Settings headers and rows say "Perform mode".
+  nav label and the "Exit Perform?" question say **Perform**, "Perform cards"
+  are the cards it shows, and everything else says "Perform mode".
 - **dialect** — your personal choice of role names and wording (for example,
   **Larks/Robins** or **Leads/Follows**), applied everywhere the app shows text.
   Present it as *your words, your way* — not as a technical mapping.
@@ -167,7 +168,9 @@ them. `app/test/l10n/one_name_each_test.dart` keeps the retired wordings out.
 - **Cancel** abandons a dialog or sheet. **Not now** defers an offer. **Dismiss**
   hides a banner. "Later", "Decide later" and "Skip" are not used for these.
   **Skip** stays where it is one of several per-item choices in an import review
-  (skip this dance, skip all possible matches).
+  (skip this dance, skip all possible matches), and on the three offers made
+  once at the end of an import (terms, shorthands, figures to add), where the
+  offer does not come back, so "Not now" would promise too much.
 - **Try again** is the one name for repeating a failed action, on buttons and in
   sentences. Not "Retry". (Call: "Retry" was rejected because the error
   sentences already say "try again", so one name covers both.)

@@ -400,7 +400,7 @@ class DanceReimportCoordinator {
                   messenger.showSnackBar(
                     SnackBar(
                       content: Text(
-                        AppLocalizations.of(context).danceReimportSourceFailed,
+                        AppLocalizations.of(context).danceReimportApplyFailed,
                       ),
                     ),
                   );

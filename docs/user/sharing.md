@@ -129,7 +129,7 @@ Open a program and choose **Export**. Five actions:
 | Action | What happens |
 |---|---|
 | **Share set list (text)** | Hands a plain-text set list to your system's share sheet |
-| **Share (program + dances)** | Packages the program *and* its dances into one file to hand to another caller |
+| **Share program and dances** | Packages the program *and* its dances into one file to hand to another caller |
 | **Copy set list** | Puts the set list text on your clipboard, and confirms with "Set list copied to clipboard." |
 | **Export as JSON file** | Opens a choice to **Save**, **Copy raw JSON**, **Share**, or **Cancel**. The same package is named `.json` for a recipient who doesn't have the app, or when you want to read the file yourself |
 | **Export / print PDF** | Builds a PDF set list and opens your system's print dialog |
@@ -194,7 +194,7 @@ list; they stay controlled by the **Include figures?** choice above.
 
 ### Share a program with its dances
 
-**Share (program + dances)** is the one to reach for when you are handing an
+**Share program and dances** is the one to reach for when you are handing an
 evening to another caller. It builds a single self-contained file — a
 `.ccshare` file — containing:
 

@@ -3473,9 +3473,11 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       );
     }
     if (_loadError != null) {
-      final message = _loadError == _ProgramLoadError.missing
-          ? l10n.programsNoLongerExists
-          : l10n.programsLoadError;
+      final message = switch (_loadError) {
+        _ProgramLoadError.missing => l10n.programsNoLongerExists,
+        _ProgramLoadError.undoRecoveryFailed => l10n.programsUndoRecoveryFailed,
+        _ => l10n.programsLoadError,
+      };
       // Only a failed read can be retried: a program that is gone, or an undo
       // that could not be recovered, would fail the same way again.
       return LoadErrorView(
@@ -3596,9 +3598,11 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       );
     }
     if (_loadError != null) {
-      final message = _loadError == _ProgramLoadError.missing
-          ? l10n.programsNoLongerExists
-          : l10n.programsLoadError;
+      final message = switch (_loadError) {
+        _ProgramLoadError.missing => l10n.programsNoLongerExists,
+        _ProgramLoadError.undoRecoveryFailed => l10n.programsUndoRecoveryFailed,
+        _ => l10n.programsLoadError,
+      };
       // Only a failed read can be retried: a program that is gone, or an undo
       // that could not be recovered, would fail the same way again.
       return LoadErrorView(

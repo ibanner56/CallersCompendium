@@ -48,7 +48,9 @@ void main() {
     RegExp(r'\b[Rr]etry\b'): 'Try again',
     // One phrase for irreversibility, one arrow for menu paths.
     RegExp(r'\b[Cc]annot be undone'): "This can't be undone.",
-    RegExp(r'Settings\s*[›→>]'): 'Settings ▸ …',
+    RegExp(
+      r'\b(Settings|General|Defaults|Program|Appearance|Dialect|Experimental)\s*[›→>]',
+    ): 'Settings ▸ …',
     // Required fields are not starred; only optional ones say "(optional)".
     RegExp(r'\s\*$'): 'no asterisk (the validator explains it)',
     // Errors: "Couldn't", no "Please", no "Something went wrong", and no
@@ -90,6 +92,7 @@ void main() {
     'Retry',
     'This cannot be undone.',
     'go to Settings › General',
+    'Settings ▸ Defaults › Shared dance fields',
     'show them again in Settings → Defaults',
     'Title *',
     'Could not save the program.',
@@ -134,6 +137,19 @@ void main() {
       if (RegExp(r' [&+] ').hasMatch(value)) offenders.add('$key: "$value"');
     });
     expect(offenders, isEmpty);
+  });
+
+  test('every symbolAllowed key still has an "&" or "+" to allow', () {
+    final arb =
+        jsonDecode(File('lib/l10n/app_en.arb').readAsStringSync())
+            as Map<String, dynamic>;
+    for (final key in symbolAllowed.keys) {
+      expect(
+        RegExp(r' [&+] ').hasMatch(arb[key] as String),
+        isTrue,
+        reason: '$key no longer has an "&" or "+": drop it from the list',
+      );
+    }
   });
 
   test('every retired pattern matches a known retired wording', () {

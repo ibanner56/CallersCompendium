@@ -400,7 +400,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsDeveloperResetFailed =>
-      'Databasen kunne ikke nulstilles, så dine data er uændrede. Hvis denne enhed var forbundet til et synkroniseringslager, har den allerede forladt det.';
+      'Databasen kunne ikke nulstilles. Hvis denne enhed var forbundet til et synkroniseringslager, har den allerede forladt det.';
 
   @override
   String get settingsExperimentalPlaceholder =>
@@ -460,7 +460,7 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
-  String get importCcTermsSkip => 'Ikke nu';
+  String get importCcTermsSkip => 'Spring over';
 
   @override
   String importCcTermsConfirm(int count) {
@@ -3923,7 +3923,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get crashFallbackBody =>
-      'Den stødte på en uventet fejl. Detaljerne blev gemt i en lokal diagnostiklog (Indstillinger ▸ Diagnostik), der aldrig forlader din enhed. Gå tilbage og prøv igen.';
+      'Denne del af appen stødte på en uventet fejl. Detaljerne blev gemt i en lokal diagnostiklog (Indstillinger ▸ Diagnostik), der aldrig forlader din enhed. Gå tilbage og prøv igen.';
 
   @override
   String get crashFallbackCopied => 'Kopieret';
@@ -5548,6 +5548,10 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get programsLoadError =>
       'Kunne ikke indlæse programmet. Intet blev ændret. Prøv igen.';
+
+  @override
+  String get programsUndoRecoveryFailed =>
+      'Programmet kunne ikke genindlæses efter fortrydelsen. Gå tilbage og åbn det igen for at se dets aktuelle tilstand.';
 
   @override
   String get programsDeletedDanceFallback => '(slettet dans)';
@@ -8066,7 +8070,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get importReviewUsrSubtitle =>
-      'Vælg Caller\'s Companion .USR-filen for at migrere dens danse og programhistorik. Intet tilføjes til din samling, før du bekræfter.';
+      'Vælg Caller\'s Companion .USR-filen for at migrere dens danse og programhistorik. Intet tilføjes til dit bibliotek, før du har gennemgået og bekræftet.';
 
   @override
   String get importReviewChooseUsr => 'Vælg .USR-fil…';
@@ -10127,7 +10131,7 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
-  String get importShorthandSeedSkip => 'Ikke nu';
+  String get importShorthandSeedSkip => 'Spring over';
 
   @override
   String importShorthandSeedConfirm(int count) {
@@ -10175,7 +10179,7 @@ class AppLocalizationsDa extends AppLocalizations {
   String get importUserFiguresUseTheirs => 'Brug deres';
 
   @override
-  String get importUserFiguresSkip => 'Ikke nu';
+  String get importUserFiguresSkip => 'Spring over';
 
   @override
   String importUserFiguresConfirm(int count) {
@@ -10481,7 +10485,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get ecdMigrationFailed =>
-      'Kunne ikke konvertere dansene. Intet blev ændret. Prøv venligst igen.';
+      'Kunne ikke konvertere dansene. Intet blev ændret. Prøv igen.';
 
   @override
   String get ecdMigrationEmptyTitle => 'Intet at konvertere';
@@ -10757,7 +10761,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get recentlyDeletedLoadError =>
-      'Dine for nylig slettede elementer kunne ikke indlæses. Intet er blevet fjernet.';
+      'Dine for nylig slettede elementer kunne ikke indlæses. Intet er blevet fjernet. Prøv igen.';
 
   @override
   String get recentlyDeletedDeleteTitle => 'Slet permanent?';
@@ -11054,6 +11058,10 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get danceReimportSourceFailed =>
       'Kunne ikke indlæse en dans fra den kilde. Din dans blev ikke ændret. Prøv igen.';
+
+  @override
+  String get danceReimportApplyFailed =>
+      'Dansen kunne ikke opdateres fra den kilde. Din dans blev ikke ændret. Prøv igen.';
 
   @override
   String get danceReimported => 'Koreografien blev opdateret.';

@@ -401,7 +401,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsDeveloperResetFailed =>
-      'Die Datenbank konnte nicht zurückgesetzt werden, deine Daten sind unverändert. Falls dieses Gerät mit einem Synchronisierungsspeicher verbunden war, hat es ihn bereits verlassen.';
+      'Die Datenbank konnte nicht zurückgesetzt werden. Falls dieses Gerät mit einem Synchronisierungsspeicher verbunden war, hat es ihn bereits verlassen.';
 
   @override
   String get settingsExperimentalPlaceholder =>
@@ -462,7 +462,7 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
-  String get importCcTermsSkip => 'Nicht jetzt';
+  String get importCcTermsSkip => 'Überspringen';
 
   @override
   String importCcTermsConfirm(int count) {
@@ -3962,7 +3962,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get crashFallbackBody =>
-      'Es ist ein unerwarteter Fehler aufgetreten. Die Details wurden in einem lokalen Diagnoseprotokoll (Einstellungen ▸ Diagnose) gespeichert, das dein Gerät nie verlässt. Geh zurück und versuche es erneut.';
+      'In diesem Teil der App ist ein unerwarteter Fehler aufgetreten. Die Details wurden in einem lokalen Diagnoseprotokoll (Einstellungen ▸ Diagnose) gespeichert, das dein Gerät nie verlässt. Geh zurück und versuche es erneut.';
 
   @override
   String get crashFallbackCopied => 'Kopiert';
@@ -5598,6 +5598,10 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get programsLoadError =>
       'Das Programm konnte nicht geladen werden. Es wurde nichts geändert. Versuche es erneut.';
+
+  @override
+  String get programsUndoRecoveryFailed =>
+      'Das Programm konnte nach dem Rückgängigmachen nicht neu geladen werden. Geh zurück und öffne es erneut, um den aktuellen Stand zu sehen.';
 
   @override
   String get programsDeletedDanceFallback => '(gelöschter Tanz)';
@@ -7698,7 +7702,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get archiveIntakeRejectedBackup =>
-      'Diese Datei ist eine Sicherung, keine Freigabedatei. Um sie auf dieses Gerät zu bringen, öffne Einstellungen › Allgemein und wähle „Aus einer Sicherung wiederherstellen“.';
+      'Diese Datei ist eine Sicherung, keine Freigabedatei. Um sie auf dieses Gerät zu bringen, öffne Einstellungen ▸ Allgemein und wähle „Aus einer Sicherung wiederherstellen“.';
 
   @override
   String get importErrorInsecureScheme =>
@@ -8142,7 +8146,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get importReviewUsrSubtitle =>
-      'Wählen Sie die Caller\'s Companion .USR-Datei aus, um deren Tänze und Programmverlauf zu migrieren. Ihrer Sammlung wird nichts hinzugefügt, bis Sie überprüfen und bestätigen.';
+      'Wähle die Caller\'s Companion .USR-Datei aus, um deren Tänze und Programmverlauf zu migrieren. Deiner Bibliothek wird nichts hinzugefügt, bis du alles geprüft und bestätigt hast.';
 
   @override
   String get importReviewChooseUsr => '.USR-Datei auswählen…';
@@ -10225,7 +10229,7 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
-  String get importShorthandSeedSkip => 'Nicht jetzt';
+  String get importShorthandSeedSkip => 'Überspringen';
 
   @override
   String importShorthandSeedConfirm(int count) {
@@ -10273,7 +10277,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get importUserFiguresUseTheirs => 'Ihre verwenden';
 
   @override
-  String get importUserFiguresSkip => 'Nicht jetzt';
+  String get importUserFiguresSkip => 'Überspringen';
 
   @override
   String importUserFiguresConfirm(int count) {
@@ -10582,7 +10586,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get ecdMigrationFailed =>
-      'Die Tänze konnten nicht umgewandelt werden. Es wurde nichts geändert. Bitte versuchen Sie es erneut.';
+      'Die Tänze konnten nicht umgewandelt werden. Es wurde nichts geändert. Versuche es erneut.';
 
   @override
   String get ecdMigrationEmptyTitle => 'Nichts umzuwandeln';
@@ -10864,7 +10868,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get recentlyDeletedLoadError =>
-      'Zuletzt gelöschte Elemente konnten nicht geladen werden. Es wurde nichts entfernt.';
+      'Deine zuletzt gelöschten Elemente konnten nicht geladen werden. Es wurde nichts entfernt. Versuche es erneut.';
 
   @override
   String get recentlyDeletedDeleteTitle => 'Dauerhaft löschen?';
@@ -11165,6 +11169,10 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get danceReimportSourceFailed =>
       'Ein Tanz konnte aus dieser Quelle nicht geladen werden. Dein Tanz wurde nicht geändert. Versuche es erneut.';
+
+  @override
+  String get danceReimportApplyFailed =>
+      'Der Tanz konnte aus dieser Quelle nicht aktualisiert werden. Dein Tanz wurde nicht geändert. Versuche es erneut.';
 
   @override
   String get danceReimported => 'Choreografie aktualisiert.';

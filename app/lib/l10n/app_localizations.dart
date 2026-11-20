@@ -256,7 +256,7 @@ abstract class AppLocalizations {
   /// **'User Guide'**
   String get menuUserGuide;
 
-  /// Accessibility label on the startup loading spinner shown while the collection database is being prepared.
+  /// Accessibility label on the startup loading spinner shown while the library database is being prepared.
   ///
   /// In en, this message translates to:
   /// **'Preparing your library'**
@@ -274,7 +274,7 @@ abstract class AppLocalizations {
   /// **'Rebuilding search index… {percent}%'**
   String appBootstrapRebuildingIndexProgress(int percent);
 
-  /// Error message shown on the startup screen when preparing the collection fails; accompanied by a Retry button.
+  /// Error message shown on the startup screen when preparing the library fails; accompanied by a Try again button.
   ///
   /// In en, this message translates to:
   /// **'Couldn\'t prepare your library. Try again.'**
@@ -310,31 +310,31 @@ abstract class AppLocalizations {
   /// **'Your data uses storage format {fileVersion}. This version of the app reads up to format {appVersion}.'**
   String migrationDowngradeVersions(int fileVersion, int appVersion);
 
-  /// Terminal startup-screen message shown when the on-disk data was written by a newer app version than the one running (no downgrade path). No Retry is offered; the app has to be updated and reopened.
+  /// Terminal startup-screen message shown when the on-disk data was written by a newer app version than the one running (no downgrade path). No Try again is offered; the app has to be updated and reopened.
   ///
   /// In en, this message translates to:
   /// **'This data was created by a newer version of Caller\'s Compendium. Update the app, then reopen it.'**
   String get migrationDowngradeMessage;
 
-  /// Terminal startup-screen message shown when the one-time move of the database out of the old folder found data files in both the new location and an old location. Nothing is deleted. No Retry is offered.
+  /// Terminal startup-screen message shown when the one-time move of the database out of the old folder found data files in both the new location and an old location. Nothing is deleted. No Try again is offered.
   ///
   /// In en, this message translates to:
   /// **'Caller\'s Compendium didn\'t start because it found saved data files in the new location and also in a folder an earlier version used. Nothing was changed or deleted. Keep the copy you want, move the other one out of the way, then reopen the app. The FAQ entry \"Where is my data stored?\" lists the locations.'**
   String get migrationRelocationBothExist;
 
-  /// Terminal startup-screen message shown when the one-time move of the database found saved data in more than one old location (Windows: Documents and the Roaming fallback) and none in the new location. Nothing is deleted. No Retry is offered.
+  /// Terminal startup-screen message shown when the one-time move of the database found saved data in more than one old location (Windows: Documents and the Roaming fallback) and none in the new location. Nothing is deleted. No Try again is offered.
   ///
   /// In en, this message translates to:
   /// **'Caller\'s Compendium didn\'t start because it found saved data in more than one folder used by earlier versions. Nothing was changed or deleted. Keep the copy you want, move the others out of the way, then reopen the app. The FAQ entry \"Where is my data stored?\" lists the locations.'**
   String get migrationRelocationMultipleLegacy;
 
-  /// Terminal startup-screen message shown when the one-time move of the database out of the Documents folder failed (disk full, unwritable folder, locked file). Nothing is deleted. No Retry is offered.
+  /// Terminal startup-screen message shown when the one-time move of the database out of the Documents folder failed (disk full, unwritable folder, locked file). Nothing is deleted. No Try again is offered.
   ///
   /// In en, this message translates to:
   /// **'Caller\'s Compendium didn\'t start because it couldn\'t finish moving your saved data to its new location. Nothing was deleted. Free up space, close other programs that may be using it, or check the folder permissions, then reopen the app to try again.'**
   String get migrationRelocationFailed;
 
-  /// Terminal startup-screen message shown when there is no database in the new location yet and the Documents folder (where earlier versions kept the database) cannot be reached, so the app cannot tell whether a library is waiting there. Nothing is created. No Retry is offered.
+  /// Terminal startup-screen message shown when there is no database in the new location yet and the Documents folder (where earlier versions kept the database) cannot be reached, so the app cannot tell whether a library is waiting there. Nothing is created. No Try again is offered.
   ///
   /// In en, this message translates to:
   /// **'Caller\'s Compendium didn\'t start because it couldn\'t reach your Documents folder, where earlier versions kept your saved data. Nothing was changed or created. If Documents is on another drive or a network folder, reconnect it, then reopen the app. If you have no Documents folder, create an empty one, then reopen the app. The FAQ entry \"Where is my data stored?\" has more.'**
@@ -404,7 +404,7 @@ abstract class AppLocalizations {
   /// **'Before making changes to your saved data, Caller\'s Compendium makes an automatic backup so the changes can be undone if something goes wrong. Another app has your library open right now, so a backup made now would miss your latest changes.\n\nIf you continue without a backup and the changes are interrupted, some of your dances or programs could be lost. You can quit, close any other app that has your library open, and reopen Caller\'s Compendium to try again.'**
   String get migrationSnapshotInUseConsentBody;
 
-  /// Terminal startup-screen message shown when the automatic backup taken before a schema upgrade or a one-time data repair failed because another program has the app's data file open, and the user declined to proceed without one. No Retry is offered: the user reopens the app. Say "app", not "program": in this app a program is a dance set list.
+  /// Terminal startup-screen message shown when the automatic backup taken before a schema upgrade or a one-time data repair failed because another program has the app's data file open, and the user declined to proceed without one. No Try again is offered: the user reopens the app. Say "app", not "program": in this app a program is a dance set list.
   ///
   /// In en, this message translates to:
   /// **'Caller\'s Compendium didn\'t start because another app has your library open, so the automatic backup made before changing your saved data would miss your latest changes. Close any other app that has your library open, then reopen Caller\'s Compendium — or reopen it and choose to continue without a backup.'**
@@ -434,7 +434,7 @@ abstract class AppLocalizations {
   /// **'Proceed without a backup'**
   String get migrationSnapshotConsentProceed;
 
-  /// Headline on the below-floor recovery screen shown when the on-disk database was written by a build older than the minimum supported schema version. Terminal, no Retry.
+  /// Headline on the below-floor recovery screen shown when the on-disk database was written by a build older than the minimum supported schema version. Terminal, no Try again.
   ///
   /// In en, this message translates to:
   /// **'This data is from a version too old to open'**
@@ -701,7 +701,7 @@ abstract class AppLocalizations {
   /// Snackbar shown when the reset did not delete the database (it threw, or the wipe failed). A connected device has already left its sync store by then.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t reset the database, so your data is unchanged. If this device was connected to a sync store, it has already left it.'**
+  /// **'Couldn\'t reset the database. If this device was connected to a sync store, it has already left it.'**
   String get settingsDeveloperResetFailed;
 
   /// Placeholder text explaining that the Experimental settings section will contain features still in development.
@@ -797,7 +797,7 @@ abstract class AppLocalizations {
   /// Leaves the Caller's Companion terms step without adding any terms (#1023).
   ///
   /// In en, this message translates to:
-  /// **'Not now'**
+  /// **'Skip'**
   String get importCcTermsSkip;
 
   /// Adds the ticked Caller's Companion terms to the Glossary (#1023).
@@ -1862,7 +1862,7 @@ abstract class AppLocalizations {
   /// **'{count, plural, =1{1 item was changed on two devices and needs your choice.} other{{count} items were changed on two devices and need your choice.}}'**
   String settingsSyncConflictsSubtitle(int count);
 
-  /// Title of the Device Sync row shown when counting unresolved sync conflicts failed. Shown with a Retry button, so a failed check is not mistaken for there being no conflicts.
+  /// Title of the Device Sync row shown when counting unresolved sync conflicts failed. Shown with a Try again button, so a failed check is not mistaken for there being no conflicts.
   ///
   /// In en, this message translates to:
   /// **'Couldn\'t check for conflicts. Try again.'**
@@ -6031,7 +6031,7 @@ abstract class AppLocalizations {
   /// Body text in the friendly crash fallback widget explaining that details were saved locally only.
   ///
   /// In en, this message translates to:
-  /// **'It hit an unexpected error. The details were saved to a local diagnostics log (Settings ▸ Diagnostics) that never leaves your device. Go back and try again.'**
+  /// **'This part of the app hit an unexpected error. The details were saved to a local diagnostics log (Settings ▸ Diagnostics) that never leaves your device. Go back and try again.'**
   String get crashFallbackBody;
 
   /// Button label in the crash fallback widget after copying error details to the clipboard.
@@ -7808,7 +7808,7 @@ abstract class AppLocalizations {
   /// **'Dance not found.'**
   String get danceNotFound;
 
-  /// Message shown on the dance detail screen when reading the dance failed, as opposed to the dance not existing (danceNotFound). Shown with a Retry button.
+  /// Message shown on the dance detail screen when reading the dance failed, as opposed to the dance not existing (danceNotFound). Shown with a Try again button.
   ///
   /// In en, this message translates to:
   /// **'Couldn\'t load this dance. Nothing was changed. Try again.'**
@@ -8481,6 +8481,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t load the program. Nothing was changed. Try again.'**
   String get programsLoadError;
+
+  /// Shown on the program editor when an Undo could not be recovered or the program could not be reloaded afterwards. It makes no claim about what was saved, and offers no retry; the user goes back.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t reload the program after that undo. Go back and reopen it to see its current state.'**
+  String get programsUndoRecoveryFailed;
 
   /// Marks a program slot whose dance is in Recently deleted: shown after the dance's title in Perform, the program builder, its matrix and the program summary, and on its own when the dance can no longer be found.
   ///
@@ -9952,7 +9958,7 @@ abstract class AppLocalizations {
   /// **'Change'**
   String get commonChange;
 
-  /// Generic button to retry an action after an error (distinct from commonRetry 'Retry').
+  /// Button label that repeats a failed action.
   ///
   /// In en, this message translates to:
   /// **'Try again'**
@@ -12013,7 +12019,7 @@ abstract class AppLocalizations {
   /// Explanatory text for the Caller's Companion .USR file import.
   ///
   /// In en, this message translates to:
-  /// **'Choose the Caller\'s Companion .USR file to migrate its dances and program history. Nothing is added to your collection until you review and confirm.'**
+  /// **'Choose the Caller\'s Companion .USR file to migrate its dances and program history. Nothing is added to your library until you review and confirm.'**
   String get importReviewUsrSubtitle;
 
   /// Button to pick a Caller's Companion .USR file.
@@ -14877,7 +14883,7 @@ abstract class AppLocalizations {
   /// Button that declines seeding any shorthands and closes the step.
   ///
   /// In en, this message translates to:
-  /// **'Not now'**
+  /// **'Skip'**
   String get importShorthandSeedSkip;
 
   /// Confirm button on the shorthand-seeding step; {count} is how many are selected.
@@ -14949,7 +14955,7 @@ abstract class AppLocalizations {
   /// Button on the shared-figures step that adds nothing.
   ///
   /// In en, this message translates to:
-  /// **'Not now'**
+  /// **'Skip'**
   String get importUserFiguresSkip;
 
   /// Confirm button on the shared-figures step; {count} is how many figures it adds or replaces.
@@ -15678,10 +15684,10 @@ abstract class AppLocalizations {
   /// **'Recently deleted'**
   String get recentlyDeletedTitle;
 
-  /// Shown on the recently-deleted screen when loading the deleted dances or programs fails, above a Retry button. Reassures the user that a failed load does not mean their deleted items are gone.
+  /// Shown on the recently-deleted screen when loading the deleted dances or programs fails, above a Try again button. Reassures the user that a failed load does not mean their deleted items are gone.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t load your recently deleted items. Nothing has been removed.'**
+  /// **'Couldn\'t load your recently deleted items. Nothing has been removed. Try again.'**
   String get recentlyDeletedLoadError;
 
   /// Title of the confirm permanent-delete dialog.
@@ -16157,6 +16163,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t load a dance from that source. Your dance wasn\'t changed. Try again.'**
   String get danceReimportSourceFailed;
+
+  /// Snackbar when applying a re-import to a dance fails; the write is one transaction, so the dance is unchanged.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t update the dance from that source. Your dance wasn\'t changed. Try again.'**
+  String get danceReimportApplyFailed;
 
   /// Confirmation shown after saved dance choreography is re-imported.
   ///

@@ -3615,6 +3615,23 @@ void main() {
     },
   );
 
+  testWidgets('the Slots heading is explained by a line of helper text', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.programs.create(_program(id: 'p1', slots: const []));
+
+    await _pumpBuilder(tester, repos, programId: 'p1');
+
+    expect(
+      find.text(
+        'Each slot is one place in your set list: a dance, a note or a break.',
+      ),
+      findsOneWidget,
+    );
+    expect(find.byKey(const ValueKey('program-slots-helper')), findsOneWidget);
+  });
+
   testWidgets('a failed program read offers Retry, and Retry loads it', (
     tester,
   ) async {
@@ -3682,7 +3699,8 @@ void main() {
 
       expect(
         find.text(
-          'Couldn\'t load the program. Nothing was changed. Try again.',
+          'Couldn\'t reload the program after that undo. Go back and reopen '
+          'it to see its current state.',
         ),
         findsOneWidget,
       );

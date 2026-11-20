@@ -184,6 +184,24 @@ void main() {
     expect(await repos.dances.listAll(), isEmpty);
   });
 
+  testWidgets('the Hook field explains itself with a line of helper text', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await _pumpEditor(tester, repos);
+
+    final helper = find.descendant(
+      of: find.byKey(const ValueKey('hook-field')),
+      matching: find.textContaining('Why you would call this dance'),
+    );
+    await tester.scrollUntilVisible(
+      helper,
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(helper, findsOneWidget);
+  });
+
   testWidgets('new dance: save creates a dance', (tester) async {
     final repos = openTestRepositories();
     await _pumpEditor(tester, repos);

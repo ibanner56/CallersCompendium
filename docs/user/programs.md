@@ -351,7 +351,7 @@ nothing. Once the dance is gone for good, the slot
 keeps its title as text. With [Device Sync](./settings.md#device-sync), a
 slot you added before this device heard that another device deleted the dance
 for good shows "Deleted dance" instead, in the builder, the summary, Perform
-mode and the set list. **Share (program + dances)** sends that slot as the
+mode and the set list. **Share program and dances** sends that slot as the
 words "Deleted dance" and leaves the dance out, and the PDF's figures pages
 skip it: there is nothing left of it to send.
 
@@ -571,11 +571,11 @@ menu:
 
 - **Share set list (text)** — hands a plain-text set list to your system's share
   sheet, ready to drop into an email or a message.
-- **Share (program + dances)** — writes one file holding the program *and* every
+- **Share program and dances** — writes one file holding the program *and* every
   dance it uses, so another caller gets the dances too, not just a list of titles.
 - **Copy set list** — puts the same text on your clipboard.
 - **Export as JSON file** — opens a choice to **Save**, **Copy raw JSON**,
-  **Share**, or **Cancel**. The file is the same as **Share (program + dances)**,
+  **Share**, or **Cancel**. The file is the same as **Share program and dances**,
   named `.json` so a device without the app can still open it. **Save** opens
   your system's save dialog; canceling it saves nothing.
 - **Export / print PDF** — builds a PDF and opens your system's print dialog.
@@ -594,7 +594,7 @@ structured figures still gets a card when it has calling notes, a walkthrough,
 a hook or a published source you've selected. If none of the program's dances
 have anything to put on a card, the question is skipped. If your program is linked to
 a [venue](./glossary.md#venue) with contact people recorded, the PDF, JSON, and
-**Share (program + dances)** exports first ask whether to include those
+**Share program and dances** exports first ask whether to include those
 contacts, and leave them out unless you say otherwise. A venue's street address
 is never included in any export.
 

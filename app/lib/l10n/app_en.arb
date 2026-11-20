@@ -108,7 +108,7 @@
   },
   "appBootstrapPreparing": "Preparing your library",
   "@appBootstrapPreparing": {
-    "description": "Accessibility label on the startup loading spinner shown while the collection database is being prepared."
+    "description": "Accessibility label on the startup loading spinner shown while the library database is being prepared."
   },
   "appBootstrapRebuildingIndex": "Rebuilding search index",
   "@appBootstrapRebuildingIndex": {
@@ -126,7 +126,7 @@
   },
   "appBootstrapError": "Couldn't prepare your library. Try again.",
   "@appBootstrapError": {
-    "description": "Error message shown on the startup screen when preparing the collection fails; accompanied by a Retry button."
+    "description": "Error message shown on the startup screen when preparing the library fails; accompanied by a Try again button."
   },
   "appBootstrapCopyDetails": "Copy details",
   "@appBootstrapCopyDetails": {
@@ -162,23 +162,23 @@
   },
   "migrationDowngradeMessage": "This data was created by a newer version of Caller's Compendium. Update the app, then reopen it.",
   "@migrationDowngradeMessage": {
-    "description": "Terminal startup-screen message shown when the on-disk data was written by a newer app version than the one running (no downgrade path). No Retry is offered; the app has to be updated and reopened."
+    "description": "Terminal startup-screen message shown when the on-disk data was written by a newer app version than the one running (no downgrade path). No Try again is offered; the app has to be updated and reopened."
   },
   "migrationRelocationBothExist": "Caller's Compendium didn't start because it found saved data files in the new location and also in a folder an earlier version used. Nothing was changed or deleted. Keep the copy you want, move the other one out of the way, then reopen the app. The FAQ entry \"Where is my data stored?\" lists the locations.",
   "@migrationRelocationBothExist": {
-    "description": "Terminal startup-screen message shown when the one-time move of the database out of the old folder found data files in both the new location and an old location. Nothing is deleted. No Retry is offered."
+    "description": "Terminal startup-screen message shown when the one-time move of the database out of the old folder found data files in both the new location and an old location. Nothing is deleted. No Try again is offered."
   },
   "migrationRelocationMultipleLegacy": "Caller's Compendium didn't start because it found saved data in more than one folder used by earlier versions. Nothing was changed or deleted. Keep the copy you want, move the others out of the way, then reopen the app. The FAQ entry \"Where is my data stored?\" lists the locations.",
   "@migrationRelocationMultipleLegacy": {
-    "description": "Terminal startup-screen message shown when the one-time move of the database found saved data in more than one old location (Windows: Documents and the Roaming fallback) and none in the new location. Nothing is deleted. No Retry is offered."
+    "description": "Terminal startup-screen message shown when the one-time move of the database found saved data in more than one old location (Windows: Documents and the Roaming fallback) and none in the new location. Nothing is deleted. No Try again is offered."
   },
   "migrationRelocationFailed": "Caller's Compendium didn't start because it couldn't finish moving your saved data to its new location. Nothing was deleted. Free up space, close other programs that may be using it, or check the folder permissions, then reopen the app to try again.",
   "@migrationRelocationFailed": {
-    "description": "Terminal startup-screen message shown when the one-time move of the database out of the Documents folder failed (disk full, unwritable folder, locked file). Nothing is deleted. No Retry is offered."
+    "description": "Terminal startup-screen message shown when the one-time move of the database out of the Documents folder failed (disk full, unwritable folder, locked file). Nothing is deleted. No Try again is offered."
   },
   "migrationRelocationLegacyUnreachable": "Caller's Compendium didn't start because it couldn't reach your Documents folder, where earlier versions kept your saved data. Nothing was changed or created. If Documents is on another drive or a network folder, reconnect it, then reopen the app. If you have no Documents folder, create an empty one, then reopen the app. The FAQ entry \"Where is my data stored?\" has more.",
   "@migrationRelocationLegacyUnreachable": {
-    "description": "Terminal startup-screen message shown when there is no database in the new location yet and the Documents folder (where earlier versions kept the database) cannot be reached, so the app cannot tell whether a library is waiting there. Nothing is created. No Retry is offered."
+    "description": "Terminal startup-screen message shown when there is no database in the new location yet and the Documents folder (where earlier versions kept the database) cannot be reached, so the app cannot tell whether a library is waiting there. Nothing is created. No Try again is offered."
   },
   "migrationRelocationCopiesHeading": "Each copy's size and when it last changed (the larger, more recently changed copy is usually your library):",
   "@migrationRelocationCopiesHeading": {
@@ -243,7 +243,7 @@
   },
   "migrationSnapshotInUseAbortedMessage": "Caller's Compendium didn't start because another app has your library open, so the automatic backup made before changing your saved data would miss your latest changes. Close any other app that has your library open, then reopen Caller's Compendium — or reopen it and choose to continue without a backup.",
   "@migrationSnapshotInUseAbortedMessage": {
-    "description": "Terminal startup-screen message shown when the automatic backup taken before a schema upgrade or a one-time data repair failed because another program has the app's data file open, and the user declined to proceed without one. No Retry is offered: the user reopens the app. Say \"app\", not \"program\": in this app a program is a dance set list."
+    "description": "Terminal startup-screen message shown when the automatic backup taken before a schema upgrade or a one-time data repair failed because another program has the app's data file open, and the user declined to proceed without one. No Try again is offered: the user reopens the app. Say \"app\", not \"program\": in this app a program is a dance set list."
   },
   "migrationSnapshotConsentTitle": "Couldn't back up your data",
   "@migrationSnapshotConsentTitle": {
@@ -269,7 +269,7 @@
   },
   "migrationBelowFloorHeadline": "This data is from a version too old to open",
   "@migrationBelowFloorHeadline": {
-    "description": "Headline on the below-floor recovery screen shown when the on-disk database was written by a build older than the minimum supported schema version. Terminal, no Retry."
+    "description": "Headline on the below-floor recovery screen shown when the on-disk database was written by a build older than the minimum supported schema version. Terminal, no Try again."
   },
   "migrationBelowFloorBody": "Your data can be recovered. Install {bridgeTag}, open the app once to let it update your data, then install this version again.\n\nIf you prefer to start fresh, use the options below — your current data will be lost.",
   "@migrationBelowFloorBody": {
@@ -499,7 +499,7 @@
   "@settingsDeveloperResetLeaveFailed": {
     "description": "Snackbar shown when leaving the sync store before a reset fails; the database is untouched and the device stays connected."
   },
-  "settingsDeveloperResetFailed": "Couldn't reset the database, so your data is unchanged. If this device was connected to a sync store, it has already left it.",
+  "settingsDeveloperResetFailed": "Couldn't reset the database. If this device was connected to a sync store, it has already left it.",
   "@settingsDeveloperResetFailed": {
     "description": "Snackbar shown when the reset did not delete the database (it threw, or the wipe failed). A connected device has already left its sync store by then."
   },
@@ -579,7 +579,7 @@
       }
     }
   },
-  "importCcTermsSkip": "Not now",
+  "importCcTermsSkip": "Skip",
   "@importCcTermsSkip": {
     "description": "Leaves the Caller's Companion terms step without adding any terms (#1023)."
   },
@@ -1712,7 +1712,7 @@
   },
   "settingsSyncConflictsCheckFailed": "Couldn't check for conflicts. Try again.",
   "@settingsSyncConflictsCheckFailed": {
-    "description": "Title of the Device Sync row shown when counting unresolved sync conflicts failed. Shown with a Retry button, so a failed check is not mistaken for there being no conflicts."
+    "description": "Title of the Device Sync row shown when counting unresolved sync conflicts failed. Shown with a Try again button, so a failed check is not mistaken for there being no conflicts."
   },
   "commonSyncNowConflictsTooltip": "{count, plural, =1{Sync now (1 item needs your choice)} other{Sync now ({count} items need your choice)}}",
   "@commonSyncNowConflictsTooltip": {
@@ -4919,7 +4919,7 @@
   "@crashFallbackTitle": {
     "description": "Title shown in the friendly crash fallback widget when a subtree fails to build."
   },
-  "crashFallbackBody": "It hit an unexpected error. The details were saved to a local diagnostics log (Settings ▸ Diagnostics) that never leaves your device. Go back and try again.",
+  "crashFallbackBody": "This part of the app hit an unexpected error. The details were saved to a local diagnostics log (Settings ▸ Diagnostics) that never leaves your device. Go back and try again.",
   "@crashFallbackBody": {
     "description": "Body text in the friendly crash fallback widget explaining that details were saved locally only."
   },
@@ -6505,7 +6505,7 @@
   },
   "danceLoadError": "Couldn't load this dance. Nothing was changed. Try again.",
   "@danceLoadError": {
-    "description": "Message shown on the dance detail screen when reading the dance failed, as opposed to the dance not existing (danceNotFound). Shown with a Retry button."
+    "description": "Message shown on the dance detail screen when reading the dance failed, as opposed to the dance not existing (danceNotFound). Shown with a Try again button."
   },
   "danceEditFab": "Edit",
   "@danceEditFab": {
@@ -7150,6 +7150,10 @@
   "programsLoadError": "Couldn't load the program. Nothing was changed. Try again.",
   "@programsLoadError": {
     "description": "Message shown in the program editor when the program fails to load."
+  },
+  "programsUndoRecoveryFailed": "Couldn't reload the program after that undo. Go back and reopen it to see its current state.",
+  "@programsUndoRecoveryFailed": {
+    "description": "Shown on the program editor when an Undo could not be recovered or the program could not be reloaded afterwards. It makes no claim about what was saved, and offers no retry; the user goes back."
   },
   "programsDeletedDanceFallback": "(deleted dance)",
   "@programsDeletedDanceFallback": {
@@ -8612,7 +8616,7 @@
   },
   "commonTryAgain": "Try again",
   "@commonTryAgain": {
-    "description": "Generic button to retry an action after an error (distinct from commonRetry 'Retry')."
+    "description": "Button label that repeats a failed action."
   },
   "exportTooltip": "Export",
   "@exportTooltip": {
@@ -10455,7 +10459,7 @@
   "@importRecordErrorCommit": {
     "description": "Import review: a per-record error at the commit stage. Generic; raw error detail is not shown (CWE-209)."
   },
-  "importReviewUsrSubtitle": "Choose the Caller's Companion .USR file to migrate its dances and program history. Nothing is added to your collection until you review and confirm.",
+  "importReviewUsrSubtitle": "Choose the Caller's Companion .USR file to migrate its dances and program history. Nothing is added to your library until you review and confirm.",
   "@importReviewUsrSubtitle": {
     "description": "Explanatory text for the Caller's Companion .USR file import."
   },
@@ -13329,7 +13333,7 @@
       }
     }
   },
-  "importShorthandSeedSkip": "Not now",
+  "importShorthandSeedSkip": "Skip",
   "@importShorthandSeedSkip": {
     "description": "Button that declines seeding any shorthands and closes the step."
   },
@@ -13382,7 +13386,7 @@
   "@importUserFiguresUseTheirs": {
     "description": "Choice for a shared figure that differs from the user's own: replace it with the sender's version. The user's notes on it are kept."
   },
-  "importUserFiguresSkip": "Not now",
+  "importUserFiguresSkip": "Skip",
   "@importUserFiguresSkip": {
     "description": "Button on the shared-figures step that adds nothing."
   },
@@ -14027,9 +14031,9 @@
   "@recentlyDeletedTitle": {
     "description": "App-bar title for the recently-deleted (trash) screen."
   },
-  "recentlyDeletedLoadError": "Couldn't load your recently deleted items. Nothing has been removed.",
+  "recentlyDeletedLoadError": "Couldn't load your recently deleted items. Nothing has been removed. Try again.",
   "@recentlyDeletedLoadError": {
-    "description": "Shown on the recently-deleted screen when loading the deleted dances or programs fails, above a Retry button. Reassures the user that a failed load does not mean their deleted items are gone."
+    "description": "Shown on the recently-deleted screen when loading the deleted dances or programs fails, above a Try again button. Reassures the user that a failed load does not mean their deleted items are gone."
   },
   "recentlyDeletedDeleteTitle": "Delete permanently?",
   "@recentlyDeletedDeleteTitle": {
@@ -14420,6 +14424,10 @@
   "danceReimportSourceFailed": "Couldn't load a dance from that source. Your dance wasn't changed. Try again.",
   "@danceReimportSourceFailed": {
     "description": "Error shown when a re-import source cannot be loaded."
+  },
+  "danceReimportApplyFailed": "Couldn't update the dance from that source. Your dance wasn't changed. Try again.",
+  "@danceReimportApplyFailed": {
+    "description": "Snackbar when applying a re-import to a dance fails; the write is one transaction, so the dance is unchanged."
   },
   "danceReimported": "Choreography updated.",
   "@danceReimported": {

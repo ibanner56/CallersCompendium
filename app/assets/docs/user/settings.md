@@ -875,8 +875,7 @@ sits at the bottom of the screen), or select one to **Edit** or
 is grayed out while Custom Figures is off.
 The Glossary lists them too, when it is shown. While it is on:
 
-- Choose **New figure** (**Add your own figure** while you have none) on that
-  screen, or **+** in the Glossary, to add a figure of your own: a name and a
+- Choose **Add your figure** on that screen, or **+** in the Glossary, to add a figure: a name and a
   definition (both required), **More details** (optional), other names it can be found by,
   notes, and the **Dance form** it's for.
 - Under **What it is**, choose a **Combination**, which becomes figures that
@@ -888,7 +887,7 @@ The Glossary lists them too, when it is shown. While it is on:
   figure. It keeps its name and other fields, and can't be turned back into a
   term.
 - To start from a figure that comes with the app, open it in the Glossary and
-  choose **Copy as your own figure**. The editor opens on a new figure named
+  choose **Copy to Custom Figures**. The editor opens on a new figure named
   after it with **(copy)** (numbered if you already have one), with its
   definition and More details, its beats, its wording, and the parameters that
   wording uses, with their defaults (a variant, such as *pull by neighbors*,

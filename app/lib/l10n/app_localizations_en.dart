@@ -396,7 +396,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsDeveloperResetFailed =>
-      'Couldn\'t reset the database, so your data is unchanged. If this device was connected to a sync store, it has already left it.';
+      'Couldn\'t reset the database. If this device was connected to a sync store, it has already left it.';
 
   @override
   String get settingsExperimentalPlaceholder =>
@@ -456,7 +456,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get importCcTermsSkip => 'Not now';
+  String get importCcTermsSkip => 'Skip';
 
   @override
   String importCcTermsConfirm(int count) {
@@ -3891,7 +3891,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get crashFallbackBody =>
-      'It hit an unexpected error. The details were saved to a local diagnostics log (Settings ▸ Diagnostics) that never leaves your device. Go back and try again.';
+      'This part of the app hit an unexpected error. The details were saved to a local diagnostics log (Settings ▸ Diagnostics) that never leaves your device. Go back and try again.';
 
   @override
   String get crashFallbackCopied => 'Copied';
@@ -5509,6 +5509,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get programsLoadError =>
       'Couldn\'t load the program. Nothing was changed. Try again.';
+
+  @override
+  String get programsUndoRecoveryFailed =>
+      'Couldn\'t reload the program after that undo. Go back and reopen it to see its current state.';
 
   @override
   String get programsDeletedDanceFallback => '(deleted dance)';
@@ -8028,7 +8032,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get importReviewUsrSubtitle =>
-      'Choose the Caller\'s Companion .USR file to migrate its dances and program history. Nothing is added to your collection until you review and confirm.';
+      'Choose the Caller\'s Companion .USR file to migrate its dances and program history. Nothing is added to your library until you review and confirm.';
 
   @override
   String get importReviewChooseUsr => 'Choose .USR file…';
@@ -10083,7 +10087,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get importShorthandSeedSkip => 'Not now';
+  String get importShorthandSeedSkip => 'Skip';
 
   @override
   String importShorthandSeedConfirm(int count) {
@@ -10131,7 +10135,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get importUserFiguresUseTheirs => 'Use theirs';
 
   @override
-  String get importUserFiguresSkip => 'Not now';
+  String get importUserFiguresSkip => 'Skip';
 
   @override
   String importUserFiguresConfirm(int count) {
@@ -10714,7 +10718,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get recentlyDeletedLoadError =>
-      'Couldn\'t load your recently deleted items. Nothing has been removed.';
+      'Couldn\'t load your recently deleted items. Nothing has been removed. Try again.';
 
   @override
   String get recentlyDeletedDeleteTitle => 'Delete permanently?';
@@ -11009,6 +11013,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get danceReimportSourceFailed =>
       'Couldn\'t load a dance from that source. Your dance wasn\'t changed. Try again.';
+
+  @override
+  String get danceReimportApplyFailed =>
+      'Couldn\'t update the dance from that source. Your dance wasn\'t changed. Try again.';
 
   @override
   String get danceReimported => 'Choreography updated.';
