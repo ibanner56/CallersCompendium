@@ -39,18 +39,18 @@ not touch the sheet's Undo (F11 owns it), the Save/New/header conventions
 
 ## 1. What the sheet does today
 
-`showAddToProgramSheet` (`app/lib/src/widgets/add_to_program_sheet.dart:22`) has
+`showAddToProgramSheet` (`app/lib/src/widgets/add_to_program_sheet.dart`) has
 two callers: the Collection row's menu
 (`app/lib/src/screens/dance_list_screen.dart:3123`) and the dance detail screen
-(`app/lib/src/screens/dance_detail_screen.dart:627`). Both pass a dance id and
+(`DanceDetailScreen._addToProgram` in `app/lib/src/screens/dance_detail_screen.dart`). Both pass a dance id and
 title.
 
 | Behaviour | Where | Notes |
 | --- | --- | --- |
-| Loads every non-deleted program once, when the sheet opens. | `add_to_program_sheet.dart:28`; `ProgramRepository.listAll` (`program_repository.dart:724`) excludes soft-deleted programs by default | A snapshot. It does not update if a sync lands while the sheet is open. |
-| Sorts by `updatedAt`, newest first. | `add_to_program_sheet.dart:30` | Edit time, not event time. A program edited yesterday for last month's gig ranks above next week's. |
-| Shows no status and no filter. | `:94-143` | The Programs list shows a status chip with icon and text (`program_status_chip.dart:9-27`). The sheet does not. |
-| Subtitle is the event date plus `collectionDanceCount(program.slots.length)`. | `:107-117` | Counts every slot, including breaks and alternates. The Programs list counts `plannedDanceCount` (`program_list_tile.dart:44`; `program.dart:370`). F10 (GIG-10) owns this. |
+| Loads every non-deleted program once, when the sheet opens. | `showAddToProgramSheet` (`add_to_program_sheet.dart`); `ProgramRepository.listAll` (`program_repository.dart`) excludes soft-deleted programs by default | A snapshot. It does not update if a sync lands while the sheet is open. |
+| Sorts by `updatedAt`, newest first. | `showAddToProgramSheet` | Edit time, not event time. A program edited yesterday for last month's gig ranks above next week's. |
+| Shows no status and no filter. | `:94-143` | The Programs list shows a status chip with icon and text (`programStatusPresentation` in `program_status_chip.dart`). The sheet does not. |
+| Subtitle is the event date plus `collectionDanceCount(program.slots.length)`. | `:107-117` | Counts every slot, including breaks and alternates. The Programs list counts `plannedDanceCount` (`program_list_tile.dart`; `Program.plannedDanceCount` in `program.dart`). F10 (GIG-10) owns this. |
 | Offers "Create a new program with this dance" only when there are no programs. | `:61-70`, `:147-191` | |
 | Tapping a row appends one slot at the end, closes the sheet and shows an Undo snackbar. | `:196-245` | Re-reads the program, then calls `programs.update`. |
 | The sheet is at most 70% of the screen height and has no text field. | `:44` | Nothing in it pads for the on-screen keyboard, because it has never needed to. |
@@ -58,8 +58,8 @@ title.
 
 For comparison, the editor's picker shows an in-program icon and a count for
 every dance already in the program being built
-(`collection_picker.dart:1005-1047`). Its counts come from
-`_danceSlotCounts` (`program_editor_screen.dart:2220`), which counts **every
+(`CollectionPicker`'s `addedDanceCounts`). Its counts come from
+`_danceSlotCounts` (`program_editor_screen.dart`), which counts **every
 slot that has a dance id, alternates included**, and skips break and free-text
 slots.
 
@@ -72,10 +72,10 @@ building" (`docs/user/collection.md:306`).
 | --- | --- | --- |
 | Undo everywhere; confirm only where Undo is impossible. | `ux.md:192-193` (`:207-208` at `90fe5e8`) | A duplicate add is not destructive and has an Undo. The maintainer chose to ask first anyway (N3-4 = (b)), knowing the option text said it "breaks the rule" (§4.3). |
 | The sheet's Undo is fixed by F11 (GIG-19), which makes it compare-and-replace. | `batch-plan.md:256-263` (F11), `:263` (GIG-19) | This note must not redesign it. The sheet branch lands after F11, and takes F11's Undo as given. |
-| Counts use `plannedDanceCount`. | `batch-plan.md:238-247` (F10, GIG-10); `program.dart:370` | The sheet's subtitle reads that getter. F10 edits `add_to_program_sheet.dart:107-116`, so the sheet branch lands after F10. |
+| Counts use `plannedDanceCount`. | `batch-plan.md:238-247` (F10, GIG-10); `Program.plannedDanceCount` (`program.dart`) | The sheet's subtitle reads that getter. F10 edits the sheet's program-row subtitle in `add_to_program_sheet.dart`, so the sheet branch lands after F10. |
 | Phone layout follows U7. | `decided-work-plan.md:841-854` (N3) | U7 had not merged at `acacb05`. The sheet branch lands after it (§7). |
 | Touch targets are at least 24 px, and 44 pt preferred on touch surfaces. | `accessibility-baseline.md:29`, `:51` | The new rows and the search field follow the same sizing as the existing `ListTile`s. |
-| State is not colour-only. | `program_status_chip.dart:9-12`; `ux.md` cross-cutting rules | The marker uses an icon and text, as the picker's does. |
+| State is not colour-only. | `programStatusPresentation` (`program_status_chip.dart`); `ux.md` cross-cutting rules | The marker uses an icon and text, as the picker's does. |
 | Persisted state needs a registry entry on all three axes, in the same PR. | `AGENTS.md:86`; `.github/instructions/privacy-registry.instructions.md:29` | This design persists nothing (§4.6), so it adds no entry. |
 | A new record kind or merge goes through sync-spec §6.6 and §6.15. | `sync-spec.md:3197`, `:4417` | This design adds neither, so both are out of play (§4.7). |
 | D-11 (Save, New, header placement) is open. | `maintainer-decisions-2026-10-29.md:59` (D-11); the decision to write this note is `:352-355` | The pinned "New program" row is inside the sheet. It does not decide where New sits on any screen. |
@@ -121,14 +121,14 @@ for. *(My estimate; the build should check it at 360×640.)*
 **What it matches.** Title and the resolved venue label, folded with
 `foldForTitleMatch` (`packages/compendium_core/lib/src/search/title_sort_key.dart`).
 That helper is the one the command palette already uses on program titles
-(`command_palette.dart:162`), so the sheet adds no seventh matcher to the six
+(`command_palette.dart`), so the sheet adds no seventh matcher to the six
 the audit counted (`FIND.md`, cross-cutting pattern 1). Order within results
 follows §4.2; match rank (`rankTitleMatch`) is not used, because with a handful
 of matches the grouped order is more useful than "exact first".
 
 The venue label means resolving a linked venue the way the Programs list does
-(`resolveVenueLabel`, used at `program_list_tile.dart:55`). The sheet does not
-load venues today (`add_to_program_sheet.dart:28` reads only programs). Loading
+(`resolveVenueLabel`, used in `program_list_tile.dart`). The sheet does not
+load venues today (`showAddToProgramSheet` reads only programs). Loading
 them adds one read when the sheet opens. The maintainer chose the venue match
 and accepted that read ("one extra read on open").
 
@@ -144,7 +144,7 @@ closes. It is never persisted (§4.6).
 
 **Why this matters beyond tidiness.** Adding a dance to a Performed program
 leaves the new slot unperformed: the performed stamp is applied only on the
-*transition* to Performed (`program_repository.dart:548-565`). Yet by default
+*transition* to Performed (`ProgramRepository._upsert`, `stampPerformedSlots` in `program_repository.dart`). Yet by default
 any program that contains a dance counts as calling it
 (`docs/user/programs.md:452-455`). So a mis-tap on last month's gig quietly
 adds a "called" entry to that dance's history. Nobody sees it until the history
@@ -152,7 +152,7 @@ looks wrong.
 
 **What "past" can mean.** Only status is an explicit, user-set signal
 (`enums.dart:22`: `draft`, `finalized`, `performed`). `eventDate` is optional
-(`program.dart:280`) and a date-only value, so "before today" depends on the
+(`Program.eventDate` in `program.dart`) and a date-only value, so "before today" depends on the
 device's local day. A Draft with a past date is as likely to be a set list
 someone is writing up after the fact as a stale one.
 
@@ -188,7 +188,7 @@ Performed program is legitimate (the dance you forgot to log).
 - **Order inside the Performed group:** event date descending, undated last
   by `updatedAt`. The most recent gig is the likeliest forgotten-dance target.
 - **Status is shown** on every row, using `programStatusPresentation`
-  (`program_status_chip.dart:9-27`) so the sheet and the Programs list name
+  (`programStatusPresentation` in `program_status_chip.dart`) so the sheet and the Programs list name
   statuses identically. In the open group a status chip separates Draft from
   Finalized. In the Performed group it is redundant but harmless; the build may
   omit it there.
@@ -203,15 +203,15 @@ Performed program is legitimate (the dance you forgot to log).
 
 **Behaviour.** A program that holds the dance in any slot shows the picker's
 in-program icon and, when the dance appears more than once, its count
-(`collection_picker.dart:1005-1047`), plus the text "In this program" or "In
+(`CollectionPicker`'s `addedDanceCounts`), plus the text "In this program" or "In
 this program ×N" in the subtitle. The row's semantic label gains the same
 information (`programsAddDanceToProgramSemantic` takes its details as a single
-string, `add_to_program_sheet.dart:121-125`, so the build can add it there; the
+string, so the build can add it there; the
 visible text is a new ARB key).
 
 **What counts. Decided: every slot with this dance id, alternates included**
 (N3-6 = (a), 2026-10-30, as recommended). That is
-`_danceSlotCounts`' rule (`program_editor_screen.dart:2220-2226`), and it
+`_danceSlotCounts`' rule (`program_editor_screen.dart`), and it
 matches the question the marker answers: "will I duplicate this dance?" It is
 deliberately not the calling-history rule, under which an alternate counts only
 once performed (`docs/user/programs.md:459-463`). A dance that is already the
@@ -278,21 +278,21 @@ while they scan it.
 **Decided: A** (N3-5 = (a), 2026-10-30, as recommended). The row is a
 `ListTile` with a leading `add` icon and the existing label,
 `programsCreateWithDance`
-(`add_to_program_sheet.dart:186`). The empty-state version keeps its teaching
+(`_buildCreateRow` in `add_to_program_sheet.dart`). The empty-state version keeps its teaching
 text and button; the pinned row simply shows in both states, so the empty state
 can drop its own button and reuse the pinned one. Behaviour is unchanged:
 creates a Draft titled `programsNewProgram` with this dance as slot 0, closes
 the sheet, shows the existing snackbar (`:250-276`).
 
 **Not in scope:** the create path has no Undo today
-(`add_to_program_sheet.dart:247-249` says the new program "can be deleted from
+(`_createProgramWith` in `add_to_program_sheet.dart` says the new program "can be deleted from
 the programs list"; deletion is soft and restorable for 30 days,
 `ux.md:192-193`). This note leaves that alone. It can be revisited with F11.
 
 ### 4.5 Layout on a phone
 
 At 360×640 with the keyboard open, roughly 260 px of the screen remains. The
-sheet's cap is 70% of the full height (`add_to_program_sheet.dart:44`), so the
+sheet's cap is 70% of the full height (`showAddToProgramSheet`'s `maxHeight`), so the
 sheet would be sized for a screen that is no longer there, and the pinned New
 row, the search field and two or three rows would not fit.
 
@@ -340,9 +340,9 @@ capability-gate decision (§4.7). The gain is one tap for a habit nobody has
 asked for.
 
 The snapshot rule stays: the sheet reads programs once on open
-(`add_to_program_sheet.dart:28`). It is short-lived, and `_selectProgram`
+(`showAddToProgramSheet`). It is short-lived, and `_selectProgram`
 re-reads the program it is about to change (`:207`). Making the list live
-(`watchAll`, `program_repository.dart:836`) would reorder rows under a finger
+(`ProgramRepository.watchAll`) would reorder rows under a finger
 and is not recommended.
 
 ### 4.7 Sync
@@ -354,7 +354,7 @@ capability gate, `sync-spec.md:4417`) therefore do not apply.
 
 One adjacent point for F11 rather than this note: the append is read, modify,
 write (`add_to_program_sheet.dart:207-221`), not a compare-and-replace
-(`replaceIfUnchanged`, `program_repository.dart:358`). A concurrent edit to the
+(`ProgramRepository.replaceIfUnchanged`). A concurrent edit to the
 same program between the read and the write could be lost. F11 fixes the
 *Undo* (GIG-19); whether it also moves the *append* to `replaceIfUnchanged` is
 its call. This note's design works either way.

@@ -1060,7 +1060,7 @@ that happens at most once per reclassification.
 half is defined as `shareable` string columns that are not record identity, and
 that predicate cannot be read off the classification registry alone:
 `DataClassification` carries `term`, `subject`, `egress` and `note`
-(`data_classification.dart:185`–`:205`) and no column type, so *string* is a
+(`DataClassification` in `data_classification.dart`) and no column type, so *string* is a
 fact about the schema rather than about the registry. The set MUST therefore be
 computed by reflecting over the schema's column types intersected with
 `fieldClassifications`, **and with identity columns excluded by reflection
@@ -1161,8 +1161,8 @@ not filter `deleted_at`, and no such lookup exists today.** This is a new query,
 not an existing accessor, and the distinction is the difference between the two
 rules above working and one of them silently destroying repairs. All three
 in-scope repositories expose a `getById` that filters on `deleted_at`
-(`choreographer_repository.dart:67`, `tag_repository.dart:82`,
-`custom_field_repository.dart:74`), and none takes an `includeDeleted`
+(`ChoreographerRepository.getById`, `TagRepository.getById`,
+`CustomFieldRepository.getById`), and none takes an `includeDeleted`
 parameter. Such a lookup returns `null` for a tombstone *and* for a hard-deleted
 row, so an implementer reaching for the obvious accessor retires exactly the
 entries the rule above forbids retiring — the quiet loss this section is written
@@ -1173,7 +1173,7 @@ includes soft-deleted rows.
 
 The trap is sharpened by an inconsistency in the codebase rather than by
 anything in this design: `DanceRepository.getById` *does* take
-`includeDeleted` (`dance_repository.dart:685`), so the pattern looks uniform
+`includeDeleted` (`DanceRepository.getById`), so the pattern looks uniform
 from the one place it is implemented and is not. Implementations MUST therefore
 distinguish three outcomes, not two: a live row, a tombstoned row, and no row.
 
@@ -1312,11 +1312,11 @@ and is rejected: it puts a full recomputation of derived data over the whole
 library inside a write-locked transaction.
 
 **The durable flag MUST be `derivedRebuildRequiredKey`** — the key already
-declared at `database.dart:105` — and MUST NOT be a flag private to this pass.
+declared in `database.dart` — and MUST NOT be a flag private to this pass.
 This is the load-bearing half of the rule, because the repair does not come from
 the sweep that sets the flag. It comes from an unconditional, pass-independent
-check at the top of the migration path (`repositories.dart:467`–`:491`) that
-runs *before any sweep*, rebuilds whenever the key is set (`:475`), and clears
+check at the top of the migration path (`Repositories._runMigration` in `repositories.dart`) that
+runs *before any sweep*, rebuilds whenever the key is set, and clears
 it. A private flag reproduces the shape while leaving the mechanism behind, and
 it reopens the exact gap this rule exists to close: a pass that checks and
 clears its own flag resumes after a crash, rescans, finds nothing left to
@@ -1422,7 +1422,7 @@ dance-scoped, so an unreferenced row contributes nothing to any index whatever
 the mapping says, and the negative half of the assertion would hold vacuously
 for exactly the columns the skip depends on.
 `dance_fts` is an ordinary `fts5` table whose columns are selectable, and tests
-already read from it directly (`migration_test.dart:234`). The assertion MUST be
+already read from it directly (`migration_test.dart`). The assertion MUST be
 total over the in-scope set, so that a column entering that set fails the test
 until it is declared as feeding an index or not.
 
@@ -1690,7 +1690,7 @@ to that device and MUST NOT be treated as a deletion.
 within its own table and nowhere else: every kind's table declares its own
 `primaryKey => {id}`, the schema carries no cross-table uniqueness constraint of
 any sort, and archive restore writes incoming ids verbatim
-(`archive_service.dart:202`) without consulting the other tables. Two kinds can
+(`ArchiveRestorer.restore` in `archive_service.dart`) without consulting the other tables. Two kinds can
 therefore hold the same id string — a shared archive file is enough, and §8
 already grants a peer the ability to write any `shareable` record. A flat map
 cannot express that: the second entry silently replaces the first, the losing
@@ -1812,7 +1812,7 @@ timestamp projections. This is distinct from sanitising arbitrary text, which
 would alter content that the sender intentionally hashed.
 
 This closes a divergence that predates sync. Archive **decode** sanitises
-(`archive_codec.dart:980-1042`, and `_sanitizeFigureJson` at `:755-778`) and
+(`archive_codec.dart`, including `_sanitizeFigureJson`) and
 archive **encode** does not, so an imported dance was clean and the same text
 typed into the editor was not.
 
@@ -6138,7 +6138,7 @@ share one id round-trips both, and both survive a full pass on a second device
 (mutation: key `records` by bare record id — every single-kind test still
 passes, because the collision needs two kinds and the fixtures generate distinct
 UUIDs; build the fixture by restoring an archive that sets the two ids equal,
-which `archive_service.dart:202` permits). The baseline keeps the two apart on
+which `ArchiveRestorer.restore` permits). The baseline keeps the two apart on
 the same terms. **A blob whose envelope declares a different `(kind, id)` than
 the manifest entry it was fetched under is skipped and reported, never applied
 under either identity** (mutation: verify the hash and apply — the hash still

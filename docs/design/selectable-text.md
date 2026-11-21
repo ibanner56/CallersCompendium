@@ -22,7 +22,7 @@ pointer cannot select.
 The audit report says `SelectionArea` appears in the Guide. It does not. There
 is no `SelectionArea` and no `SelectableRegion` anywhere in `app/lib`. The
 Guide renders with `Markdown(selectable: true)`
-(`app/lib/src/screens/user_guide/user_guide_doc_view.dart:173`) and a
+(`app/lib/src/screens/user_guide/user_guide_doc_view.dart`) and a
 `SelectableText` heading builder (`:244`). That makes each Markdown block its
 own selection island: a drag cannot cross from one paragraph to the next. The
 Guide is a precedent for *whether* to allow selection, not for *how* to build
@@ -32,18 +32,18 @@ it here.
 
 | Surface | Where | Widget today |
 | --- | --- | --- |
-| Dance detail body | `dance_detail_screen.dart:1068` (`ListView`) | Plain `Text` throughout |
-| Hook and calling notes | `dance_detail_screen.dart:1152-1175`, `:1236-1262` | `_CrossReferenceText` (`:1741-1805`): `Text`, or `Text.rich` with `WidgetSpan` links |
-| Figure rows | `widgets/figure_table.dart:150-260` | One `Text` for the figure (`:223-229`), one for the note (`:231`), one for beats (`:246`), all inside `Semantics(excludeSemantics: true)` (`:193-195`) |
-| Tag chips | `dance_detail_screen.dart:1189-1209`; `widgets/tag_chip.dart` | `ActionChip` when the Collection scope is present, otherwise `Chip` |
-| Program summary | `program_summary_screen.dart:698` (`ListView`) | Title (`:725`), detail rows (`_summaryRow`, `:1475`), notes (`:797-800`), set list (`:1335-1400`) |
-| Perform card | `perform_card.dart:130-141`; `perform_program_screen.dart:1225-1243` | `Text`, under two 56 px translucent edge `GestureDetector`s that turn pages |
+| Dance detail body | `DanceDetailScreen._buildBody` (`ListView`) | Plain `Text` throughout |
+| Hook and calling notes | the `_CrossReferenceText` calls in `DanceDetailScreen._buildBody` | `_CrossReferenceText` (`dance_detail_screen.dart`): `Text`, or `Text.rich` with `WidgetSpan` links |
+| Figure rows | `_FigureRow` in `widgets/figure_table.dart` | One `Text` for the figure, one for the note, one for beats, all inside `Semantics(excludeSemantics: true)` |
+| Tag chips | the `TagChip`s in `DanceDetailScreen._buildBody`; `widgets/tag_chip.dart` | `ActionChip` when the Collection scope is present, otherwise `Chip` |
+| Program summary | `_ProgramSummaryPaneState._buildBody` in `program_summary_screen.dart` (`ListView`) | Title, detail rows (`_summaryRow`), notes, set list |
+| Perform card | `perform_card.dart`; `perform_program_screen.dart` | `Text`, under two 56 px translucent edge `GestureDetector`s that turn pages |
 
 Which text does a copy contain today? **Copy dance** builds `danceToPlainText`
 from the same `dialect` local the screen renders with
-(`dance_detail_screen.dart:771` and `:1229`), so it follows the canonical toggle
+(`DanceDetailScreen._overflowMenu` and `_buildBody` in `dance_detail_screen.dart`), so it follows the canonical toggle
 and the dialect. Its `renderer`, `canonicalizeDiscouragedTerms` and labels also
-match the screen (`dance_export_actions.dart:106-118`).
+match the screen (`DanceExportActions._plainText`).
 
 ## Questions
 
@@ -74,16 +74,16 @@ each gesture the audit named:
 
 | Gesture | Where it lives | Conflict? |
 | --- | --- | --- |
-| Tap-to-filter tag chip | `dance_detail_screen.dart:1196-1203`, `tag_chip.dart` | **Yes, a small one.** The chip's `Text` label would register as selectable, so a drag that starts on it selects the tag name. Wrap the tag row in `SelectionContainer.disabled`. |
-| Long-press preview | `widgets/preview_hold_listener.dart`, used only by `program_slot_list_editor.dart:548` and `collection_picker.dart:1024,1172` | **No.** None of those screens is in the selectable region. |
-| Row swipe actions | `Slidable` at `dance_list_screen.dart:3172` and `programs_list_screen.dart:739` | **No.** They live on list rows, outside the detail and summary panes. |
-| Long-press to enter batch selection | `dance_list_screen.dart:3131` | **No.** Same reason. |
-| Cross-reference links | `_CrossReferenceText`, `dance_detail_screen.dart:1779-1795` | **Probably not, but untested.** The link is an `InkWell` in a `WidgetSpan`, and the `Text` inside it is its own selectable. Selection across a `WidgetSpan` is the least-exercised path in the framework. The implementation PR must test that a drag across a link copies the link text once, and a click still opens the dance. |
+| Tap-to-filter tag chip | the `TagChip` in `DanceDetailScreen._buildBody`, `tag_chip.dart` | **Yes, a small one.** The chip's `Text` label would register as selectable, so a drag that starts on it selects the tag name. Wrap the tag row in `SelectionContainer.disabled`. |
+| Long-press preview | `widgets/preview_hold_listener.dart`, used only by `program_slot_list_editor.dart` and `collection_picker.dart:1024,1172` | **No.** None of those screens is in the selectable region. |
+| Row swipe actions | `Slidable` in `dance_list_screen.dart` and `programs_list_screen.dart` | **No.** They live on list rows, outside the detail and summary panes. |
+| Long-press to enter batch selection | the row `onLongPress` in `dance_list_screen.dart` | **No.** Same reason. |
+| Cross-reference links | `_CrossReferenceText` in `dance_detail_screen.dart` | **Probably not, but untested.** The link is an `InkWell` in a `WidgetSpan`, and the `Text` inside it is its own selectable. Selection across a `WidgetSpan` is the least-exercised path in the framework. The implementation PR must test that a drag across a link copies the link text once, and a click still opens the dance. |
 | Mark-performed toggle, row open | `program_summary_screen.dart:925-960`, `:1335` | Avoided by keeping the set list outside the region. |
-| Perform edge zones | `perform_program_screen.dart:1225-1243` | Avoided by excluding Perform. |
+| Perform edge zones | `perform_program_screen.dart` | Avoided by excluding Perform. |
 
 Two smaller points. A figure row's beats column and import-gap badge
-(`figure_table.dart:246`, `:241-243`) would otherwise copy as stray digits and
+(the beats and note `Text`s in `_FigureRow`, `figure_table.dart`) would otherwise copy as stray digits and
 a label between lines. Wrap both in `SelectionContainer.disabled` so a copied
 figure is its text and its note. And the app owns no selection colours today,
 so the first implementation PR checks contrast of the default selection
@@ -96,7 +96,7 @@ theme, per the "no colour-only meaning" rule (`ux.md:196-199`).
 
 - **A. The rendered text.** Whatever `SelectionArea` finds on screen: the
   dialect's wording, the capitalisation (`CapitalizeFiguresScope`,
-  `figure_table.dart:226`), and the verbose text when "always show verbose
+  `figure_table.dart`), and the verbose text when "always show verbose
   figure text" is on. *Trade-off:* it matches what the caller sees and costs
   nothing extra. It does not carry canonical text unless the caller flips the
   canonical toggle first, which is the same rule the whole screen follows.
@@ -113,8 +113,8 @@ expect from selection, it agrees with **Copy dance** on dialect and the
 canonical toggle (both use the same `dialect`), and a caller who wants
 canonical text flips the toggle. The two differ in two preferences. A selection
 copy carries "always show verbose figure text" and figure capitalisation,
-because the screen applies both (`figure_table.dart:223-229`); **Copy dance**
-applies neither (`packages/compendium_core/lib/src/export/dance_text.dart:121-122`
+because the screen applies both (`_FigureRow` in `figure_table.dart`); **Copy dance**
+applies neither (`danceToPlainText` in `packages/compendium_core/lib/src/export/dance_text.dart`
 renders `renderSummary`, terse and uncapitalised). That is what Option A means,
 and the maintainer accepted it: the option text says "it differs from Copy
 dance on those two settings". The user docs say so in one
@@ -131,7 +131,7 @@ sentence.
 - **B. All platforms.** *Trade-off:* long-press starts a selection on Android
   and iOS, which is standard but changes what a long press on detail text
   means, adds drag handles over a scrolling `ListView`, and puts a toolbar over
-  the Edit FAB clearance zone (`dance_detail_screen.dart:1070-1076`). It needs
+  the Edit FAB clearance zone (the `ListView` in `DanceDetailScreen._buildBody`). It needs
   phone-sized golden and gesture tests this note cannot run.
 
 **Decided: A** (N5-1 = (a), 2026-10-30, as recommended), with the gate in one place so B is a one-line change
@@ -144,7 +144,7 @@ I did not verify this against a screen reader. This is the reasoning and the
 test to run.
 
 Figure rows wrap their subtree in `Semantics(excludeSemantics: true)` with the
-verbose label (`figure_table.dart:193-195`). The screen reader never sees the
+verbose label (the `semanticsLabel` in `figure_table.dart`). The screen reader never sees the
 selectable `Text` inside, so a screen-reader user cannot make a text selection
 in figures with or without this change. They keep **Copy dance**. Hook, notes,
 the summary header and link rows are ordinary semantics, where
@@ -219,10 +219,10 @@ It carries the single platform gate (Question 4). Callers mark non-selectable
 islands with `SelectionContainer.disabled`.
 
 - **Dance detail.** Wrap the `ListView` in `_buildBody`
-  (`dance_detail_screen.dart:1068`). Disable the tag chip row, the figure beats
+  (`dance_detail_screen.dart`). Disable the tag chip row, the figure beats
   column and the import-gap badge, and any action buttons in rows.
 - **Program summary.** Wrap the header block: title, detail rows and notes
-  (`program_summary_screen.dart:722-800`). The action buttons stay out, and so
+  (the first children of the `ListView` in `_ProgramSummaryPaneState._buildBody`). The action buttons stay out, and so
   does the set list.
 - **Tests.** Widget tests for: a drag over a figure row copies its text and
   note without the beats; a drag across a `WidgetSpan` link copies the link

@@ -508,7 +508,7 @@ choosers, defaults, `goodBeats`, aliases) is archived in the session files as
     therefore canonical text) untouched. Without the rebuild,
     `dance_figures.move` keeps an id the taxonomy no longer defines and
     structural search goes silently stale: `DanceRepository.danceIdsWithFigure`
-    (`dance_repository.dart:1454`) filters on exactly `danceFigures.move` and
+    (`dance_repository.dart`) filters on exactly `danceFigures.move` and
     reads `paramsJson`.
 
     (#296 also names `form_an_ocean_wave`; that reference is **stale** — the
@@ -1159,7 +1159,7 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
       therefore canonical text) untouched: without the rebuild,
       `dance_figures.move` keeps an id the taxonomy no longer defines, and
       structural search goes silently stale —
-      `DanceRepository.danceIdsWithFigure` (`dance_repository.dart:1454`)
+      `DanceRepository.danceIdsWithFigure` (`dance_repository.dart`)
       filters on exactly `danceFigures.move` and reads `paramsJson`.
     - The new params and the balance suffix are otherwise surfaced only on
       the `!forCanonical` display path (that display work IS issue #296,
@@ -1529,7 +1529,7 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
 
     **Backfill IS owed, but the derived rebuild is gated on rewrite
     count, not unconditional.** Structured search reads only stored
-    `params_json` (`database.dart:783-784`), so a chain imported before
+    `params_json` (the `danceFigures` table in `database.dart`), so a chain imported before
     this release and an identical one imported after it must both carry
     an explicit `hand` or search results depend on import date. A
     one-time sweep, modelled on `_normaliseInversePairMoveIdsIfNeeded`,

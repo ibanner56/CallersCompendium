@@ -31,7 +31,7 @@ phone-width selection bar?
 **Out of scope.** Save, New and header placement belong to D-11, which is still
 open. This note changes which controls sit in the *selection* bar. It does not
 move the bar's title or close button, the New-dance button (hidden during
-selection, `dance_list_screen.dart:2019`) or any editor Save control. The
+selection, `dance_list_screen.dart`) or any editor Save control. The
 Add-to-program sheet's own design is note N3, and tag, choreographer and source
 management is N2.
 
@@ -54,11 +54,11 @@ re-ran the grep and also searched `select_all`.
 
 **Batch writes.** Each handler captures the dances' prior values, writes in one
 transaction, announces the result to screen readers, then offers Undo through
-`showUndoSnackBar` (`utils/undo_snack_bar.dart:52`).
+`showUndoSnackBar` (`utils/undo_snack_bar.dart`).
 - Tags: `_applyTags` (`:1385`) and `_undoBatchTag` (`:1516`), both inside
   `_repos.transaction`.
 - Level, rating, tunes and custom fields call the core `*ForMany` methods.
-  `setLevelForMany` is at `packages/compendium_core/lib/src/storage/repositories/dance_repository.dart:2482`.
+  `setLevelForMany` is `DanceRepository.setLevelForMany` in `packages/compendium_core/lib/src/storage/repositories/dance_repository.dart`.
   All of them funnel through `_updateMany` (`:2424`), which runs one
   transaction and writes each dance through `_upsert(..., localUserEdit: true)`.
 - Undo is a second transaction (`_undoBatchLevel`, `:1627`).
@@ -88,7 +88,7 @@ online results with a local selection behind them.
 
 **Delete exists only per row.** `_softDeleteFromList` (`:2446`) is reached from
 the row's ⋮ menu (`:3108-3115`, gated by `confirmDeleteIfEnabled`,
-`utils/confirm_delete.dart:20`) and from the swipe action (`:3172`). Selection
+`confirmDeleteIfEnabled` in `utils/confirm_delete.dart`) and from the swipe action (`:3172`). Selection
 mode turns the swipe off (`:3161-3165`). The function has no `try`/`catch`, and
 its Undo calls the full `_boot()` reload (`:2461`).
 
@@ -248,7 +248,7 @@ core method or a dialog that does not exist yet.
 | Action | Fields written | Core call | Undo | Size of new work |
 | --- | --- | --- | --- | --- |
 | **Delete** | `deleted_at`, `existence_at` | New `softDeleteMany` over the existing `softDelete` (`:1882`) | New `restoreMany` over `restore` (`:1914`) | Core + dialog + snackbar |
-| **Status** | `dances.status` | New `setStatusForMany` beside `setLevelForMany` (`:2482`) | Per-dance prior status | Core + one dialog |
+| **Status** | `dances.status` | New `setStatusForMany` beside `setLevelForMany` | Per-dance prior status | Core + one dialog |
 | ~~Mixer~~ (not built, N4-5) | `dances.mixer` | — | — | — |
 | ~~Mixed level~~ (not built, N4-5) | `dances.mixed_level` | — | — | — |
 | **Add to program** | `program_slots` | Existing program `update`, as the single-dance sheet does (`widgets/add_to_program_sheet.dart:196-247`) | Restore each program's prior slot list | The N3 sheet's list widget, plus a list of dances |
@@ -282,8 +282,8 @@ without a second change.
 **Interaction with B8 (trash does not protect).**
 - Dances have no referential guard to flip: programs may already reference a
   trashed dance. Programs resolve it with `resolveDeletedSlotDances`
-  (`screens/perform_program_screen.dart:1638`), and a later purge sets the
-  slot's dance to `NULL` (`dance_repository.dart:1952-1958`).
+  (`screens/perform_program_screen.dart`), and a later purge sets the
+  slot's dance to `NULL` (`DanceRepository._rewriteCitationsOf`).
 - B8's rule that restore copes with a missing level or custom field applies to
   bulk Undo through B9, as above.
 - Bulk delete therefore never refuses and never warns about programs. The
@@ -379,7 +379,7 @@ drops mixer and mixed level, so only status remains.)*
 **Fit.** `dances.status` is a plain column, classified
 (`privacy/field_registry.dart:365-368`) and edited today in the dance editor
 (`screens/dance_editor/dance_editor_form.dart:667`). The Collection already
-filters on it (`search/collection_query.dart:54`), so the batch action closes
+filters on it (`CollectionSort.lastCalled` in `search/collection_query.dart`), so the batch action closes
 the "find, then fix" loop the audit describes.
 
 **Shape.**
@@ -413,8 +413,8 @@ and *remove*: a replace discards page numbers the caller typed by hand, and
 Undo of a replace is a second multi-field restore. Remove can come later.
 
 **Dependencies.** The picker and the create dialog are private to the dance
-editor (`screens/dance_editor_screen.dart:801-840`; the citations editor is
-`dance_editor_form.dart:756`), so a reusable picker has to be extracted first.
+editor (`screens/dance_editor_screen.dart`, around `_createSource`; the citations editor is
+`screens/dance_editor/dance_editor_form.dart`), so a reusable picker has to be extracted first.
 N2 has decided how sources are renamed and merged (N2-1, N2-4), and an add-only
 batch writes plain citations, so it pre-empts none of that. N4-5 builds it with
 the others rather than last. T3 (N2's Authors and Sources managers) also edits
@@ -501,7 +501,7 @@ is introduced. The selection, the hidden count and the grouping choice are
 session-only widget state, like `_groupTagId` (`:275`). The columns written
 (`dances.status`, `dance_sources.*`, and `program_slots.*` for Add to program)
 are already
-classified (`field_registry.dart:365-368`, `:654-658`). Persisting a selection or
+classified (`field_registry.dart`). Persisting a selection or
 a per-device "selection mode default" would need entries on all three axes and is
 not proposed. Subject-axis note: a source citation names a third-party work, and
 a bulk add writes more of those; the existing classification already covers
