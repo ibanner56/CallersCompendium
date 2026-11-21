@@ -4885,6 +4885,21 @@ class AppLocalizationsJa extends AppLocalizations {
   String get programsMoreActions => 'その他のアクション';
 
   @override
+  String get programsFormMatchLabel => 'タイプの一致条件';
+
+  @override
+  String get programsFormMatchOnly => '完全一致';
+
+  @override
+  String get programsFormMatchOnlyTooltip => '選んだタイプだけのプログラム';
+
+  @override
+  String get programsFormMatchIncludes => '含む';
+
+  @override
+  String get programsFormMatchIncludesTooltip => '選んだタイプを含むプログラム';
+
+  @override
   String get danceSectionFigures => 'フィギュア';
 
   @override
