@@ -979,9 +979,14 @@ The Glossary lists them too, when it is shown. While it is on:
   and once the figure is gone, typing one is read as an ordinary line (see
   [Figure shorthands](./authoring.md#figure-shorthands)). A figure that can no longer be used
   is marked **Needs repair**; one whose name is also another figure's is
-  marked **Rename needed**.
+  marked **Rename needed**. A figure's name is checked against the app's
+  figures for its own dance form: an English figure of yours named *Siding*
+  needs a new name, a contra one doesn't.
 - If a later version of the app comes with a figure that has the name of one
-  of your new figures, your figure's page says so, with two choices.
+  of your new figures, your figure's page says so, with two choices. (When the
+  app has an English figure of that name, such as *Swing* or *Circle* for an
+  English figure of yours, yours is marked **Rename needed** instead, even if
+  the app has a contra figure of that name too.)
   **Rename mine** opens it to give it another name. **Switch to the app's figure**
   opens a page where you choose which of the app's figure's parameters each of
   yours becomes, and which of its values each of your options becomes; where a

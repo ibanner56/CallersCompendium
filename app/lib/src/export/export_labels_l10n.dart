@@ -24,6 +24,8 @@ DanceExportLabels danceExportLabels(AppLocalizations l10n) => DanceExportLabels(
   sources: l10n.exportLabelSources,
   beats: l10n.exportBeatsLabel,
   bars: l10n.danceFigureBars,
+  namedPhrases: l10n.exportNamedPhrases,
+  namedPhraseSeparator: l10n.exportNamedPhraseSeparator,
   pageOf: l10n.exportPageOfPages,
 );
 

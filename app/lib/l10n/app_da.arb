@@ -5160,6 +5160,14 @@
   "@danceFigureBeats": {
     "x-sourceSha256": "b1c2cd5ecb9cd06da41bcdc00cc188ef57533504a89a622f5a0146c65ac22144"
   },
+  "exportNamedPhrases": "{order} ({bars})",
+  "@exportNamedPhrases": {
+    "x-sourceSha256": "6e23f847cf631cba44e5527430ca33c1bbc4601a0baa3b666316ec7100121909"
+  },
+  "exportNamedPhraseSeparator": ", ",
+  "@exportNamedPhraseSeparator": {
+    "x-sourceSha256": "0a07f659461970d8d8dcefe4fff96a1745599810dc7d47391e95c803b7b2072c"
+  },
   "danceFigureBars": "{halfBars, plural, =1{{bars} takt} =2{{bars} takt} other{{bars} takter}}",
   "@danceFigureBars": {
     "x-sourceSha256": "032e08ee5ee7e58a2100ce26ef840a137682a824c2dcbe8f36fefbae76971c86"

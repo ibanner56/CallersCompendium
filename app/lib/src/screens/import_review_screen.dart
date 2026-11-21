@@ -10,6 +10,7 @@ import '../../l10n/app_localizations.dart';
 import '../data/user_figures_scope.dart';
 import '../data/dialect_library_scope.dart';
 import '../data/show_custom_figures_scope.dart';
+import '../glossary/custom_figures.dart';
 import '../glossary/cc_term_import.dart';
 import '../glossary/user_figure_import.dart';
 import '../theme/app_spacing.dart';
@@ -2428,33 +2429,12 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       ...?DialectLibraryScope.maybeOf(context)?.allCustomDialects,
     ];
     final tokens = ShorthandMappingsScope.tokensOf(context);
-    final nameTaken = {
-      for (final item in items)
-        if (item.kind != UserFigureImportKind.same &&
-            glossaryNameCollisions(
-              item.incoming.name,
-              taxonomy: contraTaxonomy,
-              dialects: dialects,
-              shorthandTokens: tokens,
-              // Taking theirs replaces the figure with the same id, so its
-              // name is not a clash; a copy's id belongs to another entry.
-              userEntryNames: [
-                for (final entry in live)
-                  if (item.kind != UserFigureImportKind.differs ||
-                      entry.id != item.incoming.id)
-                    entry.name,
-                // Another figure this file brings may take the name too.
-                for (final other in items)
-                  if (other.kind != UserFigureImportKind.same &&
-                      !identical(other, item))
-                    other.incoming.name,
-              ],
-              exceptUserFigureId: item.kind == UserFigureImportKind.copy
-                  ? null
-                  : item.incoming.id,
-            ).isNotEmpty)
-          item.incoming.id,
-    };
+    final nameTaken = importedFiguresWithTakenNames(
+      items,
+      live: live,
+      dialects: dialects,
+      shorthandTokens: tokens,
+    );
     final choices = await Navigator.of(context).push<UserFigureImportChoices>(
       MaterialPageRoute(
         builder: (_) =>

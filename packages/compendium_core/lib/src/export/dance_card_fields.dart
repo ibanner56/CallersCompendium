@@ -48,7 +48,10 @@ List<String> danceCardMetaLines(
 /// C, ADR-006 §9.2 point 8) read the way English callers write them: the
 /// phrases in playing order, then each one's bars, so `A:2*4*2 + B:1*8*2`
 /// prints `AAB (A 4 bars, B 8 bars)`. Bars use [DanceExportLabels.bars], as
-/// a figure's count does. Any other structure prints as stored, trimmed:
+/// a figure's count does, and the punctuation is the locale's
+/// ([DanceExportLabels.namedPhrases], [DanceExportLabels.namedPhraseSeparator]),
+/// so Japanese prints `AAB（A 4小節、B 8小節）`. Any other structure prints as
+/// stored, trimmed:
 /// making the contra notation readable is issue #2304.
 String phraseStructureText(
   PhraseStructure structure,
@@ -59,8 +62,8 @@ String phraseStructureText(
   final order = named.map((p) => p.name * p.plays).join();
   final bars = named
       .map((p) => '${p.name} ${labels.bars('${p.bars}', p.bars * 2)}')
-      .join(', ');
-  return '$order ($bars)';
+      .join(labels.namedPhraseSeparator);
+  return labels.namedPhrases(order, bars);
 }
 
 /// Resolved, non-blank author names for the dance card, gated on

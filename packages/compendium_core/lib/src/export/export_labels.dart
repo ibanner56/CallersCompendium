@@ -24,6 +24,8 @@ import '../model/bar_count.dart';
 
 String _englishBeats(int beats) => '$beats ${beats == 1 ? 'beat' : 'beats'}';
 
+String _englishNamedPhrases(String order, String bars) => '$order ($bars)';
+
 String _englishBars(String bars, int halfBars) =>
     '$bars ${halfBars == 1 || halfBars == 2 ? 'bar' : 'bars'}';
 
@@ -56,6 +58,8 @@ class DanceExportLabels {
     this.sources = 'Sources',
     this.beats = _englishBeats,
     this.bars = _englishBars,
+    this.namedPhrases = _englishNamedPhrases,
+    this.namedPhraseSeparator = ', ',
     this.pageOf = _englishPageOf,
   });
 
@@ -88,6 +92,16 @@ class DanceExportLabels {
   /// the count as written ([barsText]) and `halfBars` the same count in half
   /// bars, which picks the plural (1 is half a bar, 2 is one bar).
   final String Function(String bars, int halfBars) bars;
+
+  /// Named phrases as a card prints them: [order] is the phrases in playing
+  /// order, such as `AAB`, and `bars` each phrase's bars, joined by
+  /// [namedPhraseSeparator], such as `A 4 bars, B 8 bars`. English writes
+  /// `AAB (A 4 bars, B 8 bars)`; Japanese uses full-width parentheses.
+  final String Function(String order, String bars) namedPhrases;
+
+  /// Between two phrases' bars in [namedPhrases]: `", "` in English, `"、"`
+  /// in Japanese.
+  final String namedPhraseSeparator;
 
   /// A figure's count of [beats] as an export shows it: in bars of
   /// [beatsPerBar] beats for a dance timed in bars ([danceBeatsPerBar]), or in

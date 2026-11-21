@@ -1065,6 +1065,37 @@ void _formFilterTests() {
     expect(_titlesInOrder(tester), hasLength(3));
   });
 
+  testWidgets('the list builds only the rows on screen', (tester) async {
+    // Many programs of mixed types (ADR-006): the type line and the chips
+    // must not make every row build. A measurement with timings is in
+    // programs_list_bench_test.dart.
+    final repos = openTestRepositories();
+    await repos.dances.create(dance('c', DanceForm.contra));
+    await repos.dances.create(dance('e', DanceForm.ecd));
+    const count = 200;
+    for (var i = 0; i < count; i++) {
+      await repos.programs.create(
+        _program(
+          id: 'p$i',
+          title: 'Program ${i.toString().padLeft(3, '0')}',
+          slots: [
+            if (i % 3 != 1) ProgramSlot(id: 'p$i-c', position: 0, danceId: 'c'),
+            if (i % 3 != 0) ProgramSlot(id: 'p$i-e', position: 1, danceId: 'e'),
+          ],
+        ),
+      );
+    }
+    await _pump(tester, repos);
+    int built() => tester
+        .widgetList(find.byType(ProgramListTile, skipOffstage: false))
+        .length;
+    expect(built(), inInclusiveRange(1, 40));
+    await tester.tap(find.byKey(const ValueKey('programs-form-contra')));
+    await tester.pumpAndSettle();
+    expect(built(), inInclusiveRange(1, 40));
+    expect(_titlesInOrder(tester).first, 'Program 000');
+  });
+
   testWidgets('a deleted dance stops counting at once', (tester) async {
     final repos = openTestRepositories();
     await seed(repos);
