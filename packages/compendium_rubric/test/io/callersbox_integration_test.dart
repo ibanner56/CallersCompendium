@@ -209,6 +209,31 @@ void main() {
   });
 
   group('the payload entry point', () {
+    test('an undecodable transcription is the adapter\'s failure, not an '
+        'empty dance', () async {
+      // compendium_core holds a transcription as a sealed FigureSource so that
+      // an undecodable one cannot pass for an empty list; this is the one
+      // place the compiler meets that case, and it must keep it apart.
+      final draft = await _draft();
+      final now = DateTime.utc(2020);
+      final unreadable = core.StructuredDraft(
+        dance: core.Dance(
+          id: 'unreadable',
+          title: draft.dance.title,
+          formation: draft.dance.formation,
+          figuresSource: const core.UnreadableFigures('not json'),
+          createdAt: now,
+          updatedAt: now,
+        ),
+        raw: draft.raw,
+      );
+
+      final run = runCoreDance(unreadable);
+
+      expect(run.outcome, DanceOutcome.adapterFailed);
+      expect(decodedFigures(unreadable.dance), isNull);
+    });
+
     test('it runs a raw payload end to end', () async {
       final runs = await runCallersBoxPayload(_payload(), label: _fixture.path);
       expect(runs, hasLength(1));
